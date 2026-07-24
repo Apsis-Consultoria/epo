@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Nova auditoria — Auditoria de EPOs</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    /* ==========================================================================
+       Assistente de auditoria — mobile-first, uma pergunta por tela.
+       Pensado para ser aberto no navegador do celular em campo.
+       ========================================================================== */
+    html, body { height: 100%; }
+    body.wiz-body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
+
+    .wiz-shell {
+      min-height: 100dvh;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      max-width: 560px;
+      margin: 0 auto;
+      background: var(--surface);
+      position: relative;
+    }
+
+    .wiz-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: max(12px, env(safe-area-inset-top)) 16px 10px;
+      flex: 0 0 auto;
+    }
+    .wiz-icon-btn {
+      width: 36px; height: 36px; flex: 0 0 36px;
+      border-radius: 50%;
+      border: 0;
+      background: var(--surface-2);
+      color: var(--text-2);
+      display: grid; place-items: center;
+      font-size: 18px;
+      text-decoration: none;
+    }
+    .wiz-progress-track { flex: 1; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+    .wiz-progress-fill { height: 100%; background: var(--apsis-orange); border-radius: 99px; width: 0%; transition: width .25s ease; }
+    .wiz-counter { flex: 0 0 auto; min-width: 42px; text-align: right; font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+    .wiz-main { flex: 1; overflow-y: auto; padding: 10px 20px 28px; -webkit-overflow-scrolling: touch; }
+    .wiz-eyebrow { font-size: 12px; font-weight: 600; color: var(--apsis-orange); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
+    .wiz-subeyebrow { font-size: 12px; color: var(--text-muted); margin: -4px 0 14px; }
+    .wiz-question { font-size: 21px; font-weight: 700; line-height: 1.32; color: var(--text); margin: 0 0 14px; }
+
+    .wiz-evidence { display: flex; gap: 8px; align-items: flex-start; background: var(--surface-2); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; color: var(--text-2); margin-bottom: 20px; line-height: 1.5; }
+    .wiz-evidence i { font-size: 16px; flex: 0 0 auto; margin-top: 2px; color: var(--text-2); }
+    .wiz-evidence b { color: var(--text); font-weight: 600; }
+    .wiz-evidence .evidence-tag { margin-top: 6px; }
+
+    .wiz-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+    .wiz-opt {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      min-height: 56px; padding: 14px 16px;
+      border-radius: var(--radius); border: 1.5px solid var(--border);
+      background: var(--surface); font-size: 15px; font-weight: 600; color: var(--text);
+      cursor: pointer; transition: border-color .15s ease, background .15s ease, color .15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wiz-opt i { font-size: 20px; flex: 0 0 auto; color: var(--text-muted); }
+    .wiz-opt[data-val="conforme"].is-selected { border-color: var(--success); background: var(--success-bg); color: var(--success); }
+    .wiz-opt[data-val="conforme"].is-selected i { color: var(--success); }
+    .wiz-opt[data-val="nao"].is-selected { border-color: var(--danger); background: var(--danger-bg); color: var(--danger); }
+    .wiz-opt[data-val="nao"].is-selected i { color: var(--danger); }
+    .wiz-opt[data-val="na"].is-selected { border-color: var(--text-muted); background: var(--surface-2); color: var(--text); }
+    .wiz-opt[data-val="na"].is-selected i { color: var(--text-2); }
+
+    .wiz-field { margin-bottom: 18px; }
+    .wiz-field label { display: block; font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; }
+    .wiz-field input, .wiz-field select, .wiz-field textarea {
+      width: 100%; padding: 13px 14px; border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border); background: var(--surface);
+      font-size: 16px; color: var(--text); font-family: inherit;
+    }
+    .wiz-field textarea { min-height: 84px; resize: vertical; line-height: 1.5; }
+    .wiz-field .hint-static { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+
+    .wiz-attach {
+      display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+      min-height: 52px; padding: 14px; border-radius: var(--radius);
+      border: 1.5px dashed var(--border-strong); background: var(--surface-2);
+      color: var(--text-2); font-size: 14px; font-weight: 600; margin-bottom: 8px; cursor: pointer;
+    }
+    .wiz-attach.is-attached { border-style: solid; border-color: var(--success); color: var(--success); background: var(--success-bg); }
+    .wiz-attach i { font-size: 18px; }
+
+    .wiz-tempo-stepper { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 28px 0 8px; }
+    .wiz-stepper-btn {
+      width: 48px; height: 48px; border-radius: 50%; flex: 0 0 48px;
+      border: 1.5px solid var(--border-strong); background: var(--surface);
+      color: var(--text); font-size: 22px; font-weight: 600; display: grid; place-items: center; cursor: pointer;
+    }
+    .wiz-stepper-btn:active { background: var(--surface-2); }
+    .wiz-tempo-input-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 120px; }
+    .wiz-tempo-input-wrap input {
+      width: 120px; text-align: center; font-size: 38px; font-weight: 700;
+      border: 0; border-bottom: 2px solid var(--border-strong); background: transparent; color: var(--text);
+      padding: 4px 0;
+    }
+    .wiz-tempo-input-wrap input:focus { outline: none; border-color: var(--apsis-orange); }
+    .wiz-tempo-input-wrap span { font-size: 13px; color: var(--text-muted); }
+
+    .wiz-summary-card { background: var(--surface-2); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; text-align: center; }
+    .wiz-summary-score { font-size: 42px; font-weight: 700; line-height: 1; }
+    .wiz-summary-tier { margin-top: 8px; }
+    .wiz-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+    .wiz-summary-stat { background: var(--surface); border-radius: var(--radius-sm); padding: 12px; }
+    .wiz-summary-stat b { display: block; font-size: 20px; line-height: 1.2; }
+    .wiz-summary-stat span { font-size: 12px; color: var(--text-2); }
+
+    .wiz-skip { display: block; width: 100%; text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 2px; text-decoration: underline; background: none; border: 0; cursor: pointer; padding: 10px; }
+
+    .wiz-footer {
+      display: flex; gap: 10px; flex: 0 0 auto;
+      padding: 12px 16px max(14px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border); background: var(--surface);
+      position: sticky; bottom: 0;
+    }
+    .wiz-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      height: 50px; border-radius: var(--radius); font-size: 15px; font-weight: 600;
+      border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .wiz-btn i { font-size: 18px; }
+    .wiz-btn-back { flex: 0 0 100px; background: var(--surface-2); color: var(--text-2); }
+    .wiz-btn-back:disabled { visibility: hidden; }
+    .wiz-btn-next { flex: 1; background: var(--apsis-green); color: #fff; }
+    .wiz-btn-next:disabled { opacity: .4; cursor: not-allowed; }
+    .wiz-btn-next.is-submit { background: var(--apsis-orange); }
+
+    @media (min-width: 640px) {
+      body.wiz-body { background: var(--surface-2); }
+      .wiz-shell { margin: 28px auto; min-height: calc(100vh - 56px); border-radius: 20px; box-shadow: var(--shadow-md); overflow: hidden; }
+    }
+  </style>
+</head>
+<body class="wiz-body">
+  <div class="wiz-shell">
+    <header class="wiz-header">
+      <a class="wiz-icon-btn" href="index.html" aria-label="Sair da auditoria"><i class="ti ti-x" aria-hidden="true"></i></a>
+      <div class="wiz-progress-track"><div class="wiz-progress-fill" id="wiz-progress"></div></div>
+      <span class="wiz-counter" id="wiz-counter">1/1</span>
+    </header>
+    <main class="wiz-main" id="wiz-main"></main>
+    <footer class="wiz-footer">
+      <button class="wiz-btn wiz-btn-back" id="wiz-back" type="button"><i class="ti ti-chevron-left" aria-hidden="true"></i>Voltar</button>
+      <button class="wiz-btn wiz-btn-next" id="wiz-next" type="button">Próxima<i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+    </footer>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var esc = App.escapeHtml;
+      var epos = window.APP.epos || [];
+      var checklist = window.APP.checklist || [];
+      var rules = window.APP.tierRules || { ouroMin: 85, prataMin: 70, bronzeMin: 55 };
+
+      document.title = "Nova auditoria — Auditoria de EPOs";
+
+      // ---------------------------------------------------------------- Steps
+      var TEMPOS_DEFS = [
+        { key: "chegada", label: "Quanto tempo levou até a máquina chegar à EPO?", icon: "ti-truck-delivery" },
+        { key: "inicioReparo", label: "Quanto tempo levou até iniciar o reparo?", icon: "ti-tool" },
+        { key: "conclusaoReparo", label: "Quanto tempo levou até concluir o reparo?", icon: "ti-checkbox" },
+        { key: "retorno", label: "Quanto tempo levou o retorno da máquina ao campo?", icon: "ti-arrow-back-up" }
+      ];
+
+      var steps = [];
+      steps.push({ type: "identificacao" });
+      TEMPOS_DEFS.forEach(function (def) { steps.push({ type: "tempo", def: def }); });
+      checklist.forEach(function (bloco, bi) {
+        bloco.itens.forEach(function (item, ii) {
+          steps.push({ type: "item", bloco: bloco, item: item, posNoBloco: ii + 1, totalNoBloco: bloco.itens.length });
+        });
+      });
+      steps.push({ type: "assinaturas" });
+      steps.push({ type: "resumo" });
+
+      // ---------------------------------------------------------------- Estado
+      var state = {
+        epoId: (App.getParam("epo") && App.epoById(App.getParam("epo"))) ? App.getParam("epo") : (epos[0] && epos[0].id),
+        cidade: "", uf: "", data: "", auditor: "Ana Ribeiro",
+        tempos: { chegada: null, inicioReparo: null, conclusaoReparo: null, retorno: null },
+        respostas: {}, // id -> { status, obs, foto }
+        assin: { respEpo: "", respClaro: "", data: "" }
+      };
+      (function initEpo() {
+        var e = App.epoById(state.epoId);
+        if (e) { state.cidade = e.cidade; state.uf = e.uf; }
+      })();
+
+      var cur = 0;
+
+      // ------------------------------------------------------------- Helpers
+      function respostaDe(id) {
+        if (!state.respostas[id]) state.respostas[id] = { status: null, obs: "", foto: false };
+        return state.respostas[id];
+      }
+
+      function computeScore() {
+        var totalW = 0, acc = 0;
+        var counts = { conforme: 0, nao: 0, na: 0, semResposta: 0 };
+        checklist.forEach(function (b) {
+          var conf = 0, ans = 0;
+          b.itens.forEach(function (it) {
+            var r = state.respostas[it.id];
+            if (!r || !r.status) { counts.semResposta++; return; }
+            if (r.status === "na") { counts.na++; return; }
+            ans++;
+            if (r.status === "conforme") { conf++; counts.conforme++; } else { counts.nao++; }
+          });
+          if (ans > 0) {
+            var s = conf / ans;
+            totalW += b.peso;
+            acc += b.peso * s;
+          }
+        });
+        var score01 = totalW > 0 ? acc / totalW : 0;
+        var answered = counts.conforme + counts.nao + counts.na;
+        return { score01: score01, pts: score01 * 100, counts: counts, answered: answered };
+      }
+
+      // -------------------------------------------------------- Renderizações
+      function renderIdentificacao() {
+        var epoOpts = epos.map(function (e) {
+          return '<option value="' + e.id + '"' + (e.id === state.epoId ? " selected" : "") + ">" + esc(e.nome) + "</option>";
+        }).join("");
+        return (
+          '<p class="wiz-eyebrow">Identificação</p>' +
+          '<h1 class="wiz-question">Vamos começar a auditoria</h1>' +
+          '<div class="wiz-field">' +
+            '<label for="f-epo">EPO auditada</label>' +
+            '<select class="input" id="f-epo">' + epoOpts + "</select>" +
+            '<p class="hint-static" id="f-epo-local">' + esc(state.cidade) + " · " + esc(state.uf) + "</p>" +
+          "</div>" +
+          '<div class="wiz-field"><label for="f-data">Data da visita</label><input class="input" id="f-data" type="date" value="' + esc(state.data) + '"></div>' +
+          '<div class="wiz-field"><label for="f-auditor">Auditor</label><input class="input" id="f-auditor" value="' + esc(state.auditor) + '"></div>'
+        );
+      }
+
+      function renderTempo(def) {
+        var val = state.tempos[def.key];
+        return (
+          '<p class="wiz-eyebrow">Tempos do ciclo</p>' +
+          '<h1 class="wiz-question">' + esc(def.label) + "</h1>" +
+          '<div class="wiz-evidence"><i class="ti ' + def.icon + '" aria-hidden="true"></i><span>Registre em <b>dias</b>. Esse é o dado que mostra se a máquina está ficando parada além do esperado.</span></div>' +
+          '<div class="wiz-tempo-stepper">' +
+            '<button class="wiz-stepper-btn" type="button" data-step="-1" aria-label="Diminuir">–</button>' +
+            '<div class="wiz-tempo-input-wrap">' +
+              '<input type="number" inputmode="decimal" min="0" step="0.1" id="f-tempo" value="' + (val == null ? "" : val) + '" placeholder="0">' +
+              "<span>dias</span>" +
+            "</div>" +
+            '<button class="wiz-stepper-btn" type="button" data-step="1" aria-label="Aumentar">+</button>' +
+          "</div>"
+        );
+      }
+
+      function renderItem(step) {
+        var it = step.item;
+        var r = respostaDe(it.id);
+        var fotoTag = it.requerFoto ? ' <span class="evidence-tag"><i class="ti ti-camera" aria-hidden="true"></i>foto obrigatória</span>' : "";
+        var opts = [
+          { val: "conforme", icon: "ti-check", label: "Conforme" },
+          { val: "nao", icon: "ti-x", label: "Não conforme" },
+          { val: "na", icon: "ti-minus", label: "Não se aplica" }
+        ];
+        return (
+          '<p class="wiz-eyebrow">' + esc(step.bloco.bloco) + "</p>" +
+          '<p class="wiz-subeyebrow">Item ' + step.posNoBloco + " de " + step.totalNoBloco + " desta seção</p>" +
+          '<h1 class="wiz-question">' + esc(it.pergunta) + "</h1>" +
+          '<div class="wiz-evidence"><i class="ti ti-file-check" aria-hidden="true"></i><span><b>Evidência esperada:</b> ' + esc(it.evidencia || "—") + fotoTag + "</span></div>" +
+          '<div class="wiz-options" id="wiz-options">' +
+            opts.map(function (o) {
+              var sel = r.status === o.val ? " is-selected" : "";
+              return '<button type="button" class="wiz-opt' + sel + '" data-val="' + o.val + '"><i class="ti ' + o.icon + '" aria-hidden="true"></i>' + o.label + "</button>";
+            }).join("") +
+          "</div>" +
+          '<div class="wiz-field"><label for="f-obs">Observações</label><textarea id="f-obs" placeholder="Detalhes, divergências, contexto…">' + esc(r.obs) + "</textarea></div>" +
+          '<button type="button" class="wiz-attach' + (r.foto ? " is-attached" : "") + '" id="wiz-attach">' +
+            (r.foto
+              ? '<i class="ti ti-photo-check" aria-hidden="true"></i>Evidência anexada'
+              : '<i class="ti ti-camera-plus" aria-hidden="true"></i>Anexar foto de evidência') +
+          "</button>"
+        );
+      }
+
+      function renderAssinaturas() {
+        return (
+          '<p class="wiz-eyebrow">Finalização</p>' +
+          '<h1 class="wiz-question">Classificação e assinaturas</h1>' +
+          '<div class="wiz-field"><label for="f-resp-epo">Responsável pela EPO</label><input class="input" id="f-resp-epo" value="' + esc(state.assin.respEpo) + '" placeholder="Nome"></div>' +
+          '<div class="wiz-field"><label for="f-resp-claro">Responsável Claro / auditor</label><input class="input" id="f-resp-claro" value="' + esc(state.assin.respClaro) + '" placeholder="Nome"></div>' +
+          '<div class="wiz-field"><label for="f-assin-data">Data</label><input class="input" id="f-assin-data" type="date" value="' + esc(state.assin.data) + '"></div>'
+        );
+      }
+
+      function renderResumo() {
+        var r = computeScore();
+        var tier = r.answered > 0 ? App.tierOf(r.pts) : null;
+        var meta = tier ? App.tierMeta(tier) : null;
+        var totalItens = checklist.reduce(function (s, b) { return s + b.itens.length; }, 0);
+        return (
+          '<p class="wiz-eyebrow">Resumo</p>' +
+          '<h1 class="wiz-question">Auditoria pronta para envio</h1>' +
+          '<div class="wiz-summary-card">' +
+            '<div class="wiz-summary-score tnum">' + r.score01.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "</div>" +
+            '<div class="wiz-summary-tier">' + (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : '<span class="badge">Sem avaliação</span>') + "</div>" +
+            '<div class="wiz-summary-grid">' +
+              '<div class="wiz-summary-stat"><b>' + r.counts.conforme + "</b><span>Conforme</span></div>" +
+              '<div class="wiz-summary-stat"><b>' + r.counts.nao + "</b><span>Não conforme</span></div>" +
+              '<div class="wiz-summary-stat"><b>' + r.counts.na + "</b><span>Não se aplica</span></div>" +
+              '<div class="wiz-summary-stat"><b>' + r.counts.semResposta + "</b><span>Não respondidos</span></div>" +
+            "</div>" +
+          "</div>" +
+          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' + r.answered + " de " + totalItens + ' itens do checklist avaliados. Protótipo — nada é gravado no servidor ainda.</p>' +
+          '<button type="button" class="wiz-btn wiz-btn-back" style="width:100%;flex:1 1 auto;margin-bottom:8px;" id="btn-rascunho"><i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho</button>'
+        );
+      }
+
+      // ------------------------------------------------------------- Render
+      var main = document.getElementById("wiz-main");
+      var backBtn = document.getElementById("wiz-back");
+      var nextBtn = document.getElementById("wiz-next");
+      var progressFill = document.getElementById("wiz-progress");
+      var counterEl = document.getElementById("wiz-counter");
+
+      function stepAnswered(index) {
+        var step = steps[index];
+        if (step.type !== "item") return true;
+        var r = state.respostas[step.item.id];
+        return !!(r && r.status);
+      }
+
+      function renderStep() {
+        var step = steps[cur];
+        var html;
+        if (step.type === "identificacao") html = renderIdentificacao();
+        else if (step.type === "tempo") html = renderTempo(step.def);
+        else if (step.type === "item") html = renderItem(step);
+        else if (step.type === "assinaturas") html = renderAssinaturas();
+        else html = renderResumo();
+
+        main.innerHTML = html;
+        main.scrollTop = 0;
+        wireStep(step);
+        updateChrome();
+      }
+
+      function wireStep(step) {
+        if (step.type === "identificacao") {
+          var epoSel = document.getElementById("f-epo");
+          epoSel.addEventListener("change", function () {
+            state.epoId = epoSel.value;
+            var e = App.epoById(state.epoId);
+            if (e) {
+              state.cidade = e.cidade; state.uf = e.uf;
+              document.getElementById("f-epo-local").textContent = e.cidade + " · " + e.uf;
+            }
+          });
+          document.getElementById("f-data").addEventListener("input", function (ev) { state.data = ev.target.value; });
+          document.getElementById("f-auditor").addEventListener("input", function (ev) { state.auditor = ev.target.value; });
+        } else if (step.type === "tempo") {
+          var input = document.getElementById("f-tempo");
+          function setVal(v) {
+            v = Math.max(0, Math.round(v * 10) / 10);
+            input.value = v;
+            state.tempos[step.def.key] = v;
+          }
+          input.addEventListener("input", function () {
+            var v = parseFloat(input.value);
+            state.tempos[step.def.key] = isNaN(v) ? null : v;
+          });
+          Array.prototype.forEach.call(document.querySelectorAll(".wiz-stepper-btn"), function (btn) {
+            btn.addEventListener("click", function () {
+              var cur0 = parseFloat(input.value) || 0;
+              setVal(cur0 + parseFloat(btn.getAttribute("data-step")) * 0.5);
+            });
+          });
+        } else if (step.type === "item") {
+          var r = respostaDe(step.item.id);
+          Array.prototype.forEach.call(document.querySelectorAll(".wiz-opt"), function (btn) {
+            btn.addEventListener("click", function () {
+              r.status = btn.getAttribute("data-val");
+              Array.prototype.forEach.call(document.querySelectorAll(".wiz-opt"), function (b2) { b2.classList.remove("is-selected"); });
+              btn.classList.add("is-selected");
+              updateChrome();
+            });
+          });
+          document.getElementById("f-obs").addEventListener("input", function (ev) { r.obs = ev.target.value; });
+          document.getElementById("wiz-attach").addEventListener("click", function () {
+            r.foto = !r.foto;
+            renderStep();
+          });
+        } else if (step.type === "assinaturas") {
+          document.getElementById("f-resp-epo").addEventListener("input", function (ev) { state.assin.respEpo = ev.target.value; });
+          document.getElementById("f-resp-claro").addEventListener("input", function (ev) { state.assin.respClaro = ev.target.value; });
+          document.getElementById("f-assin-data").addEventListener("input", function (ev) { state.assin.data = ev.target.value; });
+        } else if (step.type === "resumo") {
+          document.getElementById("btn-rascunho").addEventListener("click", function () {
+            App.toast("Rascunho salvo (protótipo).");
+          });
+        }
+      }
+
+      function updateChrome() {
+        var pct = ((cur + 1) / steps.length) * 100;
+        progressFill.style.width = pct + "%";
+        counterEl.textContent = (cur + 1) + "/" + steps.length;
+        backBtn.disabled = cur === 0;
+
+        var isLast = cur === steps.length - 1;
+        nextBtn.classList.toggle("is-submit", isLast);
+        nextBtn.innerHTML = isLast
+          ? 'Enviar auditoria<i class="ti ti-send" aria-hidden="true"></i>'
+          : 'Próxima<i class="ti ti-chevron-right" aria-hidden="true"></i>';
+        nextBtn.disabled = !stepAnswered(cur);
+      }
+
+      backBtn.addEventListener("click", function () {
+        if (cur > 0) { cur -= 1; renderStep(); }
+      });
+
+      nextBtn.addEventListener("click", function () {
+        if (nextBtn.disabled) return;
+        if (cur === steps.length - 1) {
+          App.toast("Auditoria pronta para envio (protótipo — nada foi gravado).");
+          return;
+        }
+        cur += 1;
+        renderStep();
+      });
+
+      renderStep();
+    })();
+  </script>
+</body>
+</html>

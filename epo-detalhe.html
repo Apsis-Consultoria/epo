@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Detalhe da EPO — Auditoria de EPOs</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    /* Ajustes locais desta tela (pequenos; reutiliza o design system) */
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-weight: 500; margin-bottom: 16px; transition: color .15s ease; }
+    .back-link:hover { color: var(--text); }
+    .epo-title { font-size: 22px; font-weight: 600; letter-spacing: -.02em; color: var(--text); }
+    .epo-head-score { min-width: 200px; }
+    .epo-score-num { font-size: 40px; font-weight: 600; line-height: 1; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+    .chart-wrap { position: relative; height: 280px; }
+    .nc-list { display: flex; flex-direction: column; }
+    .nc-item { display: flex; gap: 14px; padding: 16px 0; border-top: 1px solid var(--border); }
+    .nc-item:first-child { border-top: 0; padding-top: 0; }
+    .nc-thumb { flex: 0 0 76px; width: 76px; }
+    .nc-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .nc-item-title { font-weight: 500; color: var(--text); }
+    @media (max-width: 560px) { .epo-head-score { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var APP = window.APP || {};
+      var esc = App.escapeHtml;
+
+      // -------------------------------------------------- Resolve a EPO
+      var id = App.getParam("id");
+      var epo = App.epoById(id) || (APP.epos && APP.epos[0]);
+
+      if (!epo) {
+        Layout.mount("ranking", "Detalhe da EPO");
+        document.getElementById("page").innerHTML =
+          '<div class="card"><div class="empty">' +
+            '<i class="ti ti-mood-empty" aria-hidden="true"></i>' +
+            "Nenhuma EPO encontrada." +
+          "</div></div>";
+        return;
+      }
+
+      var tier = epo.tier || App.tierOf(epo.score);
+      var meta = App.tierMeta(tier);
+
+      // Posição no ranking (por score desc)
+      var ordenadas = (APP.epos || []).slice().sort(function (a, b) { return b.score - a.score; });
+      var posicao = ordenadas.findIndex(function (e) { return e.id === epo.id; }) + 1;
+      var total = ordenadas.length;
+
+      // Monta o shell — título = nome da EPO, item de menu ativo = Ranking
+      Layout.mount("ranking", epo.nome);
+
+      // -------------------------------------------------- Helpers locais
+      function fmtData(iso) {
+        if (!iso) return "—";
+        var p = String(iso).split("-");
+        return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : iso;
+      }
+      function cssVar(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      }
+      function hexToRgba(hex, a) {
+        hex = String(hex).replace("#", "");
+        if (hex.length === 3) hex = hex.split("").map(function (c) { return c + c; }).join("");
+        var n = parseInt(hex, 16);
+        return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
+      }
+
+      var novaAuditoriaHref = "auditoria.html?epo=" + encodeURIComponent(epo.id);
+
+      // -------------------------------------------------- Cabeçalho (identidade + score)
+      var headerHtml =
+        '<div class="card">' +
+          '<div class="row-between wrap" style="gap:24px;">' +
+            '<div class="stack stack-sm grow">' +
+              '<div class="row wrap" style="gap:12px;">' +
+                '<h2 class="epo-title">' + esc(epo.nome) + "</h2>" +
+                '<span class="badge ' + meta.cls + '"><i class="ti ti-award" aria-hidden="true"></i>' + meta.label + "</span>" +
+              "</div>" +
+              '<div class="row wrap" style="gap:16px;">' +
+                '<span class="muted row" style="gap:6px;"><i class="ti ti-map-pin" aria-hidden="true"></i>' + esc(epo.cidade) + " · " + esc(epo.uf) + "</span>" +
+                '<span class="chip"><i class="ti ti-trophy" aria-hidden="true"></i>' + posicao + "º de " + total + " no ranking</span>" +
+              "</div>" +
+              '<div style="margin-top:8px;">' +
+                '<a class="btn btn-primary" href="' + novaAuditoriaHref + '">' +
+                  '<i class="ti ti-clipboard-plus" aria-hidden="true"></i>Nova auditoria para esta EPO' +
+                "</a>" +
+              "</div>" +
+            "</div>" +
+            '<div class="epo-head-score stack stack-sm">' +
+              '<span class="kpi-label">Pontuação</span>' +
+              '<div class="row" style="gap:8px; align-items:baseline;">' +
+                '<span class="epo-score-num">' + epo.score + "</span>" +
+                '<span class="text-muted">/ 100</span>' +
+              "</div>" +
+              '<div class="score-bar"><div class="score-fill tier-' + tier + '" style="width:' + epo.score + '%;"></div></div>' +
+            "</div>" +
+          "</div>" +
+        "</div>";
+
+      // -------------------------------------------------- KPIs
+      function kpi(label, icon, value, deltaHtml) {
+        return (
+          '<div class="kpi">' +
+            '<div class="kpi-top">' +
+              '<span class="kpi-label">' + label + "</span>" +
+              '<span class="kpi-icon"><i class="ti ' + icon + '" aria-hidden="true"></i></span>' +
+            "</div>" +
+            '<span class="kpi-value">' + value + "</span>" +
+            (deltaHtml || "") +
+          "</div>"
+        );
+      }
+
+      var kpisHtml =
+        '<div class="kpi-grid">' +
+          kpi("Tempo de parada", "ti-clock-pause", App.fmtDias(epo.tempoParada)) +
+          kpi("Conformidade", "ti-shield-check", App.fmtPct(epo.conformidade)) +
+          kpi("Não conformidades", "ti-alert-triangle", App.fmtNum(epo.ncs)) +
+          kpi(
+            "Equipamentos",
+            "ti-package",
+            App.fmtNum(epo.equipamentos),
+            '<span class="kpi-delta down"><i class="ti ti-alert-circle" aria-hidden="true"></i>' +
+              App.fmtNum(epo.equipamentosParados) + " parados</span>"
+          ) +
+        "</div>";
+
+      // -------------------------------------------------- Ciclo do equipamento
+      function cicloStep(label, icon, value) {
+        return (
+          '<div class="cycle-step">' +
+            '<div class="cycle-step-icon"><i class="ti ' + icon + '" aria-hidden="true"></i></div>' +
+            '<div class="cycle-step-body">' +
+              '<span class="cycle-step-label">' + label + "</span>" +
+              '<span class="cycle-step-value">' + App.fmtDias(value) + "</span>" +
+            "</div>" +
+          "</div>"
+        );
+      }
+      var seta = '<div class="cycle-arrow" aria-hidden="true"><i class="ti ti-arrow-right"></i></div>';
+
+      var cicloHtml =
+        '<div class="card">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Ciclo do equipamento</span>' +
+              '<span class="subtitle">Máquina parada não gera receita — tempos médios desta EPO</span>' +
+            "</div>" +
+          "</div>" +
+          '<div class="cycle">' +
+            cicloStep("Chegada à EPO", "ti-truck-delivery", epo.tempoChegada) +
+            seta +
+            cicloStep("Reparo interno", "ti-tool", epo.tempoReparo) +
+            seta +
+            cicloStep("Retorno ao campo", "ti-arrow-back-up", epo.tempoRetorno) +
+          "</div>" +
+        "</div>";
+
+      // -------------------------------------------------- Gráfico de evolução
+      var chartHtml =
+        '<div class="card">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Evolução da pontuação</span>' +
+              '<span class="subtitle">Últimos 6 meses</span>' +
+            "</div>" +
+          "</div>" +
+          '<div class="chart-wrap"><canvas id="scoreChart" role="img" aria-label="Gráfico de linha da evolução da pontuação de ' +
+            esc(epo.nome) + '"></canvas></div>' +
+        "</div>";
+
+      // -------------------------------------------------- Não conformidades
+      var ordemGrav = { alta: 0, media: 1, baixa: 2 };
+      var ncs = (epo.naoConformidades || []).slice().sort(function (a, b) {
+        return (ordemGrav[a.gravidade] || 0) - (ordemGrav[b.gravidade] || 0);
+      });
+
+      var ncItens = ncs.map(function (nc) {
+        var g = App.badgeGravidade(nc.gravidade);
+        var thumb = nc.evidencia
+          ? '<div class="nc-thumb"><div class="photo-ph sm"><i class="ti ti-photo" aria-hidden="true"></i></div></div>'
+          : "";
+        var fotoTag = nc.evidencia
+          ? '<span class="evidence-tag"><i class="ti ti-camera" aria-hidden="true"></i>foto</span>'
+          : "";
+        return (
+          '<div class="nc-item">' +
+            thumb +
+            '<div class="nc-body">' +
+              '<div class="row wrap" style="gap:8px;">' +
+                '<span class="badge ' + g.cls + '">' + g.label + "</span>" +
+                '<span class="tag">' + esc(nc.bloco) + "</span>" +
+                fotoTag +
+              "</div>" +
+              '<div class="nc-item-title">' + esc(nc.item) + "</div>" +
+              '<div class="muted">' + esc(nc.legenda) + "</div>" +
+              '<div class="text-muted row" style="gap:6px;"><i class="ti ti-calendar" aria-hidden="true"></i>' + fmtData(nc.data) + "</div>" +
+            "</div>" +
+          "</div>"
+        );
+      }).join("");
+
+      var ncBody = ncs.length
+        ? '<div class="nc-list">' + ncItens + "</div>"
+        : '<div class="empty"><i class="ti ti-circle-check" aria-hidden="true"></i>Nenhuma não conformidade registrada.</div>';
+
+      var ncHtml =
+        '<div class="card">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Não conformidades</span>' +
+              '<span class="subtitle">Itens apontados na última auditoria</span>' +
+            "</div>" +
+            '<div class="card-header-action"><span class="chip">' + ncs.length + " registro" + (ncs.length === 1 ? "" : "s") + "</span></div>" +
+          "</div>" +
+          ncBody +
+        "</div>";
+
+      // -------------------------------------------------- Render
+      document.getElementById("page").innerHTML =
+        '<a class="back-link" href="ranking.html"><i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar ao ranking</a>' +
+        '<div class="stack stack-lg">' +
+          headerHtml +
+          kpisHtml +
+          cicloHtml +
+          chartHtml +
+          ncHtml +
+        "</div>";
+
+      // -------------------------------------------------- Chart.js
+      var hist = epo.historico || [];
+      if (window.Chart && hist.length) {
+        Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+        Chart.defaults.color = cssVar("--text-2");
+
+        var labels = hist.map(function (h) { return h.mes; });
+        var dados = hist.map(function (h) { return h.score; });
+        var cor = cssVar(tier === "ouro" ? "--ouro" : tier === "prata" ? "--prata" : "--bronze");
+        var minY = Math.max(0, Math.min.apply(null, dados) - 6);
+        var maxY = Math.min(100, Math.max.apply(null, dados) + 4);
+
+        new Chart(document.getElementById("scoreChart"), {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Pontuação",
+              data: dados,
+              borderColor: cor,
+              backgroundColor: hexToRgba(cor, 0.12),
+              pointBackgroundColor: cor,
+              pointBorderColor: cssVar("--surface"),
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 5,
+              borderWidth: 2,
+              tension: 0.35,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: "index" },
+            scales: {
+              y: {
+                suggestedMin: minY,
+                suggestedMax: maxY,
+                ticks: { stepSize: 5 },
+                grid: { color: cssVar("--border") },
+                border: { display: false }
+              },
+              x: {
+                grid: { display: false },
+                border: { color: cssVar("--border") }
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: cssVar("--text"),
+                padding: 10,
+                cornerRadius: 8,
+                displayColors: false,
+                callbacks: {
+                  label: function (ctx) { return "Pontuação: " + ctx.parsed.y; }
+                }
+              }
+            }
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

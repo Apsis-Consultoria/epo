@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visão geral — Auditoria de EPOs</title>
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <link rel="stylesheet" href="assets/app.css">
+
+  <style>
+    /* Ajustes locais só desta tela — tudo via tokens do design system. */
+
+    /* Faixa de destaque "Máquina parada não gera receita" */
+    .hero-parada {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 28px;
+      padding: 24px 28px;
+      background: linear-gradient(120deg, var(--primary), var(--primary-600));
+      color: #fff;
+      border: 0;
+      box-shadow: var(--shadow-md);
+    }
+    .hero-parada-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, .85);
+    }
+    .hero-eyebrow i { font-size: 15px; }
+    .hero-title { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+    .hero-desc { font-size: 14px; color: rgba(255, 255, 255, .88); max-width: 540px; }
+    .hero-metric { text-align: right; flex: 0 0 auto; }
+    .hero-label { display: block; font-size: 12px; color: rgba(255, 255, 255, .85); }
+    .hero-num { display: block; font-size: 46px; font-weight: 600; line-height: 1.05; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .hero-foot { display: block; font-size: 12px; color: rgba(255, 255, 255, .75); }
+
+    /* Variações de cor do ícone dos KPIs (mantêm o layout do componente) */
+    .kpi-icon.is-danger  { background: var(--danger-bg);  color: var(--danger); }
+    .kpi-icon.is-warning { background: var(--warning-bg); color: var(--warning); }
+    .kpi-icon.is-success { background: var(--success-bg); color: var(--success); }
+
+    /* Gráficos */
+    .donut-wrap { position: relative; width: 176px; height: 176px; flex: 0 0 auto; }
+    .donut-center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; pointer-events: none; }
+    .donut-total { display: block; font-size: 30px; font-weight: 600; line-height: 1; color: var(--text); }
+    .chart-box { position: relative; height: 200px; }
+
+    .legend { display: flex; flex-direction: column; gap: 2px; }
+    .legend-item { display: flex; align-items: center; gap: 11px; padding: 8px 0; }
+    .legend-item:not(:last-child) { border-bottom: 1px solid var(--border); }
+    .legend-dot { width: 12px; height: 12px; border-radius: 4px; flex: 0 0 auto; }
+    .legend-body { display: flex; flex-direction: column; line-height: 1.25; }
+    .legend-label { font-weight: 500; color: var(--text); }
+    .legend-hint { font-size: 12px; }
+    .legend-count { margin-left: auto; font-size: 16px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+
+    /* Listas de EPOs (Top / Precisam de atenção) */
+    .epo-list { display: flex; flex-direction: column; }
+    .epo-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 8px; border-radius: var(--radius-sm);
+      transition: background .12s ease;
+    }
+    .epo-item:hover { background: var(--surface-2); }
+    .epo-item:not(:last-child) { border-bottom: 1px solid var(--border); }
+    .epo-item .avatar { background: var(--surface-2); color: var(--text-2); }
+    .epo-name { font-weight: 500; color: var(--text); }
+    .epo-sub { display: block; font-size: 12px; margin-top: 4px; }
+    .epo-chevron { color: var(--text-muted); font-size: 18px; flex: 0 0 auto; }
+
+    @media (max-width: 640px) {
+      .hero-parada { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .hero-metric { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var acoes =
+        '<a class="btn btn-primary" href="auditoria.html">' +
+          '<i class="ti ti-plus" aria-hidden="true"></i>Nova auditoria' +
+        '</a>';
+      Layout.mount("geral", "Visão geral", acoes);
+
+      var APP = window.APP;
+      var epos = APP.epos.slice().sort(function (a, b) { return b.score - a.score; });
+      var kpis = APP.kpis;
+      var regras = APP.tierRules;
+
+      // -------- Cálculos derivados (tudo a partir de APP.epos) --------
+      function media(campo) {
+        var s = 0;
+        epos.forEach(function (e) { s += e[campo]; });
+        return s / epos.length;
+      }
+      var avgChegada = media("tempoChegada");
+      var avgReparo = media("tempoReparo");
+      var avgRetorno = media("tempoRetorno");
+
+      var totalEquip = epos.reduce(function (s, e) { return s + e.equipamentos; }, 0);
+
+      var altaCount = 0;
+      epos.forEach(function (e) {
+        (e.naoConformidades || []).forEach(function (nc) {
+          if (nc.gravidade === "alta") altaCount++;
+        });
+      });
+
+      var meses = epos[0].historico.map(function (h) { return h.mes; });
+      var scoreMensal = meses.map(function (m, i) {
+        var s = 0;
+        epos.forEach(function (e) { s += e.historico[i].score; });
+        return Math.round((s / epos.length) * 10) / 10;
+      });
+
+      var top = epos.slice(0, 3);
+      var atencao = epos.slice(-3).reverse(); // do pior para o menos pior
+
+      // -------- Helpers de render --------
+      function iniciais(nome) {
+        return nome.replace(/^EPO\s+/i, "").trim().slice(0, 2).toUpperCase();
+      }
+
+      function epoRow(e, atencaoMode) {
+        var tm = App.tierMeta(e.tier);
+        var sub = atencaoMode
+          ? App.fmtNum(e.ncs) + " não-conformidades · " + App.fmtPct(e.conformidade) + " conformidade"
+          : e.cidade + " · " + e.uf;
+        return (
+          '<a class="epo-item" href="epo-detalhe.html?id=' + encodeURIComponent(e.id) + '">' +
+            '<span class="avatar" aria-hidden="true">' + iniciais(e.nome) + '</span>' +
+            '<span class="grow">' +
+              '<span class="row-between">' +
+                '<span class="epo-name">' + App.escapeHtml(e.nome) + '</span>' +
+                '<span class="badge ' + tm.cls + '">' + tm.label + '</span>' +
+              '</span>' +
+              '<span class="score-row" style="margin-top:8px">' +
+                '<span class="score-bar"><span class="score-fill tier-' + e.tier + '" style="width:' + e.score + '%"></span></span>' +
+                '<span class="score-num">' + e.score + '</span>' +
+              '</span>' +
+              '<span class="epo-sub muted">' + App.escapeHtml(sub) + '</span>' +
+            '</span>' +
+            '<i class="ti ti-chevron-right epo-chevron" aria-hidden="true"></i>' +
+          '</a>'
+        );
+      }
+
+      function kpi(icon, iconMod, label, value, sub, subIcon) {
+        return (
+          '<div class="kpi">' +
+            '<div class="kpi-top">' +
+              '<span class="kpi-label">' + label + '</span>' +
+              '<span class="kpi-icon ' + (iconMod || "") + '"><i class="ti ' + icon + '" aria-hidden="true"></i></span>' +
+            '</div>' +
+            '<div class="kpi-value">' + value + '</div>' +
+            '<div class="kpi-delta flat"><i class="ti ' + subIcon + '" aria-hidden="true"></i>' + sub + '</div>' +
+          '</div>'
+        );
+      }
+
+      var dist = kpis.distribuicao;
+
+      // -------- Montagem da página --------
+      var html =
+        '<div class="stack stack-lg">' +
+
+          // (1) Faixa de destaque
+          '<section class="card hero-parada">' +
+            '<div class="hero-parada-main">' +
+              '<span class="hero-eyebrow"><i class="ti ti-target" aria-hidden="true"></i>Premissa do ciclo</span>' +
+              '<span class="hero-title">Máquina parada não gera receita</span>' +
+              '<span class="hero-desc">O tempo médio que um equipamento fica fora de operação nas EPOs auditadas — da chegada ao retorno ao campo.</span>' +
+            '</div>' +
+            '<div class="hero-metric">' +
+              '<span class="hero-label">Tempo médio de parada</span>' +
+              '<span class="hero-num">' + App.fmtDias(kpis.tempoMedioParada) + '</span>' +
+              '<span class="hero-foot">por equipamento auditado</span>' +
+            '</div>' +
+          '</section>' +
+
+          // (2) KPIs
+          '<section class="kpi-grid">' +
+            kpi("ti-building-warehouse", "", "EPOs auditadas", App.fmtNum(kpis.eposAuditadas),
+                dist.ouro + " ouro · " + dist.prata + " prata · " + dist.bronze + " bronze · " + dist.critico + " crítico", "ti-award") +
+            kpi("ti-player-pause", "is-warning", "Equipamentos parados", App.fmtNum(kpis.equipParados),
+                "de " + App.fmtNum(totalEquip) + " no total", "ti-stack-2") +
+            kpi("ti-clock", "", "Tempo médio de parada", App.fmtDias(kpis.tempoMedioParada),
+                "meta " + App.fmtDias(8), "ti-target") +
+            kpi("ti-circle-check", "is-success", "Conformidade média", App.fmtPct(kpis.conformidadeMedia),
+                "meta " + App.fmtPct(85), "ti-target") +
+            kpi("ti-alert-triangle", "is-danger", "Não-conformidades", App.fmtNum(kpis.ncTotal),
+                App.fmtNum(altaCount) + " de gravidade alta", "ti-flame") +
+          '</section>' +
+
+          // (3) Ciclo da máquina
+          '<section class="card">' +
+            '<div class="card-header">' +
+              '<div class="section-title">' +
+                '<h2 class="title">Ciclo da máquina</h2>' +
+                '<span class="subtitle">Médias das 8 EPOs, em dias — da chegada ao retorno ao campo</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="cycle">' +
+              '<div class="cycle-step">' +
+                '<span class="cycle-step-icon"><i class="ti ti-truck-delivery" aria-hidden="true"></i></span>' +
+                '<span class="cycle-step-body">' +
+                  '<span class="cycle-step-label">Chegada à EPO</span>' +
+                  '<span class="cycle-step-value">' + App.fmtDias(avgChegada) + '</span>' +
+                '</span>' +
+              '</div>' +
+              '<span class="cycle-arrow" aria-hidden="true"><i class="ti ti-arrow-right"></i></span>' +
+              '<div class="cycle-step">' +
+                '<span class="cycle-step-icon"><i class="ti ti-tool" aria-hidden="true"></i></span>' +
+                '<span class="cycle-step-body">' +
+                  '<span class="cycle-step-label">Reparo interno</span>' +
+                  '<span class="cycle-step-value">' + App.fmtDias(avgReparo) + '</span>' +
+                '</span>' +
+              '</div>' +
+              '<span class="cycle-arrow" aria-hidden="true"><i class="ti ti-arrow-right"></i></span>' +
+              '<div class="cycle-step">' +
+                '<span class="cycle-step-icon"><i class="ti ti-arrow-back-up" aria-hidden="true"></i></span>' +
+                '<span class="cycle-step-body">' +
+                  '<span class="cycle-step-label">Retorno ao campo</span>' +
+                  '<span class="cycle-step-value">' + App.fmtDias(avgRetorno) + '</span>' +
+                '</span>' +
+              '</div>' +
+            '</div>' +
+          '</section>' +
+
+          // (4) Panorama: distribuição por tier + evolução do score
+          '<section class="grid-2">' +
+            '<div class="card">' +
+              '<div class="card-header">' +
+                '<div class="section-title">' +
+                  '<h2 class="title">Distribuição por tier</h2>' +
+                  '<span class="subtitle">Classificação atual das EPOs</span>' +
+                '</div>' +
+              '</div>' +
+              '<div class="row wrap" style="gap:24px">' +
+                '<div class="donut-wrap">' +
+                  '<canvas id="donutTier" role="img" aria-label="Distribuição por tier: ' +
+                    dist.ouro + ' ouro, ' + dist.prata + ' prata, ' + dist.bronze + ' bronze, ' + dist.critico + ' crítico"></canvas>' +
+                  '<div class="donut-center">' +
+                    '<span class="donut-total">' + App.fmtNum(kpis.eposAuditadas) + '</span>' +
+                    '<span class="muted" style="font-size:12px">EPOs</span>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="legend grow">' +
+                  legendItem("var(--ouro)", "Ouro", "≥ " + regras.ouroMin + " pts", dist.ouro) +
+                  legendItem("var(--prata)", "Prata", regras.prataMin + "–" + (regras.ouroMin - 1) + " pts", dist.prata) +
+                  legendItem("var(--bronze)", "Bronze", regras.bronzeMin + "–" + (regras.prataMin - 1) + " pts", dist.bronze) +
+                  legendItem("var(--critico)", "Crítico", "< " + regras.bronzeMin + " pts", dist.critico) +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="card">' +
+              '<div class="card-header">' +
+                '<div class="section-title">' +
+                  '<h2 class="title">Score médio mensal</h2>' +
+                  '<span class="subtitle">Média das 8 EPOs · fevereiro a julho</span>' +
+                '</div>' +
+              '</div>' +
+              '<div class="chart-box">' +
+                '<canvas id="lineScore" role="img" aria-label="Evolução do score médio mensal das EPOs"></canvas>' +
+              '</div>' +
+            '</div>' +
+          '</section>' +
+
+          // (5) Top EPOs + Precisam de atenção
+          '<section class="grid-2">' +
+            '<div class="card">' +
+              '<div class="card-header">' +
+                '<div class="section-title">' +
+                  '<h2 class="title">Top EPOs</h2>' +
+                  '<span class="subtitle">Melhores classificadas do ciclo</span>' +
+                '</div>' +
+                '<a class="btn btn-ghost btn-sm card-header-action" href="ranking.html">' +
+                  '<i class="ti ti-trophy" aria-hidden="true"></i>Ver ranking' +
+                '</a>' +
+              '</div>' +
+              '<div class="epo-list">' + top.map(function (e) { return epoRow(e, false); }).join("") + '</div>' +
+            '</div>' +
+            '<div class="card">' +
+              '<div class="card-header">' +
+                '<div class="section-title">' +
+                  '<h2 class="title">Precisam de atenção</h2>' +
+                  '<span class="subtitle">Menores scores e mais não-conformidades</span>' +
+                '</div>' +
+              '</div>' +
+              '<div class="epo-list">' + atencao.map(function (e) { return epoRow(e, true); }).join("") + '</div>' +
+            '</div>' +
+          '</section>' +
+
+        '</div>';
+
+      function legendItem(color, label, hint, count) {
+        return (
+          '<div class="legend-item">' +
+            '<span class="legend-dot" style="background:' + color + '"></span>' +
+            '<span class="legend-body">' +
+              '<span class="legend-label">' + label + '</span>' +
+              '<span class="legend-hint muted">' + hint + '</span>' +
+            '</span>' +
+            '<span class="legend-count">' + App.fmtNum(count) + '</span>' +
+          '</div>'
+        );
+      }
+
+      document.getElementById("page").innerHTML = html;
+
+      // -------- Gráficos (Chart.js) --------
+      if (window.Chart) {
+        var css = function (n) {
+          return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+        };
+        Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+        Chart.defaults.color = css("--text-2");
+
+        var donut = document.getElementById("donutTier");
+        if (donut) {
+          new Chart(donut, {
+            type: "doughnut",
+            data: {
+              labels: ["Ouro", "Prata", "Bronze", "Crítico"],
+              datasets: [{
+                data: [dist.ouro, dist.prata, dist.bronze, dist.critico],
+                backgroundColor: [css("--ouro"), css("--prata"), css("--bronze"), css("--critico")],
+                borderColor: css("--surface"),
+                borderWidth: 2,
+                hoverOffset: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: "70%",
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: function (c) { return " " + c.label + ": " + c.parsed + " EPOs"; }
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        var line = document.getElementById("lineScore");
+        if (line) {
+          var ctx = line.getContext("2d");
+          var grad = ctx.createLinearGradient(0, 0, 0, 200);
+          grad.addColorStop(0, "rgba(79,70,229,.18)");
+          grad.addColorStop(1, "rgba(79,70,229,0)");
+          new Chart(line, {
+            type: "line",
+            data: {
+              labels: meses,
+              datasets: [{
+                data: scoreMensal,
+                borderColor: css("--primary"),
+                backgroundColor: grad,
+                fill: true,
+                tension: .35,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: css("--primary"),
+                pointBorderColor: css("--surface"),
+                pointBorderWidth: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: function (c) { return " Score médio: " + c.parsed.y; }
+                  }
+                }
+              },
+              scales: {
+                y: {
+                  suggestedMin: 70,
+                  suggestedMax: 90,
+                  ticks: { stepSize: 5 },
+                  grid: { color: css("--border") }
+                },
+                x: {
+                  grid: { display: false }
+                }
+              }
+            }
+          });
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

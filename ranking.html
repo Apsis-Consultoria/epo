@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ranking de EPOs — Auditoria de EPOs</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var acoes =
+        '<a class="btn btn-primary btn-sm" href="auditoria.html">' +
+          '<i class="ti ti-clipboard-check" aria-hidden="true"></i>Nova auditoria' +
+        "</a>";
+
+      Layout.mount("ranking", "Ranking de EPOs", acoes);
+
+      var esc = App.escapeHtml;
+
+      // Estado dos controles ------------------------------------------------
+      var state = { tier: "todas", q: "", sort: "score" };
+
+      var FILTROS = [
+        { key: "todas",  label: "Todas" },
+        { key: "ouro",   label: "Ouro" },
+        { key: "prata",  label: "Prata" },
+        { key: "bronze", label: "Bronze" },
+        { key: "critico", label: "Crítico" }
+      ];
+
+      var ORDENACAO = {
+        score: function (a, b) { return b.score - a.score; },
+        parada: function (a, b) { return a.tempoParada - b.tempoParada; },
+        conformidade: function (a, b) { return b.conformidade - a.conformidade; }
+      };
+
+      // Estrutura fixa da página --------------------------------------------
+      var page = document.getElementById("page");
+      page.innerHTML =
+        '<p class="page-intro">' +
+          "Classificação das EPOs auditadas por desempenho no ciclo de vida dos equipamentos. " +
+          "As melhores colocadas recebem mais equipamentos e prioridade de faturamento." +
+        "</p>" +
+
+        '<div class="card stack-md" style="margin-bottom:16px;">' +
+          '<div class="row-between wrap">' +
+            '<div class="row wrap" role="group" aria-label="Filtrar por tier" id="filtros">' +
+              FILTROS.map(function (f) {
+                return '<button type="button" class="chip" data-tier="' + f.key + '">' +
+                  esc(f.label) + "</button>";
+              }).join("") +
+            "</div>" +
+            '<div class="row wrap">' +
+              '<div class="field mb-0" style="width:240px;max-width:100%;">' +
+                '<label class="visually-hidden" for="busca" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Buscar EPO</label>' +
+                '<input class="input" id="busca" type="search" placeholder="Buscar EPO..." autocomplete="off">' +
+              "</div>" +
+              '<div class="field mb-0" style="width:220px;max-width:100%;">' +
+                '<label class="visually-hidden" for="ordenar" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Ordenar por</label>' +
+                '<select class="select" id="ordenar">' +
+                  '<option value="score">Ordenar: Pontuação</option>' +
+                  '<option value="parada">Ordenar: Tempo de parada</option>' +
+                  '<option value="conformidade">Ordenar: Conformidade</option>' +
+                "</select>" +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+        "</div>" +
+
+        '<div class="card mb-0">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Classificação geral</span>' +
+              '<span class="subtitle" id="ranking-count"></span>' +
+            "</div>" +
+          "</div>" +
+          '<div id="ranking-body"></div>' +
+          '<hr class="divider">' +
+          '<div class="row wrap" style="gap:16px;">' +
+            '<span class="muted" style="font-size:12px;">Cortes de classificação:</span>' +
+            '<span class="badge badge-ouro"><i class="ti ti-circle-filled" aria-hidden="true"></i>Ouro &ge; 85</span>' +
+            '<span class="badge badge-prata"><i class="ti ti-circle-filled" aria-hidden="true"></i>Prata 70&ndash;84</span>' +
+            '<span class="badge badge-bronze"><i class="ti ti-circle-filled" aria-hidden="true"></i>Bronze 55&ndash;69</span>' +
+            '<span class="badge badge-critico"><i class="ti ti-circle-filled" aria-hidden="true"></i>Crítico &lt; 55</span>' +
+          "</div>" +
+        "</div>";
+
+      // Renderização da lista -----------------------------------------------
+      function getLista() {
+        var lista = (window.APP.epos || []).slice();
+
+        if (state.tier !== "todas") {
+          lista = lista.filter(function (e) { return e.tier === state.tier; });
+        }
+        if (state.q) {
+          var q = state.q.toLowerCase();
+          lista = lista.filter(function (e) {
+            return (e.nome + " " + e.cidade + " " + e.uf).toLowerCase().indexOf(q) !== -1;
+          });
+        }
+        lista.sort(ORDENACAO[state.sort] || ORDENACAO.score);
+        return lista;
+      }
+
+      function linhaEpo(e, pos) {
+        var meta = App.tierMeta(e.tier);
+        return "" +
+          "<tr>" +
+            '<td class="rank">' + pos + "</td>" +
+            "<td>" +
+              '<div class="stack" style="line-height:1.3;">' +
+                '<span style="font-weight:600;">' + esc(e.nome) + "</span>" +
+                '<span class="text-muted" style="font-size:12px;">' + esc(e.cidade) + " · " + esc(e.uf) + "</span>" +
+              "</div>" +
+            "</td>" +
+            "<td>" +
+              '<span class="badge ' + meta.cls + '"><i class="ti ti-circle-filled" aria-hidden="true"></i>' + esc(meta.label) + "</span>" +
+            "</td>" +
+            "<td style=\"min-width:160px;\">" +
+              '<div class="score-row">' +
+                '<span class="score-bar"><span class="score-fill tier-' + e.tier + '" style="width:' + e.score + '%;"></span></span>' +
+                '<span class="score-num">' + e.score + "</span>" +
+              "</div>" +
+            "</td>" +
+            '<td class="num">' + App.fmtDias(e.tempoParada) + "</td>" +
+            '<td class="num">' + App.fmtPct(e.conformidade) + "</td>" +
+            '<td class="num">' + App.fmtNum(e.ncs) + "</td>" +
+            '<td class="num">' + App.fmtNum(e.equipamentos) + "</td>" +
+            '<td class="num">' +
+              '<a class="btn btn-ghost btn-sm" href="epo-detalhe.html?id=' + encodeURIComponent(e.id) + '">' +
+                "Ver detalhe<i class=\"ti ti-arrow-right\" aria-hidden=\"true\"></i>" +
+              "</a>" +
+            "</td>" +
+          "</tr>";
+      }
+
+      function render() {
+        var lista = getLista();
+        var body = document.getElementById("ranking-body");
+        var count = document.getElementById("ranking-count");
+
+        var total = (window.APP.epos || []).length;
+        count.textContent = lista.length === total
+          ? total + " EPOs auditadas"
+          : lista.length + " de " + total + " EPOs";
+
+        if (!lista.length) {
+          body.innerHTML =
+            '<div class="empty">' +
+              '<i class="ti ti-search-off" aria-hidden="true"></i>' +
+              "<p>Nenhuma EPO encontrada com os filtros atuais.</p>" +
+            "</div>";
+          return;
+        }
+
+        body.innerHTML =
+          '<div class="table-wrap">' +
+            '<table class="table">' +
+              "<thead><tr>" +
+                '<th style="width:44px;">#</th>' +
+                "<th>EPO</th>" +
+                "<th>Tier</th>" +
+                "<th>Pontuação</th>" +
+                '<th class="num">Tempo de parada</th>' +
+                '<th class="num">Conformidade</th>' +
+                '<th class="num">NCs</th>' +
+                '<th class="num">Equipamentos</th>' +
+                '<th class="num"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Ação</span></th>' +
+              "</tr></thead>" +
+              "<tbody>" +
+                lista.map(function (e, i) { return linhaEpo(e, i + 1); }).join("") +
+              "</tbody>" +
+            "</table>" +
+          "</div>";
+      }
+
+      // Eventos --------------------------------------------------------------
+      function syncChips() {
+        var chips = document.querySelectorAll("#filtros .chip");
+        chips.forEach(function (c) {
+          var on = c.getAttribute("data-tier") === state.tier;
+          c.classList.toggle("is-active", on);
+          c.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+      }
+
+      document.getElementById("filtros").addEventListener("click", function (ev) {
+        var chip = ev.target.closest(".chip");
+        if (!chip) return;
+        state.tier = chip.getAttribute("data-tier");
+        syncChips();
+        render();
+      });
+
+      document.getElementById("busca").addEventListener("input", function (ev) {
+        state.q = ev.target.value.trim();
+        render();
+      });
+
+      document.getElementById("ordenar").addEventListener("change", function (ev) {
+        state.sort = ev.target.value;
+        render();
+      });
+
+      // Estado inicial -------------------------------------------------------
+      syncChips();
+      render();
+    })();
+  </script>
+</body>
+</html>

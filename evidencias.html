@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Evidências — Auditoria de EPOs</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var acoes =
+        '<button class="btn btn-ghost btn-sm" id="btn-exportar" type="button">' +
+          '<i class="ti ti-download" aria-hidden="true"></i>Exportar</button>';
+
+      Layout.mount("evidencias", "Evidências", acoes);
+
+      var esc = App.escapeHtml;
+      var evidencias = (window.APP && window.APP.evidencias) ? window.APP.evidencias.slice() : [];
+      var epos = (window.APP && window.APP.epos) ? window.APP.epos : [];
+
+      // EPOs que aparecem nas evidências, na ordem do ranking (score desc).
+      var idsComEvidencia = {};
+      evidencias.forEach(function (ev) { idsComEvidencia[ev.epoId] = true; });
+      var eposFiltro = epos.filter(function (e) { return idsComEvidencia[e.id]; });
+
+      // Contagem por gravidade (para os chips).
+      var contagem = { alta: 0, media: 0, baixa: 0 };
+      evidencias.forEach(function (ev) {
+        if (contagem[ev.gravidade] !== undefined) contagem[ev.gravidade] += 1;
+      });
+
+      var GRAVS = [
+        { key: "todas", label: "Todas", n: evidencias.length },
+        { key: "alta",  label: "Alta",  n: contagem.alta },
+        { key: "media", label: "Média", n: contagem.media },
+        { key: "baixa", label: "Baixa", n: contagem.baixa }
+      ];
+
+      var estado = { epo: "todas", gravidade: "todas" };
+
+      // -------------------------------------------------------------- helpers
+      function fmtData(iso) {
+        if (!iso) return "—";
+        var p = String(iso).split("-");
+        if (p.length !== 3) return iso;
+        return p[2] + "/" + p[1] + "/" + p[0];
+      }
+
+      function evById(id) {
+        for (var i = 0; i < evidencias.length; i++) {
+          if (evidencias[i].id === id) return evidencias[i];
+        }
+        return null;
+      }
+
+      function filtradas() {
+        return evidencias.filter(function (ev) {
+          if (estado.epo !== "todas" && ev.epoId !== estado.epo) return false;
+          if (estado.gravidade !== "todas" && ev.gravidade !== estado.gravidade) return false;
+          return true;
+        });
+      }
+
+      // ------------------------------------------------------- markup estático
+      var optsEpo = ['<option value="todas">Todas as EPOs</option>'].concat(
+        eposFiltro.map(function (e) {
+          return '<option value="' + esc(e.id) + '">' + esc(e.nome) + "</option>";
+        })
+      ).join("");
+
+      var chipsGrav = GRAVS.map(function (g) {
+        var on = g.key === estado.gravidade;
+        return (
+          '<button type="button" class="chip' + (on ? " is-active" : "") + '" data-grav="' + g.key + '"' +
+            (on ? ' aria-pressed="true"' : ' aria-pressed="false"') + ">" +
+            esc(g.label) + ' <span class="tnum">(' + g.n + ")</span>" +
+          "</button>"
+        );
+      }).join("");
+
+      var page = document.getElementById("page");
+      page.innerHTML =
+        '<p class="page-intro">Registros fotográficos coletados em campo pelos auditores. ' +
+        'Filtre por EPO e por gravidade e clique em um cartão para ampliar a evidência e ver os detalhes.</p>' +
+
+        '<div class="card" style="margin-bottom:20px;">' +
+          '<div class="row-between wrap" style="gap:16px;">' +
+            '<div class="field mb-0" style="min-width:220px;">' +
+              '<label for="f-epo">Filtrar por EPO</label>' +
+              '<select class="select" id="f-epo">' + optsEpo + "</select>" +
+            "</div>" +
+            '<div class="stack stack-sm" style="min-width:220px;">' +
+              '<span class="kpi-label">Gravidade</span>' +
+              '<div class="row wrap" id="chips-grav">' + chipsGrav + "</div>" +
+            "</div>" +
+          "</div>" +
+        "</div>" +
+
+        '<div class="row-between wrap" style="margin-bottom:14px;">' +
+          '<div class="section-title"><span class="title">Galeria de evidências</span>' +
+          '<span class="subtitle" id="contador"></span></div>' +
+        "</div>" +
+
+        '<div class="grid-3" id="galeria"></div>';
+
+      // ------------------------------------------------------------- render grid
+      var galeria = document.getElementById("galeria");
+      var contador = document.getElementById("contador");
+
+      function render() {
+        var lista = filtradas();
+        contador.textContent = lista.length === 1
+          ? "1 evidência encontrada"
+          : lista.length + " evidências encontradas";
+
+        if (!lista.length) {
+          galeria.className = "";
+          galeria.innerHTML =
+            '<div class="card"><div class="empty">' +
+              '<i class="ti ti-camera-off" aria-hidden="true"></i>' +
+              "<div>Nenhuma evidência para os filtros selecionados.</div>" +
+            "</div></div>";
+          return;
+        }
+
+        galeria.className = "grid-3";
+        galeria.innerHTML = lista.map(function (ev) {
+          var g = App.badgeGravidade(ev.gravidade);
+          return (
+            '<article class="evidence-card" data-id="' + esc(ev.id) + '" role="button" tabindex="0" ' +
+              'aria-label="Abrir evidência: ' + esc(ev.legenda) + '">' +
+              '<div class="photo-ph"><i class="ti ti-photo" aria-hidden="true"></i></div>' +
+              '<div class="evidence-card-body">' +
+                '<div class="row-between">' +
+                  '<span class="badge ' + g.cls + '">' + g.label + "</span>" +
+                  '<span class="text-muted tnum">' + fmtData(ev.data) + "</span>" +
+                "</div>" +
+                '<div class="legenda">' + esc(ev.legenda) + "</div>" +
+                '<div class="row-between wrap" style="gap:8px;">' +
+                  '<span class="meta">' + esc(ev.epoNome) + "</span>" +
+                  '<span class="tag">' + esc(ev.bloco) + "</span>" +
+                "</div>" +
+              "</div>" +
+            "</article>"
+          );
+        }).join("");
+      }
+
+      render();
+
+      // ------------------------------------------------------------- filtros
+      document.getElementById("f-epo").addEventListener("change", function () {
+        estado.epo = this.value;
+        render();
+      });
+
+      var chipsHost = document.getElementById("chips-grav");
+      chipsHost.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-grav]");
+        if (!btn) return;
+        estado.gravidade = btn.getAttribute("data-grav");
+        Array.prototype.forEach.call(chipsHost.querySelectorAll("[data-grav]"), function (c) {
+          var on = c.getAttribute("data-grav") === estado.gravidade;
+          c.classList.toggle("is-active", on);
+          c.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        render();
+      });
+
+      // ------------------------------------------------------------- lightbox
+      var overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      overlay.id = "lightbox";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-labelledby", "lightbox-titulo");
+      overlay.innerHTML =
+        '<div class="modal" style="max-width:640px;">' +
+          '<div class="modal-header">' +
+            '<div class="section-title">' +
+              '<span class="title" id="lightbox-titulo">Evidência</span>' +
+              '<span class="subtitle" id="lightbox-sub"></span>' +
+            "</div>" +
+            '<button class="modal-close" type="button" id="lightbox-close" aria-label="Fechar">' +
+              '<i class="ti ti-x" aria-hidden="true"></i></button>' +
+          "</div>" +
+          '<div class="modal-body">' +
+            '<div class="photo-ph" style="margin-bottom:16px;"><i class="ti ti-photo" aria-hidden="true"></i></div>' +
+            '<div class="row wrap" id="lightbox-badges" style="margin-bottom:14px;"></div>' +
+            '<div id="lightbox-meta"></div>' +
+          "</div>" +
+        "</div>";
+      document.body.appendChild(overlay);
+
+      var lbSub    = overlay.querySelector("#lightbox-sub");
+      var lbBadges = overlay.querySelector("#lightbox-badges");
+      var lbMeta   = overlay.querySelector("#lightbox-meta");
+
+      function linha(rotulo, valor) {
+        return (
+          '<div class="row-between" style="padding:9px 0;border-bottom:1px solid var(--border);gap:16px;">' +
+            '<span class="text-muted nowrap">' + esc(rotulo) + "</span>" +
+            '<span style="text-align:right;font-weight:500;">' + valor + "</span>" +
+          "</div>"
+        );
+      }
+
+      function abrir(id) {
+        var ev = evById(id);
+        if (!ev) return;
+        var g = App.badgeGravidade(ev.gravidade);
+
+        lbSub.textContent = ev.epoNome;
+        lbBadges.innerHTML =
+          '<span class="badge ' + g.cls + '">' + g.label + " gravidade</span>" +
+          '<span class="evidence-tag"><i class="ti ti-camera" aria-hidden="true"></i>foto</span>';
+        lbMeta.innerHTML =
+          '<p class="legenda" style="font-size:15px;margin-bottom:12px;">' + esc(ev.legenda) + "</p>" +
+          linha("EPO", esc(ev.epoNome)) +
+          linha("Item avaliado", esc(ev.item)) +
+          linha("Bloco", esc(ev.bloco)) +
+          linha("Data da coleta", fmtData(ev.data));
+
+        overlay.classList.add("is-open");
+        document.body.style.overflow = "hidden";
+        var closeBtn = overlay.querySelector("#lightbox-close");
+        if (closeBtn) closeBtn.focus();
+      }
+
+      function fechar() {
+        overlay.classList.remove("is-open");
+        document.body.style.overflow = "";
+      }
+
+      galeria.addEventListener("click", function (e) {
+        var card = e.target.closest(".evidence-card");
+        if (card) abrir(card.getAttribute("data-id"));
+      });
+      galeria.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        var card = e.target.closest(".evidence-card");
+        if (card) { e.preventDefault(); abrir(card.getAttribute("data-id")); }
+      });
+
+      overlay.querySelector("#lightbox-close").addEventListener("click", fechar);
+      overlay.addEventListener("click", function (e) {
+        if (e.target === overlay) fechar();
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && overlay.classList.contains("is-open")) fechar();
+      });
+
+      // ------------------------------------------------------------- exportar
+      var btnExp = document.getElementById("btn-exportar");
+      if (btnExp) {
+        btnExp.addEventListener("click", function () {
+          App.toast("Exportação de evidências iniciada.");
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
