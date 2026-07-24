@@ -168,6 +168,16 @@ img { max-width: 100%; display: block; }
 }
 .sidebar-user-label { color: rgba(255, 255, 255, .50); font-size: 12px; }
 
+.sidebar-brand {
+  margin-top: auto;
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar-brand img { max-width: 100%; width: 140px; height: auto; object-fit: contain; opacity: .92; }
+.sidebar.is-collapsed .sidebar-brand { display: none; }
+
 .sidebar-logo-mini { display: none; }
 
 /* Botão de recolher (borda direita da sidebar) */

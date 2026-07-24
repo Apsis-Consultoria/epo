@@ -174,6 +174,7 @@
       "</a>" +
       '<button class="sidebar-collapse" id="sidebar-collapse" type="button" aria-label="Recolher menu"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>' +
       '<nav class="nav" aria-label="Navegação principal">' + items + "</nav>" +
+      '<div class="sidebar-brand" aria-hidden="true"><img src="assets/brand/logo-claro-branco-rocket.png" alt="APSIS"></div>' +
       '<div class="sidebar-user">' +
         '<span class="sidebar-user-avatar"><i class="ti ti-user" aria-hidden="true"></i></span>' +
         '<span class="sidebar-user-label">Minha conta</span>' +
