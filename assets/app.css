@@ -168,6 +168,40 @@ img { max-width: 100%; display: block; }
 }
 .sidebar-user-label { color: rgba(255, 255, 255, .50); font-size: 12px; }
 
+.sidebar-logo-mini { display: none; }
+
+/* Botão de recolher (borda direita da sidebar) */
+.sidebar-collapse {
+  position: absolute;
+  right: -12px;
+  top: 74px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--apsis-orange);
+  color: #fff;
+  border: 0;
+  display: grid; place-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  z-index: 45;
+  font-size: 14px;
+}
+.sidebar-collapse:hover { background: var(--accent-600); }
+
+/* Estado recolhido (só ícones) */
+.sidebar.is-collapsed { width: 72px; flex-basis: 72px; }
+.sidebar.is-collapsed .sidebar-logo { padding: 12px 0; }
+.sidebar.is-collapsed .sidebar-logo-pill { display: none; }
+.sidebar.is-collapsed .sidebar-logo-mini {
+  display: grid; place-items: center; width: 40px; height: 40px; margin: 0 auto;
+  border-radius: 10px; background: var(--apsis-orange); color: #fff; font-weight: 700; font-size: 18px;
+}
+.sidebar.is-collapsed .nav { padding: 16px 6px; }
+.sidebar.is-collapsed .nav-item { justify-content: center; padding: 11px 0; gap: 0; }
+.sidebar.is-collapsed .nav-label { display: none; }
+.sidebar.is-collapsed .sidebar-user { justify-content: center; }
+.sidebar.is-collapsed .sidebar-user-label { display: none; }
+
 /* ------------------------------------------------------------- App main */
 .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
@@ -712,6 +746,8 @@ img { max-width: 100%; display: block; }
 .empty i { font-size: 34px; color: var(--text-muted); display: block; margin-bottom: 10px; }
 
 /* --------------------------------------------------------- Responsividade */
+.sidebar-backdrop { display: none; }
+
 @media (max-width: 900px) {
   .sidebar {
     position: fixed;
@@ -722,8 +758,28 @@ img { max-width: 100%; display: block; }
     box-shadow: var(--shadow-md);
   }
   .sidebar.is-open { transform: translateX(0); }
+  .sidebar-collapse { display: none; }
+  .sidebar.is-collapsed { width: var(--sidebar-w); flex-basis: var(--sidebar-w); }
+  .sidebar.is-collapsed .sidebar-logo-pill { display: flex; }
+  .sidebar.is-collapsed .sidebar-logo-mini { display: none; }
+  .sidebar.is-collapsed .nav-label { display: inline; }
+  .sidebar.is-collapsed .sidebar-user-label { display: inline; }
+  .sidebar-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 39;
+    background: rgba(0, 0, 0, .4);
+    opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility .2s ease;
+  }
+  .sidebar-backdrop.is-open { opacity: 1; visibility: visible; }
+
+  /* Topbar mobile: título ganha espaço; ações da página cedem lugar */
+  .topbar { padding: 10px 14px; gap: 8px; }
   .topbar-menu { display: inline-flex; }
-  .page { padding: 20px 16px 32px; }
+  .topbar-left { flex: 1 1 auto; min-width: 0; gap: 8px; }
+  .topbar-title, .topbar-subtitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .topbar-actions { flex: 0 0 auto; gap: 4px; }
+  .topbar-actions .btn { display: none; }
+
+  .page { padding: 16px 14px 28px; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: minmax(0, 1fr); }
   .cycle { flex-direction: column; }
   .cycle-arrow { transform: rotate(90deg); }

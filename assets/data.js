@@ -745,6 +745,58 @@
   ];
 
   // -----------------------------------------------------------------------
+  // Vistorias históricas por EPO (sintéticas — protótipo).
+  // Permitem comparar a mesma EPO em datas diferentes (ex.: hoje x 6 meses).
+  // -----------------------------------------------------------------------
+  var BLOCOS = checklist.map(function (b) { return b.bloco; });
+
+  function seeded(n) {
+    var x = Math.sin(n * 999.17) * 43758.5453;
+    return x - Math.floor(x); // 0..1 determinístico
+  }
+  function tierDe(score) {
+    if (score >= tierRules.ouroMin) return "ouro";
+    if (score >= tierRules.prataMin) return "prata";
+    if (score >= tierRules.bronzeMin) return "bronze";
+    return "critico";
+  }
+
+  epos.forEach(function (e, ei) {
+    var base = [
+      { data: "2024-07-12", label: "jul/2024", off: 4 },
+      { data: "2025-01-16", label: "jan/2025", off: 3 },
+      { data: "2025-07-15", label: "jul/2025", off: 2 },
+      { data: "2026-01-18", label: "jan/2026", off: 1 },
+      { data: "2026-07-18", label: "jul/2026", off: 0 }
+    ];
+    e.vistorias = base.map(function (vb, vi) {
+      var score = Math.round(Math.max(34, Math.min(98, e.score - vb.off * 8)));
+      var fator = 1 + vb.off * 0.20; // vistorias antigas: tempos e NCs maiores
+      var tc = Math.round(e.tempoChegada * fator * 10) / 10;
+      var tr = Math.round(e.tempoReparo * fator * 10) / 10;
+      var trt = Math.round(e.tempoRetorno * fator * 10) / 10;
+      var secoes = BLOCOS.map(function (bloco, si) {
+        var r = seeded(ei * 137 + si * 19 + vi * 7);
+        var pct = Math.round(Math.max(28, Math.min(100, score + (r * 34 - 17))));
+        return { bloco: bloco, pct: pct };
+      });
+      return {
+        data: vb.data,
+        label: vb.label,
+        score: score,
+        tier: tierDe(score),
+        conformidade: score,
+        ncs: Math.round(e.ncs * fator),
+        tempoChegada: tc,
+        tempoReparo: tr,
+        tempoRetorno: trt,
+        tempoParada: Math.round((tc + tr + trt) * 10) / 10,
+        secoes: secoes
+      };
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // Exposição global
   // -----------------------------------------------------------------------
   window.APP = {

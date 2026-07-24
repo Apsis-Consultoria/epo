@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comparativo de vistorias — Auditoria de EPOs</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="assets/app.css?v=2">
+  <style>
+    .unit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .unit-card { text-align: left; width: 100%; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; transition: border-color .15s ease, box-shadow .15s ease; font-family: inherit; }
+    .unit-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+    .unit-name { font-weight: 600; font-size: 15px; color: var(--text); }
+    .unit-loc { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+    .unit-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+    .unit-score { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+    .unit-vis { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+
+    .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-2); font-weight: 500; background: none; border: 0; cursor: pointer; padding: 0; margin-bottom: 14px; }
+    .back-link:hover { color: var(--text); }
+
+    .chart-box { position: relative; height: 240px; }
+    .cmp-scroll { overflow-x: auto; }
+    .cmp-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .cmp-table th, .cmp-table td { padding: 10px 12px; text-align: center; white-space: nowrap; border-bottom: 1px solid var(--border); }
+    .cmp-table th { font-size: 12px; color: var(--text-2); font-weight: 600; }
+    .cmp-table td:first-child, .cmp-table th:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); font-weight: 500; }
+    .cmp-table td.now, .cmp-table th.now { background: var(--primary-tint); }
+    .cmp-table tbody td b { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .heat { display: inline-block; min-width: 46px; padding: 3px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=2"></script>
+  <script src="assets/app.js?v=2"></script>
+  <script>
+    (function () {
+      "use strict";
+      Layout.mount("comparativo", "Comparativo de vistorias");
+
+      var esc = App.escapeHtml;
+      var epos = window.APP.epos || [];
+      var page = document.getElementById("page");
+      var charts = [];
+
+      var state = {
+        epoId: App.getParam("id") && App.epoById(App.getParam("id")) ? App.getParam("id") : null
+      };
+
+      function fmtData(iso) { var p = String(iso).split("-"); return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : iso; }
+      function clearCharts() { charts.forEach(function (c) { try { c.destroy(); } catch (e) {} }); charts = []; }
+
+      function sparkline(scores) {
+        var w = 132, h = 34, mn = 30, mx = 100;
+        var pts = scores.map(function (s, i) {
+          var x = (i / (scores.length - 1)) * (w - 4) + 2;
+          var y = h - 3 - ((s - mn) / (mx - mn)) * (h - 6);
+          return x.toFixed(1) + "," + y.toFixed(1);
+        }).join(" ");
+        return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true">' +
+          '<polyline fill="none" stroke="#1A4731" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="' + pts + '"/></svg>';
+      }
+
+      // ------------------------------------------------------- Lista de unidades
+      function renderLista() {
+        clearCharts();
+        var ordenadas = epos.slice().sort(function (a, b) { return b.score - a.score; });
+        var cards = ordenadas.map(function (e) {
+          var m = App.tierMeta(e.tier);
+          var vis = e.vistorias || [];
+          var scores = vis.map(function (v) { return v.score; });
+          var ultima = vis.length ? vis[vis.length - 1] : null;
+          return '<button class="unit-card" data-id="' + e.id + '">' +
+            '<div class="row-between">' +
+              '<div><div class="unit-name">' + esc(e.nome) + '</div><div class="unit-loc">' + esc(e.cidade) + " · " + esc(e.uf) + "</div></div>" +
+              '<span class="badge ' + m.cls + '">' + m.label + "</span>" +
+            "</div>" +
+            '<div class="row-between" style="margin-top:14px; align-items:flex-end;">' +
+              '<span class="unit-score">' + e.score + "</span>" +
+              sparkline(scores) +
+            "</div>" +
+            '<div class="unit-vis">' + vis.length + " vistorias · última em " + (ultima ? fmtData(ultima.data) : "—") + "</div>" +
+          "</button>";
+        }).join("");
+
+        page.innerHTML =
+          '<p class="page-intro">Todas as unidades vistoriadas. Clique em uma EPO para ver o histórico completo de vistorias, com gráficos de evolução e comparação entre visitas.</p>' +
+          '<div class="unit-grid">' + cards + "</div>";
+
+        page.querySelectorAll(".unit-card").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            state.epoId = btn.getAttribute("data-id");
+            renderDetalhe();
+          });
+        });
+      }
+
+      // ------------------------------------------------------- Detalhe da unidade
+      function heat(pct) {
+        var t = App.tierOf(pct);
+        var m = App.tierMeta(t);
+        return '<span class="heat ' + m.cls + '">' + pct + "%</span>";
+      }
+
+      function renderDetalhe() {
+        clearCharts();
+        var e = App.epoById(state.epoId);
+        if (!e) { renderLista(); return; }
+        var vis = e.vistorias || [];
+        var m = App.tierMeta(e.tier);
+        var labels = vis.map(function (v) { return v.label; });
+
+        function colHead() {
+          return "<th>Indicador</th>" + vis.map(function (v, i) {
+            var now = i === vis.length - 1 ? " now" : "";
+            return '<th class="' + now.trim() + '">' + esc(v.label) + "<br><span style=\"font-weight:400;color:var(--text-muted)\">" + fmtData(v.data) + "</span></th>";
+          }).join("");
+        }
+        function linha(label, fn) {
+          return "<tr><td>" + label + "</td>" + vis.map(function (v, i) {
+            var now = i === vis.length - 1 ? " class=\"now\"" : "";
+            return "<td" + now + ">" + fn(v) + "</td>";
+          }).join("") + "</tr>";
+        }
+
+        var secoesRows = (vis[0] ? vis[0].secoes : []).map(function (s0, si) {
+          return "<tr><td>" + esc(s0.bloco) + "</td>" + vis.map(function (v, i) {
+            var now = i === vis.length - 1 ? " class=\"now\"" : "";
+            return "<td" + now + ">" + heat(v.secoes[si].pct) + "</td>";
+          }).join("") + "</tr>";
+        }).join("");
+
+        page.innerHTML =
+          '<button class="back-link" id="voltar"><i class="ti ti-arrow-left" aria-hidden="true"></i>Todas as unidades</button>' +
+
+          '<div class="card" style="margin-bottom:16px;">' +
+            '<div class="row-between wrap" style="gap:12px;">' +
+              '<div><div class="section-title"><span class="title" style="font-size:20px;">' + esc(e.nome) + '</span><span class="subtitle">' + esc(e.cidade) + " · " + esc(e.uf) + " · " + vis.length + " vistorias</span></div></div>" +
+              '<div style="text-align:right;"><div style="font-size:30px;font-weight:700;line-height:1;">' + e.score + '</div><div style="margin-top:6px;"><span class="badge ' + m.cls + '">' + m.label + "</span></div></div>" +
+            "</div>" +
+          "</div>" +
+
+          '<div class="grid-2" style="margin-bottom:16px;">' +
+            '<div class="card"><div class="section-title" style="margin-bottom:10px;"><span class="title">Evolução do score</span><span class="subtitle">Pontuação por vistoria</span></div><div class="chart-box"><canvas id="chart-score" role="img" aria-label="Evolução do score por vistoria"></canvas></div></div>' +
+            '<div class="card"><div class="section-title" style="margin-bottom:10px;"><span class="title">Tempo de parada</span><span class="subtitle">Dias — menor é melhor</span></div><div class="chart-box"><canvas id="chart-parada" role="img" aria-label="Evolução do tempo de parada por vistoria"></canvas></div></div>' +
+          "</div>" +
+
+          '<div class="card" style="margin-bottom:16px;">' +
+            '<div class="section-title" style="margin-bottom:12px;"><span class="title">Indicadores por vistoria</span><span class="subtitle">Coluna destacada = vistoria mais recente</span></div>' +
+            '<div class="cmp-scroll"><table class="cmp-table"><thead><tr>' + colHead() + "</tr></thead><tbody>" +
+              linha("Score final", function (v) { return "<b>" + v.score + "</b>"; }) +
+              linha("Conformidade", function (v) { return "<b>" + v.conformidade + "%</b>"; }) +
+              linha("Não-conformidades", function (v) { return "<b>" + App.fmtNum(v.ncs) + "</b>"; }) +
+              linha("Tempo de parada", function (v) { return "<b>" + App.fmtDias(v.tempoParada) + "</b>"; }) +
+              linha("Tier", function (v) { var mm = App.tierMeta(v.tier); return '<span class="badge ' + mm.cls + '">' + mm.label + "</span>"; }) +
+            "</tbody></table></div>" +
+          "</div>" +
+
+          '<div class="card">' +
+            '<div class="section-title" style="margin-bottom:12px;"><span class="title">Conformidade por seção</span><span class="subtitle">% de itens conformes em cada visita</span></div>' +
+            '<div class="cmp-scroll"><table class="cmp-table"><thead><tr><th>Seção</th>' +
+              vis.map(function (v, i) { return '<th class="' + (i === vis.length - 1 ? "now" : "") + '">' + esc(v.label) + "</th>"; }).join("") +
+            "</tr></thead><tbody>" + secoesRows + "</tbody></table></div>" +
+          "</div>";
+
+        document.getElementById("voltar").addEventListener("click", function () { state.epoId = null; renderLista(); });
+
+        // Gráficos
+        var green = "#1A4731", orange = "#F47920";
+        var baseOpts = {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          elements: { line: { tension: .3 }, point: { radius: 4, hoverRadius: 6 } }
+        };
+        charts.push(new Chart(document.getElementById("chart-score"), {
+          type: "line",
+          data: { labels: labels, datasets: [{ data: vis.map(function (v) { return v.score; }), borderColor: green, backgroundColor: "rgba(26,71,49,.10)", fill: true, pointBackgroundColor: green }] },
+          options: Object.assign({}, baseOpts, { scales: { y: { min: 0, max: 100, ticks: { stepSize: 25 } } } })
+        }));
+        charts.push(new Chart(document.getElementById("chart-parada"), {
+          type: "line",
+          data: { labels: labels, datasets: [{ data: vis.map(function (v) { return v.tempoParada; }), borderColor: orange, backgroundColor: "rgba(244,121,32,.12)", fill: true, pointBackgroundColor: orange }] },
+          options: Object.assign({}, baseOpts, { scales: { y: { beginAtZero: true } } })
+        }));
+      }
+
+      if (state.epoId) renderDetalhe(); else renderLista();
+    })();
+  </script>
+</body>
+</html>

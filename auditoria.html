@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css">
+  <link rel="stylesheet" href="assets/app.css?v=2">
   <style>
     /* ==========================================================================
        Assistente de auditoria — mobile-first, uma pergunta por tela.
@@ -120,6 +120,44 @@
 
     .wiz-skip { display: block; width: 100%; text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 2px; text-decoration: underline; background: none; border: 0; cursor: pointer; padding: 10px; }
 
+    /* Tela de capa — exibida antes do questionário e ao concluir o envio */
+    .wiz-header.is-intro .wiz-progress-track,
+    .wiz-header.is-intro .wiz-counter { display: none; }
+
+    .wiz-intro { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 18px 4px 8px; }
+    .wiz-intro-icon {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--primary-tint); color: var(--apsis-orange);
+      display: grid; place-items: center; font-size: 34px; margin-bottom: 20px;
+    }
+    .wiz-intro-title { font-size: 26px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
+    .wiz-intro-sub { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 340px; margin: 0 0 24px; }
+    .wiz-intro-stats { display: flex; gap: 10px; width: 100%; margin-bottom: 24px; }
+    .wiz-intro-stat { flex: 1; background: var(--surface-2); border-radius: var(--radius-sm); padding: 14px 8px; }
+    .wiz-intro-stat b { display: block; font-size: 20px; font-weight: 700; color: var(--text); }
+    .wiz-intro-stat span { font-size: 11px; color: var(--text-2); }
+    .wiz-intro-list { list-style: none; margin: 0; padding: 0; width: 100%; text-align: left; display: flex; flex-direction: column; gap: 12px; }
+    .wiz-intro-list li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2); }
+    .wiz-intro-list li i { font-size: 18px; color: var(--success); flex: 0 0 auto; }
+
+    /* Tela cheia de confirmação (após enviar) */
+    .wiz-done {
+      min-height: 100dvh; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+      padding: 32px 24px max(28px, env(safe-area-inset-bottom));
+    }
+    .wiz-done-icon {
+      width: 96px; height: 96px; border-radius: 50%;
+      background: var(--success-bg); color: var(--success);
+      display: grid; place-items: center; font-size: 52px; margin-bottom: 24px;
+    }
+    .wiz-done-title { font-size: 27px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
+    .wiz-done-sub { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 340px; margin: 0 0 22px; }
+    .wiz-done-score { display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 30px; }
+    .wiz-done-score strong { font-size: 22px; font-weight: 700; }
+    .wiz-done-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 360px; }
+    .wiz-done-actions .wiz-btn { width: 100%; flex: 0 0 auto; text-decoration: none; }
+
     .wiz-footer {
       display: flex; gap: 10px; flex: 0 0 auto;
       padding: 12px 16px max(14px, env(safe-area-inset-bottom));
@@ -146,7 +184,7 @@
 </head>
 <body class="wiz-body">
   <div class="wiz-shell">
-    <header class="wiz-header">
+    <header class="wiz-header" id="wiz-header">
       <a class="wiz-icon-btn" href="index.html" aria-label="Sair da auditoria"><i class="ti ti-x" aria-hidden="true"></i></a>
       <div class="wiz-progress-track"><div class="wiz-progress-fill" id="wiz-progress"></div></div>
       <span class="wiz-counter" id="wiz-counter">1/1</span>
@@ -158,8 +196,8 @@
     </footer>
   </div>
 
-  <script src="assets/data.js"></script>
-  <script src="assets/app.js"></script>
+  <script src="assets/data.js?v=2"></script>
+  <script src="assets/app.js?v=2"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -178,6 +216,7 @@
       ];
 
       var steps = [];
+      steps.push({ type: "intro" });
       steps.push({ type: "identificacao" });
       TEMPOS_DEFS.forEach(function (def) { steps.push({ type: "tempo", def: def }); });
       checklist.forEach(function (bloco, bi) {
@@ -233,6 +272,27 @@
       }
 
       // -------------------------------------------------------- Renderizações
+      function renderIntro() {
+        var totalItens = checklist.reduce(function (s, b) { return s + b.itens.length; }, 0);
+        return (
+          '<div class="wiz-intro">' +
+            '<div class="wiz-intro-icon"><i class="ti ti-clipboard-check" aria-hidden="true"></i></div>' +
+            '<h1 class="wiz-intro-title">Auditoria de EPO</h1>' +
+            '<p class="wiz-intro-sub">Checklist Gestão de Qualidade — uma pergunta por vez, feito para preencher no celular durante a visita.</p>' +
+            '<div class="wiz-intro-stats">' +
+              '<div class="wiz-intro-stat"><b>' + checklist.length + '</b><span>seções</span></div>' +
+              '<div class="wiz-intro-stat"><b>' + totalItens + '</b><span>itens</span></div>' +
+              '<div class="wiz-intro-stat"><b>4</b><span>tempos</span></div>' +
+            "</div>" +
+            '<ul class="wiz-intro-list">' +
+              '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Responda cada item como Conforme, Não conforme ou N.A.</li>' +
+              '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Anexe foto quando a evidência exigir</li>' +
+              '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Ao final, veja o score e a classificação da EPO</li>' +
+            "</ul>" +
+          "</div>"
+        );
+      }
+
       function renderIdentificacao() {
         var epoOpts = epos.map(function (e) {
           return '<option value="' + e.id + '"' + (e.id === state.epoId ? " selected" : "") + ">" + esc(e.nome) + "</option>";
@@ -346,7 +406,8 @@
       function renderStep() {
         var step = steps[cur];
         var html;
-        if (step.type === "identificacao") html = renderIdentificacao();
+        if (step.type === "intro") html = renderIntro();
+        else if (step.type === "identificacao") html = renderIdentificacao();
         else if (step.type === "tempo") html = renderTempo(step.def);
         else if (step.type === "item") html = renderItem(step);
         else if (step.type === "assinaturas") html = renderAssinaturas();
@@ -415,17 +476,70 @@
       }
 
       function updateChrome() {
-        var pct = ((cur + 1) / steps.length) * 100;
+        var step = steps[cur];
+        var isIntro = step.type === "intro";
+        var isLast = cur === steps.length - 1;
+
+        document.getElementById("wiz-header").classList.toggle("is-intro", isIntro);
+
+        // Progresso/contador ignoram a capa (passo 0)
+        var qTotal = steps.length - 1;
+        var pct = (cur / qTotal) * 100;
         progressFill.style.width = pct + "%";
-        counterEl.textContent = (cur + 1) + "/" + steps.length;
+        counterEl.textContent = cur + "/" + qTotal;
+
+        backBtn.style.display = isIntro ? "none" : "";
         backBtn.disabled = cur === 0;
 
-        var isLast = cur === steps.length - 1;
         nextBtn.classList.toggle("is-submit", isLast);
-        nextBtn.innerHTML = isLast
-          ? 'Enviar auditoria<i class="ti ti-send" aria-hidden="true"></i>'
-          : 'Próxima<i class="ti ti-chevron-right" aria-hidden="true"></i>';
+        if (isIntro) {
+          nextBtn.innerHTML = 'Iniciar auditoria<i class="ti ti-arrow-right" aria-hidden="true"></i>';
+        } else if (isLast) {
+          nextBtn.innerHTML = 'Enviar auditoria<i class="ti ti-send" aria-hidden="true"></i>';
+        } else {
+          nextBtn.innerHTML = 'Próxima<i class="ti ti-chevron-right" aria-hidden="true"></i>';
+        }
         nextBtn.disabled = !stepAnswered(cur);
+      }
+
+      function resetAudit() {
+        state.respostas = {};
+        state.tempos = { chegada: null, inicioReparo: null, conclusaoReparo: null, retorno: null };
+        state.assin = { respEpo: "", respClaro: "", data: "" };
+        state.data = "";
+      }
+
+      function showDone() {
+        var r = computeScore();
+        var tier = r.answered > 0 ? App.tierOf(r.pts) : null;
+        var meta = tier ? App.tierMeta(tier) : null;
+
+        document.getElementById("wiz-header").style.display = "none";
+        document.querySelector(".wiz-footer").style.display = "none";
+
+        main.innerHTML =
+          '<div class="wiz-done">' +
+            '<div class="wiz-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></div>' +
+            '<h1 class="wiz-done-title">Auditoria enviada</h1>' +
+            '<p class="wiz-done-sub">Registro concluído com sucesso. (Protótipo — nada é gravado no servidor ainda.)</p>' +
+            '<div class="wiz-done-score">' +
+              (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : "") +
+              '<strong class="tnum">' + r.score01.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " / 1,00</strong>" +
+            "</div>" +
+            '<div class="wiz-done-actions">' +
+              '<button type="button" class="wiz-btn wiz-btn-next" id="done-nova"><i class="ti ti-plus" aria-hidden="true"></i>Iniciar outra auditoria</button>' +
+              '<a class="wiz-btn wiz-btn-back" href="index.html"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
+            "</div>" +
+          "</div>";
+        main.scrollTop = 0;
+
+        document.getElementById("done-nova").addEventListener("click", function () {
+          resetAudit();
+          document.getElementById("wiz-header").style.display = "";
+          document.querySelector(".wiz-footer").style.display = "";
+          cur = 0;
+          renderStep();
+        });
       }
 
       backBtn.addEventListener("click", function () {
@@ -435,7 +549,7 @@
       nextBtn.addEventListener("click", function () {
         if (nextBtn.disabled) return;
         if (cur === steps.length - 1) {
-          App.toast("Auditoria pronta para envio (protótipo — nada foi gravado).");
+          showDone();
           return;
         }
         cur += 1;

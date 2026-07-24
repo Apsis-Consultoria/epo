@@ -15,6 +15,7 @@
   var NAV = [
     { key: "geral",      label: "Visão geral",    icon: "ti-layout-dashboard", href: "index.html" },
     { key: "ranking",    label: "Ranking",        icon: "ti-trophy",           href: "ranking.html" },
+    { key: "comparativo", label: "Comparativo",   icon: "ti-arrows-diff",      href: "comparar.html" },
     { key: "auditoria",  label: "Nova auditoria", icon: "ti-clipboard-check",  href: "auditoria.html" },
     { key: "evidencias", label: "Evidências",     icon: "ti-camera",           href: "evidencias.html" },
     { key: "config",     label: "Configurações",  icon: "ti-settings",         href: "configuracoes.html" }
@@ -169,7 +170,9 @@
     return (
       '<a class="sidebar-logo" href="index.html" aria-label="APSIS — Auditoria de EPOs">' +
         '<span class="sidebar-logo-pill"><img src="https://ybixbsfmxblaippubtvw.supabase.co/storage/v1/object/public/assets/logo_com_nome.png" alt="APSIS"></span>' +
+        '<span class="sidebar-logo-mini" aria-hidden="true">A</span>' +
       "</a>" +
+      '<button class="sidebar-collapse" id="sidebar-collapse" type="button" aria-label="Recolher menu"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>' +
       '<nav class="nav" aria-label="Navegação principal">' + items + "</nav>" +
       '<div class="sidebar-user">' +
         '<span class="sidebar-user-avatar"><i class="ti ti-user" aria-hidden="true"></i></span>' +
@@ -208,15 +211,44 @@
 
     if (title) document.title = title + " — Auditoria de EPOs";
 
-    // Toggle da sidebar no mobile
+    // Toggle da sidebar no mobile (com backdrop)
     var menuBtn = document.getElementById("topbar-menu");
     if (menuBtn && sidebar) {
+      var backdrop = document.querySelector(".sidebar-backdrop");
+      if (!backdrop) {
+        backdrop = document.createElement("div");
+        backdrop.className = "sidebar-backdrop";
+        document.body.appendChild(backdrop);
+      }
+      var setOpen = function (open) {
+        sidebar.classList.toggle("is-open", open);
+        backdrop.classList.toggle("is-open", open);
+      };
       menuBtn.addEventListener("click", function () {
-        sidebar.classList.toggle("is-open");
+        setOpen(!sidebar.classList.contains("is-open"));
       });
+      backdrop.addEventListener("click", function () { setOpen(false); });
       // fecha ao navegar / clicar em item
       sidebar.addEventListener("click", function (ev) {
-        if (ev.target.closest(".nav-item")) sidebar.classList.remove("is-open");
+        if (ev.target.closest(".nav-item")) setOpen(false);
+      });
+    }
+
+    // Recolher/expandir a sidebar (desktop) — estado persistido
+    var collapseBtn = document.getElementById("sidebar-collapse");
+    if (collapseBtn && sidebar) {
+      var applyCollapsed = function (c) {
+        sidebar.classList.toggle("is-collapsed", c);
+        var ic = collapseBtn.querySelector("i");
+        if (ic) ic.className = "ti " + (c ? "ti-chevron-right" : "ti-chevron-left");
+        collapseBtn.setAttribute("aria-label", c ? "Expandir menu" : "Recolher menu");
+        try { localStorage.setItem("epoSidebarCollapsed", c ? "1" : "0"); } catch (e) {}
+      };
+      var savedCollapsed = false;
+      try { savedCollapsed = localStorage.getItem("epoSidebarCollapsed") === "1"; } catch (e) {}
+      applyCollapsed(savedCollapsed);
+      collapseBtn.addEventListener("click", function () {
+        applyCollapsed(!sidebar.classList.contains("is-collapsed"));
       });
     }
 
