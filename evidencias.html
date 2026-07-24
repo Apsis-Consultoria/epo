@@ -145,7 +145,10 @@
           return (
             '<article class="evidence-card" data-id="' + esc(ev.id) + '" role="button" tabindex="0" ' +
               'aria-label="Abrir evidência: ' + esc(ev.legenda) + '">' +
-              '<div class="photo-ph"><i class="ti ti-photo" aria-hidden="true"></i></div>' +
+              (ev.foto
+                ? '<div class="photo-ph has-img"><img src="' + esc(ev.foto) + '" alt="' + esc(ev.legenda) + '" loading="lazy" ' +
+                    'onerror="this.parentNode.classList.remove(\'has-img\');this.remove();"><i class="ti ti-photo" aria-hidden="true"></i></div>'
+                : '<div class="photo-ph"><i class="ti ti-photo" aria-hidden="true"></i></div>') +
               '<div class="evidence-card-body">' +
                 '<div class="row-between">' +
                   '<span class="badge ' + g.cls + '">' + g.label + "</span>" +
@@ -201,13 +204,14 @@
               '<i class="ti ti-x" aria-hidden="true"></i></button>' +
           "</div>" +
           '<div class="modal-body">' +
-            '<div class="photo-ph" style="margin-bottom:16px;"><i class="ti ti-photo" aria-hidden="true"></i></div>' +
+            '<div class="photo-ph" id="lightbox-foto" style="margin-bottom:16px;"><i class="ti ti-photo" aria-hidden="true"></i></div>' +
             '<div class="row wrap" id="lightbox-badges" style="margin-bottom:14px;"></div>' +
             '<div id="lightbox-meta"></div>' +
           "</div>" +
         "</div>";
       document.body.appendChild(overlay);
 
+      var lbFoto   = overlay.querySelector("#lightbox-foto");
       var lbSub    = overlay.querySelector("#lightbox-sub");
       var lbBadges = overlay.querySelector("#lightbox-badges");
       var lbMeta   = overlay.querySelector("#lightbox-meta");
@@ -227,6 +231,14 @@
         var g = App.badgeGravidade(ev.gravidade);
 
         lbSub.textContent = ev.epoNome;
+        if (ev.foto) {
+          lbFoto.classList.add("has-img");
+          lbFoto.innerHTML = '<img src="' + esc(ev.foto) + '" alt="' + esc(ev.legenda) + '" ' +
+            'onerror="this.parentNode.classList.remove(\'has-img\');this.parentNode.innerHTML=\'<i class=&quot;ti ti-photo&quot;></i>\';">';
+        } else {
+          lbFoto.classList.remove("has-img");
+          lbFoto.innerHTML = '<i class="ti ti-photo" aria-hidden="true"></i>';
+        }
         lbBadges.innerHTML =
           '<span class="badge ' + g.cls + '">' + g.label + " gravidade</span>" +
           '<span class="evidence-tag"><i class="ti ti-camera" aria-hidden="true"></i>foto</span>';

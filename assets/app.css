@@ -640,6 +640,9 @@ img { max-width: 100%; display: block; }
   overflow: hidden;
 }
 .photo-ph.sm { aspect-ratio: 1 / 1; font-size: 24px; }
+.photo-ph.has-img { color: transparent; }
+.photo-ph.has-img > i { display: none; }
+.photo-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* Cartão de evidência (galeria) */
 .evidence-card {

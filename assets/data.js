@@ -654,6 +654,7 @@
   var evidencias = [
     {
       id: "ev-01",
+      foto: "assets/evidencias/ev-01.jpeg",
       epoId: "nexus",
       epoNome: "EPO Nexus",
       item: "Estoque físico compatível com o cadastro",
@@ -664,6 +665,7 @@
     },
     {
       id: "ev-02",
+      foto: "assets/evidencias/ev-02.jpeg",
       epoId: "litoral",
       epoNome: "EPO Litoral",
       item: "Estoque físico compatível com o cadastro",
@@ -674,6 +676,7 @@
     },
     {
       id: "ev-03",
+      foto: "assets/evidencias/ev-03.jpeg",
       epoId: "delta",
       epoNome: "EPO Delta",
       item: "Reparo dentro do SLA contratual",
@@ -684,6 +687,7 @@
     },
     {
       id: "ev-04",
+      foto: "assets/evidencias/ev-04.jpg",
       epoId: "orbita",
       epoNome: "EPO Órbita",
       item: "Estoque físico compatível com o cadastro",
@@ -694,6 +698,7 @@
     },
     {
       id: "ev-05",
+      foto: "assets/evidencias/ev-05.jpeg",
       epoId: "aurora",
       epoNome: "EPO Aurora",
       item: "Estoque físico compatível com o cadastro",
@@ -704,6 +709,7 @@
     },
     {
       id: "ev-06",
+      foto: "assets/evidencias/ev-06.jpeg",
       epoId: "farol",
       epoNome: "EPO Farol",
       item: "Reparo dentro do SLA contratual",
@@ -714,6 +720,7 @@
     },
     {
       id: "ev-07",
+      foto: "assets/evidencias/ev-01.jpeg",
       epoId: "vertice",
       epoNome: "EPO Vértice",
       item: "Estoque físico compatível com o cadastro",
@@ -724,6 +731,7 @@
     },
     {
       id: "ev-08",
+      foto: "assets/evidencias/ev-02.jpeg",
       epoId: "litoral",
       epoNome: "EPO Litoral",
       item: "Equipamentos identificados e etiquetados",
@@ -734,6 +742,7 @@
     },
     {
       id: "ev-09",
+      foto: "assets/evidencias/ev-03.jpeg",
       epoId: "meridiano",
       epoNome: "EPO Meridiano",
       item: "Equipamentos identificados e etiquetados",
