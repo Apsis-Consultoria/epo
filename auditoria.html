@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Nova auditoria — Auditoria de EPOs</title>
+  <title>Nova auditoria _ Auditoria de EPOs</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="assets/app.css?v=2">
   <style>
     /* ==========================================================================
-       Assistente de auditoria — mobile-first, uma pergunta por tela.
+       Assistente de auditoria _ mobile-first, uma pergunta por tela.
        Pensado para ser aberto no navegador do celular em campo.
        ========================================================================== */
     html, body { height: 100%; }
@@ -120,7 +120,7 @@
 
     .wiz-skip { display: block; width: 100%; text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 2px; text-decoration: underline; background: none; border: 0; cursor: pointer; padding: 10px; }
 
-    /* Tela de capa — exibida antes do questionário e ao concluir o envio */
+    /* Tela de capa _ exibida antes do questionário e ao concluir o envio */
     .wiz-header.is-intro .wiz-progress-track,
     .wiz-header.is-intro .wiz-counter { display: none; }
 
@@ -205,7 +205,7 @@
       var checklist = window.APP.checklist || [];
       var rules = window.APP.tierRules || { ouroMin: 85, prataMin: 70, bronzeMin: 55 };
 
-      document.title = "Nova auditoria — Auditoria de EPOs";
+      document.title = "Nova auditoria _ Auditoria de EPOs";
 
       // ---------------------------------------------------------------- Steps
       var TEMPOS_DEFS = [
@@ -278,7 +278,7 @@
           '<div class="wiz-intro">' +
             '<div class="wiz-intro-icon"><i class="ti ti-clipboard-check" aria-hidden="true"></i></div>' +
             '<h1 class="wiz-intro-title">Auditoria de EPO</h1>' +
-            '<p class="wiz-intro-sub">Checklist Gestão de Qualidade — uma pergunta por vez, feito para preencher no celular durante a visita.</p>' +
+            '<p class="wiz-intro-sub">Checklist Gestão de Qualidade _ uma pergunta por vez, feito para preencher no celular durante a visita.</p>' +
             '<div class="wiz-intro-stats">' +
               '<div class="wiz-intro-stat"><b>' + checklist.length + '</b><span>seções</span></div>' +
               '<div class="wiz-intro-stat"><b>' + totalItens + '</b><span>itens</span></div>' +
@@ -340,7 +340,7 @@
           '<p class="wiz-eyebrow">' + esc(step.bloco.bloco) + "</p>" +
           '<p class="wiz-subeyebrow">Item ' + step.posNoBloco + " de " + step.totalNoBloco + " desta seção</p>" +
           '<h1 class="wiz-question">' + esc(it.pergunta) + "</h1>" +
-          '<div class="wiz-evidence"><i class="ti ti-file-check" aria-hidden="true"></i><span><b>Evidência esperada:</b> ' + esc(it.evidencia || "—") + fotoTag + "</span></div>" +
+          '<div class="wiz-evidence"><i class="ti ti-file-check" aria-hidden="true"></i><span><b>Evidência esperada:</b> ' + esc(it.evidencia || "_") + fotoTag + "</span></div>" +
           '<div class="wiz-options" id="wiz-options">' +
             opts.map(function (o) {
               var sel = r.status === o.val ? " is-selected" : "";
@@ -384,7 +384,7 @@
               '<div class="wiz-summary-stat"><b>' + r.counts.semResposta + "</b><span>Não respondidos</span></div>" +
             "</div>" +
           "</div>" +
-          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' + r.answered + " de " + totalItens + ' itens do checklist avaliados. Protótipo — nada é gravado no servidor ainda.</p>' +
+          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' + r.answered + " de " + totalItens + ' itens do checklist avaliados. Protótipo _ nada é gravado no servidor ainda.</p>' +
           '<button type="button" class="wiz-btn wiz-btn-back" style="width:100%;flex:1 1 auto;margin-bottom:8px;" id="btn-rascunho"><i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho</button>'
         );
       }
@@ -521,7 +521,7 @@
           '<div class="wiz-done">' +
             '<div class="wiz-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></div>' +
             '<h1 class="wiz-done-title">Auditoria enviada</h1>' +
-            '<p class="wiz-done-sub">Registro concluído com sucesso. (Protótipo — nada é gravado no servidor ainda.)</p>' +
+            '<p class="wiz-done-sub">Registro concluído com sucesso. (Protótipo _ nada é gravado no servidor ainda.)</p>' +
             '<div class="wiz-done-score">' +
               (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : "") +
               '<strong class="tnum">' + r.score01.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " / 1,00</strong>" +

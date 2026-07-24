@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Configurações de pontuação — Auditoria de EPOs</title>
+  <title>Configurações de pontuação _ Auditoria de EPOs</title>
 
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -113,7 +113,7 @@
       var DEFAULT_BRONZE = window.APP.tierRules.bronzeMin != null ? window.APP.tierRules.bronzeMin : 55;
       var DEFAULT_PESOS = CHECKLIST.map(function (b) { return b.peso; });
 
-      // Estado reativo (nada é persistido — protótipo).
+      // Estado reativo (nada é persistido _ protótipo).
       var state = {
         ouroMin: DEFAULT_OURO,
         prataMin: DEFAULT_PRATA,
@@ -129,7 +129,7 @@
         'peso de cada bloco do checklist; a prévia recalcula a classificação em tempo real. As alterações valem ' +
         'apenas nesta sessão de demonstração.</p>' +
 
-        // Seção 1 — Cortes dos tiers
+        // Seção 1 _ Cortes dos tiers
         '<section class="card stack-lg" style="margin-bottom:20px">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
@@ -141,7 +141,7 @@
 
           '<div class="grid-3">' +
             '<div class="field mb-0">' +
-              '<label for="ouro-num">Ouro — nota mínima</label>' +
+              '<label for="ouro-num">Ouro _ nota mínima</label>' +
               '<div class="row">' +
                 '<input type="range" class="range-input grow" id="ouro-range" min="50" max="99" step="1" aria-label="Nota mínima do tier Ouro">' +
                 '<input type="number" class="input num-input" id="ouro-num" min="50" max="99" step="1" inputmode="numeric" aria-label="Nota mínima do tier Ouro">' +
@@ -149,7 +149,7 @@
               '<span class="hint">Nota igual ou superior entra no tier Ouro.</span>' +
             '</div>' +
             '<div class="field mb-0">' +
-              '<label for="prata-num">Prata — nota mínima</label>' +
+              '<label for="prata-num">Prata _ nota mínima</label>' +
               '<div class="row">' +
                 '<input type="range" class="range-input grow" id="prata-range" min="40" max="90" step="1" aria-label="Nota mínima do tier Prata">' +
                 '<input type="number" class="input num-input" id="prata-num" min="40" max="90" step="1" inputmode="numeric" aria-label="Nota mínima do tier Prata">' +
@@ -157,7 +157,7 @@
               '<span class="hint">Abaixo da Prata, a EPO fica em Bronze.</span>' +
             '</div>' +
             '<div class="field mb-0">' +
-              '<label for="bronze-num">Bronze — nota mínima</label>' +
+              '<label for="bronze-num">Bronze _ nota mínima</label>' +
               '<div class="row">' +
                 '<input type="range" class="range-input grow" id="bronze-range" min="1" max="80" step="1" aria-label="Nota mínima do tier Bronze">' +
                 '<input type="number" class="input num-input" id="bronze-num" min="1" max="80" step="1" inputmode="numeric" aria-label="Nota mínima do tier Bronze">' +
@@ -172,7 +172,7 @@
           '</div>' +
         '</section>' +
 
-        // Seção 2 — Pesos dos blocos
+        // Seção 2 _ Pesos dos blocos
         '<section class="card" style="margin-bottom:20px">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
@@ -187,7 +187,7 @@
           '</p>' +
         '</section>' +
 
-        // Seção 3 — Prévia da classificação
+        // Seção 3 _ Prévia da classificação
         '<section class="card">' +
           '<div class="card-header">' +
             '<div class="section-title">' +

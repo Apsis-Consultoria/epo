@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Detalhe da EPO — Auditoria de EPOs</title>
+  <title>Detalhe da EPO _ Auditoria de EPOs</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
@@ -66,12 +66,12 @@
       var posicao = ordenadas.findIndex(function (e) { return e.id === epo.id; }) + 1;
       var total = ordenadas.length;
 
-      // Monta o shell — título = nome da EPO, item de menu ativo = Ranking
+      // Monta o shell _ título = nome da EPO, item de menu ativo = Ranking
       Layout.mount("ranking", epo.nome);
 
       // -------------------------------------------------- Helpers locais
       function fmtData(iso) {
-        if (!iso) return "—";
+        if (!iso) return "_";
         var p = String(iso).split("-");
         return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : iso;
       }
@@ -164,7 +164,7 @@
           '<div class="card-header">' +
             '<div class="section-title">' +
               '<span class="title">Ciclo do equipamento</span>' +
-              '<span class="subtitle">Máquina parada não gera receita — tempos médios desta EPO</span>' +
+              '<span class="subtitle">Máquina parada não gera receita _ tempos médios desta EPO</span>' +
             "</div>" +
           "</div>" +
           '<div class="cycle">' +

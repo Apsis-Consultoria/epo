@@ -1,5 +1,5 @@
 /* =========================================================================
-   Auditoria de EPOs — shell de navegação + helpers.
+   Auditoria de EPOs _ shell de navegação + helpers.
    window.App  -> helpers puros consumidos pelas telas.
    window.Layout.mount() -> injeta sidebar + topbar.
    Depende de window.APP (assets/data.js), carregado ANTES deste arquivo.
@@ -25,12 +25,12 @@
   // Formatação pt-BR
   // -----------------------------------------------------------------------
   function fmtNum(n) {
-    if (n === null || n === undefined || isNaN(n)) return "—";
+    if (n === null || n === undefined || isNaN(n)) return "_";
     return Number(n).toLocaleString("pt-BR");
   }
 
   function fmtDias(n) {
-    if (n === null || n === undefined || isNaN(n)) return "—";
+    if (n === null || n === undefined || isNaN(n)) return "_";
     var s = Number(n).toLocaleString("pt-BR", {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1
@@ -39,7 +39,7 @@
   }
 
   function fmtPct(n) {
-    if (n === null || n === undefined || isNaN(n)) return "—";
+    if (n === null || n === undefined || isNaN(n)) return "_";
     return Math.round(Number(n)) + "%";
   }
 
@@ -153,7 +153,7 @@
   };
 
   // -----------------------------------------------------------------------
-  // window.Layout — shell (sidebar + topbar)
+  // window.Layout _ shell (sidebar + topbar)
   // -----------------------------------------------------------------------
   function buildSidebar(activeKey) {
     var items = NAV.map(function (n) {
@@ -168,7 +168,7 @@
     }).join("");
 
     return (
-      '<a class="sidebar-logo" href="index.html" aria-label="APSIS — Auditoria de EPOs">' +
+      '<a class="sidebar-logo" href="index.html" aria-label="APSIS _ Auditoria de EPOs">' +
         '<span class="sidebar-logo-pill"><img src="https://ybixbsfmxblaippubtvw.supabase.co/storage/v1/object/public/assets/logo_com_nome.png" alt="APSIS"></span>' +
         '<span class="sidebar-logo-mini" aria-hidden="true">A</span>' +
       "</a>" +
@@ -209,7 +209,7 @@
     if (sidebar) sidebar.innerHTML = buildSidebar(activeKey);
     if (topbar) topbar.innerHTML = buildTopbar(title, actionsHTML);
 
-    if (title) document.title = title + " — Auditoria de EPOs";
+    if (title) document.title = title + " _ Auditoria de EPOs";
 
     // Toggle da sidebar no mobile (com backdrop)
     var menuBtn = document.getElementById("topbar-menu");
@@ -234,7 +234,7 @@
       });
     }
 
-    // Recolher/expandir a sidebar (desktop) — estado persistido
+    // Recolher/expandir a sidebar (desktop) _ estado persistido
     var collapseBtn = document.getElementById("sidebar-collapse");
     if (collapseBtn && sidebar) {
       var applyCollapsed = function (c) {
