@@ -1,6 +1,6 @@
 /* =========================================================================
-   Auditoria de EPOs _ dados mock (100% fictícios)
-   window.APP _ contrato consumido por todas as telas.
+   Auditoria de EPOs - dados mock (100% fictícios)
+   window.APP - contrato consumido por todas as telas.
    ========================================================================= */
 (function () {
   "use strict";
@@ -11,7 +11,7 @@
   var tierRules = { ouroMin: 85, prataMin: 70, bronzeMin: 55 };
 
   // -----------------------------------------------------------------------
-  // EPOs (8) _ dados fictícios e plausíveis.
+  // EPOs (8) - dados fictícios e plausíveis.
   // tempoParada ~ tempoChegada + tempoReparo + tempoRetorno
   // -----------------------------------------------------------------------
   var epos = [
@@ -136,7 +136,7 @@
           bloco: "Inventário",
           gravidade: "media",
           evidencia: true,
-          legenda: "Divergência de inventário _ cadastro indicava 40, havia 34.",
+          legenda: "Divergência de inventário - cadastro indicava 40, havia 34.",
           data: "2026-07-14"
         },
         {
@@ -194,7 +194,7 @@
           bloco: "Inventário",
           gravidade: "media",
           evidencia: true,
-          legenda: "Divergência de inventário _ eram pra ter 60, havia 48.",
+          legenda: "Divergência de inventário - eram pra ter 60, havia 48.",
           data: "2026-07-16"
         },
         {
@@ -252,7 +252,7 @@
           bloco: "Inventário",
           gravidade: "alta",
           evidencia: true,
-          legenda: "Divergência de inventário _ eram pra ter 10, havia 200.",
+          legenda: "Divergência de inventário - eram pra ter 10, havia 200.",
           data: "2026-07-18"
         },
         {
@@ -326,7 +326,7 @@
           bloco: "Inventário",
           gravidade: "alta",
           evidencia: true,
-          legenda: "Divergência de inventário _ cadastro indicava 15, havia 120.",
+          legenda: "Divergência de inventário - cadastro indicava 15, havia 120.",
           data: "2026-07-20"
         },
         {
@@ -400,7 +400,7 @@
           bloco: "Inventário",
           gravidade: "alta",
           evidencia: true,
-          legenda: "Divergência de inventário _ eram pra ter 10, havia 200.",
+          legenda: "Divergência de inventário - eram pra ter 10, havia 200.",
           data: "2026-07-21"
         },
         {
@@ -474,7 +474,7 @@
           bloco: "Inventário",
           gravidade: "alta",
           evidencia: true,
-          legenda: "Divergência de inventário _ eram pra ter 10, havia 200.",
+          legenda: "Divergência de inventário - eram pra ter 10, havia 200.",
           data: "2026-07-22"
         },
         {
@@ -522,7 +522,7 @@
   ];
 
   // -----------------------------------------------------------------------
-  // KPIs _ calculados a partir das EPOs para manter coerência.
+  // KPIs - calculados a partir das EPOs para manter coerência.
   // -----------------------------------------------------------------------
   var somaParados = 0, somaParada = 0, somaConf = 0, somaNc = 0;
   var dist = { ouro: 0, prata: 0, bronze: 0, critico: 0 };
@@ -544,11 +544,11 @@
   };
 
   // -----------------------------------------------------------------------
-  // Checklist _ blocos com pesos que somam 100.
+  // Checklist - blocos com pesos que somam 100.
   // -----------------------------------------------------------------------
   // Fonte: "Checklist Gestão de Qualidade - EPO" (PDF, 4 páginas).
   // Cada item tem a "Evidência esperada" do documento original.
-  // Pesos por seção somam 100 (proposta _ ainda a validar com Claro/Sérgio).
+  // Pesos por seção somam 100 (proposta - ainda a validar com Claro/Sérgio).
   var checklist = [
     {
       bloco: "1. Recebimento & Expedição",
@@ -649,7 +649,7 @@
   ];
 
   // -----------------------------------------------------------------------
-  // Evidências (galeria) _ ~9 registros fotográficos fictícios.
+  // Evidências (galeria) - ~9 registros fotográficos fictícios.
   // -----------------------------------------------------------------------
   var evidencias = [
     {
@@ -658,7 +658,7 @@
       epoNome: "EPO Nexus",
       item: "Estoque físico compatível com o cadastro",
       bloco: "Inventário",
-      legenda: "Divergência de inventário _ eram pra ter 10, havia 200.",
+      legenda: "Divergência de inventário - eram pra ter 10, havia 200.",
       gravidade: "alta",
       data: "2026-07-18"
     },
@@ -668,7 +668,7 @@
       epoNome: "EPO Litoral",
       item: "Estoque físico compatível com o cadastro",
       bloco: "Inventário",
-      legenda: "Divergência de inventário _ eram pra ter 10, havia 200.",
+      legenda: "Divergência de inventário - eram pra ter 10, havia 200.",
       gravidade: "alta",
       data: "2026-07-21"
     },
@@ -688,7 +688,7 @@
       epoNome: "EPO Órbita",
       item: "Estoque físico compatível com o cadastro",
       bloco: "Inventário",
-      legenda: "Divergência de inventário _ cadastro indicava 15, havia 120.",
+      legenda: "Divergência de inventário - cadastro indicava 15, havia 120.",
       gravidade: "alta",
       data: "2026-07-20"
     },
@@ -698,7 +698,7 @@
       epoNome: "EPO Aurora",
       item: "Estoque físico compatível com o cadastro",
       bloco: "Inventário",
-      legenda: "Divergência de inventário _ eram pra ter 60, havia 48.",
+      legenda: "Divergência de inventário - eram pra ter 60, havia 48.",
       gravidade: "media",
       data: "2026-07-16"
     },
@@ -718,7 +718,7 @@
       epoNome: "EPO Vértice",
       item: "Estoque físico compatível com o cadastro",
       bloco: "Inventário",
-      legenda: "Divergência de inventário _ cadastro indicava 40, havia 34.",
+      legenda: "Divergência de inventário - cadastro indicava 40, havia 34.",
       gravidade: "media",
       data: "2026-07-14"
     },
@@ -745,7 +745,7 @@
   ];
 
   // -----------------------------------------------------------------------
-  // Vistorias históricas por EPO (sintéticas _ protótipo).
+  // Vistorias históricas por EPO (sintéticas - protótipo).
   // Permitem comparar a mesma EPO em datas diferentes (ex.: hoje x 6 meses).
   // -----------------------------------------------------------------------
   var BLOCOS = checklist.map(function (b) { return b.bloco; });

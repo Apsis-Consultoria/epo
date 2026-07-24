@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap');
 
 /* =========================================================================
-   Auditoria de EPOs _ design system + componentes (tema Portal APSIS)
+   Auditoria de EPOs - design system + componentes (tema Portal APSIS)
    Estética: dashboard SaaS moderno, limpo e profissional.
    Todas as cores via var(--...). Nada de hex solto nos componentes.
    ========================================================================= */
 
 /* ---------------------------------------------------------------- Tokens */
 :root {
-  /* Portal APSIS _ paleta oficial (do Layout.jsx do portal) */
+  /* Portal APSIS - paleta oficial (do Layout.jsx do portal) */
   --apsis-green: #1A4731;
   --apsis-green-light: #245E40;
   --apsis-orange: #F47920;
