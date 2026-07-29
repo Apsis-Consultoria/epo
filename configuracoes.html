@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=2">
+  <link rel="stylesheet" href="assets/app.css?v=5">
 
   <style>
     /* Ajustes locais desta tela (componentes não previstos no design system). */
@@ -88,8 +88,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=2"></script>
-  <script src="assets/app.js?v=2"></script>
+  <script src="assets/data.js?v=5"></script>
+  <script src="assets/app.js?v=5"></script>
   <script>
     (function () {
       "use strict";
@@ -126,7 +126,7 @@
 
       page.innerHTML =
         '<p class="page-intro">Defina como as EPOs são pontuadas e classificadas. Ajuste os cortes dos tiers e o ' +
-        'peso de cada bloco do checklist; a prévia recalcula a classificação em tempo real. As alterações valem ' +
+        'peso de cada processo; a prévia recalcula a classificação em tempo real. As alterações valem ' +
         'apenas nesta sessão de demonstração.</p>' +
 
         // Seção 1 - Cortes dos tiers
@@ -176,8 +176,8 @@
         '<section class="card" style="margin-bottom:20px">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
-              '<span class="title">Pesos dos blocos do checklist</span>' +
-              '<span class="subtitle">Quanto cada bloco contribui para a nota final. O total precisa somar 100.</span>' +
+              '<span class="title">Pesos por processo</span>' +
+              '<span class="subtitle">Quanto cada processo contribui para a nota final. O total precisa somar 100.</span>' +
             '</div>' +
             '<span class="badge" id="peso-sum-badge"><i class="ti ti-sum" aria-hidden="true"></i><span id="peso-sum-text"></span></span>' +
           '</div>' +
@@ -304,10 +304,10 @@
       function renderWeights() {
         weights.innerHTML = CHECKLIST.map(function (b, i) {
           return '<div class="weight-row">' +
-            '<span class="weight-label">' + App.escapeHtml(b.bloco) +
+            '<span class="weight-label">' + App.escapeHtml(b.nome) +
               '<small>' + b.itens.length + ' ' + (b.itens.length === 1 ? "item" : "itens") + '</small></span>' +
             '<input type="range" class="range-input" data-idx="' + i + '" min="0" max="40" step="1" ' +
-              'value="' + state.pesos[i] + '" aria-label="Peso do bloco ' + App.escapeHtml(b.bloco) + '">' +
+              'value="' + state.pesos[i] + '" aria-label="Peso do processo ' + App.escapeHtml(b.nome) + '">' +
             '<span class="weight-val" id="wv-' + i + '">' + state.pesos[i] + '</span>' +
           '</div>';
         }).join("");

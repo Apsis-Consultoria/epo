@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel gerencial - Auditoria de EPOs</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/app.css?v=5">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* Ajustes locais do painel gerencial (relatório executivo) */
+    .chart-box { position: relative; height: 240px; }
+
+    .fill-danger { background: var(--danger); }
+
+    .proc-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+    .proc-row + .proc-row { border-top: 1px solid var(--border); }
+    .proc-nome { flex: 0 0 210px; min-width: 0; font-size: 13px; font-weight: 500; color: var(--text); }
+    .proc-row .score-bar { flex: 1; }
+
+    .ofensor { padding: 10px 0; }
+    .ofensor + .ofensor { border-top: 1px solid var(--border); }
+    .ofensor-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .ofensor-proc { font-size: 12px; color: var(--text-2); }
+    .ofensor-pct { font-size: 13px; font-weight: 600; color: var(--danger); font-variant-numeric: tabular-nums; }
+    .ofensor-perg { font-size: 13px; font-weight: 500; color: var(--text); margin: 2px 0 7px; }
+
+    .pipefy-field { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; font-size: 13px; }
+    .pipefy-field + .pipefy-field { border-top: 1px solid var(--border); }
+    .pf-label { color: var(--text-2); flex: 0 0 auto; }
+    .pf-value { font-weight: 500; color: var(--text); text-align: right; word-break: break-word; }
+
+    /* Cabeçalho que só aparece na impressão */
+    .print-header { display: none; }
+
+    @media (max-width: 900px) {
+      .proc-nome { flex-basis: 140px; }
+    }
+
+    /* PDF limpo via Ctrl+P / window.print() */
+    @media print {
+      @page { margin: 14mm; }
+      body { background: #fff; }
+      .sidebar, .topbar, .sidebar-backdrop, .toast-host,
+      .modal-overlay, .btn, .sidebar-collapse { display: none !important; }
+      .app-shell { display: block; }
+      .page { padding: 0; }
+      .card, .kpi { box-shadow: none !important; border-color: #C9D2CB; break-inside: avoid; }
+      .print-header {
+        display: block;
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--apsis-green);
+      }
+      .print-header h1 { font-size: 18px; color: var(--apsis-green); }
+      .print-header p { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=5"></script>
+  <script src="assets/app.js?v=5"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var acoes =
+        '<button class="btn btn-ghost btn-sm" id="btn-pdf" type="button">' +
+          '<i class="ti ti-file-type-pdf" aria-hidden="true"></i>Gerar PDF' +
+        "</button>" +
+        '<button class="btn btn-primary btn-sm" id="btn-pipefy" type="button">' +
+          '<i class="ti ti-send" aria-hidden="true"></i>Enviar ao Pipefy' +
+        "</button>";
+
+      Layout.mount("gerencial", "Painel gerencial", acoes);
+
+      var esc = App.escapeHtml;
+      var epos = (window.APP.epos || []).slice();
+      var kpis = window.APP.kpis || {};
+      var processos = window.APP.processos || [];
+
+      function css(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      }
+      function fmt1(n) {
+        return Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+      }
+
+      // ------------------------------------------------------------------
+      // Agregações (última vistoria de cada EPO -> médias por item/processo)
+      // ------------------------------------------------------------------
+      var mapaItens = {};   // "processoNome||pergunta" -> { soma, n }
+      var mapaProc = {};    // processoId -> { soma, n }
+
+      epos.forEach(function (e) {
+        var v = e.vistorias && e.vistorias[e.vistorias.length - 1];
+        if (!v) return;
+        v.secoes.forEach(function (s) {
+          if (!mapaProc[s.processoId]) mapaProc[s.processoId] = { soma: 0, n: 0 };
+          s.itens.forEach(function (it) {
+            var k = s.nome + "||" + it.pergunta;
+            if (!mapaItens[k]) mapaItens[k] = { processo: s.nome, pergunta: it.pergunta, soma: 0, n: 0 };
+            mapaItens[k].soma += it.pct;
+            mapaItens[k].n += 1;
+            mapaProc[s.processoId].soma += it.pct;
+            mapaProc[s.processoId].n += 1;
+          });
+        });
+      });
+
+      var itensGlobais = Object.keys(mapaItens).map(function (k) {
+        var m = mapaItens[k];
+        return { processo: m.processo, pergunta: m.pergunta, media: Math.round(m.soma / m.n) };
+      });
+      itensGlobais.sort(function (a, b) { return a.media - b.media; });
+      var piores = itensGlobais.slice(0, 8);
+
+      var procMedias = processos.map(function (p) {
+        var m = mapaProc[p.id] || { soma: 0, n: 1 };
+        return { id: p.id, nome: p.nome, media: Math.round(m.soma / Math.max(m.n, 1)) };
+      });
+      procMedias.sort(function (a, b) { return a.media - b.media; });
+
+      // Score médio da carteira + demais campos do resumo
+      var scoreMedio = epos.reduce(function (acc, e) { return acc + e.score; }, 0) / (epos.length || 1);
+      var criticas = epos.filter(function (e) { return e.tier === "critico"; });
+      var ultimaLabel = (epos[0] && epos[0].vistorias.length)
+        ? epos[0].vistorias[epos[0].vistorias.length - 1].label
+        : "jul/2026";
+
+      var pctFontesMedio = (kpis.reversaQualidadeMedia || {}).pctFontes || 0;
+      var metaFontes = 75;
+      var difFontes = Math.abs(metaFontes - pctFontesMedio);
+
+      // ------------------------------------------------------------------
+      // Blocos da página
+      // ------------------------------------------------------------------
+      function kpiCard(label, valor, icone, deltaHtml) {
+        return (
+          '<div class="kpi">' +
+            '<div class="kpi-top">' +
+              '<span class="kpi-label">' + esc(label) + "</span>" +
+              '<span class="kpi-icon"><i class="ti ' + icone + '" aria-hidden="true"></i></span>' +
+            "</div>" +
+            '<span class="kpi-value">' + valor + "</span>" +
+            (deltaHtml || "") +
+          "</div>"
+        );
+      }
+
+      var htmlKpis =
+        '<div class="kpi-grid" style="margin-bottom:16px;">' +
+          kpiCard("EPOs auditadas", App.fmtNum(kpis.eposAuditadas), "ti-building-warehouse",
+            '<span class="kpi-delta flat"><i class="ti ti-calendar" aria-hidden="true"></i>ciclo ' + esc(ultimaLabel) + "</span>") +
+          kpiCard("Conformidade média", App.fmtPct(kpis.conformidadeMedia), "ti-circle-check",
+            '<span class="kpi-delta flat"><i class="ti ti-chart-bar" aria-hidden="true"></i>média das ' + epos.length + " EPOs</span>") +
+          kpiCard("Tempo médio de ciclo", App.fmtDias(kpis.tempoMedioCiclo), "ti-clock",
+            '<span class="kpi-delta flat"><i class="ti ti-route" aria-hidden="true"></i>chegada até devolução</span>') +
+          kpiCard("NCs totais", App.fmtNum(kpis.ncTotal), "ti-alert-triangle",
+            '<span class="kpi-delta flat"><i class="ti ti-clipboard-list" aria-hidden="true"></i>registros no ciclo</span>') +
+          kpiCard("% fontes médio", App.fmtPct(pctFontesMedio), "ti-plug",
+            pctFontesMedio >= metaFontes
+              ? '<span class="kpi-delta up"><i class="ti ti-trending-up" aria-hidden="true"></i>' + difFontes + " pts acima da meta de 75%</span>"
+              : '<span class="kpi-delta down"><i class="ti ti-trending-down" aria-hidden="true"></i>' + difFontes + " pts abaixo da meta de 75%</span>") +
+        "</div>";
+
+      // Ranking resumido -----------------------------------------------------
+      var ordenadas = epos.slice().sort(function (a, b) { return b.score - a.score; });
+
+      var htmlRankingRows = ordenadas.map(function (e, i) {
+        var meta = App.tierMeta(e.tier);
+        var fontesCls = e.reversa.pctFontes >= e.reversa.metaFontes ? "delta-up" : "delta-down";
+        return (
+          "<tr>" +
+            '<td class="rank">' + (i + 1) + "</td>" +
+            '<td><span style="font-weight:600;">' + esc(e.nome) + '</span> <span class="text-muted" style="font-size:12px;">' + esc(e.cidade) + "/" + esc(e.uf) + "</span></td>" +
+            '<td><span class="badge ' + meta.cls + '"><i class="ti ti-circle-filled" aria-hidden="true"></i>' + esc(meta.label) + "</span></td>" +
+            '<td style="min-width:150px;">' +
+              '<div class="score-row">' +
+                '<span class="score-bar"><span class="score-fill tier-' + e.tier + '" style="width:' + e.score + '%;"></span></span>' +
+                '<span class="score-num">' + e.score + "</span>" +
+              "</div>" +
+            "</td>" +
+            '<td class="num">' + App.fmtDias(e.tempoCiclo) + "</td>" +
+            '<td class="num"><span class="' + fontesCls + '" style="font-weight:600;">' + App.fmtPct(e.reversa.pctFontes) + "</span></td>" +
+          "</tr>"
+        );
+      }).join("");
+
+      var htmlRanking =
+        '<div class="card" style="margin-bottom:16px;">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Ranking resumido</span>' +
+              '<span class="subtitle">Classificação por pontuação - % fontes contra meta de 75%</span>' +
+            "</div>" +
+          "</div>" +
+          '<div class="table-wrap">' +
+            '<table class="table">' +
+              "<thead><tr>" +
+                '<th style="width:44px;">#</th>' +
+                "<th>EPO</th>" +
+                "<th>Selo</th>" +
+                "<th>Pontuação</th>" +
+                '<th class="num">Tempo de ciclo</th>' +
+                '<th class="num">% fontes</th>' +
+              "</tr></thead>" +
+              "<tbody>" + htmlRankingRows + "</tbody>" +
+            "</table>" +
+          "</div>" +
+        "</div>";
+
+      // Maiores ofensores por processo ---------------------------------------
+      var htmlProcs = procMedias.map(function (p) {
+        var tier = App.tierOf(p.media);
+        return (
+          '<div class="proc-row">' +
+            '<span class="proc-nome">' + esc(p.nome) + "</span>" +
+            '<span class="score-bar"><span class="score-fill tier-' + tier + '" style="width:' + p.media + '%;"></span></span>' +
+            '<span class="score-num">' + App.fmtPct(p.media) + "</span>" +
+          "</div>"
+        );
+      }).join("");
+
+      var htmlPiores = piores.map(function (it) {
+        return (
+          '<div class="ofensor">' +
+            '<div class="ofensor-head">' +
+              '<span class="ofensor-proc">' + esc(it.processo) + "</span>" +
+              '<span class="ofensor-pct">' + App.fmtPct(it.media) + "</span>" +
+            "</div>" +
+            '<div class="ofensor-perg">' + esc(it.pergunta) + "</div>" +
+            '<span class="score-bar"><span class="score-fill fill-danger" style="width:' + it.media + '%;"></span></span>' +
+          "</div>"
+        );
+      }).join("");
+
+      var htmlOfensores =
+        '<div class="card" style="margin-bottom:16px;">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Maiores ofensores por processo</span>' +
+              '<span class="subtitle">Média de conformidade dos itens na última vistoria das ' + epos.length + " EPOs</span>" +
+            "</div>" +
+          "</div>" +
+          '<div class="grid-2">' +
+            "<div>" +
+              '<p class="muted" style="font-size:12px;font-weight:500;margin-bottom:6px;">Conformidade média por processo (pior primeiro)</p>' +
+              htmlProcs +
+            "</div>" +
+            "<div>" +
+              '<p class="muted" style="font-size:12px;font-weight:500;margin-bottom:6px;">Os 8 itens que mais ofendem (todas as EPOs)</p>' +
+              htmlPiores +
+            "</div>" +
+          "</div>" +
+        "</div>";
+
+      // Evolução da carteira ---------------------------------------------------
+      var htmlEvolucao =
+        '<div class="card mb-0">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Evolução da carteira</span>' +
+              '<span class="subtitle">Score médio mensal das ' + epos.length + " EPOs auditadas</span>" +
+            "</div>" +
+          "</div>" +
+          '<div class="chart-box"><canvas id="chartEvolucao" aria-label="Gráfico de evolução do score médio da carteira" role="img"></canvas></div>' +
+        "</div>";
+
+      // Cabeçalho visível somente no PDF --------------------------------------
+      var hoje = new Date().toLocaleDateString("pt-BR");
+      var htmlPrintHeader =
+        '<div class="print-header">' +
+          "<h1>APSIS - Auditoria de EPOs | Painel gerencial</h1>" +
+          "<p>Cliente: " + esc(window.APP.cliente.nome) + " &middot; Período: " + esc(ultimaLabel) +
+          " &middot; Emitido em " + esc(hoje) + "</p>" +
+        "</div>";
+
+      // Modal Pipefy -----------------------------------------------------------
+      var htmlModal =
+        '<div class="modal-overlay" id="pipefy-modal" role="dialog" aria-modal="true" aria-labelledby="pipefy-title">' +
+          '<div class="modal">' +
+            '<div class="modal-header">' +
+              '<h2 class="modal-title" id="pipefy-title">Enviar ao Pipefy</h2>' +
+              '<button class="modal-close" id="pipefy-close" type="button" aria-label="Fechar"><i class="ti ti-x" aria-hidden="true"></i></button>' +
+            "</div>" +
+            '<div class="modal-body">' +
+              '<p class="muted" style="margin-bottom:10px;">Campos que serão enviados na atividade:</p>' +
+              '<div class="pipefy-fields">' +
+                '<div class="pipefy-field"><span class="pf-label">Cliente</span><span class="pf-value">' + esc(window.APP.cliente.nome) + "</span></div>" +
+                '<div class="pipefy-field"><span class="pf-label">Período</span><span class="pf-value">' + esc(ultimaLabel) + "</span></div>" +
+                '<div class="pipefy-field"><span class="pf-label">Nº de auditorias</span><span class="pf-value">' + App.fmtNum(kpis.eposAuditadas) + "</span></div>" +
+                '<div class="pipefy-field"><span class="pf-label">Score médio</span><span class="pf-value">' + fmt1(scoreMedio) + "</span></div>" +
+                '<div class="pipefy-field"><span class="pf-label">EPOs críticas</span><span class="pf-value">' +
+                  (criticas.length ? esc(criticas.map(function (e) { return e.nome; }).join(", ")) : "Nenhuma") +
+                "</span></div>" +
+                '<div class="pipefy-field"><span class="pf-label">Link do relatório</span><span class="pf-value">painel-gerencial-claro-' + esc(ultimaLabel.replace("/", "-")) + ".pdf</span></div>" +
+              "</div>" +
+              '<p class="text-muted" style="font-size:12px;margin-top:12px;">' +
+                "Integração via API Pipefy - os campos espelham o fluxo de faturamento de fornecedores da Claro (mock nesta versão)." +
+              "</p>" +
+            "</div>" +
+            '<div class="modal-footer">' +
+              '<button class="btn btn-ghost btn-sm" id="pipefy-cancel" type="button">Cancelar</button>' +
+              '<button class="btn btn-primary btn-sm" id="pipefy-confirm" type="button"><i class="ti ti-check" aria-hidden="true"></i>Confirmar envio</button>' +
+            "</div>" +
+          "</div>" +
+        "</div>";
+
+      // ------------------------------------------------------------------
+      // Montagem
+      // ------------------------------------------------------------------
+      document.getElementById("page").innerHTML =
+        htmlPrintHeader +
+        '<p class="page-intro">' +
+          "Relatório executivo do ciclo de auditorias: visão consolidada da carteira, maiores ofensores por processo " +
+          "e evolução do score médio. Gere o PDF ou envie a atividade de faturamento ao Pipefy." +
+        "</p>" +
+        htmlKpis +
+        htmlRanking +
+        htmlOfensores +
+        htmlEvolucao +
+        htmlModal;
+
+      // Gráfico de evolução ----------------------------------------------------
+      var canvas = document.getElementById("chartEvolucao");
+      if (canvas && window.Chart) {
+        var meses = (epos[0] && epos[0].historico || []).map(function (h) { return h.mes; });
+        var mediaMensal = meses.map(function (_, i) {
+          var soma = 0;
+          epos.forEach(function (e) { soma += e.historico[i].score; });
+          return Math.round((soma / epos.length) * 10) / 10;
+        });
+
+        var ctx = canvas.getContext("2d");
+        var grad = ctx.createLinearGradient(0, 0, 0, 240);
+        grad.addColorStop(0, "rgba(26, 71, 49, .16)");
+        grad.addColorStop(1, "rgba(26, 71, 49, 0)");
+
+        new Chart(canvas, {
+          type: "line",
+          data: {
+            labels: meses,
+            datasets: [{
+              data: mediaMensal,
+              borderColor: css("--primary"),
+              backgroundColor: grad,
+              fill: true,
+              tension: .35,
+              borderWidth: 2,
+              pointRadius: 3,
+              pointBackgroundColor: css("--primary"),
+              pointBorderColor: css("--surface"),
+              pointBorderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (c) { return " Score médio: " + fmt1(c.parsed.y); }
+                }
+              }
+            },
+            scales: {
+              y: {
+                suggestedMin: 70,
+                suggestedMax: 85,
+                ticks: { stepSize: 5 },
+                grid: { color: css("--border") }
+              },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      }
+
+      // Ações ------------------------------------------------------------------
+      var btnPdf = document.getElementById("btn-pdf");
+      if (btnPdf) btnPdf.addEventListener("click", function () { window.print(); });
+
+      var modal = document.getElementById("pipefy-modal");
+      function abrirModal() { modal.classList.add("is-open"); }
+      function fecharModal() { modal.classList.remove("is-open"); }
+
+      var btnPipefy = document.getElementById("btn-pipefy");
+      if (btnPipefy) btnPipefy.addEventListener("click", abrirModal);
+
+      document.getElementById("pipefy-close").addEventListener("click", fecharModal);
+      document.getElementById("pipefy-cancel").addEventListener("click", fecharModal);
+      document.getElementById("pipefy-confirm").addEventListener("click", function () {
+        fecharModal();
+        App.toast("Atividade criada no Pipefy (simulação).");
+      });
+      modal.addEventListener("click", function (ev) {
+        if (ev.target === modal) fecharModal();
+      });
+      document.addEventListener("keydown", function (ev) {
+        if (ev.key === "Escape" && modal.classList.contains("is-open")) fecharModal();
+      });
+    })();
+  </script>
+</body>
+</html>

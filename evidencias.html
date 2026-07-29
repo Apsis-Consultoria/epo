@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=2">
+  <link rel="stylesheet" href="assets/app.css?v=5">
 </head>
 <body>
   <div class="app-shell">
@@ -18,8 +18,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=2"></script>
-  <script src="assets/app.js?v=2"></script>
+  <script src="assets/data.js?v=5"></script>
+  <script src="assets/app.js?v=5"></script>
   <script>
     (function () {
       "use strict";
@@ -32,12 +32,18 @@
 
       var esc = App.escapeHtml;
       var evidencias = (window.APP && window.APP.evidencias) ? window.APP.evidencias.slice() : [];
+      var anexos = (window.APP && window.APP.anexosRecebidos) ? window.APP.anexosRecebidos.slice() : [];
       var epos = (window.APP && window.APP.epos) ? window.APP.epos : [];
 
       // EPOs que aparecem nas evidências, na ordem do ranking (score desc).
       var idsComEvidencia = {};
       evidencias.forEach(function (ev) { idsComEvidencia[ev.epoId] = true; });
       var eposFiltro = epos.filter(function (e) { return idsComEvidencia[e.id]; });
+
+      // EPOs que aparecem nos anexos recebidos.
+      var idsComAnexo = {};
+      anexos.forEach(function (ax) { idsComAnexo[ax.epoId] = true; });
+      var eposFiltroAnexo = epos.filter(function (e) { return idsComAnexo[e.id]; });
 
       // Contagem por gravidade (para os chips).
       var contagem = { alta: 0, media: 0, baixa: 0 };
@@ -52,7 +58,14 @@
         { key: "baixa", label: "Baixa", n: contagem.baixa }
       ];
 
-      var estado = { epo: "todas", gravidade: "todas" };
+      var ICONE_TIPO = {
+        "NF-e": "ti-file-invoice",
+        "E-mail": "ti-mail",
+        "Print Atlas": "ti-screenshot",
+        "Certificado": "ti-certificate"
+      };
+
+      var estado = { tab: "campo", epo: "todas", gravidade: "todas", epoAnexo: "todas" };
 
       // -------------------------------------------------------------- helpers
       function fmtData(iso) {
@@ -69,6 +82,13 @@
         return null;
       }
 
+      function anexoById(id) {
+        for (var i = 0; i < anexos.length; i++) {
+          if (anexos[i].id === id) return anexos[i];
+        }
+        return null;
+      }
+
       function filtradas() {
         return evidencias.filter(function (ev) {
           if (estado.epo !== "todas" && ev.epoId !== estado.epo) return false;
@@ -77,9 +97,39 @@
         });
       }
 
+      function anexosFiltrados() {
+        return anexos.filter(function (ax) {
+          if (estado.epoAnexo !== "todas" && ax.epoId !== estado.epoAnexo) return false;
+          return true;
+        });
+      }
+
+      function contarNovos() {
+        var n = 0;
+        anexos.forEach(function (ax) { if (ax.status === "novo") n += 1; });
+        return n;
+      }
+
+      function badgeLinkSeguro() {
+        return '<span class="badge" style="background:var(--warning-bg);color:var(--accent-600);">' +
+          '<i class="ti ti-shield-lock" aria-hidden="true"></i>link seguro</span>';
+      }
+
+      function badgeStatus(status) {
+        return status === "novo"
+          ? '<span class="badge badge-success"><i class="ti ti-sparkles" aria-hidden="true"></i>novo</span>'
+          : '<span class="badge"><i class="ti ti-link" aria-hidden="true"></i>vinculado</span>';
+      }
+
       // ------------------------------------------------------- markup estático
       var optsEpo = ['<option value="todas">Todas as EPOs</option>'].concat(
         eposFiltro.map(function (e) {
+          return '<option value="' + esc(e.id) + '">' + esc(e.nome) + "</option>";
+        })
+      ).join("");
+
+      var optsEpoAnexo = ['<option value="todas">Todas as EPOs</option>'].concat(
+        eposFiltroAnexo.map(function (e) {
           return '<option value="' + esc(e.id) + '">' + esc(e.nome) + "</option>";
         })
       ).join("");
@@ -96,28 +146,93 @@
 
       var page = document.getElementById("page");
       page.innerHTML =
-        '<p class="page-intro">Registros fotográficos coletados em campo pelos auditores. ' +
-        'Filtre por EPO e por gravidade e clique em um cartão para ampliar a evidência e ver os detalhes.</p>' +
+        '<p class="page-intro">Registros fotográficos coletados em campo pelos auditores e documentos ' +
+        'enviados pelos responsáveis das EPOs por meio de links seguros temporários. ' +
+        'Alterne entre as abas e clique em um cartão para ampliar e ver os detalhes.</p>' +
 
-        '<div class="card" style="margin-bottom:20px;">' +
-          '<div class="row-between wrap" style="gap:16px;">' +
-            '<div class="field mb-0" style="min-width:220px;">' +
-              '<label for="f-epo">Filtrar por EPO</label>' +
-              '<select class="select" id="f-epo">' + optsEpo + "</select>" +
-            "</div>" +
-            '<div class="stack stack-sm" style="min-width:220px;">' +
-              '<span class="kpi-label">Gravidade</span>' +
-              '<div class="row wrap" id="chips-grav">' + chipsGrav + "</div>" +
+        '<div class="row wrap" id="tabs" role="tablist" style="gap:8px;margin-bottom:20px;">' +
+          '<button type="button" class="chip is-active" data-tab="campo" aria-pressed="true" ' +
+            'style="height:34px;padding:0 14px;font-size:13px;">' +
+            '<i class="ti ti-camera" aria-hidden="true"></i>Evidências de campo</button>' +
+          '<button type="button" class="chip" data-tab="link" aria-pressed="false" ' +
+            'style="height:34px;padding:0 14px;font-size:13px;">' +
+            '<i class="ti ti-shield-lock" aria-hidden="true"></i>Recebidos via link seguro' +
+            '<span class="badge badge-success tnum" id="badge-novos" ' +
+              'style="height:18px;padding:0 7px;margin-left:2px;font-size:11px;">0</span></button>' +
+        "</div>" +
+
+        '<section id="tab-campo">' +
+          '<div class="card" style="margin-bottom:20px;">' +
+            '<div class="row-between wrap" style="gap:16px;">' +
+              '<div class="field mb-0" style="min-width:220px;">' +
+                '<label for="f-epo">Filtrar por EPO</label>' +
+                '<select class="select" id="f-epo">' + optsEpo + "</select>" +
+              "</div>" +
+              '<div class="stack stack-sm" style="min-width:220px;">' +
+                '<span class="kpi-label">Gravidade</span>' +
+                '<div class="row wrap" id="chips-grav">' + chipsGrav + "</div>" +
+              "</div>" +
             "</div>" +
           "</div>" +
-        "</div>" +
 
-        '<div class="row-between wrap" style="margin-bottom:14px;">' +
-          '<div class="section-title"><span class="title">Galeria de evidências</span>' +
-          '<span class="subtitle" id="contador"></span></div>' +
-        "</div>" +
+          '<div class="row-between wrap" style="margin-bottom:14px;">' +
+            '<div class="section-title"><span class="title">Galeria de evidências</span>' +
+            '<span class="subtitle" id="contador"></span></div>' +
+          "</div>" +
 
-        '<div class="grid-3" id="galeria"></div>';
+          '<div class="grid-3" id="galeria"></div>' +
+        "</section>" +
+
+        '<section id="tab-link" hidden>' +
+          '<div class="card" style="margin-bottom:20px;">' +
+            '<div class="row-between wrap" style="gap:16px;">' +
+              '<div class="field mb-0" style="min-width:220px;">' +
+                '<label for="f-epo-anexo">Filtrar por EPO</label>' +
+                '<select class="select" id="f-epo-anexo">' + optsEpoAnexo + "</select>" +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+
+          '<div class="row-between wrap" style="margin-bottom:14px;">' +
+            '<div class="section-title"><span class="title">Anexos recebidos</span>' +
+            '<span class="subtitle" id="contador-anexos"></span></div>' +
+          "</div>" +
+
+          '<div class="grid-2" id="lista-anexos"></div>' +
+
+          '<p class="text-muted" style="font-size:12px;margin-top:18px;display:flex;align-items:center;gap:6px;">' +
+            '<i class="ti ti-info-circle" aria-hidden="true"></i>' +
+            "Anexos enviados pelo responsável da EPO através de links temporários (validade 24h)." +
+          "</p>" +
+        "</section>";
+
+      // ------------------------------------------------------------- tabs
+      var tabsHost = document.getElementById("tabs");
+      var secCampo = document.getElementById("tab-campo");
+      var secLink  = document.getElementById("tab-link");
+      var badgeNovos = document.getElementById("badge-novos");
+
+      function atualizarBadgeNovos() {
+        var n = contarNovos();
+        badgeNovos.textContent = n;
+        badgeNovos.style.display = n > 0 ? "" : "none";
+      }
+
+      function setTab(tab) {
+        estado.tab = tab;
+        secCampo.hidden = tab !== "campo";
+        secLink.hidden = tab !== "link";
+        Array.prototype.forEach.call(tabsHost.querySelectorAll("[data-tab]"), function (t) {
+          var on = t.getAttribute("data-tab") === tab;
+          t.classList.toggle("is-active", on);
+          t.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+      }
+
+      tabsHost.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-tab]");
+        if (btn) setTab(btn.getAttribute("data-tab"));
+      });
 
       // ------------------------------------------------------------- render grid
       var galeria = document.getElementById("galeria");
@@ -157,7 +272,7 @@
                 '<div class="legenda">' + esc(ev.legenda) + "</div>" +
                 '<div class="row-between wrap" style="gap:8px;">' +
                   '<span class="meta">' + esc(ev.epoNome) + "</span>" +
-                  '<span class="tag">' + esc(ev.bloco) + "</span>" +
+                  '<span class="tag">' + esc(ev.processo) + "</span>" +
                 "</div>" +
               "</div>" +
             "</article>"
@@ -167,10 +282,81 @@
 
       render();
 
+      // ------------------------------------------------------ render anexos
+      var listaAnexos = document.getElementById("lista-anexos");
+      var contadorAnexos = document.getElementById("contador-anexos");
+
+      function renderAnexos() {
+        var lista = anexosFiltrados();
+        contadorAnexos.textContent = lista.length === 1
+          ? "1 anexo recebido"
+          : lista.length + " anexos recebidos";
+
+        if (!lista.length) {
+          listaAnexos.className = "";
+          listaAnexos.innerHTML =
+            '<div class="card"><div class="empty">' +
+              '<i class="ti ti-file-off" aria-hidden="true"></i>' +
+              "<div>Nenhum anexo recebido para os filtros selecionados.</div>" +
+            "</div></div>";
+          return;
+        }
+
+        listaAnexos.className = "grid-2";
+        listaAnexos.innerHTML = lista.map(function (ax) {
+          var icone = ICONE_TIPO[ax.tipo] || "ti-file";
+          var acao = ax.status === "novo"
+            ? '<button class="btn btn-ghost btn-sm" type="button" data-vincular="' + esc(ax.id) + '">' +
+                '<i class="ti ti-plug-connected" aria-hidden="true"></i>Vincular ao checklist</button>'
+            : '<span class="text-muted" style="font-size:12px;display:inline-flex;align-items:center;gap:5px;">' +
+                '<i class="ti ti-check" aria-hidden="true"></i>Vinculado ao checklist</span>';
+          return (
+            '<article class="card anexo-card" data-id="' + esc(ax.id) + '" role="button" tabindex="0" ' +
+              'aria-label="Abrir anexo: ' + esc(ax.arquivo) + '" ' +
+              'style="cursor:pointer;display:flex;flex-direction:column;gap:12px;">' +
+              '<div class="row" style="gap:12px;align-items:flex-start;">' +
+                '<div style="width:44px;height:44px;flex:0 0 auto;border-radius:var(--radius-sm);' +
+                  'background:var(--surface-2);border:1px solid var(--border);display:grid;' +
+                  'place-items:center;font-size:22px;color:var(--text-2);">' +
+                  '<i class="ti ' + icone + '" aria-hidden="true"></i>' +
+                "</div>" +
+                '<div class="grow">' +
+                  '<div style="font-weight:600;font-size:14px;word-break:break-all;">' + esc(ax.arquivo) + "</div>" +
+                  '<div class="text-muted" style="font-size:12px;">' +
+                    esc(ax.epoNome) + " · " + esc(ax.processo) +
+                  "</div>" +
+                "</div>" +
+                '<span class="text-muted tnum nowrap" style="font-size:12px;">' + fmtData(ax.data) + "</span>" +
+              "</div>" +
+              '<div style="font-size:13px;color:var(--text);">' + esc(ax.item) + "</div>" +
+              '<div class="text-muted" style="font-size:12px;display:flex;align-items:center;gap:5px;">' +
+                '<i class="ti ti-user" aria-hidden="true"></i>' + esc(ax.remetente) +
+              "</div>" +
+              '<div class="row-between wrap" style="gap:8px;margin-top:auto;">' +
+                '<div class="row wrap" style="gap:6px;">' +
+                  badgeLinkSeguro() +
+                  badgeStatus(ax.status) +
+                  '<span class="tag">' + esc(ax.tipo) + "</span>" +
+                "</div>" +
+                acao +
+              "</div>" +
+            "</article>"
+          );
+        }).join("");
+      }
+
+      renderAnexos();
+      atualizarBadgeNovos();
+
       // ------------------------------------------------------------- filtros
       document.getElementById("f-epo").addEventListener("change", function () {
         estado.epo = this.value;
         render();
+      });
+
+      document.getElementById("f-epo-anexo").addEventListener("change", function () {
+        estado.epoAnexo = this.value;
+        renderAnexos();
       });
 
       var chipsHost = document.getElementById("chips-grav");
@@ -211,6 +397,7 @@
         "</div>";
       document.body.appendChild(overlay);
 
+      var lbTitulo = overlay.querySelector("#lightbox-titulo");
       var lbFoto   = overlay.querySelector("#lightbox-foto");
       var lbSub    = overlay.querySelector("#lightbox-sub");
       var lbBadges = overlay.querySelector("#lightbox-badges");
@@ -225,11 +412,19 @@
         );
       }
 
+      function abrirModal() {
+        overlay.classList.add("is-open");
+        document.body.style.overflow = "hidden";
+        var closeBtn = overlay.querySelector("#lightbox-close");
+        if (closeBtn) closeBtn.focus();
+      }
+
       function abrir(id) {
         var ev = evById(id);
         if (!ev) return;
         var g = App.badgeGravidade(ev.gravidade);
 
+        lbTitulo.textContent = "Evidência";
         lbSub.textContent = ev.epoNome;
         if (ev.foto) {
           lbFoto.classList.add("has-img");
@@ -246,13 +441,35 @@
           '<p class="legenda" style="font-size:15px;margin-bottom:12px;">' + esc(ev.legenda) + "</p>" +
           linha("EPO", esc(ev.epoNome)) +
           linha("Item avaliado", esc(ev.item)) +
-          linha("Bloco", esc(ev.bloco)) +
+          linha("Processo", esc(ev.processo)) +
           linha("Data da coleta", fmtData(ev.data));
 
-        overlay.classList.add("is-open");
-        document.body.style.overflow = "hidden";
-        var closeBtn = overlay.querySelector("#lightbox-close");
-        if (closeBtn) closeBtn.focus();
+        abrirModal();
+      }
+
+      function abrirAnexo(id) {
+        var ax = anexoById(id);
+        if (!ax) return;
+        var icone = ICONE_TIPO[ax.tipo] || "ti-file";
+
+        lbTitulo.textContent = "Anexo recebido";
+        lbSub.textContent = ax.epoNome;
+        lbFoto.classList.remove("has-img");
+        lbFoto.innerHTML = '<i class="ti ti-file-text" aria-hidden="true"></i>';
+        lbBadges.innerHTML =
+          badgeLinkSeguro() +
+          badgeStatus(ax.status) +
+          '<span class="badge"><i class="ti ' + icone + '" aria-hidden="true"></i>' + esc(ax.tipo) + "</span>";
+        lbMeta.innerHTML =
+          '<p class="legenda" style="font-size:15px;margin-bottom:12px;word-break:break-all;">' + esc(ax.arquivo) + "</p>" +
+          linha("EPO", esc(ax.epoNome)) +
+          linha("Processo", esc(ax.processo)) +
+          linha("Item do checklist", esc(ax.item)) +
+          linha("Remetente", esc(ax.remetente)) +
+          linha("Recebido via", "link seguro (temporário)") +
+          linha("Data de recebimento", fmtData(ax.data));
+
+        abrirModal();
       }
 
       function fechar() {
@@ -268,6 +485,33 @@
         if (e.key !== "Enter" && e.key !== " ") return;
         var card = e.target.closest(".evidence-card");
         if (card) { e.preventDefault(); abrir(card.getAttribute("data-id")); }
+      });
+
+      // -------------------------------------------------- interações anexos
+      function vincular(id) {
+        var ax = anexoById(id);
+        if (!ax || ax.status !== "novo") return;
+        ax.status = "vinculado";
+        App.toast("Anexo vinculado ao checklist da EPO.");
+        renderAnexos();
+        atualizarBadgeNovos();
+      }
+
+      listaAnexos.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-vincular]");
+        if (btn) {
+          e.stopPropagation();
+          vincular(btn.getAttribute("data-vincular"));
+          return;
+        }
+        var card = e.target.closest(".anexo-card");
+        if (card) abrirAnexo(card.getAttribute("data-id"));
+      });
+      listaAnexos.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        if (e.target.closest("[data-vincular]")) return; // botão trata sozinho
+        var card = e.target.closest(".anexo-card");
+        if (card) { e.preventDefault(); abrirAnexo(card.getAttribute("data-id")); }
       });
 
       overlay.querySelector("#lightbox-close").addEventListener("click", fechar);

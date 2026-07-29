@@ -1,18 +1,173 @@
 /* =========================================================================
    Auditoria de EPOs - dados mock (100% fictícios)
    window.APP - contrato consumido por todas as telas.
+
+   Fluxo real do material na EPO (reunião Claro 27/07):
+   chegada -> armazenagem -> distribuição ao técnico -> retorno de campo -> devolução (logística reversa)
    ========================================================================= */
 (function () {
   "use strict";
 
   // -----------------------------------------------------------------------
-  // Regras de classificação por tier
+  // Cliente (multi-cliente mock)
   // -----------------------------------------------------------------------
-  var tierRules = { ouroMin: 85, prataMin: 70, bronzeMin: 55 };
+  var cliente = { id: "claro", nome: "Claro" };
+  var clientes = [{ id: "claro", nome: "Claro" }];
+
+  // -----------------------------------------------------------------------
+  // Regras de classificação por selo
+  // -----------------------------------------------------------------------
+  var tierRules = { ouroMin: 85, prataMin: 70, bronzeMin: 55 }; // <55 = critico
+
+  // -----------------------------------------------------------------------
+  // Processos - cada um é um checklist independente. Pesos somam 100.
+  // Item: { id, pergunta, evidencia, requerFoto, grave? }
+  // -----------------------------------------------------------------------
+  var processos = [
+    {
+      id: "recebimento",
+      nome: "Recebimento",
+      icone: "ti-truck-loading",
+      peso: 15,
+      descricao: "Chegada do material da Claro (caminhão, NF, embalagens)",
+      itens: [
+        { id: "rec-01", pergunta: "Conferência física x NF (100%) no caminhão da Claro", evidencia: "NF-e, ZTC350/ZTC380, fotos", requerFoto: true },
+        { id: "rec-02", pergunta: "Divergências a menor registradas com RNC e NF de diferença até D+2", evidencia: "Formulários, RNC, NF de diferença", requerFoto: false },
+        { id: "rec-03", pergunta: "Divergências a maior tratadas com NF complementar até D+4", evidencia: "Formulários, NF complementar", requerFoto: false },
+        { id: "rec-04", pergunta: "Integridade das embalagens verificada no recebimento", evidencia: "Fotos das embalagens no descarregamento", requerFoto: true },
+        { id: "rec-05", pergunta: "Registro sistêmico do recebimento no mesmo dia (D+0)", evidencia: "Logs SAP/Atlas", requerFoto: false },
+        { id: "rec-06", pergunta: "Cobertura de estoque monitorada", evidencia: "Relatórios de cobertura", requerFoto: false }
+      ]
+    },
+    {
+      id: "armazenagem",
+      nome: "Armazenagem & Facilities",
+      icone: "ti-building-warehouse",
+      peso: 10,
+      descricao: "Guarda, segregação e condições do estoque",
+      itens: [
+        { id: "arm-01", pergunta: "Empilhamento, segregação e identificação corretos", evidencia: "Fotos/layout do estoque", requerFoto: true },
+        { id: "arm-02", pergunta: "Área de defeito/reversa segregada e sinalizada", evidencia: "Fotos da área segregada", requerFoto: true },
+        { id: "arm-03", pergunta: "CFTV/alarme ativos com registros disponíveis", evidencia: "Logs/prints do CFTV", requerFoto: false },
+        { id: "arm-04", pergunta: "Condições prediais adequadas (telhado, piso, iluminação, ergonomia)", evidencia: "Relatórios/fotos", requerFoto: false },
+        { id: "arm-05", pergunta: "Proteção contra umidade, poeira e impacto", evidencia: "Fotos das embalagens padrão", requerFoto: true },
+        { id: "arm-06", pergunta: "Inventário rotativo executado e conciliado com o sistema", evidencia: "Planilhas/relatórios de inventário", requerFoto: false },
+        { id: "arm-07", pergunta: "Separação física entre novo, reuso e defeito", evidencia: "Fotos das áreas distintas/sinalizadas", requerFoto: true }
+      ]
+    },
+    {
+      id: "baixas",
+      nome: "Baixas (BTP/SAP)",
+      icone: "ti-scan",
+      peso: 20,
+      descricao: "Consumo do técnico lançado e baixado no sistema",
+      itens: [
+        { id: "bx-01", pergunta: "Baixas diárias via BTP", evidencia: "Logs BTP", requerFoto: false },
+        { id: "bx-02", pergunta: "Consumo lançado no PDA pelo técnico", evidencia: "Registros do PDA / OS", requerFoto: false },
+        { id: "bx-03", pergunta: "Relatório de consumo gerado pela empreiteira", evidencia: "Relatório de consumo", requerFoto: false },
+        { id: "bx-04", pergunta: "Integração BTP -> SAP sem pendências", evidencia: "MB51/MB1C", requerFoto: false },
+        { id: "bx-05", pergunta: "OS executada = OS baixada (sem backlog)", evidencia: "Comparativo OS x baixas", requerFoto: false, grave: true },
+        { id: "bx-06", pergunta: "Saldo sem estagnação (linha de corte respeitada)", evidencia: "Relatório de saldo/aging", requerFoto: false }
+      ]
+    },
+    {
+      id: "devolucao",
+      nome: "Devolução — Logística Reversa",
+      icone: "ti-arrow-back-up",
+      peso: 25,
+      descricao: "Despacho de volta para a Claro conforme manual",
+      itens: [
+        { id: "dev-01", pergunta: "Cumprimento da calendarização (devolução no dia agendado)", evidencia: "Agenda de devolução, canhotos", requerFoto: false, grave: true },
+        { id: "dev-02", pergunta: "Equipamentos em plástico-bolha individual", evidencia: "Fotos dos equipamentos embalados", requerFoto: true },
+        { id: "dev-03", pergunta: "Separação por modelo/família", evidencia: "Fotos da separação por modelo", requerFoto: true },
+        { id: "dev-04", pergunta: "Caixa padrão ou Ecobox", evidencia: "Fotos das caixas utilizadas", requerFoto: true },
+        { id: "dev-05", pergunta: "Volumes lacrados", evidencia: "Fotos dos lacres", requerFoto: true },
+        { id: "dev-06", pergunta: "Volumes identificados com conteúdo completo", evidencia: "Fotos da identificação dos volumes", requerFoto: true },
+        { id: "dev-07", pergunta: "Packlist + NF em 96h e validação BPO em 24h", evidencia: "Qualitor", requerFoto: false },
+        { id: "dev-08", pergunta: "NF-e espelho (J1B1N) emitida em até 48h", evidencia: "J1B1N", requerFoto: false },
+        { id: "dev-09", pergunta: "Conferência 100% dos seriais (ZTC) + RNC quando divergente", evidencia: "ZTC, RNC", requerFoto: false },
+        { id: "dev-10", pergunta: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%", evidencia: "Relatório de reversa (fontes x equipamentos)", requerFoto: false, grave: true },
+        { id: "dev-11", pergunta: "Controles remotos devolvidos conforme equipamentos que os usam", evidencia: "Relatório de reversa (controles x equipamentos)", requerFoto: false },
+        { id: "dev-12", pergunta: "Lotes no Qualitor + status validados no Atlas", evidencia: "Qualitor, Atlas", requerFoto: false }
+      ]
+    },
+    {
+      id: "presos",
+      nome: "Presos em Assinante",
+      icone: "ti-home-exclamation",
+      peso: 10,
+      descricao: "Equipamentos retirados do cliente sem baixa",
+      itens: [
+        { id: "pa-01", pergunta: "Alerta quinzenal para aging > 30 dias", evidencia: "Atlas, e-mails", requerFoto: false },
+        { id: "pa-02", pergunta: "Equipamentos retirados do cliente sem baixa sinalizados à Claro", evidencia: "Atlas/Portal IN, e-mails", requerFoto: false, grave: true },
+        { id: "pa-03", pergunta: "Segregação física dos equipamentos presos", evidencia: "Fotos da área segregada", requerFoto: true },
+        { id: "pa-04", pergunta: "Fluxo fotos 10% + Pipefy", evidencia: "Portal IN, Pipefy", requerFoto: true },
+        { id: "pa-05", pergunta: "Revisita bimestral", evidencia: "Relatórios periódicos", requerFoto: false }
+      ]
+    },
+    {
+      id: "documentacao",
+      nome: "Documentação & Sistemas",
+      icone: "ti-files",
+      peso: 8,
+      descricao: "POPs, books e uso correto dos sistemas",
+      itens: [
+        { id: "doc-01", pergunta: "Books/POPs/manuais atualizados", evidencia: "Repositório de documentos", requerFoto: false },
+        { id: "doc-02", pergunta: "Uso correto de SAP/Atlas/SIAK/BTP/Qualitor", evidencia: "Prints/logs dos sistemas", requerFoto: false },
+        { id: "doc-03", pergunta: "Evidências de reinicialização/triangulação arquivadas", evidencia: "SharePoint, NFs", requerFoto: false },
+        { id: "doc-04", pergunta: "Checklist técnico de triagem completo", evidencia: "Registros de triagem", requerFoto: false }
+      ]
+    },
+    {
+      id: "treinamento",
+      nome: "Treinamento & Pessoas",
+      icone: "ti-school",
+      peso: 7,
+      descricao: "Certificações Aprenda Mais e acessos individuais",
+      itens: [
+        { id: "tr-01", pergunta: "Certificados \"Aprenda Mais\" de quem executa o processo", evidencia: "Certificados Aprenda Mais", requerFoto: false },
+        { id: "tr-02", pergunta: "Todo usuário com acesso a Atlas/sistemas tem treinamento", evidencia: "Matriz de acessos x certificados", requerFoto: false },
+        { id: "tr-03", pergunta: "Login individual — sem compartilhamento de senha", evidencia: "Logs de acesso, matriz de usuários", requerFoto: false, grave: true },
+        { id: "tr-04", pergunta: "Novos colaboradores treinados (rotatividade)", evidencia: "Registros de treinamento admissional", requerFoto: false }
+      ]
+    },
+    {
+      id: "governanca",
+      nome: "Governança & RNCs",
+      icone: "ti-shield-check",
+      peso: 5,
+      descricao: "Tratamento de desvios e planos de melhoria",
+      itens: [
+        { id: "gov-01", pergunta: "Desvios críticos reportados imediatamente", evidencia: "RNC, fotos/logs", requerFoto: false },
+        { id: "gov-02", pergunta: "RNCs com prazo, responsável e verificação de eficácia", evidencia: "5W2H, RNC", requerFoto: false },
+        { id: "gov-03", pergunta: "Reunião mensal + ranking", evidencia: "Ata da reunião", requerFoto: false },
+        { id: "gov-04", pergunta: "Plano de melhorias atualizado", evidencia: "Plano de ação, 5W2H", requerFoto: false }
+      ]
+    }
+  ];
+
+  // -----------------------------------------------------------------------
+  // Checklist separado - itens obrigatórios na retirada do assinante.
+  // Resposta: Presente/Ausente; Ausente -> justificativa + evidência.
+  // -----------------------------------------------------------------------
+  var checklistCarregadores = {
+    id: "carregadores",
+    nome: "Itens obrigatórios na retirada",
+    icone: "ti-plug",
+    descricao: "Checklist separado — carregadores e itens obrigatórios na devolução do assinante",
+    itens: [
+      { id: "cg-01", item: "Carregador/fonte" },
+      { id: "cg-02", item: "Controle remoto" },
+      { id: "cg-03", item: "Cabo de energia" },
+      { id: "cg-04", item: "Cabo HDMI" },
+      { id: "cg-05", item: "Smart card" }
+    ]
+  };
 
   // -----------------------------------------------------------------------
   // EPOs (8) - dados fictícios e plausíveis.
-  // tempoParada ~ tempoChegada + tempoReparo + tempoRetorno
+  // tempos = etapas reais do fluxo; tempoCiclo = soma; tempoParada = alias.
+  // reversa = indicadores de logística reversa (meta 75% fontes/controles).
   // -----------------------------------------------------------------------
   var epos = [
     {
@@ -24,12 +179,19 @@
       score: 92,
       equipamentos: 420,
       equipamentosParados: 8,
-      tempoChegada: 1.5,
-      tempoReparo: 3.2,
-      tempoRetorno: 1.8,
-      tempoParada: 6.5,
+      tempos: { chegada: 1.2, armazenagem: 1.5, distribuicao: 1.4, retornoCampo: 1.8, devolucao: 1.6 },
       conformidade: 94,
       ncs: 2,
+      reversa: {
+        aderenciaCalendario: 97,
+        volumeDevolvido: 1180,
+        saldoSistema: 1235,
+        pctFontes: 88,
+        pctControles: 84,
+        metaFontes: 75,
+        metaControles: 75,
+        altoGiro: { equipamentos: 1180, fontes: 1038, controles: 991 }
+      },
       historico: [
         { mes: "Fev", score: 86 },
         { mes: "Mar", score: 88 },
@@ -40,16 +202,16 @@
       ],
       naoConformidades: [
         {
-          item: "Documentação de entrada e saída completa",
-          bloco: "Documentação",
+          item: "Volumes identificados com conteúdo completo",
+          processo: "Devolução — Logística Reversa",
           gravidade: "baixa",
-          evidencia: false,
-          legenda: "Duas ordens de serviço sem data de saída registrada.",
+          evidencia: true,
+          legenda: "Dois volumes com etiqueta de conteúdo incompleta no lote de julho.",
           data: "2026-07-09"
         },
         {
-          item: "Equipamentos identificados e etiquetados",
-          bloco: "Inventário",
+          item: "Empilhamento, segregação e identificação corretos",
+          processo: "Armazenagem & Facilities",
           gravidade: "baixa",
           evidencia: true,
           legenda: "Lote com etiquetas desbotadas na prateleira B3.",
@@ -66,12 +228,19 @@
       score: 90,
       equipamentos: 380,
       equipamentosParados: 10,
-      tempoChegada: 1.8,
-      tempoReparo: 3.5,
-      tempoRetorno: 2.0,
-      tempoParada: 7.3,
+      tempos: { chegada: 1.4, armazenagem: 1.7, distribuicao: 1.5, retornoCampo: 2.0, devolucao: 1.8 },
       conformidade: 92,
       ncs: 3,
+      reversa: {
+        aderenciaCalendario: 94,
+        volumeDevolvido: 1050,
+        saldoSistema: 1120,
+        pctFontes: 84,
+        pctControles: 81,
+        metaFontes: 75,
+        metaControles: 75,
+        altoGiro: { equipamentos: 1050, fontes: 882, controles: 851 }
+      },
       historico: [
         { mes: "Fev", score: 84 },
         { mes: "Mar", score: 85 },
@@ -82,27 +251,27 @@
       ],
       naoConformidades: [
         {
-          item: "Reparo dentro do SLA contratual",
-          bloco: "Processo de reparo",
+          item: "Cumprimento da calendarização (devolução no dia agendado)",
+          processo: "Devolução — Logística Reversa",
           gravidade: "media",
           evidencia: true,
-          legenda: "Três reparos excederam o SLA em até 1 dia útil.",
+          legenda: "Um lote devolvido com 2 dias de atraso em relação à agenda.",
           data: "2026-07-11"
         },
         {
-          item: "Ordem de serviço rastreável",
-          bloco: "Processo de reparo",
+          item: "OS executada = OS baixada (sem backlog)",
+          processo: "Baixas (BTP/SAP)",
           gravidade: "baixa",
           evidencia: false,
-          legenda: "Uma OS sem número de rastreio no sistema.",
+          legenda: "Três OS executadas aguardando baixa há mais de 24h.",
           data: "2026-07-11"
         },
         {
-          item: "Registro fotográfico das divergências",
-          bloco: "Evidências e organização",
+          item: "Equipamentos em plástico-bolha individual",
+          processo: "Devolução — Logística Reversa",
           gravidade: "baixa",
           evidencia: false,
-          legenda: "Registro fotográfico incompleto em um item.",
+          legenda: "Amostra com equipamentos sem plástico-bolha em um volume.",
           data: "2026-07-11"
         }
       ]
@@ -116,12 +285,19 @@
       score: 88,
       equipamentos: 350,
       equipamentosParados: 12,
-      tempoChegada: 2.0,
-      tempoReparo: 3.6,
-      tempoRetorno: 2.1,
-      tempoParada: 7.7,
+      tempos: { chegada: 1.5, armazenagem: 1.8, distribuicao: 1.6, retornoCampo: 2.1, devolucao: 2.0 },
       conformidade: 90,
       ncs: 3,
+      reversa: {
+        aderenciaCalendario: 92,
+        volumeDevolvido: 960,
+        saldoSistema: 1040,
+        pctFontes: 80,
+        pctControles: 78,
+        metaFontes: 75,
+        metaControles: 75,
+        altoGiro: { equipamentos: 960, fontes: 768, controles: 749 }
+      },
       historico: [
         { mes: "Fev", score: 83 },
         { mes: "Mar", score: 84 },
@@ -132,27 +308,27 @@
       ],
       naoConformidades: [
         {
-          item: "Estoque físico compatível com o cadastro",
-          bloco: "Inventário",
+          item: "Inventário rotativo executado e conciliado com o sistema",
+          processo: "Armazenagem & Facilities",
           gravidade: "media",
           evidencia: true,
           legenda: "Divergência de inventário - cadastro indicava 40, havia 34.",
           data: "2026-07-14"
         },
         {
-          item: "Documentação de entrada e saída completa",
-          bloco: "Documentação",
+          item: "Registro sistêmico do recebimento no mesmo dia (D+0)",
+          processo: "Recebimento",
           gravidade: "baixa",
           evidencia: false,
-          legenda: "Planilha de entrada desatualizada em relação ao sistema.",
+          legenda: "Dois recebimentos lançados apenas em D+1.",
           data: "2026-07-14"
         },
         {
-          item: "Equipamentos identificados e etiquetados",
-          bloco: "Inventário",
+          item: "Volumes identificados com conteúdo completo",
+          processo: "Devolução — Logística Reversa",
           gravidade: "baixa",
           evidencia: false,
-          legenda: "Etiquetas ausentes em equipamentos recém-recebidos.",
+          legenda: "Etiquetas ausentes em volumes recém-montados.",
           data: "2026-07-14"
         }
       ]
@@ -166,12 +342,19 @@
       score: 83,
       equipamentos: 290,
       equipamentosParados: 18,
-      tempoChegada: 2.4,
-      tempoReparo: 4.1,
-      tempoRetorno: 2.5,
-      tempoParada: 9.0,
+      tempos: { chegada: 1.8, armazenagem: 2.2, distribuicao: 1.9, retornoCampo: 2.4, devolucao: 2.6 },
       conformidade: 85,
       ncs: 5,
+      reversa: {
+        aderenciaCalendario: 85,
+        volumeDevolvido: 820,
+        saldoSistema: 930,
+        pctFontes: 74,
+        pctControles: 71,
+        metaFontes: 75,
+        metaControles: 75,
+        altoGiro: { equipamentos: 820, fontes: 607, controles: 582 }
+      },
       historico: [
         { mes: "Fev", score: 80 },
         { mes: "Mar", score: 81 },
@@ -182,43 +365,43 @@
       ],
       naoConformidades: [
         {
-          item: "Reparo dentro do SLA contratual",
-          bloco: "Processo de reparo",
+          item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
+          processo: "Devolução — Logística Reversa",
           gravidade: "media",
           evidencia: true,
-          legenda: "SLA de reparo ultrapassado em 20% das ordens amostradas.",
+          legenda: "Fontes devolvidas em 74% - logo abaixo da meta de 75%.",
           data: "2026-07-16"
         },
         {
-          item: "Estoque físico compatível com o cadastro",
-          bloco: "Inventário",
+          item: "Inventário rotativo executado e conciliado com o sistema",
+          processo: "Armazenagem & Facilities",
           gravidade: "media",
           evidencia: true,
           legenda: "Divergência de inventário - eram pra ter 60, havia 48.",
           data: "2026-07-16"
         },
         {
-          item: "Ordem de serviço rastreável",
-          bloco: "Processo de reparo",
+          item: "Cumprimento da calendarização (devolução no dia agendado)",
+          processo: "Devolução — Logística Reversa",
           gravidade: "baixa",
           evidencia: false,
-          legenda: "Duas OS sem vínculo com o equipamento no sistema.",
+          legenda: "Dois lotes devolvidos fora do dia agendado no mês.",
           data: "2026-07-16"
         },
         {
-          item: "Documentação de entrada e saída completa",
-          bloco: "Documentação",
+          item: "Baixas diárias via BTP",
+          processo: "Baixas (BTP/SAP)",
           gravidade: "baixa",
           evidencia: false,
-          legenda: "Comprovantes de saída faltando em três registros.",
+          legenda: "Baixas acumuladas para a sexta-feira em duas semanas.",
           data: "2026-07-16"
         },
         {
-          item: "Equipamentos identificados e etiquetados",
-          bloco: "Inventário",
+          item: "Separação por modelo/família",
+          processo: "Devolução — Logística Reversa",
           gravidade: "baixa",
           evidencia: false,
-          legenda: "Padrão de etiquetagem inconsistente entre prateleiras.",
+          legenda: "Modelos misturados em parte dos volumes conferidos.",
           data: "2026-07-16"
         }
       ]
@@ -232,12 +415,19 @@
       score: 79,
       equipamentos: 260,
       equipamentosParados: 22,
-      tempoChegada: 2.8,
-      tempoReparo: 4.5,
-      tempoRetorno: 2.7,
-      tempoParada: 10.0,
+      tempos: { chegada: 2.1, armazenagem: 2.5, distribuicao: 2.1, retornoCampo: 2.6, devolucao: 3.0 },
       conformidade: 81,
       ncs: 6,
+      reversa: {
+        aderenciaCalendario: 78,
+        volumeDevolvido: 700,
+        saldoSistema: 845,
+        pctFontes: 66,
+        pctControles: 62,
+        metaFontes: 75,
+        metaControles: 75,
+        altoGiro: { equipamentos: 700, fontes: 462, controles: 434 }
+      },
       historico: [
         { mes: "Fev", score: 82 },
         { mes: "Mar", score: 81 },
@@ -248,48 +438,48 @@
       ],
       naoConformidades: [
         {
-          item: "Estoque físico compatível com o cadastro",
-          bloco: "Inventário",
+          item: "Conferência 100% dos seriais (ZTC) + RNC quando divergente",
+          processo: "Devolução — Logística Reversa",
           gravidade: "alta",
           evidencia: true,
-          legenda: "Divergência de inventário - eram pra ter 10, havia 200.",
+          legenda: "Saldo no sistema de 845 x 700 devolvidos - diferença sem justificativa.",
           data: "2026-07-18"
         },
         {
-          item: "Reparo dentro do SLA contratual",
-          bloco: "Processo de reparo",
+          item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
+          processo: "Devolução — Logística Reversa",
           gravidade: "media",
           evidencia: true,
-          legenda: "Tempo de reparo interno acima do previsto em contrato.",
+          legenda: "Fontes devolvidas em 66% contra meta de 75%.",
           data: "2026-07-18"
         },
         {
-          item: "Ordem de serviço rastreável",
-          bloco: "Processo de reparo",
+          item: "OS executada = OS baixada (sem backlog)",
+          processo: "Baixas (BTP/SAP)",
           gravidade: "media",
           evidencia: false,
-          legenda: "Rastreio de OS interrompido na etapa de conclusão.",
+          legenda: "Backlog de baixas superior a 3 dias em parte das OS.",
           data: "2026-07-18"
         },
         {
-          item: "Documentação de entrada e saída completa",
-          bloco: "Documentação",
+          item: "Registro sistêmico do recebimento no mesmo dia (D+0)",
+          processo: "Recebimento",
           gravidade: "baixa",
           evidencia: false,
           legenda: "Registros de entrada sem assinatura do responsável.",
           data: "2026-07-18"
         },
         {
-          item: "Registro fotográfico das divergências",
-          bloco: "Evidências e organização",
+          item: "Volumes lacrados",
+          processo: "Devolução — Logística Reversa",
           gravidade: "baixa",
           evidencia: false,
-          legenda: "Fotos sem data ou identificação do equipamento.",
+          legenda: "Volumes sem lacre aguardando coleta na doca.",
           data: "2026-07-18"
         },
         {
-          item: "Equipamentos identificados e etiquetados",
-          bloco: "Inventário",
+          item: "Empilhamento, segregação e identificação corretos",
+          processo: "Armazenagem & Facilities",
           gravidade: "baixa",
           evidencia: false,
           legenda: "Equipamentos sem etiqueta na área de triagem.",
@@ -306,12 +496,19 @@
       score: 74,
       equipamentos: 230,
       equipamentosParados: 28,
-      tempoChegada: 3.1,
-      tempoReparo: 5.0,
-      tempoRetorno: 3.0,
-      tempoParada: 11.1,
+      tempos: { chegada: 2.4, armazenagem: 2.8, distribuicao: 2.3, retornoCampo: 2.9, devolucao: 3.6 },
       conformidade: 77,
       ncs: 8,
+      reversa: {
+        aderenciaCalendario: 72,
+        volumeDevolvido: 610,
+        saldoSistema: 790,
+        pctFontes: 58,
+        pctControles: 54,
+        metaFontes: 75,
+        metaControles: 75,
+        altoGiro: { equipamentos: 610, fontes: 354, controles: 329 }
+      },
       historico: [
         { mes: "Fev", score: 78 },
         { mes: "Mar", score: 77 },
@@ -322,51 +519,51 @@
       ],
       naoConformidades: [
         {
-          item: "Estoque físico compatível com o cadastro",
-          bloco: "Inventário",
+          item: "Cumprimento da calendarização (devolução no dia agendado)",
+          processo: "Devolução — Logística Reversa",
           gravidade: "alta",
           evidencia: true,
-          legenda: "Divergência de inventário - cadastro indicava 15, havia 120.",
+          legenda: "Metade dos lotes do mês devolvida fora do dia agendado.",
           data: "2026-07-20"
         },
         {
-          item: "Reparo dentro do SLA contratual",
-          bloco: "Processo de reparo",
+          item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
+          processo: "Devolução — Logística Reversa",
           gravidade: "alta",
           evidencia: true,
-          legenda: "SLA de reparo estourado em quase metade das ordens.",
+          legenda: "Fontes devolvidas em 58% - muito abaixo da meta de 75%.",
           data: "2026-07-20"
         },
         {
-          item: "Ordem de serviço rastreável",
-          bloco: "Processo de reparo",
+          item: "Integração BTP -> SAP sem pendências",
+          processo: "Baixas (BTP/SAP)",
           gravidade: "media",
           evidencia: false,
-          legenda: "Ordens de serviço sem histórico de etapas.",
+          legenda: "Pendências de integração acumuladas na MB51.",
           data: "2026-07-20"
         },
         {
-          item: "Documentação de entrada e saída completa",
-          bloco: "Documentação",
-          gravidade: "media",
-          evidencia: false,
-          legenda: "Fluxo de documentação sem controle de versão.",
-          data: "2026-07-20"
-        },
-        {
-          item: "Equipamentos identificados e etiquetados",
-          bloco: "Inventário",
+          item: "Caixa padrão ou Ecobox",
+          processo: "Devolução — Logística Reversa",
           gravidade: "media",
           evidencia: true,
-          legenda: "Equipamentos misturados sem separação por status.",
+          legenda: "Uso de caixas fora do padrão em parte dos volumes.",
           data: "2026-07-20"
         },
         {
-          item: "Registro fotográfico das divergências",
-          bloco: "Evidências e organização",
+          item: "Login individual — sem compartilhamento de senha",
+          processo: "Treinamento & Pessoas",
+          gravidade: "media",
+          evidencia: false,
+          legenda: "Dois operadores utilizando o mesmo login no Atlas.",
+          data: "2026-07-20"
+        },
+        {
+          item: "Área de defeito/reversa segregada e sinalizada",
+          processo: "Armazenagem & Facilities",
           gravidade: "baixa",
           evidencia: false,
-          legenda: "Evidências fotográficas arquivadas fora do padrão.",
+          legenda: "Sinalização da área de reversa apagada.",
           data: "2026-07-20"
         }
       ]
@@ -380,12 +577,19 @@
       score: 66,
       equipamentos: 180,
       equipamentosParados: 35,
-      tempoChegada: 3.8,
-      tempoReparo: 6.2,
-      tempoRetorno: 3.6,
-      tempoParada: 13.6,
+      tempos: { chegada: 2.9, armazenagem: 3.4, distribuicao: 2.7, retornoCampo: 3.3, devolucao: 4.5 },
       conformidade: 69,
       ncs: 11,
+      reversa: {
+        aderenciaCalendario: 64,
+        volumeDevolvido: 480,
+        saldoSistema: 700,
+        pctFontes: 47,
+        pctControles: 44,
+        metaFontes: 75,
+        metaControles: 75,
+        altoGiro: { equipamentos: 480, fontes: 226, controles: 211 }
+      },
       historico: [
         { mes: "Fev", score: 72 },
         { mes: "Mar", score: 70 },
@@ -396,51 +600,51 @@
       ],
       naoConformidades: [
         {
-          item: "Estoque físico compatível com o cadastro",
-          bloco: "Inventário",
+          item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
+          processo: "Devolução — Logística Reversa",
           gravidade: "alta",
           evidencia: true,
-          legenda: "Divergência de inventário - eram pra ter 10, havia 200.",
+          legenda: "Fontes devolvidas em 47% contra meta de 75%.",
           data: "2026-07-21"
         },
         {
-          item: "Reparo dentro do SLA contratual",
-          bloco: "Processo de reparo",
+          item: "Cumprimento da calendarização (devolução no dia agendado)",
+          processo: "Devolução — Logística Reversa",
           gravidade: "alta",
           evidencia: true,
-          legenda: "Tempo de reparo interno mais que o dobro do SLA.",
+          legenda: "Devoluções sem aderência à agenda - lotes represados na doca.",
           data: "2026-07-21"
         },
         {
-          item: "Ordem de serviço rastreável",
-          bloco: "Processo de reparo",
+          item: "OS executada = OS baixada (sem backlog)",
+          processo: "Baixas (BTP/SAP)",
           gravidade: "alta",
           evidencia: false,
-          legenda: "Grande parte das OS sem rastreabilidade no sistema.",
+          legenda: "Grande backlog de OS executadas sem baixa no sistema.",
           data: "2026-07-21"
         },
         {
-          item: "Documentação de entrada e saída completa",
-          bloco: "Documentação",
+          item: "Equipamentos em plástico-bolha individual",
+          processo: "Devolução — Logística Reversa",
           gravidade: "media",
-          evidencia: false,
-          legenda: "Documentação de saída ausente em vários equipamentos.",
+          evidencia: true,
+          legenda: "Equipamentos soltos na caixa, sem proteção individual.",
           data: "2026-07-21"
         },
         {
-          item: "Equipamentos identificados e etiquetados",
-          bloco: "Inventário",
+          item: "Empilhamento, segregação e identificação corretos",
+          processo: "Armazenagem & Facilities",
           gravidade: "media",
           evidencia: true,
           legenda: "Equipamentos sem identificação empilhados no corredor.",
           data: "2026-07-21"
         },
         {
-          item: "Registro fotográfico das divergências",
-          bloco: "Evidências e organização",
+          item: "Certificados \"Aprenda Mais\" de quem executa o processo",
+          processo: "Treinamento & Pessoas",
           gravidade: "media",
           evidencia: false,
-          legenda: "Ausência de registro fotográfico nas divergências.",
+          legenda: "Parte da equipe sem certificado Aprenda Mais válido.",
           data: "2026-07-21"
         }
       ]
@@ -454,12 +658,19 @@
       score: 48,
       equipamentos: 150,
       equipamentosParados: 42,
-      tempoChegada: 4.5,
-      tempoReparo: 7.4,
-      tempoRetorno: 4.2,
-      tempoParada: 16.1,
+      tempos: { chegada: 3.6, armazenagem: 4.3, distribuicao: 3.2, retornoCampo: 4.0, devolucao: 6.2 },
       conformidade: 52,
       ncs: 14,
+      reversa: {
+        aderenciaCalendario: 56,
+        volumeDevolvido: 310,
+        saldoSistema: 620,
+        pctFontes: 38,
+        pctControles: 33,
+        metaFontes: 75,
+        metaControles: 75,
+        altoGiro: { equipamentos: 310, fontes: 118, controles: 102 }
+      },
       historico: [
         { mes: "Fev", score: 60 },
         { mes: "Mar", score: 57 },
@@ -470,51 +681,51 @@
       ],
       naoConformidades: [
         {
-          item: "Estoque físico compatível com o cadastro",
-          bloco: "Inventário",
+          item: "Cumprimento da calendarização (devolução no dia agendado)",
+          processo: "Devolução — Logística Reversa",
           gravidade: "alta",
           evidencia: true,
-          legenda: "Divergência de inventário - eram pra ter 10, havia 200.",
+          legenda: "Sem calendário de devolução - lotes despachados sem agendamento.",
           data: "2026-07-22"
         },
         {
-          item: "Reparo dentro do SLA contratual",
-          bloco: "Processo de reparo",
+          item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
+          processo: "Devolução — Logística Reversa",
           gravidade: "alta",
           evidencia: true,
-          legenda: "Máquinas paradas há semanas sem previsão de reparo.",
+          legenda: "Fontes devolvidas em 38% - menos da metade da meta de 75%.",
           data: "2026-07-22"
         },
         {
-          item: "Ordem de serviço rastreável",
-          bloco: "Processo de reparo",
+          item: "Login individual — sem compartilhamento de senha",
+          processo: "Treinamento & Pessoas",
+          gravidade: "alta",
+          evidencia: true,
+          legenda: "Login compartilhado por toda a equipe no Atlas - não conformidade grave.",
+          data: "2026-07-22"
+        },
+        {
+          item: "Equipamentos retirados do cliente sem baixa sinalizados à Claro",
+          processo: "Presos em Assinante",
           gravidade: "alta",
           evidencia: false,
-          legenda: "Sem sistema de rastreio de ordens de serviço.",
+          legenda: "Equipamentos retirados do assinante sem qualquer baixa no sistema.",
           data: "2026-07-22"
         },
         {
-          item: "Documentação de entrada e saída completa",
-          bloco: "Documentação",
-          gravidade: "alta",
-          evidencia: false,
-          legenda: "Controle de entrada e saída feito apenas em papel avulso.",
-          data: "2026-07-22"
-        },
-        {
-          item: "Equipamentos identificados e etiquetados",
-          bloco: "Inventário",
+          item: "Caixa padrão ou Ecobox",
+          processo: "Devolução — Logística Reversa",
           gravidade: "media",
           evidencia: true,
-          legenda: "Nenhum padrão de etiquetagem no galpão.",
+          legenda: "Devolução em caixas improvisadas, sem lacre nem identificação.",
           data: "2026-07-22"
         },
         {
-          item: "Registro fotográfico das divergências",
-          bloco: "Evidências e organização",
+          item: "Books/POPs/manuais atualizados",
+          processo: "Documentação & Sistemas",
           gravidade: "media",
           evidencia: false,
-          legenda: "Divergências sem qualquer registro fotográfico.",
+          legenda: "Controle feito apenas em papel avulso, sem POP atualizado.",
           data: "2026-07-22"
         }
       ]
@@ -522,134 +733,49 @@
   ];
 
   // -----------------------------------------------------------------------
+  // Derivados por EPO: tempoCiclo (soma das 5 etapas) + alias tempoParada.
+  // -----------------------------------------------------------------------
+  function round1(n) { return Math.round(n * 10) / 10; }
+
+  epos.forEach(function (e) {
+    var t = e.tempos;
+    e.tempoCiclo = round1(t.chegada + t.armazenagem + t.distribuicao + t.retornoCampo + t.devolucao);
+    e.tempoParada = e.tempoCiclo; // alias de compatibilidade
+  });
+
+  // -----------------------------------------------------------------------
   // KPIs - calculados a partir das EPOs para manter coerência.
   // -----------------------------------------------------------------------
-  var somaParados = 0, somaParada = 0, somaConf = 0, somaNc = 0;
+  var somaParados = 0, somaCiclo = 0, somaConf = 0, somaNc = 0;
+  var somaFontes = 0, somaControles = 0;
   var dist = { ouro: 0, prata: 0, bronze: 0, critico: 0 };
   epos.forEach(function (e) {
     somaParados += e.equipamentosParados;
-    somaParada += e.tempoParada;
+    somaCiclo += e.tempoCiclo;
     somaConf += e.conformidade;
     somaNc += e.ncs;
+    somaFontes += e.reversa.pctFontes;
+    somaControles += e.reversa.pctControles;
     dist[e.tier] += 1;
   });
 
+  var tempoMedioCiclo = round1(somaCiclo / epos.length);
   var kpis = {
     eposAuditadas: epos.length,
     equipParados: somaParados,
-    tempoMedioParada: Math.round((somaParada / epos.length) * 10) / 10, // ~10,2 d
-    conformidadeMedia: Math.round(somaConf / epos.length), // ~81 %
+    tempoMedioCiclo: tempoMedioCiclo,
+    tempoMedioParada: tempoMedioCiclo, // alias de compatibilidade
+    conformidadeMedia: Math.round(somaConf / epos.length),
     ncTotal: somaNc,
-    distribuicao: dist
+    distribuicao: dist,
+    reversaQualidadeMedia: {
+      pctFontes: Math.round(somaFontes / epos.length),
+      pctControles: Math.round(somaControles / epos.length)
+    }
   };
 
   // -----------------------------------------------------------------------
-  // Checklist - blocos com pesos que somam 100.
-  // -----------------------------------------------------------------------
-  // Fonte: "Checklist Gestão de Qualidade - EPO" (PDF, 4 páginas).
-  // Cada item tem a "Evidência esperada" do documento original.
-  // Pesos por seção somam 100 (proposta - ainda a validar com Claro/Sérgio).
-  var checklist = [
-    {
-      bloco: "1. Recebimento & Expedição",
-      peso: 20,
-      itens: [
-        { id: "rec-01", pergunta: "Conferência física x NF (100%) no recebimento do CD", evidencia: "NF-e, ZTC350/ZTC380, fotos", requerFoto: true },
-        { id: "rec-02", pergunta: "Divergências a menor registradas com RNC e NF de diferença até D+2", evidencia: "Formulários, RNC, NF", requerFoto: false },
-        { id: "rec-03", pergunta: "Divergências a maior tratadas com NF complementar até D+4", evidencia: "Formulários, NF complementar", requerFoto: false },
-        { id: "rec-04", pergunta: "Expedição protegida (saco bolha), identificada e segregada de defeito/reversa", evidencia: "Fotos de staging", requerFoto: true },
-        { id: "rec-05", pergunta: "Kitting completo por OS (terminais + acessórios)", evidencia: "Lista de conferência, fotos", requerFoto: true },
-        { id: "rec-06", pergunta: "Triangulações aprovadas e registradas (SAP/Atlas)", evidencia: "NF triangulação, e-mails, SAP/Atlas", requerFoto: false },
-        { id: "rec-07", pergunta: "Reinicializações/reusos via SharePoint com anexos padrão e comunicação ao DMT", evidencia: "SharePoint (Anexo I/II), e-mails", requerFoto: false },
-        { id: "rec-08", pergunta: "Cobertura de estoque monitorada e ações para canal vermelho quando necessário", evidencia: "Relatórios de cobertura", requerFoto: false },
-        { id: "rec-09", pergunta: "Separação física entre novo, reuso e defeito (áreas distintas/sinalizadas)", evidencia: "Layout/fotos", requerFoto: true },
-        { id: "rec-10", pergunta: "Registro sistêmico de expedição/recebimento realizado no mesmo dia (D+0)", evidencia: "SAP/Atlas logs", requerFoto: false }
-      ]
-    },
-    {
-      bloco: "2. Armazenagem & Facilities",
-      peso: 12,
-      itens: [
-        { id: "arm-01", pergunta: "Empilhamento/segregação/identificação corretos", evidencia: "Fotos/layout", requerFoto: true },
-        { id: "arm-02", pergunta: "Área de defeitos/reversa segregada e sinalizada", evidencia: "Fotos", requerFoto: true },
-        { id: "arm-03", pergunta: "CFTV/alarme ativos com registros disponíveis", evidencia: "Logs/prints", requerFoto: true },
-        { id: "arm-04", pergunta: "Condições prediais (telhado/piso/iluminação/ergonomia) adequadas", evidencia: "Relatórios/fotos", requerFoto: true },
-        { id: "arm-05", pergunta: "Proteção contra umidade/poeira/impacto (embalagens padrão)", evidencia: "Fotos", requerFoto: true },
-        { id: "arm-06", pergunta: "Inventário rotativo executado e conciliado com sistema", evidencia: "Planilhas/relatórios", requerFoto: false },
-        { id: "arm-07", pergunta: "Integridade das embalagens checada antes da expedição", evidencia: "Check de qualidade", requerFoto: false }
-      ]
-    },
-    {
-      bloco: "3. Baixas – BTP / SAP / TOA",
-      peso: 13,
-      itens: [
-        { id: "bx-01", pergunta: "Baixas diárias via BTP", evidencia: "Logs BTP; MB51/MB1C; TOA", requerFoto: false },
-        { id: "bx-02", pergunta: "Consumo TOA consistente com BOM", evidencia: "OS/WO; BOM", requerFoto: false },
-        { id: "bx-03", pergunta: "Integração BTP→SAP sem pendências", evidencia: "MB51/MB1C", requerFoto: false },
-        { id: "bx-04", pergunta: "Validação de ordens conforme consumo", evidencia: "TOA/OS/WO", requerFoto: false },
-        { id: "bx-05", pergunta: "Controle de volumetria de reuso", evidencia: "Relatórios", requerFoto: false },
-        { id: "bx-06", pergunta: "Análise baixado × serviço realizado", evidencia: "Amostragem comparativa", requerFoto: false }
-      ]
-    },
-    {
-      bloco: "4. Logística Reversa",
-      peso: 15,
-      itens: [
-        { id: "lr-01", pergunta: "Lotes no Qualitor + estados validados no Atlas", evidencia: "Qualitor; Atlas", requerFoto: false },
-        { id: "lr-02", pergunta: "NF-e espelho (J1B1N) emitida até 48h", evidencia: "J1B1N", requerFoto: false },
-        { id: "lr-03", pergunta: "Packlist + NF 96h + validação BPO 24h", evidencia: "Qualitor", requerFoto: false },
-        { id: "lr-04", pergunta: "Identificação correta e proteção individual", evidencia: "Manual; fotos", requerFoto: true },
-        { id: "lr-05", pergunta: "Agendamento/entrega D+1", evidencia: "Agenda; canhotos", requerFoto: false },
-        { id: "lr-06", pergunta: "Conferência 100% seriais (ZTC) + RNC", evidencia: "ZTC; RNC", requerFoto: false },
-        { id: "lr-07", pergunta: "Acessórios via MB1C (Z61) + MB51", evidencia: "MB1C/MB51", requerFoto: false },
-        { id: "lr-08", pergunta: "Devolução Bom p/ Uso – MB1C (Z42)", evidencia: "Autorização; MB1C", requerFoto: false }
-      ]
-    },
-    {
-      bloco: "5. Presos em Assinante",
-      peso: 10,
-      itens: [
-        { id: "pa-01", pergunta: "Alerta quinzenal para aging > 30 dias", evidencia: "Atlas; e-mails", requerFoto: false },
-        { id: "pa-02", pergunta: "Mudança para Análise de Inventário", evidencia: "Atlas/Portal IN", requerFoto: false },
-        { id: "pa-03", pergunta: "Fluxo fotos 10% + Pipefy", evidencia: "Portal IN; Pipefy", requerFoto: true },
-        { id: "pa-04", pergunta: "Reversa liberados + segregação presos", evidencia: "Atlas; Qualitor", requerFoto: false },
-        { id: "pa-05", pergunta: "Revisita bimestral", evidencia: "Relatórios periódicos", requerFoto: false }
-      ]
-    },
-    {
-      bloco: "6. Documentação & Sistemas",
-      peso: 10,
-      itens: [
-        { id: "doc-01", pergunta: "Books/POPs/manuais atualizados", evidencia: "Repositório", requerFoto: false },
-        { id: "doc-02", pergunta: "Uso correto SAP/Atlas/SIAK/BTP/Qualitor", evidencia: "Prints/logs", requerFoto: true },
-        { id: "doc-03", pergunta: "Evidências de reinicialização/triangulação", evidencia: "SharePoint; NFs", requerFoto: false },
-        { id: "doc-04", pergunta: "Checklist técnico (triagem) completo", evidencia: "Registros de triagem", requerFoto: false }
-      ]
-    },
-    {
-      bloco: "7. Treinamento & Pessoas",
-      peso: 8,
-      itens: [
-        { id: "tr-01", pergunta: "100% do time no Portal (KPI1)", evidencia: "Portal", requerFoto: false },
-        { id: "tr-02", pergunta: "Meta de adesão (KPI2)", evidencia: "Relatórios", requerFoto: false },
-        { id: "tr-03", pergunta: "Certificações válidas SAP/Atlas/BTP", evidencia: "Certificados", requerFoto: false },
-        { id: "tr-04", pergunta: "Treinamentos sob demanda", evidencia: "Registros; RNC", requerFoto: false }
-      ]
-    },
-    {
-      bloco: "8. Governança & RNCs",
-      peso: 12,
-      itens: [
-        { id: "gov-01", pergunta: "Desvios críticos reportados imediatamente", evidencia: "RNC; fotos/logs", requerFoto: true },
-        { id: "gov-02", pergunta: "RNCs com prazos, responsáveis e eficácia", evidencia: "5W2H; RNC", requerFoto: false },
-        { id: "gov-03", pergunta: "Reunião mensal + ranking", evidencia: "Ata", requerFoto: false },
-        { id: "gov-04", pergunta: "Plano de melhorias atualizado", evidencia: "Plano; 5W2H", requerFoto: false }
-      ]
-    }
-  ];
-
-  // -----------------------------------------------------------------------
-  // Evidências (galeria) - ~9 registros fotográficos fictícios.
+  // Evidências (galeria) - registros fotográficos fictícios.
   // -----------------------------------------------------------------------
   var evidencias = [
     {
@@ -657,9 +783,9 @@
       foto: "assets/evidencias/ev-01.jpeg",
       epoId: "nexus",
       epoNome: "EPO Nexus",
-      item: "Estoque físico compatível com o cadastro",
-      bloco: "Inventário",
-      legenda: "Divergência de inventário - eram pra ter 10, havia 200.",
+      item: "Conferência 100% dos seriais (ZTC) + RNC quando divergente",
+      processo: "Devolução — Logística Reversa",
+      legenda: "Saldo no sistema de 845 x 700 devolvidos - diferença sem justificativa.",
       gravidade: "alta",
       data: "2026-07-18"
     },
@@ -668,9 +794,9 @@
       foto: "assets/evidencias/ev-02.jpeg",
       epoId: "litoral",
       epoNome: "EPO Litoral",
-      item: "Estoque físico compatível com o cadastro",
-      bloco: "Inventário",
-      legenda: "Divergência de inventário - eram pra ter 10, havia 200.",
+      item: "Cumprimento da calendarização (devolução no dia agendado)",
+      processo: "Devolução — Logística Reversa",
+      legenda: "Lotes de devolução represados na doca, fora da agenda.",
       gravidade: "alta",
       data: "2026-07-21"
     },
@@ -679,9 +805,9 @@
       foto: "assets/evidencias/ev-03.jpeg",
       epoId: "delta",
       epoNome: "EPO Delta",
-      item: "Reparo dentro do SLA contratual",
-      bloco: "Processo de reparo",
-      legenda: "Máquinas paradas há semanas sem previsão de reparo.",
+      item: "Caixa padrão ou Ecobox",
+      processo: "Devolução — Logística Reversa",
+      legenda: "Devolução em caixas improvisadas, sem lacre nem identificação.",
       gravidade: "alta",
       data: "2026-07-22"
     },
@@ -690,9 +816,9 @@
       foto: "assets/evidencias/ev-04.jpg",
       epoId: "orbita",
       epoNome: "EPO Órbita",
-      item: "Estoque físico compatível com o cadastro",
-      bloco: "Inventário",
-      legenda: "Divergência de inventário - cadastro indicava 15, havia 120.",
+      item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
+      processo: "Devolução — Logística Reversa",
+      legenda: "Fontes devolvidas em 58% - muito abaixo da meta de 75%.",
       gravidade: "alta",
       data: "2026-07-20"
     },
@@ -701,8 +827,8 @@
       foto: "assets/evidencias/ev-05.jpeg",
       epoId: "aurora",
       epoNome: "EPO Aurora",
-      item: "Estoque físico compatível com o cadastro",
-      bloco: "Inventário",
+      item: "Inventário rotativo executado e conciliado com o sistema",
+      processo: "Armazenagem & Facilities",
       legenda: "Divergência de inventário - eram pra ter 60, havia 48.",
       gravidade: "media",
       data: "2026-07-16"
@@ -712,9 +838,9 @@
       foto: "assets/evidencias/ev-06.jpeg",
       epoId: "farol",
       epoNome: "EPO Farol",
-      item: "Reparo dentro do SLA contratual",
-      bloco: "Processo de reparo",
-      legenda: "Três reparos excederam o SLA em até 1 dia útil.",
+      item: "Cumprimento da calendarização (devolução no dia agendado)",
+      processo: "Devolução — Logística Reversa",
+      legenda: "Um lote devolvido com 2 dias de atraso em relação à agenda.",
       gravidade: "media",
       data: "2026-07-11"
     },
@@ -723,8 +849,8 @@
       foto: "assets/evidencias/ev-01.jpeg",
       epoId: "vertice",
       epoNome: "EPO Vértice",
-      item: "Estoque físico compatível com o cadastro",
-      bloco: "Inventário",
+      item: "Inventário rotativo executado e conciliado com o sistema",
+      processo: "Armazenagem & Facilities",
       legenda: "Divergência de inventário - cadastro indicava 40, havia 34.",
       gravidade: "media",
       data: "2026-07-14"
@@ -734,8 +860,8 @@
       foto: "assets/evidencias/ev-02.jpeg",
       epoId: "litoral",
       epoNome: "EPO Litoral",
-      item: "Equipamentos identificados e etiquetados",
-      bloco: "Inventário",
+      item: "Empilhamento, segregação e identificação corretos",
+      processo: "Armazenagem & Facilities",
       legenda: "Equipamentos sem identificação empilhados no corredor.",
       gravidade: "media",
       data: "2026-07-21"
@@ -745,8 +871,8 @@
       foto: "assets/evidencias/ev-03.jpeg",
       epoId: "meridiano",
       epoNome: "EPO Meridiano",
-      item: "Equipamentos identificados e etiquetados",
-      bloco: "Inventário",
+      item: "Empilhamento, segregação e identificação corretos",
+      processo: "Armazenagem & Facilities",
       legenda: "Lote com etiquetas desbotadas na prateleira B3.",
       gravidade: "baixa",
       data: "2026-07-09"
@@ -754,15 +880,14 @@
   ];
 
   // -----------------------------------------------------------------------
-  // Vistorias históricas por EPO (sintéticas - protótipo).
-  // Permitem comparar a mesma EPO em datas diferentes (ex.: hoje x 6 meses).
+  // Vistorias históricas por EPO (sintéticas, determinísticas).
+  // Cada vistoria traz secoes por processo com drill-down por item.
   // -----------------------------------------------------------------------
-  var BLOCOS = checklist.map(function (b) { return b.bloco; });
-
   function seeded(n) {
     var x = Math.sin(n * 999.17) * 43758.5453;
     return x - Math.floor(x); // 0..1 determinístico
   }
+  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
   function tierDe(score) {
     if (score >= tierRules.ouroMin) return "ouro";
     if (score >= tierRules.prataMin) return "prata";
@@ -779,15 +904,25 @@
       { data: "2026-07-18", label: "jul/2026", off: 0 }
     ];
     e.vistorias = base.map(function (vb, vi) {
-      var score = Math.round(Math.max(34, Math.min(98, e.score - vb.off * 8)));
+      var score = Math.round(clamp(e.score - vb.off * 8, 34, 98));
       var fator = 1 + vb.off * 0.20; // vistorias antigas: tempos e NCs maiores
-      var tc = Math.round(e.tempoChegada * fator * 10) / 10;
-      var tr = Math.round(e.tempoReparo * fator * 10) / 10;
-      var trt = Math.round(e.tempoRetorno * fator * 10) / 10;
-      var secoes = BLOCOS.map(function (bloco, si) {
+      var t = {
+        chegada: round1(e.tempos.chegada * fator),
+        armazenagem: round1(e.tempos.armazenagem * fator),
+        distribuicao: round1(e.tempos.distribuicao * fator),
+        retornoCampo: round1(e.tempos.retornoCampo * fator),
+        devolucao: round1(e.tempos.devolucao * fator)
+      };
+      var ciclo = round1(t.chegada + t.armazenagem + t.distribuicao + t.retornoCampo + t.devolucao);
+      var secoes = processos.map(function (p, si) {
         var r = seeded(ei * 137 + si * 19 + vi * 7);
-        var pct = Math.round(Math.max(28, Math.min(100, score + (r * 34 - 17))));
-        return { bloco: bloco, pct: pct };
+        var pct = Math.round(clamp(score + (r * 34 - 17), 28, 100));
+        var itens = p.itens.map(function (it, ii) {
+          var ri = seeded(ei * 211 + si * 53 + vi * 13 + ii * 29);
+          var ipct = Math.round(clamp(pct + (ri * 30 - 15), 20, 100));
+          return { pergunta: it.pergunta, pct: ipct };
+        });
+        return { processoId: p.id, nome: p.nome, pct: pct, itens: itens };
       });
       return {
         data: vb.data,
@@ -796,23 +931,202 @@
         tier: tierDe(score),
         conformidade: score,
         ncs: Math.round(e.ncs * fator),
-        tempoChegada: tc,
-        tempoReparo: tr,
-        tempoRetorno: trt,
-        tempoParada: Math.round((tc + tr + trt) * 10) / 10,
+        tempoCiclo: ciclo,
+        tempos: t,
         secoes: secoes
       };
     });
   });
 
   // -----------------------------------------------------------------------
+  // Páginas do sistema (espelham as telas existentes + acessos).
+  // { key, label, icone, href } - key é a mesma usada em usuarios[].paginas.
+  // -----------------------------------------------------------------------
+  var paginas = [
+    { key: "geral",       label: "Visão geral",              icone: "ti-layout-dashboard", href: "index.html" },
+    { key: "ranking",     label: "Ranking",                  icone: "ti-trophy",           href: "ranking.html" },
+    { key: "comparativo", label: "Comparativo",              icone: "ti-arrows-diff",      href: "comparar.html" },
+    { key: "gerencial",   label: "Painel gerencial",         icone: "ti-report-analytics", href: "gerencial.html" },
+    { key: "auditoria",   label: "Nova auditoria",           icone: "ti-clipboard-check",  href: "auditoria.html" },
+    { key: "evidencias",  label: "Evidências",               icone: "ti-camera",           href: "evidencias.html" },
+    { key: "config",      label: "Configurações",            icone: "ti-settings",         href: "configuracoes.html" },
+    { key: "acessos",     label: "Gerenciamento de acessos", icone: "ti-lock-access",      href: "acessos.html" }
+  ];
+
+  // -----------------------------------------------------------------------
+  // Presets de permissão por papel (usados como sugestão na tela de acessos).
+  // -----------------------------------------------------------------------
+  var papeisPreset = {
+    admin:   { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: true,  evidencias: true,  config: true,  acessos: true  },
+    gestor:  { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: true,  evidencias: true,  config: true,  acessos: false },
+    auditor: { geral: true,  ranking: false, comparativo: false, gerencial: false, auditoria: true,  evidencias: true,  config: false, acessos: false },
+    cliente: { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: false, evidencias: false, config: false, acessos: false }
+  };
+
+  function copiaPreset(papel) {
+    var base = papeisPreset[papel] || {};
+    var out = {};
+    paginas.forEach(function (p) { out[p.key] = !!base[p.key]; });
+    return out;
+  }
+
+  // -----------------------------------------------------------------------
+  // Usuários fictícios (LGPD: nomes e e-mails 100% inventados).
+  // paginas: { geral, ranking, comparativo, gerencial, auditoria, evidencias, config, acessos }
+  // -----------------------------------------------------------------------
+  var usuarios = [
+    {
+      id: "u-01",
+      nome: "Ana Ribeiro",
+      email: "ana.ribeiro@apsis.com.br",
+      papel: "auditor",
+      ativo: true,
+      paginas: copiaPreset("auditor")
+    },
+    {
+      id: "u-02",
+      nome: "Leonardo Carvalho",
+      email: "leonardo.carvalho@apsis.com.br",
+      papel: "admin",
+      ativo: true,
+      paginas: copiaPreset("admin")
+    },
+    {
+      id: "u-03",
+      nome: "Sergio Freitas",
+      email: "sergio.freitas@apsis.com.br",
+      papel: "gestor",
+      ativo: true,
+      paginas: copiaPreset("gestor")
+    },
+    {
+      id: "u-04",
+      nome: "Leandro Souza",
+      email: "leandro.souza@apsis.com.br",
+      papel: "auditor",
+      ativo: true,
+      paginas: copiaPreset("auditor")
+    },
+    {
+      id: "u-05",
+      nome: "Jeferson Teixeira",
+      email: "jeferson.teixeira@claro.com.br",
+      papel: "cliente",
+      ativo: true,
+      paginas: copiaPreset("cliente")
+    },
+    {
+      id: "u-06",
+      nome: "Fabio Morales",
+      email: "fabio.morales@claro.com.br",
+      papel: "cliente",
+      ativo: true,
+      paginas: copiaPreset("cliente")
+    }
+  ];
+
+  // -----------------------------------------------------------------------
+  // Anexos recebidos via link seguro (o responsável da EPO envia NFs e
+  // evidências pelo link temporário; aparecem aqui para triagem/vínculo).
+  // status: "novo" (aguardando triagem) | "vinculado" (já ligado à auditoria)
+  // -----------------------------------------------------------------------
+  var anexosRecebidos = [
+    {
+      id: "ax-01",
+      epoId: "meridiano",
+      epoNome: "EPO Meridiano",
+      processo: "Recebimento",
+      item: "Conferência física x NF (100%)",
+      tipo: "NF-e",
+      arquivo: "nfe-482910.pdf",
+      remetente: "Responsável EPO Marcos Vidal",
+      via: "link_seguro",
+      data: "2026-07-27",
+      status: "novo"
+    },
+    {
+      id: "ax-02",
+      epoId: "farol",
+      epoNome: "EPO Farol",
+      processo: "Baixas (BTP/SAP)",
+      item: "Integração BTP -> SAP sem pendências",
+      tipo: "Print Atlas",
+      arquivo: "print-atlas-mb51.png",
+      remetente: "Responsável EPO Carla Nunes",
+      via: "link_seguro",
+      data: "2026-07-26",
+      status: "novo"
+    },
+    {
+      id: "ax-03",
+      epoId: "aurora",
+      epoNome: "EPO Aurora",
+      processo: "Devolução — Logística Reversa",
+      item: "Cumprimento da calendarização",
+      tipo: "E-mail",
+      arquivo: "email-agenda-devolucao.eml",
+      remetente: "Responsável EPO Paulo Siqueira",
+      via: "link_seguro",
+      data: "2026-07-24",
+      status: "vinculado"
+    },
+    {
+      id: "ax-04",
+      epoId: "nexus",
+      epoNome: "EPO Nexus",
+      processo: "Recebimento",
+      item: "Divergências a maior com NF complementar",
+      tipo: "NF-e",
+      arquivo: "nfe-complementar-77120.pdf",
+      remetente: "Responsável EPO Renata Lopes",
+      via: "link_seguro",
+      data: "2026-07-23",
+      status: "vinculado"
+    },
+    {
+      id: "ax-05",
+      epoId: "orbita",
+      epoNome: "EPO Órbita",
+      processo: "Treinamento & Pessoas",
+      item: "Equipe treinada nos procedimentos",
+      tipo: "Certificado",
+      arquivo: "certificado-treinamento-epo.pdf",
+      remetente: "Responsável EPO Diego Fontes",
+      via: "link_seguro",
+      data: "2026-07-21",
+      status: "vinculado"
+    },
+    {
+      id: "ax-06",
+      epoId: "delta",
+      epoNome: "EPO Delta",
+      processo: "Armazenagem & Facilities",
+      item: "CFTV/alarme ativos com registros",
+      tipo: "Print Atlas",
+      arquivo: "print-cftv-registros.png",
+      remetente: "Responsável EPO Tatiane Prado",
+      via: "link_seguro",
+      data: "2026-07-19",
+      status: "vinculado"
+    }
+  ];
+
+  // -----------------------------------------------------------------------
   // Exposição global
   // -----------------------------------------------------------------------
   window.APP = {
+    cliente: cliente,
+    clientes: clientes,
     tierRules: tierRules,
+    processos: processos,
+    checklist: processos, // ALIAS de compatibilidade (mesma referência)
+    checklistCarregadores: checklistCarregadores,
     kpis: kpis,
     epos: epos,
-    checklist: checklist,
-    evidencias: evidencias
+    evidencias: evidencias,
+    paginas: paginas,
+    papeisPreset: papeisPreset,
+    usuarios: usuarios,
+    anexosRecebidos: anexosRecebidos
   };
 })();

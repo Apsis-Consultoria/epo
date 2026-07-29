@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gerenciamento de acessos - Auditoria de EPOs</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/app.css?v=5">
+  <style>
+    /* Ajustes locais da tela de acessos */
+
+    /* Busca acima da matriz */
+    .acc-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .acc-search { position: relative; flex: 1 1 260px; max-width: 340px; }
+    .acc-search i {
+      position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+      font-size: 16px; color: var(--text-muted); pointer-events: none;
+    }
+    .acc-search .input { padding-left: 34px; }
+    .acc-count { font-size: 13px; color: var(--text-2); }
+
+    /* Matriz com cabeçalho sticky */
+    .matrix-wrap { width: 100%; max-height: 560px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+    .matrix { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+    .matrix thead th {
+      position: sticky; top: 0; z-index: 3;
+      background: var(--surface-2);
+      text-align: center;
+      font-size: 12px; font-weight: 500; color: var(--text-2);
+      padding: 10px 10px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .matrix thead th.col-user, .matrix thead th.col-papel { text-align: left; }
+    .matrix thead th.col-user { left: 0; z-index: 4; min-width: 230px; }
+    .matrix tbody td {
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+      text-align: center;
+      background: var(--surface);
+    }
+    .matrix tbody tr:last-child td { border-bottom: 0; }
+    .matrix tbody td.col-user { position: sticky; left: 0; z-index: 2; text-align: left; }
+    .matrix tbody td.col-papel { text-align: left; }
+    .matrix tbody tr:hover td { background: var(--surface-2); }
+
+    .col-head { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
+    .col-head i { font-size: 17px; color: var(--text-2); }
+
+    /* Célula de usuário */
+    .user-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .user-nome { font-size: 13.5px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+    .user-email { font-size: 12px; color: var(--text-2); }
+    .badge-claro {
+      display: inline-flex; align-items: center;
+      font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
+      color: var(--text-2); background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px; padding: 1px 8px;
+    }
+
+    .select-papel { min-height: 34px; padding: 4px 30px 4px 10px; font-size: 13px; width: 118px; }
+
+    /* Checkbox custom da matriz (18px, verde APSIS quando ativo) */
+    .acc-check {
+      appearance: none; -webkit-appearance: none;
+      width: 18px; height: 18px;
+      margin: 0;
+      border: 1.5px solid var(--border-strong);
+      border-radius: 4px;
+      background: var(--surface);
+      cursor: pointer;
+      display: inline-block;
+      vertical-align: middle;
+      position: relative;
+      transition: background .12s ease, border-color .12s ease;
+    }
+    .acc-check:hover { border-color: var(--apsis-green); }
+    .acc-check:checked { background: var(--apsis-green); border-color: var(--apsis-green); }
+    .acc-check:checked::after {
+      content: "";
+      position: absolute; left: 5px; top: 1.5px;
+      width: 5px; height: 9px;
+      border: solid #fff; border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    .acc-check:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--primary-tint); }
+
+    /* Rodapé do card (legenda de papéis) */
+    .acc-legend {
+      margin-top: 14px; padding-top: 12px;
+      border-top: 1px solid var(--border);
+      font-size: 12.5px; color: var(--text-2);
+    }
+    .acc-legend strong { color: var(--text); font-weight: 600; }
+
+    .acc-empty { padding: 26px 14px !important; text-align: center !important; color: var(--text-muted); font-size: 13.5px; }
+
+    @media (max-width: 900px) {
+      .matrix thead th.col-user { min-width: 190px; }
+      .matrix-wrap { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=5"></script>
+  <script src="assets/app.js?v=5"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var acoes =
+        '<button class="btn btn-ghost btn-sm" id="btn-add-user" type="button">' +
+          '<i class="ti ti-user-plus" aria-hidden="true"></i>Adicionar usuário' +
+        "</button>" +
+        '<button class="btn btn-primary btn-sm" id="btn-salvar" type="button">' +
+          '<i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar alterações' +
+        "</button>";
+
+      Layout.mount("acessos", "Gerenciamento de acessos", acoes);
+
+      var esc = App.escapeHtml;
+      var paginas = window.APP.paginas || [];
+      var presets = window.APP.papeisPreset || {};
+
+      var PAPEL_LABEL = { admin: "Admin", gestor: "Gestor", auditor: "Auditor", cliente: "Cliente" };
+      var PAPEIS = ["admin", "gestor", "auditor", "cliente"];
+
+      // Rótulos curtos para as colunas da matriz
+      var LABEL_CURTO = {
+        geral: "Geral",
+        ranking: "Ranking",
+        comparativo: "Comparativo",
+        gerencial: "Gerencial",
+        auditoria: "Auditoria",
+        evidencias: "Evidências",
+        config: "Config.",
+        acessos: "Acessos"
+      };
+
+      // ------------------------------------------------------------------
+      // Estado em memória (cópia independente - sem persistência)
+      // ------------------------------------------------------------------
+      function copiaPaginas(src) {
+        var out = {};
+        paginas.forEach(function (p) { out[p.key] = !!src[p.key]; });
+        return out;
+      }
+
+      var usuarios = (window.APP.usuarios || []).map(function (u) {
+        return {
+          id: u.id,
+          nome: u.nome,
+          email: u.email,
+          papel: u.papel,
+          ativo: u.ativo,
+          paginas: copiaPaginas(u.paginas || {})
+        };
+      });
+
+      var seq = usuarios.length; // para ids de novos usuários
+      var busca = "";
+
+      function usuarioById(id) {
+        for (var i = 0; i < usuarios.length; i++) {
+          if (usuarios[i].id === id) return usuarios[i];
+        }
+        return null;
+      }
+
+      function iniciais(nome) {
+        var partes = String(nome).trim().split(/\s+/);
+        var a = partes[0] ? partes[0].charAt(0) : "";
+        var b = partes.length > 1 ? partes[partes.length - 1].charAt(0) : "";
+        return (a + b).toUpperCase();
+      }
+
+      // ------------------------------------------------------------------
+      // Estrutura estática da página
+      // ------------------------------------------------------------------
+      function kpiCard(id, label, icone) {
+        return (
+          '<div class="kpi">' +
+            '<div class="kpi-top">' +
+              '<span class="kpi-label">' + esc(label) + "</span>" +
+              '<span class="kpi-icon"><i class="ti ' + icone + '" aria-hidden="true"></i></span>' +
+            "</div>" +
+            '<span class="kpi-value" id="' + id + '">-</span>' +
+          "</div>"
+        );
+      }
+
+      var htmlKpis =
+        '<div class="kpi-grid" style="margin-bottom:16px;">' +
+          kpiCard("kpi-total", "Usuários", "ti-users") +
+          kpiCard("kpi-admin", "Admins", "ti-shield-lock") +
+          kpiCard("kpi-gestor", "Gestores", "ti-briefcase") +
+          kpiCard("kpi-auditor", "Auditores", "ti-clipboard-check") +
+          kpiCard("kpi-cliente", "Clientes", "ti-building") +
+        "</div>";
+
+      var htmlColunas = paginas.map(function (p) {
+        return (
+          "<th>" +
+            '<span class="col-head" title="' + esc(p.label) + '">' +
+              '<i class="ti ' + esc(p.icone) + '" aria-hidden="true"></i>' +
+              esc(LABEL_CURTO[p.key] || p.label) +
+            "</span>" +
+          "</th>"
+        );
+      }).join("");
+
+      var htmlMatriz =
+        '<div class="card mb-0">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Matriz de acessos</span>' +
+              '<span class="subtitle">Marque as páginas que cada pessoa pode acessar - o papel aplica o padrão da linha</span>' +
+            "</div>" +
+          "</div>" +
+          '<div class="acc-toolbar">' +
+            '<div class="acc-search">' +
+              '<i class="ti ti-search" aria-hidden="true"></i>' +
+              '<input class="input" id="busca-usuario" type="search" placeholder="Buscar por nome ou e-mail" aria-label="Buscar usuário por nome ou e-mail">' +
+            "</div>" +
+            '<span class="acc-count" id="busca-count"></span>' +
+          "</div>" +
+          '<div class="matrix-wrap">' +
+            '<table class="matrix">' +
+              "<thead><tr>" +
+                '<th class="col-user">Usuário</th>' +
+                '<th class="col-papel">Papel</th>' +
+                htmlColunas +
+              "</tr></thead>" +
+              '<tbody id="matriz-body"></tbody>' +
+            "</table>" +
+          "</div>" +
+          '<div class="acc-legend">' +
+            "<strong>Papéis:</strong> Admin (tudo) &middot; Gestor &middot; Auditor (campo) &middot; Cliente (visão executiva)" +
+          "</div>" +
+        "</div>";
+
+      // Modal de novo usuário -------------------------------------------------
+      var htmlOpcoesPapel = PAPEIS.map(function (p) {
+        return '<option value="' + p + '">' + PAPEL_LABEL[p] + "</option>";
+      }).join("");
+
+      var htmlModal =
+        '<div class="modal-overlay" id="user-modal" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">' +
+          '<div class="modal">' +
+            '<div class="modal-header">' +
+              '<h2 class="modal-title" id="user-modal-title">Adicionar usuário</h2>' +
+              '<button class="modal-close" id="user-modal-close" type="button" aria-label="Fechar"><i class="ti ti-x" aria-hidden="true"></i></button>' +
+            "</div>" +
+            '<div class="modal-body">' +
+              '<div class="field">' +
+                '<label for="novo-nome">Nome</label>' +
+                '<input class="input" id="novo-nome" type="text" placeholder="Ex.: Mariana Duarte" autocomplete="off">' +
+              "</div>" +
+              '<div class="field">' +
+                '<label for="novo-email">E-mail</label>' +
+                '<input class="input" id="novo-email" type="email" placeholder="nome@apsis.com.br" autocomplete="off">' +
+              "</div>" +
+              '<div class="field" style="margin-bottom:4px;">' +
+                '<label for="novo-papel">Papel</label>' +
+                '<select class="select" id="novo-papel">' + htmlOpcoesPapel + "</select>" +
+                '<span class="hint">O papel aplica o padrão de páginas; depois é possível ajustar na matriz.</span>' +
+              "</div>" +
+            "</div>" +
+            '<div class="modal-footer">' +
+              '<button class="btn btn-ghost btn-sm" id="user-modal-cancel" type="button">Cancelar</button>' +
+              '<button class="btn btn-primary btn-sm" id="user-modal-save" type="button"><i class="ti ti-check" aria-hidden="true"></i>Adicionar</button>' +
+            "</div>" +
+          "</div>" +
+        "</div>";
+
+      document.getElementById("page").innerHTML =
+        '<p class="page-intro">' +
+          "Defina quem acessa cada página do sistema. O papel aplica um padrão; " +
+          "os acessos podem ser ajustados individualmente." +
+        "</p>" +
+        htmlKpis +
+        htmlMatriz +
+        htmlModal;
+
+      // ------------------------------------------------------------------
+      // Renderização dinâmica
+      // ------------------------------------------------------------------
+      function renderKpis() {
+        var cont = { admin: 0, gestor: 0, auditor: 0, cliente: 0 };
+        usuarios.forEach(function (u) {
+          if (cont[u.papel] !== undefined) cont[u.papel] += 1;
+        });
+        document.getElementById("kpi-total").textContent = App.fmtNum(usuarios.length);
+        document.getElementById("kpi-admin").textContent = App.fmtNum(cont.admin);
+        document.getElementById("kpi-gestor").textContent = App.fmtNum(cont.gestor);
+        document.getElementById("kpi-auditor").textContent = App.fmtNum(cont.auditor);
+        document.getElementById("kpi-cliente").textContent = App.fmtNum(cont.cliente);
+      }
+
+      function linhaUsuario(u) {
+        var badge = u.papel === "cliente" ? ' <span class="badge-claro">Claro</span>' : "";
+        var selPapel = PAPEIS.map(function (p) {
+          return '<option value="' + p + '"' + (u.papel === p ? " selected" : "") + ">" + PAPEL_LABEL[p] + "</option>";
+        }).join("");
+
+        var celulas = paginas.map(function (p) {
+          var on = !!u.paginas[p.key];
+          return (
+            "<td>" +
+              '<input type="checkbox" class="acc-check" data-user="' + esc(u.id) + '" data-pagina="' + esc(p.key) + '"' +
+              (on ? " checked" : "") +
+              ' aria-label="' + esc(p.label) + " para " + esc(u.nome) + '">' +
+            "</td>"
+          );
+        }).join("");
+
+        return (
+          "<tr>" +
+            '<td class="col-user">' +
+              '<div class="user-cell">' +
+                '<span class="avatar">' + esc(iniciais(u.nome)) + "</span>" +
+                '<div style="min-width:0;">' +
+                  '<div class="user-nome">' + esc(u.nome) + badge + "</div>" +
+                  '<div class="user-email">' + esc(u.email) + "</div>" +
+                "</div>" +
+              "</div>" +
+            "</td>" +
+            '<td class="col-papel">' +
+              '<select class="select select-papel" data-user="' + esc(u.id) + '" aria-label="Papel de ' + esc(u.nome) + '">' +
+                selPapel +
+              "</select>" +
+            "</td>" +
+            celulas +
+          "</tr>"
+        );
+      }
+
+      function renderMatriz() {
+        var tbody = document.getElementById("matriz-body");
+        var q = busca.trim().toLowerCase();
+        var visiveis = usuarios.filter(function (u) {
+          if (!q) return true;
+          return u.nome.toLowerCase().indexOf(q) >= 0 || u.email.toLowerCase().indexOf(q) >= 0;
+        });
+
+        if (!visiveis.length) {
+          tbody.innerHTML =
+            '<tr><td class="acc-empty" colspan="' + (paginas.length + 2) + '">' +
+              "Nenhum usuário encontrado para a busca." +
+            "</td></tr>";
+        } else {
+          tbody.innerHTML = visiveis.map(linhaUsuario).join("");
+        }
+
+        var count = document.getElementById("busca-count");
+        count.textContent = visiveis.length + " de " + usuarios.length + " usuários";
+      }
+
+      renderKpis();
+      renderMatriz();
+
+      // ------------------------------------------------------------------
+      // Interações da matriz (delegação)
+      // ------------------------------------------------------------------
+      document.getElementById("matriz-body").addEventListener("change", function (ev) {
+        var el = ev.target;
+
+        // Troca de papel -> aplica o preset na linha inteira
+        if (el.classList.contains("select-papel")) {
+          var u = usuarioById(el.getAttribute("data-user"));
+          if (!u) return;
+          u.papel = el.value;
+          u.paginas = copiaPaginas(presets[el.value] || {});
+          renderKpis();
+          renderMatriz();
+          App.toast("Padrão de " + PAPEL_LABEL[el.value] + " aplicado para " + u.nome + ".");
+          return;
+        }
+
+        // Toggle individual de página
+        if (el.classList.contains("acc-check")) {
+          var usr = usuarioById(el.getAttribute("data-user"));
+          var chave = el.getAttribute("data-pagina");
+          if (usr && chave) usr.paginas[chave] = el.checked;
+        }
+      });
+
+      document.getElementById("busca-usuario").addEventListener("input", function () {
+        busca = this.value || "";
+        renderMatriz();
+      });
+
+      // ------------------------------------------------------------------
+      // Ações do topo
+      // ------------------------------------------------------------------
+      document.getElementById("btn-salvar").addEventListener("click", function () {
+        App.toast("Acessos atualizados (protótipo).");
+      });
+
+      // Modal de novo usuário -------------------------------------------------
+      var modal = document.getElementById("user-modal");
+      function abrirModal() {
+        document.getElementById("novo-nome").value = "";
+        document.getElementById("novo-email").value = "";
+        document.getElementById("novo-papel").value = "auditor";
+        modal.classList.add("is-open");
+        document.getElementById("novo-nome").focus();
+      }
+      function fecharModal() { modal.classList.remove("is-open"); }
+
+      document.getElementById("btn-add-user").addEventListener("click", abrirModal);
+      document.getElementById("user-modal-close").addEventListener("click", fecharModal);
+      document.getElementById("user-modal-cancel").addEventListener("click", fecharModal);
+      modal.addEventListener("click", function (ev) {
+        if (ev.target === modal) fecharModal();
+      });
+      document.addEventListener("keydown", function (ev) {
+        if (ev.key === "Escape" && modal.classList.contains("is-open")) fecharModal();
+      });
+
+      document.getElementById("user-modal-save").addEventListener("click", function () {
+        var nome = document.getElementById("novo-nome").value.trim();
+        var email = document.getElementById("novo-email").value.trim();
+        var papel = document.getElementById("novo-papel").value;
+
+        if (!nome) { App.toast("Informe o nome do usuário."); return; }
+        if (!email) { App.toast("Informe o e-mail do usuário."); return; }
+
+        seq += 1;
+        usuarios.push({
+          id: "u-" + (seq < 10 ? "0" + seq : seq),
+          nome: nome,
+          email: email,
+          papel: papel,
+          ativo: true,
+          paginas: copiaPaginas(presets[papel] || {})
+        });
+
+        fecharModal();
+        renderKpis();
+        renderMatriz();
+        App.toast("Usuário " + nome + " adicionado (protótipo).");
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=2">
+  <link rel="stylesheet" href="assets/app.css?v=5">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
@@ -74,9 +74,18 @@
     .epo-sub { display: block; font-size: 12px; margin-top: 4px; }
     .epo-chevron { color: var(--text-muted); font-size: 18px; flex: 0 0 auto; }
 
+    /* Qualidade da reversa (fontes e controles remotos x meta 75%) */
+    .reversa-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+    .reversa-item { display: flex; flex-direction: column; gap: 10px; }
+    .reversa-label { font-weight: 500; color: var(--text); }
+    .reversa-num { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .reversa-bar { height: 10px; }
+    .reversa-hint { font-size: 12px; }
+
     @media (max-width: 640px) {
       .hero-parada { flex-direction: column; align-items: flex-start; gap: 16px; }
       .hero-metric { text-align: left; }
+      .reversa-grid { grid-template-columns: minmax(0, 1fr); }
     }
   </style>
 </head>
@@ -89,8 +98,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=2"></script>
-  <script src="assets/app.js?v=2"></script>
+  <script src="assets/data.js?v=5"></script>
+  <script src="assets/app.js?v=5"></script>
   <script>
     (function () {
       "use strict";
@@ -107,14 +116,16 @@
       var regras = APP.tierRules;
 
       // -------- Cálculos derivados (tudo a partir de APP.epos) --------
-      function media(campo) {
+      function mediaTempo(campo) {
         var s = 0;
-        epos.forEach(function (e) { s += e[campo]; });
+        epos.forEach(function (e) { s += e.tempos[campo]; });
         return s / epos.length;
       }
-      var avgChegada = media("tempoChegada");
-      var avgReparo = media("tempoReparo");
-      var avgRetorno = media("tempoRetorno");
+      var avgChegada = mediaTempo("chegada");
+      var avgArmazenagem = mediaTempo("armazenagem");
+      var avgDistribuicao = mediaTempo("distribuicao");
+      var avgRetorno = mediaTempo("retornoCampo");
+      var avgDevolucao = mediaTempo("devolucao");
 
       var totalEquip = epos.reduce(function (s, e) { return s + e.equipamentos; }, 0);
 
@@ -177,6 +188,44 @@
         );
       }
 
+      function cycleStep(icon, label, value) {
+        return (
+          '<div class="cycle-step">' +
+            '<span class="cycle-step-icon"><i class="ti ' + icon + '" aria-hidden="true"></i></span>' +
+            '<span class="cycle-step-body">' +
+              '<span class="cycle-step-label">' + label + '</span>' +
+              '<span class="cycle-step-value">' + App.fmtDias(value) + '</span>' +
+            '</span>' +
+          '</div>'
+        );
+      }
+      var cycleArrow = '<span class="cycle-arrow" aria-hidden="true"><i class="ti ti-arrow-right"></i></span>';
+
+      function reversaBar(label, pct, meta) {
+        var ok = pct >= meta;
+        var cor = ok ? "var(--success)" : "var(--danger)";
+        var cls = ok ? "delta-up" : "delta-down";
+        return (
+          '<div class="reversa-item">' +
+            '<div class="row-between">' +
+              '<span class="reversa-label">' + label + '</span>' +
+              '<span class="reversa-num ' + cls + '">' + App.fmtPct(pct) + '</span>' +
+            '</div>' +
+            '<span class="score-bar reversa-bar" role="img" aria-label="' + label + ': ' + App.fmtPct(pct) + ', meta ' + App.fmtPct(meta) + '">' +
+              '<span class="score-fill" style="width:' + pct + '%; background:' + cor + '"></span>' +
+              '<span class="meta-line" style="left:' + meta + '%"></span>' +
+            '</span>' +
+            '<span class="reversa-hint muted">meta ' + App.fmtPct(meta) + '</span>' +
+          '</div>'
+        );
+      }
+
+      var reversaMedia = kpis.reversaQualidadeMedia;
+      var cicloNum = Number(kpis.tempoMedioCiclo).toLocaleString("pt-BR", {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+      });
+
       var dist = kpis.distribuicao;
 
       // -------- Montagem da página --------
@@ -188,12 +237,12 @@
             '<div class="hero-parada-main">' +
               '<span class="hero-eyebrow"><i class="ti ti-target" aria-hidden="true"></i>Premissa do ciclo</span>' +
               '<span class="hero-title">Máquina parada não gera receita</span>' +
-              '<span class="hero-desc">O tempo médio que um equipamento fica fora de operação nas EPOs auditadas - da chegada ao retorno ao campo.</span>' +
+              '<span class="hero-desc">O tempo médio que o material leva no ciclo completo dentro das EPOs auditadas - da chegada à devolução para a Claro.</span>' +
             '</div>' +
             '<div class="hero-metric">' +
-              '<span class="hero-label">Tempo médio de parada</span>' +
-              '<span class="hero-num">' + App.fmtDias(kpis.tempoMedioParada) + '</span>' +
-              '<span class="hero-foot">por equipamento auditado</span>' +
+              '<span class="hero-label">Tempo médio de ciclo</span>' +
+              '<span class="hero-num">' + cicloNum + '</span>' +
+              '<span class="hero-foot">dias de ciclo (média)</span>' +
             '</div>' +
           '</section>' +
 
@@ -203,46 +252,46 @@
                 dist.ouro + " ouro · " + dist.prata + " prata · " + dist.bronze + " bronze · " + dist.critico + " crítico", "ti-award") +
             kpi("ti-player-pause", "is-warning", "Equipamentos parados", App.fmtNum(kpis.equipParados),
                 "de " + App.fmtNum(totalEquip) + " no total", "ti-stack-2") +
-            kpi("ti-clock", "", "Tempo médio de parada", App.fmtDias(kpis.tempoMedioParada),
-                "meta " + App.fmtDias(8), "ti-target") +
+            kpi("ti-clock", "", "Tempo médio de ciclo", App.fmtDias(kpis.tempoMedioCiclo),
+                "meta " + App.fmtDias(10), "ti-target") +
             kpi("ti-circle-check", "is-success", "Conformidade média", App.fmtPct(kpis.conformidadeMedia),
                 "meta " + App.fmtPct(85), "ti-target") +
             kpi("ti-alert-triangle", "is-danger", "Não-conformidades", App.fmtNum(kpis.ncTotal),
                 App.fmtNum(altaCount) + " de gravidade alta", "ti-flame") +
           '</section>' +
 
-          // (3) Ciclo da máquina
+          // (3) Ciclo do material
           '<section class="card">' +
             '<div class="card-header">' +
               '<div class="section-title">' +
-                '<h2 class="title">Ciclo da máquina</h2>' +
-                '<span class="subtitle">Médias das 8 EPOs, em dias - da chegada ao retorno ao campo</span>' +
+                '<h2 class="title">Ciclo do material</h2>' +
+                '<span class="subtitle">Médias das 8 EPOs, em dias - da chegada à devolução para a Claro</span>' +
               '</div>' +
             '</div>' +
             '<div class="cycle">' +
-              '<div class="cycle-step">' +
-                '<span class="cycle-step-icon"><i class="ti ti-truck-delivery" aria-hidden="true"></i></span>' +
-                '<span class="cycle-step-body">' +
-                  '<span class="cycle-step-label">Chegada à EPO</span>' +
-                  '<span class="cycle-step-value">' + App.fmtDias(avgChegada) + '</span>' +
-                '</span>' +
+              cycleStep("ti-truck-delivery", "Chegada", avgChegada) +
+              cycleArrow +
+              cycleStep("ti-building-warehouse", "Armazenagem", avgArmazenagem) +
+              cycleArrow +
+              cycleStep("ti-user-share", "Distribuição ao técnico", avgDistribuicao) +
+              cycleArrow +
+              cycleStep("ti-arrow-back", "Retorno de campo", avgRetorno) +
+              cycleArrow +
+              cycleStep("ti-send", "Devolução à Claro", avgDevolucao) +
+            '</div>' +
+          '</section>' +
+
+          // (3b) Qualidade da reversa
+          '<section class="card">' +
+            '<div class="card-header">' +
+              '<div class="section-title">' +
+                '<h2 class="title">Qualidade da reversa</h2>' +
+                '<span class="subtitle">Fontes e controles remotos devolvidos junto aos equipamentos · média das 8 EPOs · meta 75%</span>' +
               '</div>' +
-              '<span class="cycle-arrow" aria-hidden="true"><i class="ti ti-arrow-right"></i></span>' +
-              '<div class="cycle-step">' +
-                '<span class="cycle-step-icon"><i class="ti ti-tool" aria-hidden="true"></i></span>' +
-                '<span class="cycle-step-body">' +
-                  '<span class="cycle-step-label">Reparo interno</span>' +
-                  '<span class="cycle-step-value">' + App.fmtDias(avgReparo) + '</span>' +
-                '</span>' +
-              '</div>' +
-              '<span class="cycle-arrow" aria-hidden="true"><i class="ti ti-arrow-right"></i></span>' +
-              '<div class="cycle-step">' +
-                '<span class="cycle-step-icon"><i class="ti ti-arrow-back-up" aria-hidden="true"></i></span>' +
-                '<span class="cycle-step-body">' +
-                  '<span class="cycle-step-label">Retorno ao campo</span>' +
-                  '<span class="cycle-step-value">' + App.fmtDias(avgRetorno) + '</span>' +
-                '</span>' +
-              '</div>' +
+            '</div>' +
+            '<div class="reversa-grid">' +
+              reversaBar("Fontes devolvidas", reversaMedia.pctFontes, 75) +
+              reversaBar("Controles remotos devolvidos", reversaMedia.pctControles, 75) +
             '</div>' +
           '</section>' +
 

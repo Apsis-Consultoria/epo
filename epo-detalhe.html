@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="assets/app.css?v=2">
+  <link rel="stylesheet" href="assets/app.css?v=5">
   <style>
     /* Ajustes locais desta tela (pequenos; reutiliza o design system) */
     .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-weight: 500; margin-bottom: 16px; transition: color .15s ease; }
@@ -23,6 +23,48 @@
     .nc-thumb { flex: 0 0 76px; width: 76px; }
     .nc-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
     .nc-item-title { font-weight: 500; color: var(--text); }
+
+    /* Logística reversa */
+    .rev-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .rev-item { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+    .rev-item-label { font-size: 12px; color: var(--text-2); display: inline-flex; align-items: center; gap: 6px; }
+    .rev-item-value { font-size: 22px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+    .rev-item-sub { font-size: 12px; color: var(--text-muted); }
+
+    /* Drill-down por processo (accordion macro -> micro) */
+    .proc-acc { border-top: 1px solid var(--border); }
+    .proc-acc:first-child { border-top: 0; }
+    .proc-head {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 12px 4px; background: none; border: 0; cursor: pointer;
+      font: inherit; color: var(--text); text-align: left;
+    }
+    .proc-head:hover { background: var(--surface-2); border-radius: 8px; }
+    .proc-head-icon { flex: 0 0 auto; color: var(--text-2); font-size: 18px; display: grid; place-items: center; }
+    .proc-head-nome { flex: 0 0 220px; font-weight: 500; min-width: 0; }
+    .proc-head .score-row { flex: 1; min-width: 120px; }
+    .proc-caret { flex: 0 0 auto; color: var(--text-muted); transition: transform .18s ease; }
+    .proc-acc.is-open .proc-caret { transform: rotate(180deg); }
+    .proc-items { display: none; padding: 4px 4px 14px 34px; }
+    .proc-acc.is-open .proc-items { display: block; }
+    .proc-item { display: flex; align-items: center; gap: 12px; padding: 7px 0; border-top: 1px dashed var(--border); }
+    .proc-item:first-child { border-top: 0; }
+    .proc-item-q { flex: 1; min-width: 0; font-size: 13px; color: var(--text-2); }
+    .proc-item .score-bar { flex: 0 0 120px; height: 6px; }
+    .proc-item-pct { flex: 0 0 38px; text-align: right; font-size: 12px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+    .badge-ofensor {
+      display: inline-flex; align-items: center; gap: 4px; margin-left: 8px;
+      padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+      background: var(--danger-bg); color: var(--danger); white-space: nowrap;
+    }
+
+    @media (max-width: 720px) {
+      .rev-grid { grid-template-columns: 1fr; }
+      .proc-head { flex-wrap: wrap; }
+      .proc-head-nome { flex: 1 1 auto; }
+      .proc-head .score-row { flex: 1 1 100%; order: 3; }
+      .proc-items { padding-left: 4px; }
+    }
     @media (max-width: 560px) { .epo-head-score { min-width: 0; } }
   </style>
 </head>
@@ -35,8 +77,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=2"></script>
-  <script src="assets/app.js?v=2"></script>
+  <script src="assets/data.js?v=5"></script>
+  <script src="assets/app.js?v=5"></script>
   <script>
     (function () {
       "use strict";
@@ -133,7 +175,7 @@
 
       var kpisHtml =
         '<div class="kpi-grid">' +
-          kpi("Tempo de parada", "ti-clock-pause", App.fmtDias(epo.tempoParada)) +
+          kpi("Tempo de ciclo", "ti-clock-pause", App.fmtDias(epo.tempoCiclo)) +
           kpi("Conformidade", "ti-shield-check", App.fmtPct(epo.conformidade)) +
           kpi("Não conformidades", "ti-alert-triangle", App.fmtNum(epo.ncs)) +
           kpi(
@@ -159,22 +201,151 @@
       }
       var seta = '<div class="cycle-arrow" aria-hidden="true"><i class="ti ti-arrow-right"></i></div>';
 
+      var tempos = epo.tempos || {};
       var cicloHtml =
         '<div class="card">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
-              '<span class="title">Ciclo do equipamento</span>' +
-              '<span class="subtitle">Máquina parada não gera receita - tempos médios desta EPO</span>' +
+              '<span class="title">Ciclo do material</span>' +
+              '<span class="subtitle">Da chegada à devolução para a Claro - tempos médios desta EPO</span>' +
             "</div>" +
+            '<div class="card-header-action"><span class="chip"><i class="ti ti-clock" aria-hidden="true"></i>Ciclo total: ' +
+              App.fmtDias(epo.tempoCiclo) + "</span></div>" +
           "</div>" +
           '<div class="cycle">' +
-            cicloStep("Chegada à EPO", "ti-truck-delivery", epo.tempoChegada) +
+            cicloStep("Chegada do material", "ti-truck-delivery", tempos.chegada) +
             seta +
-            cicloStep("Reparo interno", "ti-tool", epo.tempoReparo) +
+            cicloStep("Armazenagem", "ti-building-warehouse", tempos.armazenagem) +
             seta +
-            cicloStep("Retorno ao campo", "ti-arrow-back-up", epo.tempoRetorno) +
+            cicloStep("Distribuição ao técnico", "ti-package-export", tempos.distribuicao) +
+            seta +
+            cicloStep("Retorno de campo", "ti-package-import", tempos.retornoCampo) +
+            seta +
+            cicloStep("Devolução (reversa)", "ti-arrow-back-up", tempos.devolucao) +
           "</div>" +
         "</div>";
+
+      // -------------------------------------------------- Logística reversa
+      var rev = epo.reversa || {};
+      var altoGiro = rev.altoGiro || {};
+
+      function corPorNivel(pct, meta) {
+        return pct >= meta ? "var(--success)" : "var(--danger)";
+      }
+      function barraMeta(pct, meta) {
+        return (
+          '<div class="score-bar">' +
+            '<div class="score-fill" style="width:' + Math.min(100, pct) + "%; background:" + corPorNivel(pct, meta) + ';"></div>' +
+            '<span class="meta-line" style="left:' + meta + '%;" title="Meta ' + meta + '%"></span>' +
+          "</div>"
+        );
+      }
+
+      var pctVolume = rev.saldoSistema ? Math.round((rev.volumeDevolvido / rev.saldoSistema) * 100) : 0;
+      var metaFontes = rev.metaFontes != null ? rev.metaFontes : 75;
+      var metaControles = rev.metaControles != null ? rev.metaControles : 75;
+
+      var chipAltoGiro =
+        '<span class="chip"><i class="ti ti-flame" aria-hidden="true"></i>Alto giro: ' +
+          App.fmtNum(altoGiro.equipamentos) + " equip. · " +
+          App.fmtNum(altoGiro.fontes) + " fontes · " +
+          App.fmtNum(altoGiro.controles) + " controles</span>";
+
+      var reversaHtml =
+        '<div class="card">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Logística reversa</span>' +
+              '<span class="subtitle">Devolução para a Claro - visão alto giro, meta de qualidade 75%</span>' +
+            "</div>" +
+            '<div class="card-header-action">' + chipAltoGiro + "</div>" +
+          "</div>" +
+          '<div class="rev-grid">' +
+            '<div class="rev-item">' +
+              '<span class="rev-item-label"><i class="ti ti-calendar-check" aria-hidden="true"></i>Aderência à calendarização</span>' +
+              '<span class="rev-item-value">' + App.fmtPct(rev.aderenciaCalendario) + "</span>" +
+              '<div class="score-bar"><div class="score-fill" style="width:' + (rev.aderenciaCalendario || 0) +
+                "%; background:" + corPorNivel(rev.aderenciaCalendario || 0, 90) + ';"></div></div>' +
+              '<span class="rev-item-sub">Devoluções realizadas no dia agendado</span>' +
+            "</div>" +
+            '<div class="rev-item">' +
+              '<span class="rev-item-label"><i class="ti ti-package" aria-hidden="true"></i>Volume devolvido vs saldo no sistema</span>' +
+              '<span class="rev-item-value">' + App.fmtNum(rev.volumeDevolvido) +
+                ' <span class="text-muted" style="font-size:14px; font-weight:400;">de ' + App.fmtNum(rev.saldoSistema) + " (" + pctVolume + "%)</span></span>" +
+              '<div class="score-bar"><div class="score-fill" style="width:' + Math.min(100, pctVolume) +
+                "%; background:" + corPorNivel(pctVolume, 85) + ';"></div></div>' +
+              '<span class="rev-item-sub">Diferença = equipamentos ainda não devolvidos</span>' +
+            "</div>" +
+            '<div class="rev-item">' +
+              '<span class="rev-item-label"><i class="ti ti-plug" aria-hidden="true"></i>Fontes devolvidas <span class="' +
+                ((rev.pctFontes || 0) >= metaFontes ? "delta-up" : "delta-down") + '" style="font-weight:600;">(meta ' + metaFontes + "%)</span></span>" +
+              '<span class="rev-item-value" style="color:' + corPorNivel(rev.pctFontes || 0, metaFontes) + ';">' + App.fmtPct(rev.pctFontes) + "</span>" +
+              barraMeta(rev.pctFontes || 0, metaFontes) +
+              '<span class="rev-item-sub">% de fontes vs equipamentos devolvidos (reversa de qualidade)</span>' +
+            "</div>" +
+            '<div class="rev-item">' +
+              '<span class="rev-item-label"><i class="ti ti-device-remote" aria-hidden="true"></i>Controles remotos devolvidos <span class="' +
+                ((rev.pctControles || 0) >= metaControles ? "delta-up" : "delta-down") + '" style="font-weight:600;">(meta ' + metaControles + "%)</span></span>" +
+              '<span class="rev-item-value" style="color:' + corPorNivel(rev.pctControles || 0, metaControles) + ';">' + App.fmtPct(rev.pctControles) + "</span>" +
+              barraMeta(rev.pctControles || 0, metaControles) +
+              '<span class="rev-item-sub">% de controles vs equipamentos devolvidos (reversa de qualidade)</span>' +
+            "</div>" +
+          "</div>" +
+        "</div>";
+
+      // -------------------------------------------------- Conformidade por processo (drill-down macro -> micro)
+      var vistorias = epo.vistorias || [];
+      var ultimaVistoria = vistorias.length ? vistorias[vistorias.length - 1] : null;
+
+      var procHtml = "";
+      if (ultimaVistoria && ultimaVistoria.secoes && ultimaVistoria.secoes.length) {
+        var linhas = ultimaVistoria.secoes.map(function (sec) {
+          var proc = App.processoById(sec.processoId);
+          var icone = proc && proc.icone ? proc.icone : "ti-clipboard-check";
+          var tierSec = App.tierOf(sec.pct);
+
+          var itensOrdenados = (sec.itens || []).slice().sort(function (a, b) { return a.pct - b.pct; });
+          var itensHtml = itensOrdenados.map(function (it, idx) {
+            var ofensor = idx < 3
+              ? '<span class="badge-ofensor"><i class="ti ti-alert-triangle" aria-hidden="true"></i>ofensor</span>'
+              : "";
+            var tierItem = App.tierOf(it.pct);
+            return (
+              '<div class="proc-item">' +
+                '<span class="proc-item-q">' + esc(it.pergunta) + ofensor + "</span>" +
+                '<div class="score-bar"><div class="score-fill tier-' + tierItem + '" style="width:' + it.pct + '%;"></div></div>' +
+                '<span class="proc-item-pct">' + it.pct + "%</span>" +
+              "</div>"
+            );
+          }).join("");
+
+          return (
+            '<div class="proc-acc">' +
+              '<button class="proc-head" type="button" aria-expanded="false">' +
+                '<span class="proc-head-icon"><i class="ti ' + icone + '" aria-hidden="true"></i></span>' +
+                '<span class="proc-head-nome">' + esc(sec.nome) + "</span>" +
+                '<div class="score-row">' +
+                  '<div class="score-bar"><div class="score-fill tier-' + tierSec + '" style="width:' + sec.pct + '%;"></div></div>' +
+                  '<span class="score-num">' + sec.pct + "%</span>" +
+                "</div>" +
+                '<i class="ti ti-chevron-down proc-caret" aria-hidden="true"></i>' +
+              "</button>" +
+              '<div class="proc-items">' + itensHtml + "</div>" +
+            "</div>"
+          );
+        }).join("");
+
+        procHtml =
+          '<div class="card">' +
+            '<div class="card-header">' +
+              '<div class="section-title">' +
+                '<span class="title">Conformidade por processo</span>' +
+                '<span class="subtitle">Última vistoria (' + esc(ultimaVistoria.label) + ") - clique em um processo para ver os itens que mais ofenderam</span>" +
+              "</div>" +
+            "</div>" +
+            '<div id="proc-list">' + linhas + "</div>" +
+          "</div>";
+      }
 
       // -------------------------------------------------- Gráfico de evolução
       var chartHtml =
@@ -209,7 +380,7 @@
             '<div class="nc-body">' +
               '<div class="row wrap" style="gap:8px;">' +
                 '<span class="badge ' + g.cls + '">' + g.label + "</span>" +
-                '<span class="tag">' + esc(nc.bloco) + "</span>" +
+                '<span class="tag">' + esc(nc.processo) + "</span>" +
                 fotoTag +
               "</div>" +
               '<div class="nc-item-title">' + esc(nc.item) + "</div>" +
@@ -243,9 +414,24 @@
           headerHtml +
           kpisHtml +
           cicloHtml +
+          reversaHtml +
+          procHtml +
           chartHtml +
           ncHtml +
         "</div>";
+
+      // Accordion do drill-down por processo
+      var procList = document.getElementById("proc-list");
+      if (procList) {
+        procList.addEventListener("click", function (ev) {
+          var head = ev.target.closest(".proc-head");
+          if (!head) return;
+          var acc = head.closest(".proc-acc");
+          var open = !acc.classList.contains("is-open");
+          acc.classList.toggle("is-open", open);
+          head.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+      }
 
       // -------------------------------------------------- Chart.js
       var hist = epo.historico || [];

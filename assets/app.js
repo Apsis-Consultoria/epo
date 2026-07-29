@@ -10,15 +10,39 @@
   var DATA = window.APP || {};
 
   // -----------------------------------------------------------------------
-  // Navegação fixa (5 itens).
+  // Navegação. "auditoria" tem submenu: um filho por processo + carregadores.
   // -----------------------------------------------------------------------
+  var subAuditoria = (DATA.processos || []).map(function (p) {
+    return { key: p.id, label: p.nome, href: "auditoria.html?processo=" + p.id };
+  });
+  // Contagem da reversa: questionário preenchido pelo técnico no recebimento
+  // do retorno (percentual de acessórios devolvidos). Entra logo após "devolucao".
+  (function () {
+    var contagem = { key: "contagem-reversa", label: "Contagem da reversa", href: "auditoria.html?processo=contagem-reversa" };
+    var idx = -1;
+    for (var i = 0; i < subAuditoria.length; i++) {
+      if (subAuditoria[i].key === "devolucao") { idx = i; break; }
+    }
+    if (idx >= 0) subAuditoria.splice(idx + 1, 0, contagem);
+    else subAuditoria.push(contagem);
+  })();
+  if (DATA.checklistCarregadores) {
+    subAuditoria.push({
+      key: DATA.checklistCarregadores.id,
+      label: DATA.checklistCarregadores.nome,
+      href: "auditoria.html?processo=" + DATA.checklistCarregadores.id
+    });
+  }
+
   var NAV = [
-    { key: "geral",      label: "Visão geral",    icon: "ti-layout-dashboard", href: "index.html" },
-    { key: "ranking",    label: "Ranking",        icon: "ti-trophy",           href: "ranking.html" },
-    { key: "comparativo", label: "Comparativo",   icon: "ti-arrows-diff",      href: "comparar.html" },
-    { key: "auditoria",  label: "Nova auditoria", icon: "ti-clipboard-check",  href: "auditoria.html" },
-    { key: "evidencias", label: "Evidências",     icon: "ti-camera",           href: "evidencias.html" },
-    { key: "config",     label: "Configurações",  icon: "ti-settings",         href: "configuracoes.html" }
+    { key: "geral",       label: "Visão geral",      icon: "ti-layout-dashboard", href: "index.html" },
+    { key: "ranking",     label: "Ranking",          icon: "ti-trophy",           href: "ranking.html" },
+    { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
+    { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },
+    { key: "auditoria",   label: "Nova auditoria",   icon: "ti-clipboard-check",  href: "auditoria.html", children: subAuditoria },
+    { key: "evidencias",  label: "Evidências",       icon: "ti-camera",           href: "evidencias.html" },
+    { key: "acessos",     label: "Gerenciamento de acessos", icon: "ti-lock-access", href: "acessos.html" },
+    { key: "config",      label: "Configurações",    icon: "ti-settings",         href: "configuracoes.html" }
   ];
 
   // -----------------------------------------------------------------------
@@ -44,13 +68,13 @@
   }
 
   // -----------------------------------------------------------------------
-  // Tiers
+  // Tiers (selos)
   // -----------------------------------------------------------------------
   function tierOf(score) {
-    var rules = DATA.tierRules || { ouroMin: 85, prataMin: 70, bronzeMin: 50 };
+    var rules = DATA.tierRules || { ouroMin: 85, prataMin: 70, bronzeMin: 55 };
     if (score >= rules.ouroMin) return "ouro";
     if (score >= rules.prataMin) return "prata";
-    if (score >= (rules.bronzeMin != null ? rules.bronzeMin : 50)) return "bronze";
+    if (score >= (rules.bronzeMin != null ? rules.bronzeMin : 55)) return "bronze";
     return "critico";
   }
 
@@ -85,6 +109,17 @@
     var list = DATA.epos || [];
     for (var i = 0; i < list.length; i++) {
       if (list[i].id === id) return list[i];
+    }
+    return null;
+  }
+
+  function processoById(id) {
+    var list = DATA.processos || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) return list[i];
+    }
+    if (DATA.checklistCarregadores && DATA.checklistCarregadores.id === id) {
+      return DATA.checklistCarregadores;
     }
     return null;
   }
@@ -146,6 +181,7 @@
     fmtPct: fmtPct,
     fmtNum: fmtNum,
     epoById: epoById,
+    processoById: processoById,
     getParam: getParam,
     toast: toast,
     badgeGravidade: badgeGravidade,
@@ -156,9 +192,35 @@
   // window.Layout - shell (sidebar + topbar)
   // -----------------------------------------------------------------------
   function buildSidebar(activeKey) {
+    var processoAtivo = activeKey === "auditoria" ? getParam("processo") : null;
+
     var items = NAV.map(function (n) {
-      var active = n.key === activeKey ? " active" : "";
-      var ariaCurrent = n.key === activeKey ? ' aria-current="page"' : "";
+      var isActive = n.key === activeKey;
+
+      if (n.children && n.children.length) {
+        var expanded = isActive; // expande quando a seção está ativa
+        var kids = n.children.map(function (c) {
+          var childActive = processoAtivo === c.key ? " active" : "";
+          var ariaCur = processoAtivo === c.key ? ' aria-current="page"' : "";
+          return (
+            '<a class="nav-sub-item' + childActive + '" href="' + c.href + '"' + ariaCur + ">" +
+            '<span class="nav-sub-label">' + escapeHtml(c.label) + "</span>" +
+            "</a>"
+          );
+        }).join("");
+        return (
+          '<button class="nav-item nav-parent' + (isActive ? " active" : "") + '" type="button" ' +
+            'data-subnav="' + n.key + '" aria-expanded="' + (expanded ? "true" : "false") + '">' +
+            '<i class="ti ' + n.icon + '" aria-hidden="true"></i>' +
+            '<span class="nav-label">' + n.label + "</span>" +
+            '<i class="ti ti-chevron-down nav-caret" aria-hidden="true"></i>' +
+          "</button>" +
+          '<div class="nav-sub' + (expanded ? " is-open" : "") + '" data-subnav-panel="' + n.key + '">' + kids + "</div>"
+        );
+      }
+
+      var active = isActive ? " active" : "";
+      var ariaCurrent = isActive ? ' aria-current="page"' : "";
       return (
         '<a class="nav-item' + active + '" href="' + n.href + '"' + ariaCurrent + ">" +
         '<i class="ti ' + n.icon + '" aria-hidden="true"></i>' +
@@ -229,9 +291,26 @@
         setOpen(!sidebar.classList.contains("is-open"));
       });
       backdrop.addEventListener("click", function () { setOpen(false); });
-      // fecha ao navegar / clicar em item
+      // fecha ao navegar (apenas links; o pai do submenu não navega)
       sidebar.addEventListener("click", function (ev) {
-        if (ev.target.closest(".nav-item")) setOpen(false);
+        if (ev.target.closest("a.nav-item, a.nav-sub-item")) setOpen(false);
+      });
+    }
+
+    // Submenu (Nova auditoria): o clique no pai expande/recolhe, não navega.
+    if (sidebar) {
+      sidebar.addEventListener("click", function (ev) {
+        var parent = ev.target.closest(".nav-parent");
+        if (!parent) return;
+        // No estado recolhido (desktop), o submenu não expande.
+        var desktop = window.matchMedia("(min-width: 901px)").matches;
+        if (desktop && sidebar.classList.contains("is-collapsed")) return;
+        var key = parent.getAttribute("data-subnav");
+        var panel = sidebar.querySelector('[data-subnav-panel="' + key + '"]');
+        if (!panel) return;
+        var open = !panel.classList.contains("is-open");
+        panel.classList.toggle("is-open", open);
+        parent.setAttribute("aria-expanded", open ? "true" : "false");
       });
     }
 

@@ -7,10 +7,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=2">
+  <link rel="stylesheet" href="assets/app.css?v=5">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
+       Um checklist independente POR PROCESSO (?processo=ID).
        Pensado para ser aberto no navegador do celular em campo.
        ========================================================================== */
     html, body { height: 100%; }
@@ -57,6 +58,16 @@
     .wiz-evidence i { font-size: 16px; flex: 0 0 auto; margin-top: 2px; color: var(--text-2); }
     .wiz-evidence b { color: var(--text); font-weight: 600; }
     .wiz-evidence .evidence-tag { margin-top: 6px; }
+    .evidence-tag.tag-grave { background: var(--danger-bg); color: var(--danger); }
+
+    /* Aviso âmbar - evidência obrigatória */
+    .wiz-warn {
+      display: flex; gap: 8px; align-items: flex-start;
+      background: var(--warning-bg); color: var(--warning);
+      border-radius: var(--radius-sm); padding: 11px 13px;
+      font-size: 13px; font-weight: 600; margin-bottom: 14px; line-height: 1.45;
+    }
+    .wiz-warn i { font-size: 16px; flex: 0 0 auto; margin-top: 1px; }
 
     .wiz-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
     .wiz-opt {
@@ -68,10 +79,14 @@
       -webkit-tap-highlight-color: transparent;
     }
     .wiz-opt i { font-size: 20px; flex: 0 0 auto; color: var(--text-muted); }
-    .wiz-opt[data-val="conforme"].is-selected { border-color: var(--success); background: var(--success-bg); color: var(--success); }
-    .wiz-opt[data-val="conforme"].is-selected i { color: var(--success); }
-    .wiz-opt[data-val="nao"].is-selected { border-color: var(--danger); background: var(--danger-bg); color: var(--danger); }
-    .wiz-opt[data-val="nao"].is-selected i { color: var(--danger); }
+    .wiz-opt[data-val="conforme"].is-selected,
+    .wiz-opt[data-val="presente"].is-selected { border-color: var(--success); background: var(--success-bg); color: var(--success); }
+    .wiz-opt[data-val="conforme"].is-selected i,
+    .wiz-opt[data-val="presente"].is-selected i { color: var(--success); }
+    .wiz-opt[data-val="nao"].is-selected,
+    .wiz-opt[data-val="ausente"].is-selected { border-color: var(--danger); background: var(--danger-bg); color: var(--danger); }
+    .wiz-opt[data-val="nao"].is-selected i,
+    .wiz-opt[data-val="ausente"].is-selected i { color: var(--danger); }
     .wiz-opt[data-val="na"].is-selected { border-color: var(--text-muted); background: var(--surface-2); color: var(--text); }
     .wiz-opt[data-val="na"].is-selected i { color: var(--text-2); }
 
@@ -89,10 +104,29 @@
       display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
       min-height: 52px; padding: 14px; border-radius: var(--radius);
       border: 1.5px dashed var(--border-strong); background: var(--surface-2);
-      color: var(--text-2); font-size: 14px; font-weight: 600; margin-bottom: 8px; cursor: pointer;
+      color: var(--text-2); font-size: 14px; font-weight: 600; margin-bottom: 12px; cursor: pointer;
     }
     .wiz-attach.is-attached { border-style: solid; border-color: var(--success); color: var(--success); background: var(--success-bg); }
     .wiz-attach i { font-size: 18px; }
+
+    /* Botão secundário - link seguro para anexos externos */
+    .wiz-linkbtn {
+      display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+      min-height: 48px; padding: 12px; border-radius: var(--radius);
+      border: 1.5px solid var(--border-strong); background: var(--surface);
+      color: var(--text-2); font-size: 14px; font-weight: 600; margin-bottom: 14px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wiz-linkbtn i { font-size: 18px; }
+    .wiz-linkbtn:active { background: var(--surface-2); }
+
+    .wiz-linkbox {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface-2); border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+      font-size: 13px; font-weight: 600; color: var(--text); word-break: break-all;
+    }
+    .wiz-linkbox i { font-size: 16px; flex: 0 0 auto; color: var(--text-2); }
 
     .wiz-tempo-stepper { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 28px 0 8px; }
     .wiz-stepper-btn {
@@ -118,6 +152,11 @@
     .wiz-summary-stat b { display: block; font-size: 20px; line-height: 1.2; }
     .wiz-summary-stat span { font-size: 12px; color: var(--text-2); }
 
+    /* Lista de ausências (checklist de itens obrigatórios) */
+    .wiz-abs-list { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+    .wiz-abs-list li { background: var(--danger-bg); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; color: var(--text); line-height: 1.5; }
+    .wiz-abs-list li b { display: block; color: var(--danger); }
+
     .wiz-skip { display: block; width: 100%; text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 2px; text-decoration: underline; background: none; border: 0; cursor: pointer; padding: 10px; }
 
     /* Tela de capa - exibida antes do questionário e ao concluir o envio */
@@ -131,7 +170,7 @@
       display: grid; place-items: center; font-size: 34px; margin-bottom: 20px;
     }
     .wiz-intro-title { font-size: 26px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
-    .wiz-intro-sub { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 340px; margin: 0 0 24px; }
+    .wiz-intro-sub { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 360px; margin: 0 0 24px; }
     .wiz-intro-stats { display: flex; gap: 10px; width: 100%; margin-bottom: 24px; }
     .wiz-intro-stat { flex: 1; background: var(--surface-2); border-radius: var(--radius-sm); padding: 14px 8px; }
     .wiz-intro-stat b { display: block; font-size: 20px; font-weight: 700; color: var(--text); }
@@ -139,6 +178,29 @@
     .wiz-intro-list { list-style: none; margin: 0; padding: 0; width: 100%; text-align: left; display: flex; flex-direction: column; gap: 12px; }
     .wiz-intro-list li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2); }
     .wiz-intro-list li i { font-size: 18px; color: var(--success); flex: 0 0 auto; }
+
+    /* Seletor de processo (capa sem ?processo=) */
+    .proc-grid { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; }
+    .proc-card {
+      display: flex; align-items: center; gap: 14px; width: 100%;
+      min-height: 64px; padding: 12px 14px; text-align: left;
+      border: 1.5px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); cursor: pointer; font-family: inherit;
+      transition: border-color .15s ease, background .15s ease, transform .1s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .proc-card:active { background: var(--surface-2); transform: scale(.99); }
+    .proc-card-icon {
+      width: 42px; height: 42px; flex: 0 0 42px; border-radius: 12px;
+      background: var(--primary-tint); color: var(--apsis-green);
+      display: grid; place-items: center; font-size: 22px;
+    }
+    .proc-card-info { flex: 1; min-width: 0; }
+    .proc-card-info b { display: block; font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .proc-card-info span { font-size: 12px; color: var(--text-2); }
+    .proc-card-caret { color: var(--text-muted); font-size: 18px; flex: 0 0 auto; }
+    .proc-card.is-destaque { border-color: var(--apsis-orange); }
+    .proc-card.is-destaque .proc-card-icon { background: var(--warning-bg); color: var(--apsis-orange); }
 
     /* Tela cheia de confirmação (após enviar) */
     .wiz-done {
@@ -176,6 +238,22 @@
     .wiz-btn-next:disabled { opacity: .4; cursor: not-allowed; }
     .wiz-btn-next.is-submit { background: var(--apsis-orange); }
 
+    /* Contagem da reversa - resultado ao vivo (% de retorno vs meta) */
+    .rev-metric { background: var(--surface-2); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+    .rev-metric-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .rev-metric-top b { font-size: 14px; font-weight: 600; color: var(--text); }
+    .rev-metric-top b i { margin-right: 4px; color: var(--text-2); }
+    .rev-metric-pct { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .rev-metric-pct.is-ok, .rev-metric-frase.is-ok { color: var(--success); }
+    .rev-metric-pct.is-bad, .rev-metric-frase.is-bad { color: var(--danger); }
+    .rev-metric-frase { margin: 12px 0 0; font-size: 13px; font-weight: 600; line-height: 1.5; }
+    .rev-metric-base { margin: 4px 0 0; font-size: 12px; color: var(--text-muted); }
+
+    /* Checagens no resumo da contagem */
+    .rev-check-list { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .rev-check-list li { display: flex; gap: 8px; align-items: flex-start; background: var(--surface-2); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; color: var(--text-2); line-height: 1.5; }
+    .rev-check-list li i { font-size: 16px; margin-top: 2px; flex: 0 0 auto; }
+
     @media (min-width: 640px) {
       body.wiz-body { background: var(--surface-2); }
       .wiz-shell { margin: 28px auto; min-height: calc(100vh - 56px); border-radius: 20px; box-shadow: var(--shadow-md); overflow: hidden; }
@@ -190,49 +268,258 @@
       <span class="wiz-counter" id="wiz-counter">1/1</span>
     </header>
     <main class="wiz-main" id="wiz-main"></main>
-    <footer class="wiz-footer">
+    <footer class="wiz-footer" id="wiz-footer">
       <button class="wiz-btn wiz-btn-back" id="wiz-back" type="button"><i class="ti ti-chevron-left" aria-hidden="true"></i>Voltar</button>
       <button class="wiz-btn wiz-btn-next" id="wiz-next" type="button">Próxima<i class="ti ti-chevron-right" aria-hidden="true"></i></button>
     </footer>
   </div>
 
-  <script src="assets/data.js?v=2"></script>
-  <script src="assets/app.js?v=2"></script>
+  <!-- Modal - link seguro temporário para anexos externos (mock) -->
+  <div class="modal-overlay" id="link-modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="link-modal-title">
+      <div class="modal-header">
+        <h2 class="modal-title" id="link-modal-title">Solicitar anexos por link seguro</h2>
+        <button class="modal-close" id="link-modal-x" type="button" aria-label="Fechar"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0 0 12px;font-size:14px;color:var(--text-2);line-height:1.55;" id="link-modal-item"></p>
+        <div class="wiz-linkbox"><i class="ti ti-lock" aria-hidden="true"></i><span id="link-modal-url"></span></div>
+        <p style="margin:12px 0 0;font-size:13px;color:var(--text-muted);line-height:1.55;">O responsável da EPO envia e-mails, prints do Atlas e NFs por este link; os anexos retornam ao checklist. Válido por 24h.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="link-modal-fechar" type="button">Fechar</button>
+        <button class="btn btn-primary" id="link-modal-copiar" type="button"><i class="ti ti-copy" aria-hidden="true"></i>Copiar link</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=5"></script>
+  <script src="assets/app.js?v=5"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
       var epos = window.APP.epos || [];
-      var checklist = window.APP.checklist || [];
-      var rules = window.APP.tierRules || { ouroMin: 85, prataMin: 70, bronzeMin: 55 };
+      var processos = window.APP.processos || [];
+      var carregadores = window.APP.checklistCarregadores || null;
 
-      document.title = "Nova auditoria - Auditoria de EPOs";
+      // Contagem da reversa - questionário operacional preenchido na hora em
+      // que o técnico recebe a devolução. Não existe em APP.processos
+      // (App.processoById retorna null para este id), então o bloco de dados
+      // vive aqui, junto do wizard que o consome.
+      var CONTAGEM = {
+        id: "contagem-reversa",
+        nome: "Contagem da reversa",
+        icone: "ti-clipboard-list",
+        descricao: "Recebimento da devolução - contagem de equipamentos e acessórios",
+        meta: 75, // % mínimo de retorno de fontes e controles (metaFontes/metaControles)
+        contagens: [
+          { key: "equipamentos", label: "Quantos equipamentos foram recebidos nesta devolução?", unidade: "equipamentos", icon: "ti-device-tv", hint: "Conte todos os equipamentos que chegaram do campo nesta leva (decoders, modems, ONTs)." },
+          { key: "fontes", label: "Quantas fontes retornaram junto com os equipamentos?", unidade: "fontes", icon: "ti-plug", hint: "Base do % de retorno de fontes: fontes recebidas dividido pelos equipamentos recebidos." },
+          { key: "controles", label: "Quantos controles remotos retornaram?", unidade: "controles", icon: "ti-device-remote", hint: "Conte apenas controles em condição de reaproveitamento." },
+          { key: "equipControle", label: "Quantos dos equipamentos recebidos usam controle remoto?", unidade: "equipamentos", icon: "ti-device-tv-old", hint: "Base do % de retorno de controles: nem todo equipamento usa controle (ex.: modems)." }
+        ],
+        checagens: [
+          { id: "cr-01", pergunta: "Fontes conferidas e testadas por amostragem" },
+          { id: "cr-02", pergunta: "Controles conferidos" },
+          { id: "cr-03", pergunta: "Cabos/acessórios segregados por tipo" },
+          { id: "cr-04", pergunta: "Divergências registradas com RNC" }
+        ]
+      };
 
-      // ---------------------------------------------------------------- Steps
-      var TEMPOS_DEFS = [
-        { key: "chegada", label: "Quanto tempo levou até a máquina chegar à EPO?", icon: "ti-truck-delivery" },
-        { key: "inicioReparo", label: "Quanto tempo levou até iniciar o reparo?", icon: "ti-tool" },
-        { key: "conclusaoReparo", label: "Quanto tempo levou até concluir o reparo?", icon: "ti-checkbox" },
-        { key: "retorno", label: "Quanto tempo levou o retorno da máquina ao campo?", icon: "ti-arrow-back-up" }
-      ];
+      var main = document.getElementById("wiz-main");
+      var footer = document.getElementById("wiz-footer");
+      var headerEl = document.getElementById("wiz-header");
+      var backBtn = document.getElementById("wiz-back");
+      var nextBtn = document.getElementById("wiz-next");
+      var progressFill = document.getElementById("wiz-progress");
+      var counterEl = document.getElementById("wiz-counter");
+
+      // ------------------------------------------------------------ Contexto
+      var epoParam = App.getParam("epo");
+      var epoIdInicial = (epoParam && App.epoById(epoParam)) ? epoParam : (epos[0] && epos[0].id);
+      var procParam = App.getParam("processo");
+      var isContagem = procParam === CONTAGEM.id;
+      var processo = isContagem ? CONTAGEM : (procParam ? App.processoById(procParam) : null);
+      var isCarregadores = !!(processo && carregadores && processo.id === carregadores.id);
+
+      function urlSeletor() {
+        return "auditoria.html" + (epoParam ? "?epo=" + encodeURIComponent(epoParam) : "");
+      }
+      function urlProcesso(id) {
+        return "auditoria.html?processo=" + encodeURIComponent(id) +
+          (epoParam ? "&epo=" + encodeURIComponent(epoParam) : "");
+      }
+
+      // ------------------------------------------------- Modal de link seguro
+      // Código aleatório determinístico por item (mesmo item -> mesmo link).
+      function codeFor(id) {
+        var h = 0;
+        for (var i = 0; i < id.length; i++) h = ((h * 31 + id.charCodeAt(i)) >>> 0);
+        var x = Math.abs(Math.sin(h) * 43758.5453);
+        return String(Math.floor((x - Math.floor(x)) * 9000) + 1000);
+      }
+
+      var linkModal = document.getElementById("link-modal");
+      var linkItemAtual = null;
+      var linkAtual = "";
+
+      function abrirLinkModal(itemId, rotulo) {
+        linkItemAtual = itemId;
+        linkAtual = "https://secure.apsis.com.br/upload/EPO-" + codeFor(itemId);
+        document.getElementById("link-modal-item").textContent = "Item: " + rotulo;
+        document.getElementById("link-modal-url").textContent = linkAtual;
+        linkModal.classList.add("is-open");
+      }
+      function fecharLinkModal() {
+        linkModal.classList.remove("is-open");
+      }
+
+      function copiarTexto(txt, done) {
+        function fallback() {
+          var ta = document.createElement("textarea");
+          ta.value = txt;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand("copy"); } catch (e) { /* mock */ }
+          document.body.removeChild(ta);
+          done();
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(done, fallback);
+        } else {
+          fallback();
+        }
+      }
+
+      linkModal.addEventListener("click", function (ev) {
+        if (ev.target === linkModal) fecharLinkModal();
+      });
+      document.getElementById("link-modal-x").addEventListener("click", fecharLinkModal);
+      document.getElementById("link-modal-fechar").addEventListener("click", fecharLinkModal);
+      document.addEventListener("keydown", function (ev) {
+        if (ev.key === "Escape") fecharLinkModal();
+      });
+      document.getElementById("link-modal-copiar").addEventListener("click", function () {
+        var id = linkItemAtual;
+        copiarTexto(linkAtual, function () {
+          if (id) {
+            var r = respostaDe(id);
+            r.linkEnviado = true;
+          }
+          App.toast("Link copiado. O responsável da EPO pode enviar os anexos.");
+          fecharLinkModal();
+          if (typeof renderStep === "function" && processo) renderStep();
+        });
+      });
+
+      /* ====================================================================
+         MODO 1 - SELETOR DE PROCESSO (sem ?processo= na URL)
+         ==================================================================== */
+      if (!processo) {
+        document.title = "Nova auditoria - Auditoria de EPOs";
+        headerEl.classList.add("is-intro");
+        footer.style.display = "none";
+
+        var epoSel = App.epoById(epoIdInicial);
+        var cards = processos.map(function (p) {
+          return (
+            '<button type="button" class="proc-card" data-proc="' + esc(p.id) + '">' +
+              '<span class="proc-card-icon"><i class="ti ' + esc(p.icone) + '" aria-hidden="true"></i></span>' +
+              '<span class="proc-card-info"><b>' + esc(p.nome) + "</b>" +
+                "<span>" + p.itens.length + " itens · peso " + p.peso + "%</span></span>" +
+              '<i class="ti ti-chevron-right proc-card-caret" aria-hidden="true"></i>' +
+            "</button>"
+          );
+        }).join("");
+
+        cards +=
+          '<button type="button" class="proc-card is-destaque" data-proc="' + esc(CONTAGEM.id) + '">' +
+            '<span class="proc-card-icon"><i class="ti ' + esc(CONTAGEM.icone) + '" aria-hidden="true"></i></span>' +
+            '<span class="proc-card-info"><b>' + esc(CONTAGEM.nome) + "</b>" +
+              "<span>" + esc(CONTAGEM.descricao) + "</span></span>" +
+            '<i class="ti ti-chevron-right proc-card-caret" aria-hidden="true"></i>' +
+          "</button>";
+
+        if (carregadores) {
+          cards +=
+            '<button type="button" class="proc-card is-destaque" data-proc="' + esc(carregadores.id) + '">' +
+              '<span class="proc-card-icon"><i class="ti ' + esc(carregadores.icone) + '" aria-hidden="true"></i></span>' +
+              '<span class="proc-card-info"><b>' + esc(carregadores.nome) + "</b>" +
+                "<span>" + carregadores.itens.length + " itens · checklist separado (Presente/Ausente)</span></span>" +
+              '<i class="ti ti-chevron-right proc-card-caret" aria-hidden="true"></i>' +
+            "</button>";
+        }
+
+        main.innerHTML =
+          '<div class="wiz-intro" style="padding-bottom:12px;">' +
+            '<div class="wiz-intro-icon"><i class="ti ti-clipboard-check" aria-hidden="true"></i></div>' +
+            '<h1 class="wiz-intro-title">Nova auditoria</h1>' +
+            '<p class="wiz-intro-sub">' +
+              (epoSel ? "<b>" + esc(epoSel.nome) + "</b> · " + esc(epoSel.cidade) + " - " + esc(epoSel.uf) + ". " : "") +
+              "Escolha o processo a auditar: cada um tem checklist próprio para medir seus maiores ofensores.</p>" +
+          "</div>" +
+          '<div class="proc-grid">' + cards + "</div>";
+
+        main.addEventListener("click", function (ev) {
+          var card = ev.target.closest(".proc-card");
+          if (!card) return;
+          window.location.href = urlProcesso(card.getAttribute("data-proc"));
+        });
+        return; // nada mais a fazer neste modo
+      }
+
+      /* ====================================================================
+         MODO 2 - WIZARD DO PROCESSO ESCOLHIDO (?processo=ID)
+         ==================================================================== */
+      document.title = processo.nome + " - Nova auditoria";
+
+      // Tempos do ciclo: só nos processos onde a etapa acontece de fato.
+      // Fluxo: chegada -> armazenagem -> distribuição -> retorno de campo -> devolução.
+      var TEMPOS_POR_PROCESSO = {
+        recebimento: [
+          { key: "chegada", label: "Tempo de chegada: quantos dias entre a saída do material da Claro e a entrada na EPO?", icon: "ti-truck-delivery" },
+          { key: "armazenagem", label: "Tempo de armazenagem: quantos dias o material permanece em estoque até ser distribuído?", icon: "ti-building-warehouse" }
+        ],
+        devolucao: [
+          { key: "distribuicao", label: "Tempo de distribuição: quantos dias até o material chegar ao técnico?", icon: "ti-package-export" },
+          { key: "retornoCampo", label: "Tempo de retorno de campo: quantos dias até o material retirado voltar do campo à EPO?", icon: "ti-arrow-back-up" },
+          { key: "devolucao", label: "Tempo de devolução: quantos dias entre o retorno de campo e o despacho para a Claro?", icon: "ti-truck-return" }
+        ]
+      };
+      var temposDefs = isContagem ? [] : (TEMPOS_POR_PROCESSO[processo.id] || []);
 
       var steps = [];
       steps.push({ type: "intro" });
       steps.push({ type: "identificacao" });
-      TEMPOS_DEFS.forEach(function (def) { steps.push({ type: "tempo", def: def }); });
-      checklist.forEach(function (bloco, bi) {
-        bloco.itens.forEach(function (item, ii) {
-          steps.push({ type: "item", bloco: bloco, item: item, posNoBloco: ii + 1, totalNoBloco: bloco.itens.length });
+      if (isContagem) {
+        // Contagem da reversa: contagens -> resultado ao vivo -> checagem dos
+        // acessórios -> resumo. Sem tempos e sem assinaturas: a contagem é
+        // operacional, feita no ato do recebimento.
+        CONTAGEM.contagens.forEach(function (def, ii) {
+          steps.push({ type: "contagem", def: def, pos: ii + 1, total: CONTAGEM.contagens.length });
         });
-      });
-      steps.push({ type: "assinaturas" });
+        steps.push({ type: "resultado" });
+        CONTAGEM.checagens.forEach(function (item, ii) {
+          steps.push({ type: "checagem", item: item, pos: ii + 1, total: CONTAGEM.checagens.length });
+        });
+      } else {
+        temposDefs.forEach(function (def) { steps.push({ type: "tempo", def: def }); });
+        processo.itens.forEach(function (item, ii) {
+          steps.push({ type: "item", item: item, pos: ii + 1, total: processo.itens.length });
+        });
+        steps.push({ type: "assinaturas" });
+      }
       steps.push({ type: "resumo" });
 
       // ---------------------------------------------------------------- Estado
       var state = {
-        epoId: (App.getParam("epo") && App.epoById(App.getParam("epo"))) ? App.getParam("epo") : (epos[0] && epos[0].id),
+        epoId: epoIdInicial,
         cidade: "", uf: "", data: "", auditor: "Ana Ribeiro",
-        tempos: { chegada: null, inicioReparo: null, conclusaoReparo: null, retorno: null },
-        respostas: {}, // id -> { status, obs, foto }
+        tempos: { chegada: null, armazenagem: null, distribuicao: null, retornoCampo: null, devolucao: null },
+        contagens: { equipamentos: null, fontes: null, controles: null, equipControle: null },
+        respostas: {}, // id -> { status, obs, just, foto, linkEnviado }
         assin: { respEpo: "", respClaro: "", data: "" }
       };
       (function initEpo() {
@@ -243,52 +530,149 @@
       var cur = 0;
 
       // ------------------------------------------------------------- Helpers
+      // (declaração de função: içada, também visível para o handler do modal)
       function respostaDe(id) {
-        if (!state.respostas[id]) state.respostas[id] = { status: null, obs: "", foto: false };
+        if (!state.respostas[id]) {
+          state.respostas[id] = { status: null, obs: "", just: "", foto: false, linkEnviado: false };
+        }
         return state.respostas[id];
       }
 
+      function justOk(r) { return !!(r && r.just && r.just.trim()); }
+
+      function evidenciaOk(item, r) {
+        // N.A. dispensa evidência; sem "evidencia" definida, nada é exigido.
+        if (!item.evidencia) return true;
+        if (!r || !r.status || r.status === "na") return true;
+        return !!(r.foto || justOk(r));
+      }
+
       function computeScore() {
-        var totalW = 0, acc = 0;
-        var counts = { conforme: 0, nao: 0, na: 0, semResposta: 0 };
-        checklist.forEach(function (b) {
-          var conf = 0, ans = 0;
-          b.itens.forEach(function (it) {
+        var itens = processo.itens;
+        if (isCarregadores) {
+          var c = { presente: 0, ausente: 0, semResposta: 0 };
+          itens.forEach(function (it) {
             var r = state.respostas[it.id];
-            if (!r || !r.status) { counts.semResposta++; return; }
-            if (r.status === "na") { counts.na++; return; }
-            ans++;
-            if (r.status === "conforme") { conf++; counts.conforme++; } else { counts.nao++; }
+            if (!r || !r.status) { c.semResposta++; return; }
+            if (r.status === "presente") c.presente++; else c.ausente++;
           });
-          if (ans > 0) {
-            var s = conf / ans;
-            totalW += b.peso;
-            acc += b.peso * s;
-          }
+          var answered = c.presente + c.ausente;
+          var s01 = answered > 0 ? c.presente / answered : 0;
+          return { score01: s01, pts: s01 * 100, counts: c, answered: answered };
+        }
+        var counts = { conforme: 0, nao: 0, na: 0, semResposta: 0 };
+        itens.forEach(function (it) {
+          var r = state.respostas[it.id];
+          if (!r || !r.status) { counts.semResposta++; return; }
+          if (r.status === "na") { counts.na++; return; }
+          if (r.status === "conforme") counts.conforme++; else counts.nao++;
         });
-        var score01 = totalW > 0 ? acc / totalW : 0;
-        var answered = counts.conforme + counts.nao + counts.na;
-        return { score01: score01, pts: score01 * 100, counts: counts, answered: answered };
+        var ans = counts.conforme + counts.nao;
+        var score01 = ans > 0 ? counts.conforme / ans : 0;
+        return {
+          score01: score01,
+          pts: score01 * 100,
+          counts: counts,
+          answered: counts.conforme + counts.nao + counts.na
+        };
+      }
+
+      function fmtScore01(n) {
+        return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      // ------------------------------------ Contagem da reversa (percentuais)
+      function calcReversa() {
+        var c = state.contagens;
+        return {
+          meta: CONTAGEM.meta,
+          pctFontes: (c.equipamentos > 0 && c.fontes != null) ? (c.fontes / c.equipamentos) * 100 : null,
+          pctControles: (c.equipControle > 0 && c.controles != null) ? (c.controles / c.equipControle) * 100 : null
+        };
+      }
+
+      function fmtPctRev(pct) {
+        return pct == null ? "-" : Math.round(pct) + "%";
+      }
+
+      function fraseMeta(rotulo, pct, meta) {
+        if (pct == null) return rotulo + ": sem base para cálculo (informe as contagens).";
+        var p = Math.round(pct);
+        if (pct >= meta) return rotulo + " em " + p + "% - dentro da meta de " + meta + "%.";
+        if (pct < meta - 20) return rotulo + " em " + p + "% - muito abaixo da meta.";
+        return rotulo + " em " + p + "% - abaixo da meta de " + meta + "%.";
+      }
+
+      function barraMetaRev(pct, meta) {
+        var largura = pct == null ? 0 : Math.min(100, pct);
+        var cor = (pct != null && pct >= meta) ? "var(--success)" : "var(--danger)";
+        return (
+          '<div class="score-bar" style="height:10px;">' +
+            '<div class="score-fill" style="width:' + largura + "%;background:" + cor + ';"></div>' +
+            '<span class="meta-line" style="left:' + meta + '%;" title="Meta ' + meta + '%"></span>' +
+          "</div>"
+        );
       }
 
       // -------------------------------------------------------- Renderizações
       function renderIntro() {
-        var totalItens = checklist.reduce(function (s, b) { return s + b.itens.length; }, 0);
+        var epo = App.epoById(state.epoId);
+
+        if (isContagem) {
+          return (
+            '<div class="wiz-intro">' +
+              '<div class="wiz-intro-icon"><i class="ti ' + esc(CONTAGEM.icone) + '" aria-hidden="true"></i></div>' +
+              '<p class="wiz-eyebrow">Nova auditoria' + (epo ? " · " + esc(epo.nome) : "") + "</p>" +
+              '<h1 class="wiz-intro-title">' + esc(CONTAGEM.nome) + "</h1>" +
+              '<p class="wiz-intro-sub">Preencha na hora em que a devolução chega do campo: conte o que retornou e confira os acessórios. O sistema calcula o % de retorno na tela.</p>' +
+              '<div class="wiz-intro-stats">' +
+                '<div class="wiz-intro-stat"><b>' + CONTAGEM.contagens.length + "</b><span>contagens</span></div>" +
+                '<div class="wiz-intro-stat"><b>' + CONTAGEM.meta + "%</b><span>meta de retorno</span></div>" +
+                '<div class="wiz-intro-stat"><b>' + CONTAGEM.checagens.length + "</b><span>checagens</span></div>" +
+              "</div>" +
+              '<ul class="wiz-intro-list">' +
+                '<li><i class="ti ti-device-tv" aria-hidden="true"></i>Equipamentos recebidos na devolução</li>' +
+                '<li><i class="ti ti-plug" aria-hidden="true"></i>Fontes recebidas - % de retorno vs meta de ' + CONTAGEM.meta + "%</li>" +
+                '<li><i class="ti ti-device-remote" aria-hidden="true"></i>Controles remotos recebidos - % de retorno vs meta</li>' +
+                '<li><i class="ti ti-checklist" aria-hidden="true"></i>Checagem dos acessórios (Sim/Não, sem evidência)</li>' +
+              "</ul>" +
+              '<button type="button" class="wiz-skip" id="btn-trocar-proc">Escolher outro processo</button>' +
+            "</div>"
+          );
+        }
+
+        var nItens = processo.itens.length;
+        var stats, bullets;
+
+        if (isCarregadores) {
+          stats =
+            '<div class="wiz-intro-stat"><b>' + nItens + "</b><span>itens</span></div>" +
+            '<div class="wiz-intro-stat"><b>P / A</b><span>Presente ou Ausente</span></div>';
+          bullets =
+            '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Responda cada item como Presente ou Ausente</li>' +
+            '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Item ausente exige justificativa e evidência</li>' +
+            '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Ao final, veja o resumo das ausências</li>';
+        } else {
+          var nFotos = processo.itens.filter(function (it) { return it.requerFoto; }).length;
+          stats =
+            '<div class="wiz-intro-stat"><b>' + nItens + "</b><span>itens</span></div>" +
+            '<div class="wiz-intro-stat"><b>' + processo.peso + "%</b><span>peso no selo</span></div>" +
+            '<div class="wiz-intro-stat"><b>' + nFotos + "</b><span>exigem foto</span></div>";
+          bullets =
+            '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Responda cada item como Conforme, Não conforme ou N.A.</li>' +
+            '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Evidência obrigatória: anexe ou registre justificativa</li>' +
+            '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Ao final, veja o score do processo e o selo estimado</li>';
+        }
+
         return (
           '<div class="wiz-intro">' +
-            '<div class="wiz-intro-icon"><i class="ti ti-clipboard-check" aria-hidden="true"></i></div>' +
-            '<h1 class="wiz-intro-title">Auditoria de EPO</h1>' +
-            '<p class="wiz-intro-sub">Checklist Gestão de Qualidade - uma pergunta por vez, feito para preencher no celular durante a visita.</p>' +
-            '<div class="wiz-intro-stats">' +
-              '<div class="wiz-intro-stat"><b>' + checklist.length + '</b><span>seções</span></div>' +
-              '<div class="wiz-intro-stat"><b>' + totalItens + '</b><span>itens</span></div>' +
-              '<div class="wiz-intro-stat"><b>4</b><span>tempos</span></div>' +
-            "</div>" +
-            '<ul class="wiz-intro-list">' +
-              '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Responda cada item como Conforme, Não conforme ou N.A.</li>' +
-              '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Anexe foto quando a evidência exigir</li>' +
-              '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Ao final, veja o score e a classificação da EPO</li>' +
-            "</ul>" +
+            '<div class="wiz-intro-icon"><i class="ti ' + esc(processo.icone) + '" aria-hidden="true"></i></div>' +
+            '<p class="wiz-eyebrow">Nova auditoria' + (epo ? " · " + esc(epo.nome) : "") + "</p>" +
+            '<h1 class="wiz-intro-title">' + esc(processo.nome) + "</h1>" +
+            '<p class="wiz-intro-sub">' + esc(processo.descricao) + ".</p>" +
+            '<div class="wiz-intro-stats">' + stats + "</div>" +
+            '<ul class="wiz-intro-list">' + bullets + "</ul>" +
+            '<button type="button" class="wiz-skip" id="btn-trocar-proc">Escolher outro processo</button>' +
           "</div>"
         );
       }
@@ -298,7 +682,7 @@
           return '<option value="' + e.id + '"' + (e.id === state.epoId ? " selected" : "") + ">" + esc(e.nome) + "</option>";
         }).join("");
         return (
-          '<p class="wiz-eyebrow">Identificação</p>' +
+          '<p class="wiz-eyebrow">' + esc(processo.nome) + " · Identificação</p>" +
           '<h1 class="wiz-question">Vamos começar a auditoria</h1>' +
           '<div class="wiz-field">' +
             '<label for="f-epo">EPO auditada</label>' +
@@ -313,9 +697,9 @@
       function renderTempo(def) {
         var val = state.tempos[def.key];
         return (
-          '<p class="wiz-eyebrow">Tempos do ciclo</p>' +
+          '<p class="wiz-eyebrow">Tempos do ciclo · ' + esc(processo.nome) + "</p>" +
           '<h1 class="wiz-question">' + esc(def.label) + "</h1>" +
-          '<div class="wiz-evidence"><i class="ti ' + def.icon + '" aria-hidden="true"></i><span>Registre em <b>dias</b>. Esse é o dado que mostra se a máquina está ficando parada além do esperado.</span></div>' +
+          '<div class="wiz-evidence"><i class="ti ' + def.icon + '" aria-hidden="true"></i><span>Registre em <b>dias</b>. Estes tempos compõem o ciclo do material na EPO: chegada, armazenagem, distribuição, retorno de campo e devolução.</span></div>' +
           '<div class="wiz-tempo-stepper">' +
             '<button class="wiz-stepper-btn" type="button" data-step="-1" aria-label="Diminuir">–</button>' +
             '<div class="wiz-tempo-input-wrap">' +
@@ -327,38 +711,214 @@
         );
       }
 
-      function renderItem(step) {
+      function renderContagem(step) {
+        var def = step.def;
+        var val = state.contagens[def.key];
+        return (
+          '<p class="wiz-eyebrow">' + esc(CONTAGEM.nome) + "</p>" +
+          '<p class="wiz-subeyebrow">Contagem ' + step.pos + " de " + step.total + "</p>" +
+          '<h1 class="wiz-question">' + esc(def.label) + "</h1>" +
+          '<div class="wiz-evidence"><i class="ti ' + esc(def.icon) + '" aria-hidden="true"></i><span>' + esc(def.hint) + "</span></div>" +
+          '<div class="wiz-tempo-stepper">' +
+            '<button class="wiz-stepper-btn" type="button" data-step="-1" aria-label="Diminuir">–</button>' +
+            '<div class="wiz-tempo-input-wrap">' +
+              '<input type="number" inputmode="numeric" min="0" step="1" id="f-contagem" value="' + (val == null ? "" : val) + '" placeholder="0">' +
+              "<span>" + esc(def.unidade) + "</span>" +
+            "</div>" +
+            '<button class="wiz-stepper-btn" type="button" data-step="1" aria-label="Aumentar">+</button>' +
+          "</div>"
+        );
+      }
+
+      function renderResultado() {
+        var c = state.contagens;
+        var r = calcReversa();
+
+        function bloco(rotulo, icone, pct, baseTxt) {
+          var cls = (pct != null && pct >= r.meta) ? "is-ok" : "is-bad";
+          return (
+            '<div class="rev-metric">' +
+              '<div class="rev-metric-top"><b><i class="ti ' + icone + '" aria-hidden="true"></i>' + esc(rotulo) + "</b>" +
+                '<span class="rev-metric-pct tnum ' + cls + '">' + fmtPctRev(pct) + "</span></div>" +
+              barraMetaRev(pct, r.meta) +
+              '<p class="rev-metric-frase ' + cls + '">' + esc(fraseMeta(rotulo, pct, r.meta)) + "</p>" +
+              '<p class="rev-metric-base">' + esc(baseTxt) + "</p>" +
+            "</div>"
+          );
+        }
+
+        return (
+          '<p class="wiz-eyebrow">' + esc(CONTAGEM.nome) + " · Resultado</p>" +
+          '<h1 class="wiz-question">Percentual de retorno dos acessórios</h1>' +
+          '<div class="wiz-evidence"><i class="ti ti-target-arrow" aria-hidden="true"></i><span>Meta de retorno: <b>' + r.meta + "%</b> para fontes e controles. A linha vertical na barra marca a meta.</span></div>" +
+          bloco("Retorno de fontes", "ti-plug", r.pctFontes,
+            App.fmtNum(c.fontes || 0) + " fontes / " + App.fmtNum(c.equipamentos || 0) + " equipamentos recebidos") +
+          bloco("Retorno de controles", "ti-device-remote", r.pctControles,
+            App.fmtNum(c.controles || 0) + " controles / " + App.fmtNum(c.equipControle || 0) + " equipamentos que usam controle")
+        );
+      }
+
+      function renderChecagem(step) {
         var it = step.item;
         var r = respostaDe(it.id);
-        var fotoTag = it.requerFoto ? ' <span class="evidence-tag"><i class="ti ti-camera" aria-hidden="true"></i>foto obrigatória</span>' : "";
         var opts = [
-          { val: "conforme", icon: "ti-check", label: "Conforme" },
-          { val: "nao", icon: "ti-x", label: "Não conforme" },
-          { val: "na", icon: "ti-minus", label: "Não se aplica" }
+          { val: "conforme", icon: "ti-check", label: "Sim" },
+          { val: "nao", icon: "ti-x", label: "Não" }
         ];
         return (
-          '<p class="wiz-eyebrow">' + esc(step.bloco.bloco) + "</p>" +
-          '<p class="wiz-subeyebrow">Item ' + step.posNoBloco + " de " + step.totalNoBloco + " desta seção</p>" +
+          '<p class="wiz-eyebrow">' + esc(CONTAGEM.nome) + " · Checagem dos acessórios</p>" +
+          '<p class="wiz-subeyebrow">Checagem ' + step.pos + " de " + step.total + "</p>" +
           '<h1 class="wiz-question">' + esc(it.pergunta) + "</h1>" +
-          '<div class="wiz-evidence"><i class="ti ti-file-check" aria-hidden="true"></i><span><b>Evidência esperada:</b> ' + esc(it.evidencia || "-") + fotoTag + "</span></div>" +
+          '<div class="wiz-evidence"><i class="ti ti-checklist" aria-hidden="true"></i><span>Confirmação operacional feita no ato do recebimento - <b>não exige evidência anexada</b>.</span></div>' +
           '<div class="wiz-options" id="wiz-options">' +
             opts.map(function (o) {
               var sel = r.status === o.val ? " is-selected" : "";
               return '<button type="button" class="wiz-opt' + sel + '" data-val="' + o.val + '"><i class="ti ' + o.icon + '" aria-hidden="true"></i>' + o.label + "</button>";
             }).join("") +
           "</div>" +
-          '<div class="wiz-field"><label for="f-obs">Observações</label><textarea id="f-obs" placeholder="Detalhes, divergências, contexto…">' + esc(r.obs) + "</textarea></div>" +
+          '<div class="wiz-field"><label for="f-obs">Observações</label><textarea id="f-obs" placeholder="Divergências, quantidades, contexto (opcional)">' + esc(r.obs) + "</textarea></div>"
+        );
+      }
+
+      function renderResumoContagem() {
+        var c = state.contagens;
+        var r = calcReversa();
+        var okF = r.pctFontes != null && r.pctFontes >= r.meta;
+        var okC = r.pctControles != null && r.pctControles >= r.meta;
+
+        var statsHtml =
+          '<div class="wiz-summary-stat"><b>' + (c.equipamentos == null ? "-" : App.fmtNum(c.equipamentos)) + "</b><span>Equipamentos recebidos</span></div>" +
+          '<div class="wiz-summary-stat"><b>' + (c.fontes == null ? "-" : App.fmtNum(c.fontes)) + "</b><span>Fontes recebidas</span></div>" +
+          '<div class="wiz-summary-stat"><b>' + (c.controles == null ? "-" : App.fmtNum(c.controles)) + "</b><span>Controles recebidos</span></div>" +
+          '<div class="wiz-summary-stat"><b>' + (c.equipControle == null ? "-" : App.fmtNum(c.equipControle)) + "</b><span>Equip. que usam controle</span></div>";
+
+        var checksHtml = CONTAGEM.checagens.map(function (it) {
+          var resp = state.respostas[it.id];
+          var sim = !!(resp && resp.status === "conforme");
+          var cor = sim ? "var(--success)" : "var(--danger)";
+          return (
+            "<li>" +
+              '<i class="ti ' + (sim ? "ti-circle-check" : "ti-circle-x") + '" style="color:' + cor + ';" aria-hidden="true"></i>' +
+              "<span>" + esc(it.pergunta) + ' - <b style="color:' + cor + ';">' + (sim ? "Sim" : "Não") + "</b></span>" +
+            "</li>"
+          );
+        }).join("");
+
+        return (
+          '<p class="wiz-eyebrow">' + esc(CONTAGEM.nome) + " · Resumo</p>" +
+          '<h1 class="wiz-question">Contagem pronta para envio</h1>' +
+          '<div class="wiz-summary-card">' +
+            '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
+              '<span class="badge ' + (okF ? "badge-success" : "badge-danger") + '">Fontes ' + fmtPctRev(r.pctFontes) + "</span>" +
+              '<span class="badge ' + (okC ? "badge-success" : "badge-danger") + '">Controles ' + fmtPctRev(r.pctControles) + "</span>" +
+            "</div>" +
+            '<div style="margin-top:16px;text-align:left;">' +
+              '<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:var(--text-2);">Retorno de fontes · meta ' + r.meta + "%</p>" +
+              barraMetaRev(r.pctFontes, r.meta) +
+              '<p style="margin:14px 0 6px;font-size:12px;font-weight:600;color:var(--text-2);">Retorno de controles · meta ' + r.meta + "%</p>" +
+              barraMetaRev(r.pctControles, r.meta) +
+            "</div>" +
+            '<div class="wiz-summary-grid">' + statsHtml + "</div>" +
+          "</div>" +
+          '<h2 style="font-size:15px;font-weight:700;margin:0 0 10px;">Checagem dos acessórios</h2>' +
+          '<ul class="rev-check-list">' + checksHtml + "</ul>" +
+          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">Protótipo - nada é gravado no servidor ainda.</p>' +
+          '<button type="button" class="wiz-btn wiz-btn-back" style="width:100%;flex:1 1 auto;margin-bottom:8px;" id="btn-rascunho"><i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho</button>'
+        );
+      }
+
+      function renderItem(step) {
+        var it = step.item;
+        var r = respostaDe(it.id);
+        var precisaAgora = !!it.evidencia && (r.status === "conforme" || r.status === "nao");
+        var evOk = r.foto || justOk(r);
+
+        var tags = "";
+        if (it.requerFoto) tags += ' <span class="evidence-tag"><i class="ti ti-camera" aria-hidden="true"></i>foto obrigatória</span>';
+        if (it.grave) tags += ' <span class="evidence-tag tag-grave"><i class="ti ti-alert-triangle" aria-hidden="true"></i>NC grave</span>';
+        if (r.linkEnviado) tags += ' <span class="evidence-tag"><i class="ti ti-link" aria-hidden="true"></i>link enviado</span>';
+
+        var opts = [
+          { val: "conforme", icon: "ti-check", label: "Conforme" },
+          { val: "nao", icon: "ti-x", label: "Não conforme" },
+          { val: "na", icon: "ti-minus", label: "Não se aplica" }
+        ];
+
+        return (
+          '<p class="wiz-eyebrow">' + esc(processo.nome) + "</p>" +
+          '<p class="wiz-subeyebrow">Item ' + step.pos + " de " + step.total + " deste processo</p>" +
+          '<h1 class="wiz-question">' + esc(it.pergunta) + "</h1>" +
+          '<div class="wiz-evidence"><i class="ti ti-file-check" aria-hidden="true"></i><span><b>Evidência esperada:</b> ' + esc(it.evidencia || "-") + tags + "</span></div>" +
+          '<div class="wiz-options" id="wiz-options">' +
+            opts.map(function (o) {
+              var sel = r.status === o.val ? " is-selected" : "";
+              return '<button type="button" class="wiz-opt' + sel + '" data-val="' + o.val + '"><i class="ti ' + o.icon + '" aria-hidden="true"></i>' + o.label + "</button>";
+            }).join("") +
+          "</div>" +
+          '<div class="wiz-warn" id="wiz-warn" style="display:' + (precisaAgora && !evOk ? "flex" : "none") + ';">' +
+            '<i class="ti ti-alert-triangle" aria-hidden="true"></i><span>Evidência obrigatória - anexe ou justifique.</span>' +
+          "</div>" +
           '<button type="button" class="wiz-attach' + (r.foto ? " is-attached" : "") + '" id="wiz-attach">' +
             (r.foto
               ? '<i class="ti ti-photo-check" aria-hidden="true"></i>Evidência anexada'
-              : '<i class="ti ti-camera-plus" aria-hidden="true"></i>Anexar foto de evidência') +
-          "</button>"
+              : '<i class="ti ti-camera-plus" aria-hidden="true"></i>Anexar foto ou anexo de evidência') +
+          "</button>" +
+          '<div class="wiz-field" id="just-wrap" style="display:' + (precisaAgora && !r.foto ? "block" : "none") + ';">' +
+            '<label for="f-just">Justificativa da ausência de evidência</label>' +
+            '<textarea id="f-just" placeholder="Explique por que a evidência não pôde ser anexada">' + esc(r.just) + "</textarea>" +
+          "</div>" +
+          '<button type="button" class="wiz-linkbtn" id="wiz-linkbtn"><i class="ti ti-lock" aria-hidden="true"></i>Solicitar anexos por link seguro</button>' +
+          '<div class="wiz-field"><label for="f-obs">Observações</label><textarea id="f-obs" placeholder="Detalhes, divergências, contexto…">' + esc(r.obs) + "</textarea></div>"
+        );
+      }
+
+      function renderItemCarregador(step) {
+        var it = step.item;
+        var r = respostaDe(it.id);
+        var isAusente = r.status === "ausente";
+        var tags = r.linkEnviado ? ' <span class="evidence-tag"><i class="ti ti-link" aria-hidden="true"></i>link enviado</span>' : "";
+
+        var opts = [
+          { val: "presente", icon: "ti-check", label: "Presente" },
+          { val: "ausente", icon: "ti-x", label: "Ausente" }
+        ];
+
+        var blocoAusente = "";
+        if (isAusente) {
+          blocoAusente =
+            '<div class="wiz-warn" id="wiz-warn" style="display:' + (justOk(r) ? "none" : "flex") + ';">' +
+              '<i class="ti ti-alert-triangle" aria-hidden="true"></i><span>Item ausente - justificativa e evidência são obrigatórias.</span>' +
+            "</div>" +
+            '<div class="wiz-field">' +
+              '<label for="f-just">Justificativa da ausência (obrigatória)</label>' +
+              '<textarea id="f-just" placeholder="Explique por que o item não retornou com o equipamento">' + esc(r.just) + "</textarea>" +
+            "</div>" +
+            '<button type="button" class="wiz-attach' + (r.foto ? " is-attached" : "") + '" id="wiz-attach">' +
+              (r.foto
+                ? '<i class="ti ti-photo-check" aria-hidden="true"></i>Evidência anexada'
+                : '<i class="ti ti-camera-plus" aria-hidden="true"></i>Anexar evidência da ausência') +
+            "</button>";
+        }
+
+        return (
+          '<p class="wiz-eyebrow">' + esc(carregadores.nome) + "</p>" +
+          '<p class="wiz-subeyebrow">Item ' + step.pos + " de " + step.total + "</p>" +
+          '<h1 class="wiz-question">' + esc(it.item) + "</h1>" +
+          '<div class="wiz-evidence"><i class="ti ti-plug" aria-hidden="true"></i><span>O item obrigatório retornou junto com o equipamento na retirada do assinante?' + tags + "</span></div>" +
+          '<div class="wiz-options" id="wiz-options">' +
+            opts.map(function (o) {
+              var sel = r.status === o.val ? " is-selected" : "";
+              return '<button type="button" class="wiz-opt' + sel + '" data-val="' + o.val + '"><i class="ti ' + o.icon + '" aria-hidden="true"></i>' + o.label + "</button>";
+            }).join("") +
+          "</div>" +
+          blocoAusente +
+          '<button type="button" class="wiz-linkbtn" id="wiz-linkbtn"><i class="ti ti-lock" aria-hidden="true"></i>Solicitar anexos por link seguro</button>'
         );
       }
 
       function renderAssinaturas() {
         return (
-          '<p class="wiz-eyebrow">Finalização</p>' +
+          '<p class="wiz-eyebrow">' + esc(processo.nome) + " · Finalização</p>" +
           '<h1 class="wiz-question">Classificação e assinaturas</h1>' +
           '<div class="wiz-field"><label for="f-resp-epo">Responsável pela EPO</label><input class="input" id="f-resp-epo" value="' + esc(state.assin.respEpo) + '" placeholder="Nome"></div>' +
           '<div class="wiz-field"><label for="f-resp-claro">Responsável Claro / auditor</label><input class="input" id="f-resp-claro" value="' + esc(state.assin.respClaro) + '" placeholder="Nome"></div>' +
@@ -370,37 +930,83 @@
         var r = computeScore();
         var tier = r.answered > 0 ? App.tierOf(r.pts) : null;
         var meta = tier ? App.tierMeta(tier) : null;
-        var totalItens = checklist.reduce(function (s, b) { return s + b.itens.length; }, 0);
+        var totalItens = processo.itens.length;
+
+        var statsHtml, extra = "";
+        if (isCarregadores) {
+          statsHtml =
+            '<div class="wiz-summary-stat"><b>' + r.counts.presente + "</b><span>Presente</span></div>" +
+            '<div class="wiz-summary-stat"><b>' + r.counts.ausente + "</b><span>Ausente</span></div>" +
+            '<div class="wiz-summary-stat"><b>' + r.counts.semResposta + "</b><span>Não respondidos</span></div>";
+          var ausencias = processo.itens.filter(function (it) {
+            var resp = state.respostas[it.id];
+            return resp && resp.status === "ausente";
+          });
+          if (ausencias.length) {
+            extra =
+              '<h2 style="font-size:15px;font-weight:700;margin:0 0 10px;">Ausências registradas</h2>' +
+              '<ul class="wiz-abs-list">' +
+                ausencias.map(function (it) {
+                  var resp = state.respostas[it.id];
+                  return "<li><b>" + esc(it.item) + "</b>" + esc(resp.just || "Sem justificativa registrada.") + "</li>";
+                }).join("") +
+              "</ul>";
+          }
+        } else {
+          statsHtml =
+            '<div class="wiz-summary-stat"><b>' + r.counts.conforme + "</b><span>Conforme</span></div>" +
+            '<div class="wiz-summary-stat"><b>' + r.counts.nao + "</b><span>Não conforme</span></div>" +
+            '<div class="wiz-summary-stat"><b>' + r.counts.na + "</b><span>Não se aplica</span></div>" +
+            '<div class="wiz-summary-stat"><b>' + r.counts.semResposta + "</b><span>Não respondidos</span></div>";
+          var graves = processo.itens.filter(function (it) {
+            var resp = state.respostas[it.id];
+            return it.grave && resp && resp.status === "nao";
+          });
+          if (graves.length) {
+            extra =
+              '<h2 style="font-size:15px;font-weight:700;margin:0 0 10px;">Não conformidades graves</h2>' +
+              '<ul class="wiz-abs-list">' +
+                graves.map(function (it) {
+                  return '<li><b><i class="ti ti-alert-triangle" aria-hidden="true"></i> NC grave</b>' + esc(it.pergunta) + "</li>";
+                }).join("") +
+              "</ul>";
+          }
+        }
+
         return (
-          '<p class="wiz-eyebrow">Resumo</p>' +
+          '<p class="wiz-eyebrow">' + esc(processo.nome) + " · Resumo</p>" +
           '<h1 class="wiz-question">Auditoria pronta para envio</h1>' +
           '<div class="wiz-summary-card">' +
-            '<div class="wiz-summary-score tnum">' + r.score01.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "</div>" +
+            '<div class="wiz-summary-score tnum">' + fmtScore01(r.score01) + "</div>" +
             '<div class="wiz-summary-tier">' + (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : '<span class="badge">Sem avaliação</span>') + "</div>" +
-            '<div class="wiz-summary-grid">' +
-              '<div class="wiz-summary-stat"><b>' + r.counts.conforme + "</b><span>Conforme</span></div>" +
-              '<div class="wiz-summary-stat"><b>' + r.counts.nao + "</b><span>Não conforme</span></div>" +
-              '<div class="wiz-summary-stat"><b>' + r.counts.na + "</b><span>Não se aplica</span></div>" +
-              '<div class="wiz-summary-stat"><b>' + r.counts.semResposta + "</b><span>Não respondidos</span></div>" +
-            "</div>" +
+            '<div class="wiz-summary-grid">' + statsHtml + "</div>" +
           "</div>" +
-          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' + r.answered + " de " + totalItens + ' itens do checklist avaliados. Protótipo - nada é gravado no servidor ainda.</p>' +
+          extra +
+          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' + r.answered + " de " + totalItens + " itens deste processo avaliados. Protótipo - nada é gravado no servidor ainda.</p>" +
           '<button type="button" class="wiz-btn wiz-btn-back" style="width:100%;flex:1 1 auto;margin-bottom:8px;" id="btn-rascunho"><i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho</button>'
         );
       }
 
       // ------------------------------------------------------------- Render
-      var main = document.getElementById("wiz-main");
-      var backBtn = document.getElementById("wiz-back");
-      var nextBtn = document.getElementById("wiz-next");
-      var progressFill = document.getElementById("wiz-progress");
-      var counterEl = document.getElementById("wiz-counter");
-
       function stepAnswered(index) {
         var step = steps[index];
+        if (step.type === "contagem") {
+          var v = state.contagens[step.def.key];
+          return v != null && !isNaN(v);
+        }
+        if (step.type === "checagem") {
+          var rc = state.respostas[step.item.id];
+          return !!(rc && rc.status);
+        }
         if (step.type !== "item") return true;
-        var r = state.respostas[step.item.id];
-        return !!(r && r.status);
+        var it = step.item;
+        var r = state.respostas[it.id];
+        if (!r || !r.status) return false;
+        if (isCarregadores) {
+          if (r.status === "ausente") return justOk(r);
+          return true;
+        }
+        return evidenciaOk(it, r);
       }
 
       function renderStep() {
@@ -409,9 +1015,12 @@
         if (step.type === "intro") html = renderIntro();
         else if (step.type === "identificacao") html = renderIdentificacao();
         else if (step.type === "tempo") html = renderTempo(step.def);
-        else if (step.type === "item") html = renderItem(step);
+        else if (step.type === "contagem") html = renderContagem(step);
+        else if (step.type === "resultado") html = renderResultado();
+        else if (step.type === "checagem") html = renderChecagem(step);
+        else if (step.type === "item") html = isCarregadores ? renderItemCarregador(step) : renderItem(step);
         else if (step.type === "assinaturas") html = renderAssinaturas();
-        else html = renderResumo();
+        else html = isContagem ? renderResumoContagem() : renderResumo();
 
         main.innerHTML = html;
         main.scrollTop = 0;
@@ -420,7 +1029,11 @@
       }
 
       function wireStep(step) {
-        if (step.type === "identificacao") {
+        if (step.type === "intro") {
+          document.getElementById("btn-trocar-proc").addEventListener("click", function () {
+            window.location.href = urlSeletor();
+          });
+        } else if (step.type === "identificacao") {
           var epoSel = document.getElementById("f-epo");
           epoSel.addEventListener("change", function () {
             state.epoId = epoSel.value;
@@ -434,11 +1047,11 @@
           document.getElementById("f-auditor").addEventListener("input", function (ev) { state.auditor = ev.target.value; });
         } else if (step.type === "tempo") {
           var input = document.getElementById("f-tempo");
-          function setVal(v) {
+          var setVal = function (v) {
             v = Math.max(0, Math.round(v * 10) / 10);
             input.value = v;
             state.tempos[step.def.key] = v;
-          }
+          };
           input.addEventListener("input", function () {
             var v = parseFloat(input.value);
             state.tempos[step.def.key] = isNaN(v) ? null : v;
@@ -449,21 +1062,83 @@
               setVal(cur0 + parseFloat(btn.getAttribute("data-step")) * 0.5);
             });
           });
+        } else if (step.type === "contagem") {
+          var inputC = document.getElementById("f-contagem");
+          var setValC = function (v) {
+            v = Math.max(0, Math.round(v));
+            inputC.value = v;
+            state.contagens[step.def.key] = v;
+            updateChrome();
+          };
+          inputC.addEventListener("input", function () {
+            var v = parseInt(inputC.value, 10);
+            state.contagens[step.def.key] = isNaN(v) ? null : Math.max(0, v);
+            updateChrome();
+          });
+          Array.prototype.forEach.call(document.querySelectorAll(".wiz-stepper-btn"), function (btn) {
+            btn.addEventListener("click", function () {
+              var cur0 = parseInt(inputC.value, 10) || 0;
+              setValC(cur0 + parseInt(btn.getAttribute("data-step"), 10));
+            });
+          });
+        } else if (step.type === "checagem") {
+          var itC = step.item;
+          var rC = respostaDe(itC.id);
+          Array.prototype.forEach.call(document.querySelectorAll(".wiz-opt"), function (btn) {
+            btn.addEventListener("click", function () {
+              rC.status = btn.getAttribute("data-val");
+              renderStep();
+            });
+          });
+          var obsC = document.getElementById("f-obs");
+          if (obsC) {
+            obsC.addEventListener("input", function (ev) { rC.obs = ev.target.value; });
+          }
         } else if (step.type === "item") {
-          var r = respostaDe(step.item.id);
+          var it = step.item;
+          var r = respostaDe(it.id);
+
           Array.prototype.forEach.call(document.querySelectorAll(".wiz-opt"), function (btn) {
             btn.addEventListener("click", function () {
               r.status = btn.getAttribute("data-val");
-              Array.prototype.forEach.call(document.querySelectorAll(".wiz-opt"), function (b2) { b2.classList.remove("is-selected"); });
-              btn.classList.add("is-selected");
-              updateChrome();
+              renderStep(); // re-render: aviso/justificativa dependem da resposta
             });
           });
-          document.getElementById("f-obs").addEventListener("input", function (ev) { r.obs = ev.target.value; });
-          document.getElementById("wiz-attach").addEventListener("click", function () {
-            r.foto = !r.foto;
-            renderStep();
-          });
+
+          var attach = document.getElementById("wiz-attach");
+          if (attach) {
+            attach.addEventListener("click", function () {
+              r.foto = !r.foto;
+              renderStep();
+            });
+          }
+
+          var just = document.getElementById("f-just");
+          if (just) {
+            just.addEventListener("input", function (ev) {
+              r.just = ev.target.value;
+              var warn = document.getElementById("wiz-warn");
+              if (warn) {
+                var pendente = isCarregadores
+                  ? (r.status === "ausente" && !justOk(r))
+                  : (!!it.evidencia && (r.status === "conforme" || r.status === "nao") && !r.foto && !justOk(r));
+                warn.style.display = pendente ? "flex" : "none";
+              }
+              updateChrome();
+            });
+          }
+
+          var obs = document.getElementById("f-obs");
+          if (obs) {
+            obs.addEventListener("input", function (ev) { r.obs = ev.target.value; });
+          }
+
+          var linkBtn = document.getElementById("wiz-linkbtn");
+          if (linkBtn) {
+            linkBtn.addEventListener("click", function () {
+              abrirLinkModal(it.id, isCarregadores ? it.item : it.pergunta);
+            });
+          }
         } else if (step.type === "assinaturas") {
           document.getElementById("f-resp-epo").addEventListener("input", function (ev) { state.assin.respEpo = ev.target.value; });
           document.getElementById("f-resp-claro").addEventListener("input", function (ev) { state.assin.respClaro = ev.target.value; });
@@ -480,7 +1155,7 @@
         var isIntro = step.type === "intro";
         var isLast = cur === steps.length - 1;
 
-        document.getElementById("wiz-header").classList.toggle("is-intro", isIntro);
+        headerEl.classList.toggle("is-intro", isIntro);
 
         // Progresso/contador ignoram a capa (passo 0)
         var qTotal = steps.length - 1;
@@ -502,44 +1177,51 @@
         nextBtn.disabled = !stepAnswered(cur);
       }
 
-      function resetAudit() {
-        state.respostas = {};
-        state.tempos = { chegada: null, inicioReparo: null, conclusaoReparo: null, retorno: null };
-        state.assin = { respEpo: "", respClaro: "", data: "" };
-        state.data = "";
-      }
-
       function showDone() {
+        headerEl.style.display = "none";
+        footer.style.display = "none";
+
+        if (isContagem) {
+          var rr = calcReversa();
+          var okF = rr.pctFontes != null && rr.pctFontes >= rr.meta;
+          var okC = rr.pctControles != null && rr.pctControles >= rr.meta;
+          main.innerHTML =
+            '<div class="wiz-done">' +
+              '<div class="wiz-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></div>' +
+              '<h1 class="wiz-done-title">Contagem enviada</h1>' +
+              '<p class="wiz-done-sub"><b>' + esc(CONTAGEM.nome) + "</b> registrada com sucesso. (Protótipo - nada é gravado no servidor ainda.)</p>" +
+              '<div class="wiz-done-score">' +
+                '<span class="badge ' + (okF ? "badge-success" : "badge-danger") + '">Fontes ' + fmtPctRev(rr.pctFontes) + "</span>" +
+                '<span class="badge ' + (okC ? "badge-success" : "badge-danger") + '">Controles ' + fmtPctRev(rr.pctControles) + "</span>" +
+              "</div>" +
+              '<div class="wiz-done-actions">' +
+                '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Auditar outro processo</a>' +
+                '<a class="wiz-btn wiz-btn-back" href="index.html"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
+              "</div>" +
+            "</div>";
+          main.scrollTop = 0;
+          return;
+        }
+
         var r = computeScore();
         var tier = r.answered > 0 ? App.tierOf(r.pts) : null;
         var meta = tier ? App.tierMeta(tier) : null;
-
-        document.getElementById("wiz-header").style.display = "none";
-        document.querySelector(".wiz-footer").style.display = "none";
 
         main.innerHTML =
           '<div class="wiz-done">' +
             '<div class="wiz-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></div>' +
             '<h1 class="wiz-done-title">Auditoria enviada</h1>' +
-            '<p class="wiz-done-sub">Registro concluído com sucesso. (Protótipo - nada é gravado no servidor ainda.)</p>' +
+            '<p class="wiz-done-sub">Checklist de <b>' + esc(processo.nome) + "</b> concluído com sucesso. (Protótipo - nada é gravado no servidor ainda.)</p>" +
             '<div class="wiz-done-score">' +
               (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : "") +
-              '<strong class="tnum">' + r.score01.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " / 1,00</strong>" +
+              '<strong class="tnum">' + fmtScore01(r.score01) + " / 1,00</strong>" +
             "</div>" +
             '<div class="wiz-done-actions">' +
-              '<button type="button" class="wiz-btn wiz-btn-next" id="done-nova"><i class="ti ti-plus" aria-hidden="true"></i>Iniciar outra auditoria</button>' +
+              '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Auditar outro processo</a>' +
               '<a class="wiz-btn wiz-btn-back" href="index.html"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
             "</div>" +
           "</div>";
         main.scrollTop = 0;
-
-        document.getElementById("done-nova").addEventListener("click", function () {
-          resetAudit();
-          document.getElementById("wiz-header").style.display = "";
-          document.querySelector(".wiz-footer").style.display = "";
-          cur = 0;
-          renderStep();
-        });
       }
 
       backBtn.addEventListener("click", function () {

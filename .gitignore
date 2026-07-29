@@ -1,5 +1,8 @@
 .claude/
 .remember/
+.mcp.json
+.env
+.env.*
 .DS_Store
 Thumbs.db
 node_modules/

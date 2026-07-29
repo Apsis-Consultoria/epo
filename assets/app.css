@@ -150,6 +150,47 @@ img { max-width: 100%; display: block; }
 .nav-item.active { background: rgba(244, 121, 32, .15); border-right-color: var(--apsis-orange); color: #fff; }
 .nav-item.active i { color: var(--apsis-orange); }
 
+/* Pai com submenu (Nova auditoria): botão que expande, não navega */
+.nav-parent {
+  width: 100%;
+  background: transparent;
+  border-top: 0; border-bottom: 0; border-left: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-parent .nav-caret {
+  margin-left: auto;
+  width: auto;
+  font-size: 14px;
+  transition: transform .18s ease;
+}
+.nav-parent[aria-expanded="true"] .nav-caret { transform: rotate(180deg); }
+
+/* Submenu (filhos por processo) - estilo do portal */
+.nav-sub {
+  display: none;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 6px 22px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, .10);
+}
+.nav-sub.is-open { display: flex; }
+.nav-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, .50);
+  transition: background .15s ease, color .15s ease;
+}
+.nav-sub-item:hover { color: #fff; background: rgba(255, 255, 255, .06); }
+.nav-sub-item.active { color: #fff; background: rgba(244, 121, 32, .15); }
+
+
 .sidebar-user {
   padding: 12px;
   border-top: 1px solid rgba(255, 255, 255, .10);
@@ -211,6 +252,8 @@ img { max-width: 100%; display: block; }
 .sidebar.is-collapsed .nav-label { display: none; }
 .sidebar.is-collapsed .sidebar-user { justify-content: center; }
 .sidebar.is-collapsed .sidebar-user-label { display: none; }
+.sidebar.is-collapsed .nav-sub { display: none; }
+.sidebar.is-collapsed .nav-caret { display: none; }
 
 /* ------------------------------------------------------------- App main */
 .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -419,6 +462,25 @@ img { max-width: 100%; display: block; }
 .score-row { display: flex; align-items: center; gap: 10px; }
 .score-row .score-bar { flex: 1; }
 .score-num { font-weight: 600; font-size: 13px; color: var(--text); min-width: 26px; text-align: right; }
+
+/* Linha de meta em barras (posicionar com style="left: X%") */
+.score-bar { overflow: visible; }
+.score-bar .score-fill { border-radius: 999px; }
+.meta-line {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--text);
+  opacity: .65;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Variações (deltas) verde/vermelho */
+.delta-up { color: var(--success); }
+.delta-down { color: var(--danger); }
 
 /* ----------------------------------------------------------------- Table */
 .table-wrap { width: 100%; overflow-x: auto; }
@@ -777,6 +839,9 @@ img { max-width: 100%; display: block; }
   .sidebar.is-collapsed .sidebar-logo-mini { display: none; }
   .sidebar.is-collapsed .nav-label { display: inline; }
   .sidebar.is-collapsed .sidebar-user-label { display: inline; }
+  .sidebar.is-collapsed .nav-sub.is-open { display: flex; }
+  .sidebar.is-collapsed .nav-caret { display: inline-block; }
+  .sidebar.is-collapsed .nav-item { justify-content: flex-start; padding: 10px 12px; gap: 12px; }
   .sidebar-backdrop {
     display: block; position: fixed; inset: 0; z-index: 39;
     background: rgba(0, 0, 0, .4);

@@ -7,7 +7,93 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=2">
+  <link rel="stylesheet" href="assets/app.css?v=5">
+  <style>
+    /* Ajustes locais da tela de ranking (linha expansível) */
+    .rank-row { cursor: pointer; }
+    .rank-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .rank-toggle:hover { background: var(--surface-2); color: var(--text); }
+    .rank-toggle i { font-size: 16px; transition: transform .18s ease; }
+    tr.rank-row.is-open .rank-toggle i { transform: rotate(90deg); }
+
+    tr.rank-detail > td {
+      background: var(--surface-2);
+      padding: 16px 18px 18px;
+      cursor: default;
+    }
+    tr.rank-detail:hover { background: transparent; }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: 20px 28px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+    .detail-title {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .detail-title .muted { font-weight: 400; color: var(--text-muted); }
+
+    .proc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 10px 18px;
+    }
+    .proc-cell { min-width: 0; }
+    .proc-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .proc-nome {
+      font-size: 12px;
+      color: var(--text-2);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .proc-pct {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .proc-cell .score-bar { height: 6px; }
+
+    .rev-list { display: flex; flex-direction: column; gap: 12px; }
+    .rev-item { min-width: 0; }
+    .rev-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--text-2);
+    }
+    .rev-val { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+    .rev-item .score-bar { height: 6px; }
+    .rev-note { margin: 4px 0 0; font-size: 11px; color: var(--text-muted); }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -18,8 +104,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=2"></script>
-  <script src="assets/app.js?v=2"></script>
+  <script src="assets/data.js?v=5"></script>
+  <script src="assets/app.js?v=5"></script>
   <script>
     (function () {
       "use strict";
@@ -34,7 +120,7 @@
       var esc = App.escapeHtml;
 
       // Estado dos controles ------------------------------------------------
-      var state = { tier: "todas", q: "", sort: "score" };
+      var state = { tier: "todas", q: "", sort: "score", open: null };
 
       var FILTROS = [
         { key: "todas",  label: "Todas" },
@@ -46,7 +132,7 @@
 
       var ORDENACAO = {
         score: function (a, b) { return b.score - a.score; },
-        parada: function (a, b) { return a.tempoParada - b.tempoParada; },
+        ciclo: function (a, b) { return a.tempoCiclo - b.tempoCiclo; },
         conformidade: function (a, b) { return b.conformidade - a.conformidade; }
       };
 
@@ -55,7 +141,8 @@
       page.innerHTML =
         '<p class="page-intro">' +
           "Classificação das EPOs auditadas por desempenho no ciclo de vida dos equipamentos. " +
-          "As melhores colocadas recebem mais equipamentos e prioridade de faturamento." +
+          "As melhores colocadas recebem mais equipamentos e prioridade de faturamento. " +
+          "Clique em uma linha para ver o desempenho por processo e os indicadores da logística reversa." +
         "</p>" +
 
         '<div class="card stack-md" style="margin-bottom:16px;">' +
@@ -75,7 +162,7 @@
                 '<label class="visually-hidden" for="ordenar" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Ordenar por</label>' +
                 '<select class="select" id="ordenar">' +
                   '<option value="score">Ordenar: Pontuação</option>' +
-                  '<option value="parada">Ordenar: Tempo de parada</option>' +
+                  '<option value="ciclo">Ordenar: Tempo de ciclo</option>' +
                   '<option value="conformidade">Ordenar: Conformidade</option>' +
                 "</select>" +
               "</div>" +
@@ -118,10 +205,97 @@
         return lista;
       }
 
+      function barra(pct, metaPct) {
+        var tier = App.tierOf(pct);
+        return '<span class="score-bar">' +
+          '<span class="score-fill tier-' + tier + '" style="width:' + pct + '%;"></span>' +
+          (metaPct != null
+            ? '<span class="meta-line" style="left:' + metaPct + '%;" title="Meta ' + metaPct + '%"></span>'
+            : "") +
+        "</span>";
+      }
+
+      function detalheEpo(e, open) {
+        var v = (e.vistorias && e.vistorias.length)
+          ? e.vistorias[e.vistorias.length - 1]
+          : null;
+        var r = e.reversa || {};
+
+        var procs = v
+          ? v.secoes.map(function (s) {
+              return '<div class="proc-cell">' +
+                '<div class="proc-head">' +
+                  '<span class="proc-nome" title="' + esc(s.nome) + '">' + esc(s.nome) + "</span>" +
+                  '<span class="proc-pct">' + App.fmtPct(s.pct) + "</span>" +
+                "</div>" +
+                barra(s.pct, null) +
+              "</div>";
+            }).join("")
+          : '<p class="muted" style="font-size:12px;">Sem vistoria registrada.</p>';
+
+        var pctVolume = r.saldoSistema
+          ? Math.round((r.volumeDevolvido / r.saldoSistema) * 100)
+          : null;
+        var metaFontes = r.metaFontes != null ? r.metaFontes : 75;
+        var metaControles = r.metaControles != null ? r.metaControles : 75;
+
+        var rev =
+          '<div class="rev-list">' +
+            '<div class="rev-item">' +
+              '<div class="rev-head"><span>Aderência à calendarização</span>' +
+                '<span class="rev-val">' + App.fmtPct(r.aderenciaCalendario) + "</span></div>" +
+              barra(r.aderenciaCalendario || 0, null) +
+            "</div>" +
+            '<div class="rev-item">' +
+              '<div class="rev-head"><span>Volume devolvido vs saldo no sistema</span>' +
+                '<span class="rev-val">' + App.fmtNum(r.volumeDevolvido) + " de " + App.fmtNum(r.saldoSistema) + "</span></div>" +
+              barra(pctVolume || 0, null) +
+              (pctVolume != null
+                ? '<p class="rev-note">' + App.fmtPct(pctVolume) + " do saldo devolvido no período</p>"
+                : "") +
+            "</div>" +
+            '<div class="rev-item">' +
+              '<div class="rev-head"><span>Fontes devolvidas</span>' +
+                '<span class="rev-val ' + (r.pctFontes >= metaFontes ? "delta-up" : "delta-down") + '">' +
+                  App.fmtPct(r.pctFontes) + " · meta " + metaFontes + "%</span></div>" +
+              barra(r.pctFontes || 0, metaFontes) +
+            "</div>" +
+            '<div class="rev-item">' +
+              '<div class="rev-head"><span>Controles remotos devolvidos</span>' +
+                '<span class="rev-val ' + (r.pctControles >= metaControles ? "delta-up" : "delta-down") + '">' +
+                  App.fmtPct(r.pctControles) + " · meta " + metaControles + "%</span></div>" +
+              barra(r.pctControles || 0, metaControles) +
+            "</div>" +
+          "</div>";
+
+        return '<tr class="rank-detail" data-detail="' + esc(e.id) + '"' + (open ? "" : " hidden") + ">" +
+          '<td colspan="10">' +
+            '<div class="detail-grid">' +
+              "<div>" +
+                '<p class="detail-title">Desempenho por processo' +
+                  (v ? ' <span class="muted">· vistoria ' + esc(v.label) + "</span>" : "") +
+                "</p>" +
+                '<div class="proc-grid">' + procs + "</div>" +
+              "</div>" +
+              "<div>" +
+                '<p class="detail-title">Logística reversa</p>' +
+                rev +
+              "</div>" +
+            "</div>" +
+          "</td>" +
+        "</tr>";
+      }
+
       function linhaEpo(e, pos) {
         var meta = App.tierMeta(e.tier);
+        var open = state.open === e.id;
         return "" +
-          "<tr>" +
+          '<tr class="rank-row' + (open ? " is-open" : "") + '" data-epo="' + esc(e.id) + '">' +
+            '<td style="width:34px;padding-right:0;">' +
+              '<button type="button" class="rank-toggle" aria-expanded="' + (open ? "true" : "false") + '" aria-label="' + (open ? "Recolher detalhes de " : "Expandir detalhes de ") + esc(e.nome) + '">' +
+                '<i class="ti ti-chevron-right" aria-hidden="true"></i>' +
+              "</button>" +
+            "</td>" +
             '<td class="rank">' + pos + "</td>" +
             "<td>" +
               '<div class="stack" style="line-height:1.3;">' +
@@ -138,7 +312,7 @@
                 '<span class="score-num">' + e.score + "</span>" +
               "</div>" +
             "</td>" +
-            '<td class="num">' + App.fmtDias(e.tempoParada) + "</td>" +
+            '<td class="num">' + App.fmtDias(e.tempoCiclo) + "</td>" +
             '<td class="num">' + App.fmtPct(e.conformidade) + "</td>" +
             '<td class="num">' + App.fmtNum(e.ncs) + "</td>" +
             '<td class="num">' + App.fmtNum(e.equipamentos) + "</td>" +
@@ -147,7 +321,8 @@
                 "Ver detalhe<i class=\"ti ti-arrow-right\" aria-hidden=\"true\"></i>" +
               "</a>" +
             "</td>" +
-          "</tr>";
+          "</tr>" +
+          detalheEpo(e, open);
       }
 
       function render() {
@@ -173,11 +348,12 @@
           '<div class="table-wrap">' +
             '<table class="table">' +
               "<thead><tr>" +
+                '<th style="width:34px;"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Expandir</span></th>' +
                 '<th style="width:44px;">#</th>' +
                 "<th>EPO</th>" +
                 "<th>Tier</th>" +
                 "<th>Pontuação</th>" +
-                '<th class="num">Tempo de parada</th>' +
+                '<th class="num">Tempo de ciclo</th>' +
                 '<th class="num">Conformidade</th>' +
                 '<th class="num">NCs</th>' +
                 '<th class="num">Equipamentos</th>' +
@@ -189,6 +365,31 @@
             "</table>" +
           "</div>";
       }
+
+      // Toggle da linha expansível (só uma aberta por vez) --------------------
+      function toggleEpo(id) {
+        state.open = state.open === id ? null : id;
+        var body = document.getElementById("ranking-body");
+        body.querySelectorAll("tr.rank-row").forEach(function (row) {
+          var isOpen = row.getAttribute("data-epo") === state.open;
+          row.classList.toggle("is-open", isOpen);
+          var btn = row.querySelector(".rank-toggle");
+          if (btn) {
+            btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+          }
+        });
+        body.querySelectorAll("tr.rank-detail").forEach(function (det) {
+          det.hidden = det.getAttribute("data-detail") !== state.open;
+        });
+      }
+
+      document.getElementById("ranking-body").addEventListener("click", function (ev) {
+        if (ev.target.closest("a")) return;            // link "Ver detalhe"
+        if (ev.target.closest("tr.rank-detail")) return; // dentro do painel expandido
+        var row = ev.target.closest("tr.rank-row");
+        if (!row) return;
+        toggleEpo(row.getAttribute("data-epo"));
+      });
 
       // Eventos --------------------------------------------------------------
       function syncChips() {
