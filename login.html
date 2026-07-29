@@ -9,6 +9,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/portal.css" />
+  <style>
+    /* Ajustes de proporção do painel de login (sobrepõem o portal.css) */
+    .login-col { padding-top: 3vh; }
+    .login-logo { height: 158px; }        /* 10% menor que os 176px originais */
+    .login-bloco { margin-top: 1.5rem; }
+    @media (min-width: 1024px) {
+      .login-col { padding-top: 6vh; }
+      .login-logo { height: 212px; }      /* 10% menor que os 235px originais */
+      .login-bloco { margin-top: 10vh; }  /* um pouco acima do original (11vh) */
+    }
+  </style>
 </head>
 <body>
   <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
@@ -30,9 +41,9 @@
       </g>
     </svg>
 
-    <img data-bg src="assets/brand/login-1.png" alt="" aria-hidden="true" onerror="this.style.display='none'" style="object-position: 25% center;" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out opacity-100" />
-    <img data-bg src="assets/brand/login-2.png" alt="" aria-hidden="true" onerror="this.style.display='none'" style="object-position: 25% center;" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out opacity-0" />
-    <img data-bg src="assets/brand/login-3.png" alt="" aria-hidden="true" onerror="this.style.display='none'" style="object-position: 25% center;" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out opacity-0" />
+    <img data-bg src="assets/brand/login-1.png" alt="" aria-hidden="true" onerror="this.style.display='none'" style="transform: translateX(-19%);" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out opacity-100" />
+    <img data-bg src="assets/brand/login-2.png" alt="" aria-hidden="true" onerror="this.style.display='none'" style="transform: translateX(-26%);" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out opacity-0" />
+    <img data-bg src="assets/brand/login-3.png" alt="" aria-hidden="true" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out opacity-0" />
 
     <div class="absolute inset-0" style="background: linear-gradient(to right, rgba(7, 19, 13, 0.92), rgba(7, 19, 13, 0.55) 45%, rgba(7, 19, 13, 0) 72%);"></div>
     <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(7, 19, 13, 0.85), rgba(7, 19, 13, 0.25), transparent);"></div>
@@ -45,9 +56,9 @@
     <div class="relative z-10 min-h-screen flex flex-col lg:grid lg:grid-cols-[64%_36%]">
       <div aria-hidden="true"></div>
 
-      <div class="relative bg-white lg:bg-transparent flex flex-col items-center justify-start px-6 pt-[5vh] lg:pt-[9vh] pb-8 sm:px-10" style="min-height:100vh;">
-        <img src="assets/brand/logo-apsis-transp.png" alt="APSIS" class="h-44 lg:h-[235px] object-contain flex-shrink-0" />
-        <div class="w-full max-w-sm flex flex-col items-center gap-4 mt-8 lg:mt-[11vh]">
+      <div class="login-col relative bg-white lg:bg-transparent flex flex-col items-center justify-start px-6 pb-8 sm:px-10" style="min-height:100vh;">
+        <img src="assets/brand/logo-apsis-transp.png" alt="APSIS" class="login-logo object-contain flex-shrink-0" />
+        <div class="login-bloco w-full max-w-sm flex flex-col items-center gap-4">
           <h1 class="text-3xl lg:text-4xl font-black tracking-tight" style="font-family: Sora, 'Segoe UI', sans-serif;">
             <span style="color: rgb(26, 71, 49);">AUDITORIA</span> <span style="color: rgb(244, 129, 38);">EPO'S</span>
           </h1>
