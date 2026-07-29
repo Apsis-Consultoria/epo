@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alocações - Auditoria de EPOs</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/app.css?v=6">
+  <style>
+    /* Ajustes locais da tela de alocações */
+
+    .aloc-demo-note {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 12.5px; color: var(--text-2);
+      background: var(--surface-2);
+      border: 1px dashed var(--border-strong);
+      border-radius: 999px;
+      padding: 5px 12px;
+      margin-bottom: 14px;
+    }
+    .aloc-demo-note i { font-size: 15px; color: var(--warning); }
+
+    .aloc-epo { display: flex; flex-direction: column; min-width: 0; }
+    .aloc-epo .nm { font-weight: 600; color: var(--text); font-size: 13.5px; }
+    .aloc-epo .loc { font-size: 12px; color: var(--text-2); }
+
+    .aloc-proc { display: inline-flex; align-items: center; gap: 7px; }
+    .aloc-proc i { font-size: 16px; color: var(--text-2); }
+
+    .aloc-email { font-variant-numeric: tabular-nums; color: var(--text); }
+
+    .aloc-anexos {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .aloc-anexos i { font-size: 15px; color: var(--text-muted); }
+
+    .badge-pendente     { background: var(--surface-2);  color: var(--text-2); }
+    .badge-em-andamento { background: var(--warning-bg); color: var(--warning); }
+    .badge-enviada      { background: var(--success-bg); color: var(--success); }
+
+    .btn-excluir {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text-2);
+      cursor: pointer;
+      transition: background .12s ease, color .12s ease, border-color .12s ease;
+    }
+    .btn-excluir:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+    .btn-excluir i { font-size: 16px; }
+
+    .aloc-loading { padding: 30px 14px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
+
+    .modal .nota-responsavel {
+      display: flex; gap: 8px; align-items: flex-start;
+      font-size: 12.5px; color: var(--text-2);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 11px;
+      margin-top: 4px;
+    }
+    .modal .nota-responsavel i { font-size: 15px; margin-top: 1px; color: var(--apsis-green); flex: none; }
+
+    .field-row { display: flex; gap: 12px; }
+    .field-row .field { flex: 1 1 0; min-width: 0; }
+    .field-row .field.uf { flex: 0 0 110px; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=6"></script>
+  <script src="assets/app.js?v=6"></script>
+  <script src="assets/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/auth.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var acoes =
+        '<button class="btn btn-ghost btn-sm" id="btn-nova-epo" type="button">' +
+          '<i class="ti ti-building-plus" aria-hidden="true"></i>Nova EPO' +
+        "</button>" +
+        '<button class="btn btn-primary btn-sm" id="btn-nova-alocacao" type="button">' +
+          '<i class="ti ti-user-plus" aria-hidden="true"></i>Nova alocação' +
+        "</button>";
+
+      Layout.mount("alocacoes", "Alocações", acoes);
+
+      var esc = App.escapeHtml;
+      var DEMO = Auth.modoDemo() || !Auth.pronto;
+
+      var UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+
+      var STATUS_META = {
+        pendente:     { label: "Pendente",     cls: "badge-pendente" },
+        em_andamento: { label: "Em andamento", cls: "badge-em-andamento" },
+        enviada:      { label: "Enviada",      cls: "badge-enviada" }
+      };
+
+      // ------------------------------------------------------------------
+      // Estado
+      // ------------------------------------------------------------------
+      var epos = [];        // [{ id, nome, cidade, uf }]
+      var processos = [];   // [{ id, slug, nome, icone }] - questionários alocáveis
+      var alocacoes = [];   // [{ id, epoNome, epoLoc, procNome, procIcone, email, status, criadoEm, anexos }]
+      var podeExcluir = DEMO; // admin/gestor (em demo, sempre)
+
+      // ------------------------------------------------------------------
+      // Estrutura estática da página
+      // ------------------------------------------------------------------
+      var htmlAviso = DEMO
+        ? '<div class="aloc-demo-note"><i class="ti ti-flask" aria-hidden="true"></i>modo demonstração - nada é gravado</div>'
+        : "";
+
+      var htmlTabela =
+        '<div class="card mb-0">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Alocações de responsáveis</span>' +
+              '<span class="subtitle">Cada responsável recebe um questionário de comprovações por EPO e envia os anexos pelo sistema</span>' +
+            "</div>" +
+            '<span class="acc-count" id="aloc-count" style="font-size:13px;color:var(--text-2);"></span>' +
+          "</div>" +
+          '<div class="table-wrap">' +
+            '<table class="table">' +
+              "<thead><tr>" +
+                "<th>EPO</th>" +
+                "<th>Questionário</th>" +
+                "<th>Responsável (e-mail)</th>" +
+                "<th>Status</th>" +
+                "<th>Criado em</th>" +
+                '<th class="num">Anexos</th>' +
+                "<th></th>" +
+              "</tr></thead>" +
+              '<tbody id="aloc-body"><tr><td class="aloc-loading" colspan="7">Carregando alocações...</td></tr></tbody>' +
+            "</table>" +
+          "</div>" +
+        "</div>";
+
+      var htmlOpcoesUf = UFS.map(function (u) {
+        return '<option value="' + u + '"' + (u === "SP" ? " selected" : "") + ">" + u + "</option>";
+      }).join("");
+
+      var htmlModalEpo =
+        '<div class="modal-overlay" id="epo-modal" role="dialog" aria-modal="true" aria-labelledby="epo-modal-title">' +
+          '<div class="modal">' +
+            '<div class="modal-header">' +
+              '<h2 class="modal-title" id="epo-modal-title">Nova EPO</h2>' +
+              '<button class="modal-close" id="epo-modal-close" type="button" aria-label="Fechar"><i class="ti ti-x" aria-hidden="true"></i></button>' +
+            "</div>" +
+            '<div class="modal-body">' +
+              '<div class="field">' +
+                '<label for="epo-nome">Nome da EPO</label>' +
+                '<input class="input" id="epo-nome" type="text" placeholder="Ex.: EPO Horizonte" autocomplete="off">' +
+              "</div>" +
+              '<div class="field-row">' +
+                '<div class="field">' +
+                  '<label for="epo-cidade">Cidade</label>' +
+                  '<input class="input" id="epo-cidade" type="text" placeholder="Ex.: Campinas" autocomplete="off">' +
+                "</div>" +
+                '<div class="field uf">' +
+                  '<label for="epo-uf">UF</label>' +
+                  '<select class="select" id="epo-uf">' + htmlOpcoesUf + "</select>" +
+                "</div>" +
+              "</div>" +
+            "</div>" +
+            '<div class="modal-footer">' +
+              '<button class="btn btn-ghost btn-sm" id="epo-modal-cancel" type="button">Cancelar</button>' +
+              '<button class="btn btn-primary btn-sm" id="epo-modal-save" type="button"><i class="ti ti-check" aria-hidden="true"></i>Criar EPO</button>' +
+            "</div>" +
+          "</div>" +
+        "</div>";
+
+      var htmlModalAloc =
+        '<div class="modal-overlay" id="aloc-modal" role="dialog" aria-modal="true" aria-labelledby="aloc-modal-title">' +
+          '<div class="modal">' +
+            '<div class="modal-header">' +
+              '<h2 class="modal-title" id="aloc-modal-title">Nova alocação</h2>' +
+              '<button class="modal-close" id="aloc-modal-close" type="button" aria-label="Fechar"><i class="ti ti-x" aria-hidden="true"></i></button>' +
+            "</div>" +
+            '<div class="modal-body">' +
+              '<div class="field">' +
+                '<label for="aloc-epo">EPO</label>' +
+                '<select class="select" id="aloc-epo"></select>' +
+              "</div>" +
+              '<div class="field">' +
+                '<label for="aloc-proc">Questionário</label>' +
+                '<select class="select" id="aloc-proc"></select>' +
+              "</div>" +
+              '<div class="field" style="margin-bottom:4px;">' +
+                '<label for="aloc-email">E-mail do responsável</label>' +
+                '<input class="input" id="aloc-email" type="email" placeholder="nome@empresa.com.br" autocomplete="off">' +
+                '<div class="nota-responsavel">' +
+                  '<i class="ti ti-info-circle" aria-hidden="true"></i>' +
+                  "<span>O responsável entra com este e-mail (código de verificação) e vê apenas o envio de comprovações.</span>" +
+                "</div>" +
+              "</div>" +
+            "</div>" +
+            '<div class="modal-footer">' +
+              '<button class="btn btn-ghost btn-sm" id="aloc-modal-cancel" type="button">Cancelar</button>' +
+              '<button class="btn btn-primary btn-sm" id="aloc-modal-save" type="button"><i class="ti ti-check" aria-hidden="true"></i>Alocar responsável</button>' +
+            "</div>" +
+          "</div>" +
+        "</div>";
+
+      document.getElementById("page").innerHTML =
+        '<p class="page-intro">' +
+          "Aloque um responsável de cada EPO para enviar as comprovações de um questionário. " +
+          "Os anexos enviados entram na dupla checagem junto com a vistoria do auditor." +
+        "</p>" +
+        htmlAviso +
+        htmlTabela +
+        htmlModalEpo +
+        htmlModalAloc;
+
+      // ------------------------------------------------------------------
+      // Formatação
+      // ------------------------------------------------------------------
+      function fmtData(v) {
+        if (!v) return "-";
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return "-";
+        return d.toLocaleDateString("pt-BR") + " " +
+          d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      }
+
+      function badgeStatus(s) {
+        var m = STATUS_META[s] || STATUS_META.pendente;
+        return '<span class="badge ' + m.cls + '">' + m.label + "</span>";
+      }
+
+      // ------------------------------------------------------------------
+      // Render
+      // ------------------------------------------------------------------
+      function renderLista() {
+        var tbody = document.getElementById("aloc-body");
+        var count = document.getElementById("aloc-count");
+
+        if (!alocacoes.length) {
+          tbody.innerHTML =
+            '<tr><td colspan="7" style="padding:0;border:0;">' +
+              '<div class="empty">' +
+                '<i class="ti ti-user-plus" aria-hidden="true"></i>' +
+                "Nenhuma alocação ainda. Use o botão \"Nova alocação\" para convidar um responsável." +
+              "</div>" +
+            "</td></tr>";
+          count.textContent = "";
+          return;
+        }
+
+        tbody.innerHTML = alocacoes.map(function (a) {
+          var excluir = podeExcluir
+            ? '<button class="btn-excluir" type="button" data-excluir="' + esc(a.id) + '" title="Excluir alocação" aria-label="Excluir alocação de ' + esc(a.email) + '"><i class="ti ti-trash" aria-hidden="true"></i></button>'
+            : "";
+          return (
+            "<tr>" +
+              "<td>" +
+                '<div class="aloc-epo">' +
+                  '<span class="nm">' + esc(a.epoNome) + "</span>" +
+                  (a.epoLoc ? '<span class="loc">' + esc(a.epoLoc) + "</span>" : "") +
+                "</div>" +
+              "</td>" +
+              "<td>" +
+                '<span class="aloc-proc"><i class="ti ' + esc(a.procIcone || "ti-clipboard-list") + '" aria-hidden="true"></i>' + esc(a.procNome) + "</span>" +
+              "</td>" +
+              '<td class="aloc-email">' + esc(a.email) + "</td>" +
+              "<td>" + badgeStatus(a.status) + "</td>" +
+              "<td>" + esc(fmtData(a.criadoEm)) + "</td>" +
+              '<td class="num"><span class="aloc-anexos"><i class="ti ti-paperclip" aria-hidden="true"></i>' + App.fmtNum(a.anexos) + "</span></td>" +
+              '<td class="num">' + excluir + "</td>" +
+            "</tr>"
+          );
+        }).join("");
+
+        count.textContent = alocacoes.length + (alocacoes.length === 1 ? " alocação" : " alocações");
+      }
+
+      function preencherSelects() {
+        var selEpo = document.getElementById("aloc-epo");
+        var selProc = document.getElementById("aloc-proc");
+        selEpo.innerHTML = epos.length
+          ? epos.map(function (e) {
+              var loc = (e.cidade ? e.cidade + " · " : "") + (e.uf || "");
+              return '<option value="' + esc(e.id) + '">' + esc(e.nome) + (loc ? " (" + esc(loc) + ")" : "") + "</option>";
+            }).join("")
+          : '<option value="">Nenhuma EPO cadastrada</option>';
+        selProc.innerHTML = processos.length
+          ? processos.map(function (p) {
+              return '<option value="' + esc(p.id) + '">' + esc(p.nome) + "</option>";
+            }).join("")
+          : '<option value="">Nenhum questionário disponível</option>';
+      }
+
+      // ------------------------------------------------------------------
+      // Dados - modo demonstração
+      // ------------------------------------------------------------------
+      function carregarDemo() {
+        epos = (window.APP.epos || []).map(function (e) {
+          return { id: e.id, nome: e.nome, cidade: e.cidade, uf: e.uf };
+        });
+        processos = (window.APP.processos || []).map(function (p) {
+          return { id: p.id, slug: p.id, nome: p.nome, icone: p.icone };
+        });
+        if (window.APP.checklistCarregadores) {
+          var c = window.APP.checklistCarregadores;
+          processos.push({ id: c.id, slug: c.id, nome: c.nome, icone: c.icone });
+        }
+
+        var agora = Date.now();
+        alocacoes = [
+          {
+            id: "demo-1",
+            epoNome: "EPO Meridiano", epoLoc: "São Paulo · SP",
+            procNome: "Recebimento & Expedição", procIcone: "ti-truck-loading",
+            email: "carlos.mota@epomeridiano.com.br",
+            status: "enviada", criadoEm: new Date(agora - 6 * 864e5).toISOString(), anexos: 7
+          },
+          {
+            id: "demo-2",
+            epoNome: "EPO Farol", epoLoc: "Rio de Janeiro · RJ",
+            procNome: "Logística Reversa", procIcone: "ti-arrow-back-up",
+            email: "juliana.paes@epofarol.com.br",
+            status: "em_andamento", criadoEm: new Date(agora - 3 * 864e5).toISOString(), anexos: 2
+          },
+          {
+            id: "demo-3",
+            epoNome: "EPO Vértice", epoLoc: "Belo Horizonte · MG",
+            procNome: "Itens obrigatórios na retirada", procIcone: "ti-plug",
+            email: "rafael.lima@epovertice.com.br",
+            status: "pendente", criadoEm: new Date(agora - 1 * 864e5).toISOString(), anexos: 0
+          }
+        ];
+
+        renderLista();
+        preencherSelects();
+      }
+
+      // ------------------------------------------------------------------
+      // Dados - Supabase
+      // ------------------------------------------------------------------
+      function carregarPapel() {
+        return Auth.sessao().then(function (s) {
+          if (!s) return;
+          return Auth.cliente.from("perfis").select("papel")
+            .eq("user_id", s.user.id).maybeSingle()
+            .then(function (r) {
+              var papel = (r.data && r.data.papel) || "";
+              podeExcluir = papel === "admin" || papel === "gestor";
+            });
+        });
+      }
+
+      function carregarEpos() {
+        return Auth.cliente.from("epos")
+          .select("id, nome, cidade, uf")
+          .eq("ativo", true)
+          .order("nome")
+          .then(function (r) {
+            if (r.error) { App.toast("Erro ao carregar EPOs: " + r.error.message); return; }
+            epos = r.data || [];
+          });
+      }
+
+      function carregarProcessos() {
+        return Auth.cliente.from("processos")
+          .select("id, slug, nome, icone, tipo, ordem")
+          .eq("ativo", true)
+          .order("ordem")
+          .then(function (r) {
+            if (r.error) { App.toast("Erro ao carregar questionários: " + r.error.message); return; }
+            processos = (r.data || []).filter(function (p) {
+              return p.tipo === "processo" || p.tipo === "itens_obrigatorios";
+            });
+          });
+      }
+
+      function carregarAlocacoes() {
+        return Auth.cliente.from("alocacoes")
+          .select("id, responsavel_email, status, criado_em, epos(nome, cidade, uf), processos(nome, slug, icone)")
+          .order("criado_em", { ascending: false })
+          .then(function (r) {
+            if (r.error) { App.toast("Erro ao carregar alocações: " + r.error.message); return; }
+            var linhas = r.data || [];
+
+            // Contagem de anexos por alocação
+            return Auth.cliente.from("alocacao_anexos")
+              .select("alocacao_id")
+              .then(function (ra) {
+                var contagem = {};
+                (ra.data || []).forEach(function (x) {
+                  contagem[x.alocacao_id] = (contagem[x.alocacao_id] || 0) + 1;
+                });
+                alocacoes = linhas.map(function (a) {
+                  var e = a.epos || {};
+                  var p = a.processos || {};
+                  return {
+                    id: a.id,
+                    epoNome: e.nome || "-",
+                    epoLoc: e.cidade ? e.cidade + " · " + (e.uf || "") : (e.uf || ""),
+                    procNome: p.nome || "-",
+                    procIcone: p.icone,
+                    email: a.responsavel_email,
+                    status: a.status,
+                    criadoEm: a.criado_em,
+                    anexos: contagem[a.id] || 0
+                  };
+                });
+              });
+          });
+      }
+
+      function recarregar() {
+        return Promise.all([carregarEpos(), carregarProcessos(), carregarAlocacoes()])
+          .then(function () {
+            renderLista();
+            preencherSelects();
+          });
+      }
+
+      if (DEMO) {
+        carregarDemo();
+      } else {
+        carregarPapel().then(recarregar).catch(function () {
+          document.getElementById("aloc-body").innerHTML =
+            '<tr><td class="aloc-loading" colspan="7">Não foi possível carregar as alocações.</td></tr>';
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // Modais (abre/fecha)
+      // ------------------------------------------------------------------
+      function wireModal(overlayId, closeIds) {
+        var overlay = document.getElementById(overlayId);
+        function fechar() { overlay.classList.remove("is-open"); }
+        closeIds.forEach(function (id) {
+          document.getElementById(id).addEventListener("click", fechar);
+        });
+        overlay.addEventListener("click", function (ev) {
+          if (ev.target === overlay) fechar();
+        });
+        return { abrir: function () { overlay.classList.add("is-open"); }, fechar: fechar, el: overlay };
+      }
+
+      var modalEpo = wireModal("epo-modal", ["epo-modal-close", "epo-modal-cancel"]);
+      var modalAloc = wireModal("aloc-modal", ["aloc-modal-close", "aloc-modal-cancel"]);
+
+      document.addEventListener("keydown", function (ev) {
+        if (ev.key !== "Escape") return;
+        modalEpo.fechar();
+        modalAloc.fechar();
+      });
+
+      document.getElementById("btn-nova-epo").addEventListener("click", function () {
+        document.getElementById("epo-nome").value = "";
+        document.getElementById("epo-cidade").value = "";
+        document.getElementById("epo-uf").value = "SP";
+        modalEpo.abrir();
+        document.getElementById("epo-nome").focus();
+      });
+
+      document.getElementById("btn-nova-alocacao").addEventListener("click", function () {
+        preencherSelects();
+        document.getElementById("aloc-email").value = "";
+        modalAloc.abrir();
+        document.getElementById("aloc-epo").focus();
+      });
+
+      // ------------------------------------------------------------------
+      // Criar EPO
+      // ------------------------------------------------------------------
+      document.getElementById("epo-modal-save").addEventListener("click", function () {
+        var nome = document.getElementById("epo-nome").value.trim();
+        var cidade = document.getElementById("epo-cidade").value.trim();
+        var uf = document.getElementById("epo-uf").value;
+
+        if (!nome) { App.toast("Informe o nome da EPO."); return; }
+        if (!cidade) { App.toast("Informe a cidade da EPO."); return; }
+
+        if (DEMO) {
+          epos.push({ id: "demo-epo-" + Date.now(), nome: nome, cidade: cidade, uf: uf });
+          preencherSelects();
+          modalEpo.fechar();
+          App.toast("EPO " + nome + " criada (demonstração - nada foi gravado).");
+          return;
+        }
+
+        var btn = this;
+        btn.disabled = true;
+        Auth.cliente.from("clientes").select("id").limit(1)
+          .then(function (r) {
+            if (r.error || !r.data || !r.data.length) {
+              throw new Error((r.error && r.error.message) || "Cliente não encontrado.");
+            }
+            return Auth.cliente.from("epos").insert({
+              cliente_id: r.data[0].id,
+              nome: nome,
+              cidade: cidade,
+              uf: uf,
+              ativo: true
+            });
+          })
+          .then(function (r) {
+            if (r.error) throw r.error;
+            modalEpo.fechar();
+            App.toast("EPO " + nome + " criada com sucesso.");
+            return recarregar();
+          })
+          .catch(function (e) {
+            App.toast("Não foi possível criar a EPO: " + (e && e.message ? e.message : "erro inesperado."));
+          })
+          .then(function () { btn.disabled = false; });
+      });
+
+      // ------------------------------------------------------------------
+      // Criar alocação
+      // ------------------------------------------------------------------
+      document.getElementById("aloc-modal-save").addEventListener("click", function () {
+        var epoId = document.getElementById("aloc-epo").value;
+        var procId = document.getElementById("aloc-proc").value;
+        var email = document.getElementById("aloc-email").value.trim().toLowerCase();
+
+        if (!epoId) { App.toast("Selecione a EPO."); return; }
+        if (!procId) { App.toast("Selecione o questionário."); return; }
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) { App.toast("Informe um e-mail válido."); return; }
+
+        if (DEMO) {
+          var epo = null, proc = null, i;
+          for (i = 0; i < epos.length; i++) if (epos[i].id === epoId) epo = epos[i];
+          for (i = 0; i < processos.length; i++) if (processos[i].id === procId) proc = processos[i];
+          var dup = alocacoes.some(function (a) {
+            return a.epoNome === (epo && epo.nome) && a.procNome === (proc && proc.nome) && a.email === email;
+          });
+          if (dup) { App.toast("Este responsável já tem este questionário nesta EPO."); return; }
+          alocacoes.unshift({
+            id: "demo-aloc-" + Date.now(),
+            epoNome: epo ? epo.nome : "-",
+            epoLoc: epo && epo.cidade ? epo.cidade + " · " + (epo.uf || "") : "",
+            procNome: proc ? proc.nome : "-",
+            procIcone: proc ? proc.icone : null,
+            email: email,
+            status: "pendente",
+            criadoEm: new Date().toISOString(),
+            anexos: 0
+          });
+          renderLista();
+          modalAloc.fechar();
+          App.toast("Alocação criada (demonstração - nada foi gravado).");
+          return;
+        }
+
+        var btn = this;
+        btn.disabled = true;
+        Auth.sessao()
+          .then(function (s) {
+            return Auth.cliente.from("alocacoes").insert({
+              epo_id: epoId,
+              processo_id: procId,
+              responsavel_email: email,
+              status: "pendente",
+              criado_por: s ? s.user.id : null
+            });
+          })
+          .then(function (r) {
+            if (r.error) {
+              if (r.error.code === "23505" || /duplicate|unique/i.test(r.error.message)) {
+                App.toast("Este responsável já tem este questionário nesta EPO.");
+                return;
+              }
+              throw r.error;
+            }
+            modalAloc.fechar();
+            App.toast("Alocação criada. O responsável já pode entrar com o e-mail " + email + ".");
+            return recarregar();
+          })
+          .catch(function (e) {
+            App.toast("Não foi possível criar a alocação: " + (e && e.message ? e.message : "erro inesperado."));
+          })
+          .then(function () { btn.disabled = false; });
+      });
+
+      // ------------------------------------------------------------------
+      // Excluir alocação (admin/gestor)
+      // ------------------------------------------------------------------
+      document.getElementById("aloc-body").addEventListener("click", function (ev) {
+        var btn = ev.target.closest("[data-excluir]");
+        if (!btn) return;
+        var id = btn.getAttribute("data-excluir");
+
+        var alvo = null;
+        for (var i = 0; i < alocacoes.length; i++) {
+          if (String(alocacoes[i].id) === id) alvo = alocacoes[i];
+        }
+        var quem = alvo ? alvo.email + " (" + alvo.epoNome + ")" : "esta alocação";
+        if (!window.confirm("Excluir a alocação de " + quem + "? Os anexos enviados deixarão de aparecer.")) return;
+
+        if (DEMO) {
+          alocacoes = alocacoes.filter(function (a) { return String(a.id) !== id; });
+          renderLista();
+          App.toast("Alocação excluída (demonstração - nada foi gravado).");
+          return;
+        }
+
+        Auth.cliente.from("alocacoes").delete().eq("id", id)
+          .then(function (r) {
+            if (r.error) throw r.error;
+            App.toast("Alocação excluída.");
+            return recarregar();
+          })
+          .catch(function (e) {
+            App.toast("Não foi possível excluir: " + (e && e.message ? e.message : "erro inesperado."));
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

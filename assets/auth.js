@@ -21,10 +21,38 @@
     "comparar.html": "comparativo",
     "gerencial.html": "gerencial",
     "auditoria.html": "auditoria",
+    "envio.html": "envio",
+    "checagem.html": "checagem",
+    "alocacoes.html": "alocacoes",
     "evidencias.html": "evidencias",
     "configuracoes.html": "config",
     "acessos.html": "acessos"
   };
+
+  // Primeira página permitida do papel (destino padrão pós-login/negado)
+  function primeiraPermitida(perms) {
+    var ordem = ["geral", "auditoria", "envio", "checagem", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "config", "acessos"];
+    var mapaInverso = {};
+    Object.keys(MAPA_PAGINAS).forEach(function (arq) { mapaInverso[MAPA_PAGINAS[arq]] = arq; });
+    for (var i = 0; i < ordem.length; i++) {
+      if (!perms || perms[ordem[i]] !== false) return mapaInverso[ordem[i]] || "index.html";
+    }
+    return "login.html";
+  }
+
+  // Esconde itens do menu sem permissão para o papel
+  function filtrarNav(perms) {
+    if (!perms) return;
+    Object.keys(MAPA_PAGINAS).forEach(function (arq) {
+      var key = MAPA_PAGINAS[arq];
+      if (perms[key] === false) {
+        document.querySelectorAll('.nav a[href="' + arq + '"], .nav a[href^="' + arq + '?"]').forEach(function (el) { el.style.display = "none"; });
+        if (key === "auditoria") {
+          document.querySelectorAll('.nav-parent[data-subnav="auditoria"], .nav-sub[data-subnav-panel="auditoria"]').forEach(function (el) { el.style.display = "none"; });
+        }
+      }
+    });
+  }
 
   function arquivoAtual() {
     var p = location.pathname.split("/").pop();
@@ -54,6 +82,14 @@
       .then(function (r) {
         return r.data || { nome: user.email, papel: "auditor", cliente_id: null };
       });
+  }
+
+  // Se o e-mail ganhou alocação depois de já ter conta, promove a 'responsavel'
+  var papelSincronizado = false;
+  function sincronizarPapel() {
+    if (papelSincronizado || !client) return Promise.resolve();
+    papelSincronizado = true;
+    return client.rpc("sincronizar_papel_responsavel").then(function () {}, function () {});
   }
 
   // ---------------------------------------------------------------- Login
@@ -130,14 +166,17 @@
     }
     return sessao().then(function (s) {
       if (!s) { location.replace("login.html"); return "sem-sessao"; }
-      return perfilDe(s.user).then(function (p) {
+      return sincronizarPapel().then(function () {
+        return perfilDe(s.user);
+      }).then(function (p) {
         var mapa = (window.APP && window.APP.papeisPreset) || {};
         var perms = mapa[p.papel];
         if (perms && pageKey && perms[pageKey] === false) {
-          location.replace("index.html");
+          location.replace(primeiraPermitida(perms));
           return "sem-permissao";
         }
         atualizarUi({ nome: p.nome, email: s.user.email, papel: p.papel });
+        filtrarNav(perms);
         return "ok";
       });
     });

@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dupla checagem - Auditoria de EPOs</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/app.css?v=6">
+  <style>
+    /* Ajustes locais da dupla checagem */
+
+    .chk-demo {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12.5px; color: var(--text-2);
+      background: var(--surface-2); border: 1px dashed var(--border-strong);
+      border-radius: 999px; padding: 5px 12px; margin-bottom: 16px;
+    }
+    .chk-demo i { font-size: 15px; }
+
+    /* Cabeçalho do detalhe */
+    .chk-head-meta { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 10px; }
+    .chk-head-meta .m { font-size: 13px; color: var(--text-2); display: inline-flex; align-items: center; gap: 6px; }
+    .chk-head-meta .m i { font-size: 15px; color: var(--text-muted); }
+    .chk-head-meta .m strong { color: var(--text); font-weight: 600; }
+
+    /* Item: duas colunas lado a lado */
+    .chk-item { margin-bottom: 16px; }
+    .chk-item-head {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding-bottom: 12px; margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .chk-item-num {
+      flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%;
+      background: var(--primary-tint); color: var(--primary);
+      display: grid; place-items: center;
+      font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
+    }
+    .chk-item-perg { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.45; }
+    .chk-item-evid { font-size: 12.5px; color: var(--text-2); margin-top: 3px; }
+
+    .chk-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .chk-col {
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface-2); padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 10px; min-width: 0;
+    }
+    .chk-col-title {
+      font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+      color: var(--text-muted); display: flex; align-items: center; gap: 6px;
+    }
+    .chk-col-title i { font-size: 15px; }
+
+    .chk-obs { font-size: 13px; color: var(--text); line-height: 1.5; }
+    .chk-just {
+      font-size: 12.5px; line-height: 1.5;
+      background: var(--warning-bg); color: var(--warning);
+      border-radius: var(--radius-sm); padding: 8px 11px;
+      display: flex; gap: 7px; align-items: flex-start;
+    }
+    .chk-just i { font-size: 15px; flex: 0 0 auto; margin-top: 1px; }
+
+    .chk-vazio { font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+
+    /* Arquivos e miniaturas */
+    .chk-files { display: flex; flex-direction: column; gap: 6px; }
+    .chk-file {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12.5px; color: var(--text); text-decoration: none;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 7px 10px; min-width: 0;
+    }
+    .chk-file:hover { border-color: var(--border-strong); background: var(--surface); }
+    .chk-file i { font-size: 16px; color: var(--text-2); flex: 0 0 auto; }
+    .chk-file .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .chk-file.is-off { cursor: not-allowed; color: var(--text-muted); }
+    .chk-thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chk-thumb {
+      display: block; width: 84px; height: 84px; border-radius: var(--radius-sm);
+      overflow: hidden; border: 1px solid var(--border); background: var(--surface);
+    }
+    .chk-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* Rodapé do detalhe */
+    .chk-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .chk-score { display: flex; align-items: center; gap: 12px; }
+    .chk-score .v { font-size: 26px; font-weight: 600; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+    .chk-score .l { font-size: 12px; color: var(--text-2); }
+
+    @media (max-width: 760px) {
+      .chk-cols { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=6"></script>
+  <script src="assets/app.js?v=6"></script>
+  <script src="assets/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/auth.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      Layout.mount("checagem", "Dupla checagem");
+
+      var esc = App.escapeHtml;
+      var page = document.getElementById("page");
+      var DEMO = Auth.modoDemo() || !Auth.pronto;
+      var BUCKET = "evidencias";
+
+      var STATUS_RESPOSTA = {
+        conforme:     { label: "Conforme",     cls: "badge-success", icone: "ti-check" },
+        nao_conforme: { label: "Não conforme", cls: "badge-danger",  icone: "ti-x" },
+        na:           { label: "N.A.",         cls: "badge",         icone: "ti-minus" },
+        presente:     { label: "Presente",     cls: "badge-success", icone: "ti-check" },
+        ausente:      { label: "Ausente",      cls: "badge-danger",  icone: "ti-x" }
+      };
+
+      var STATUS_AUDITORIA = {
+        enviada:  { label: "Enviada",  cls: "badge-media" },
+        validada: { label: "Validada", cls: "badge-success" }
+      };
+
+      // ------------------------------------------------------------ helpers
+      function fmtData(v) {
+        if (!v) return "-";
+        var s = String(v).slice(0, 10).split("-");
+        if (s.length !== 3) return String(v);
+        return s[2] + "/" + s[1] + "/" + s[0];
+      }
+
+      function ehImagem(path) {
+        return /\.(png|jpe?g|gif|webp|bmp|avif|heic)$/i.test(String(path || "").split("?")[0]);
+      }
+
+      function nomeDoPath(path) {
+        var base = String(path || "").split("/").pop() || "arquivo";
+        // remove prefixo de timestamp usado nos uploads (ex.: 1722270000000-foto.jpg)
+        return base.replace(/^\d{10,}-/, "");
+      }
+
+      function badgeResposta(status) {
+        var m = STATUS_RESPOSTA[status];
+        if (!m) return '<span class="badge">-</span>';
+        return '<span class="badge ' + m.cls + '"><i class="ti ' + m.icone + '" aria-hidden="true"></i>' + m.label + "</span>";
+      }
+
+      function badgeAuditoria(status) {
+        var m = STATUS_AUDITORIA[status];
+        if (!m) return '<span class="badge"><i class="ti ti-clock" aria-hidden="true"></i>Sem auditoria</span>';
+        return '<span class="badge ' + m.cls + '">' + m.label + "</span>";
+      }
+
+      function badgeEnvio(temEnvio) {
+        return temEnvio
+          ? '<span class="badge badge-success"><i class="ti ti-cloud-check" aria-hidden="true"></i>Enviado</span>'
+          : '<span class="badge"><i class="ti ti-cloud-off" aria-hidden="true"></i>Não enviado</span>';
+      }
+
+      function avisoDemo() {
+        if (!DEMO) return "";
+        return '<div class="chk-demo"><i class="ti ti-flask" aria-hidden="true"></i>modo demonstração - nada é gravado</div>';
+      }
+
+      function estadoCarregando(msg) {
+        page.innerHTML =
+          avisoDemo() +
+          '<div class="card"><div class="empty">' +
+            '<i class="ti ti-loader-2" aria-hidden="true"></i>' +
+            "<div>" + esc(msg || "Carregando...") + "</div>" +
+          "</div></div>";
+      }
+
+      function estadoErro(msg) {
+        page.innerHTML =
+          avisoDemo() +
+          '<div class="card"><div class="empty">' +
+            '<i class="ti ti-alert-triangle" aria-hidden="true"></i>' +
+            "<div>" + esc(msg) + "</div>" +
+          "</div></div>";
+      }
+
+      // URLs assinadas (1h) para um conjunto de paths do bucket privado
+      function assinarPaths(paths) {
+        var mapa = {};
+        if (DEMO || !paths.length || !Auth.cliente) return Promise.resolve(mapa);
+        var st = Auth.cliente.storage.from(BUCKET);
+        return Promise.all(paths.map(function (p) {
+          return st.createSignedUrl(p, 3600).then(function (r) {
+            mapa[p] = (r && r.data && r.data.signedUrl) || null;
+          }, function () { mapa[p] = null; });
+        })).then(function () { return mapa; });
+      }
+
+      // ------------------------------------------------------------ mock demo
+      function paresDemo() {
+        var procMock = (window.APP.processos && window.APP.processos[0]) || { id: "recebimento-expedicao", nome: "Recebimento e expedição", itens: [] };
+        var epoMock = (window.APP.epos && window.APP.epos[0]) || { nome: "EPO Meridiano", cidade: "São Paulo", uf: "SP" };
+        var itens = (procMock.itens || []).slice(0, 3).map(function (it, i) {
+          return { id: "demo-item-" + i, pergunta: it.pergunta, evidencia_esperada: it.evidencia, ordem: i + 1 };
+        });
+        return [{
+          chave: "demo",
+          epoNome: epoMock.nome,
+          epoLocal: epoMock.cidade + "/" + epoMock.uf,
+          processoNome: procMock.nome,
+          data: "2026-07-22",
+          auditoria: {
+            id: "demo-aud", status: "enviada", score: 78, tier: "prata",
+            data_visita: "2026-07-22", resp_epo: "Carlos Menezes", resp_claro: "Juliana Prado",
+            observacoes: "Visita acompanhada pelo supervisor do turno da manhã."
+          },
+          alocacao: { id: "demo-aloc", status: "enviada", responsavel_email: "responsavel@epo.com.br", enviada_em: "2026-07-24" },
+          demo: {
+            itens: itens,
+            respostas: {
+              "demo-item-0": { status: "conforme", observacao: "Conferência 100% evidenciada na doca 3." },
+              "demo-item-1": { status: "nao_conforme", observacao: "RNC aberta fora do prazo em duas ocorrências de julho.", justificativa: "Sistema Atlas ficou indisponível por 2 dias na semana da ocorrência." },
+              "demo-item-2": { status: "na", observacao: "" }
+            },
+            evidencias: {
+              "demo-item-0": [
+                { nome: "doca3-conferencia.jpg", imagem: true },
+                { nome: "ztc350-relatorio.pdf", imagem: false }
+              ],
+              "demo-item-1": [{ nome: "rnc-julho.pdf", imagem: false }]
+            },
+            anexos: {
+              "demo-item-0": [{ nome: "nfe-conferencia-lote-8841.pdf" }],
+              "demo-item-1": [
+                { nome: "rnc-0071-formulario.pdf" },
+                { nome: "nf-diferenca-2231.pdf" }
+              ]
+            }
+          }
+        }];
+      }
+
+      // ------------------------------------------------------------ dados reais
+      function carregarPares() {
+        if (DEMO) return Promise.resolve(paresDemo());
+
+        var qAud = Auth.cliente.from("auditorias")
+          .select("*, epos(nome,cidade,uf), processos(nome,slug,icone)")
+          .in("status", ["enviada", "validada"])
+          .order("data_visita", { ascending: false });
+
+        var qAloc = Auth.cliente.from("alocacoes")
+          .select("*, epos(nome,cidade,uf), processos(nome,slug,icone)")
+          .eq("status", "enviada");
+
+        return Promise.all([qAud, qAloc]).then(function (rs) {
+          if (rs[0].error) throw rs[0].error;
+          if (rs[1].error) throw rs[1].error;
+
+          var mapa = {};
+          function par(epoId, procId, embEpo, embProc) {
+            var k = epoId + "::" + procId;
+            if (!mapa[k]) {
+              mapa[k] = {
+                chave: k,
+                epoId: epoId,
+                processoId: procId,
+                epoNome: (embEpo && embEpo.nome) || "EPO",
+                epoLocal: embEpo ? ((embEpo.cidade || "") + (embEpo.uf ? "/" + embEpo.uf : "")) : "",
+                processoNome: (embProc && embProc.nome) || "Questionário",
+                auditoria: null,
+                alocacao: null,
+                data: null
+              };
+            }
+            return mapa[k];
+          }
+
+          (rs[0].data || []).forEach(function (a) {
+            var p = par(a.epo_id, a.processo_id, a.epos, a.processos);
+            if (!p.auditoria) p.auditoria = a; // já vem ordenado: fica a mais recente
+            if (!p.data) p.data = a.data_visita;
+          });
+
+          (rs[1].data || []).forEach(function (al) {
+            var p = par(al.epo_id, al.processo_id, al.epos, al.processos);
+            if (!p.alocacao) p.alocacao = al;
+            if (!p.data) p.data = al.enviada_em;
+          });
+
+          var pares = Object.keys(mapa).map(function (k) { return mapa[k]; });
+          pares.sort(function (a, b) {
+            var c = a.epoNome.localeCompare(b.epoNome, "pt-BR");
+            return c !== 0 ? c : a.processoNome.localeCompare(b.processoNome, "pt-BR");
+          });
+          return pares;
+        });
+      }
+
+      function carregarDetalhe(p) {
+        if (DEMO) {
+          return Promise.resolve({
+            itens: p.demo.itens,
+            respostas: p.demo.respostas,
+            evidencias: p.demo.evidencias,
+            anexos: p.demo.anexos,
+            urls: {}
+          });
+        }
+
+        return Auth.cliente.from("itens_checklist")
+          .select("id, pergunta, evidencia_esperada, requer_foto, grave, ordem")
+          .eq("processo_id", p.processoId)
+          .eq("ativo", true)
+          .order("ordem")
+          .then(function (rItens) {
+            if (rItens.error) throw rItens.error;
+            var itens = rItens.data || [];
+
+            var qResp = p.auditoria
+              ? Auth.cliente.from("respostas").select("*").eq("auditoria_id", p.auditoria.id)
+              : Promise.resolve({ data: [] });
+            var qAnexos = p.alocacao
+              ? Auth.cliente.from("alocacao_anexos").select("*").eq("alocacao_id", p.alocacao.id)
+              : Promise.resolve({ data: [] });
+
+            return Promise.all([qResp, qAnexos]).then(function (rs) {
+              if (rs[0].error) throw rs[0].error;
+              if (rs[1].error) throw rs[1].error;
+
+              var respostas = {};
+              var idsResposta = [];
+              (rs[0].data || []).forEach(function (r) {
+                respostas[r.item_id] = r;
+                idsResposta.push(r.id);
+              });
+
+              var anexos = {};
+              (rs[1].data || []).forEach(function (ax) {
+                (anexos[ax.item_id] = anexos[ax.item_id] || []).push(ax);
+              });
+
+              var qEvid = idsResposta.length
+                ? Auth.cliente.from("evidencias").select("*").in("resposta_id", idsResposta)
+                : Promise.resolve({ data: [] });
+
+              return qEvid.then(function (rEv) {
+                if (rEv.error) throw rEv.error;
+                var evidPorResposta = {};
+                var paths = [];
+                (rEv.data || []).forEach(function (ev) {
+                  (evidPorResposta[ev.resposta_id] = evidPorResposta[ev.resposta_id] || []).push(ev);
+                  if (ev.storage_path) paths.push(ev.storage_path);
+                });
+                Object.keys(anexos).forEach(function (k) {
+                  anexos[k].forEach(function (ax) {
+                    if (ax.storage_path) paths.push(ax.storage_path);
+                  });
+                });
+
+                // evidências indexadas pelo item (via resposta)
+                var evidencias = {};
+                itens.forEach(function (it) {
+                  var r = respostas[it.id];
+                  if (r && evidPorResposta[r.id]) evidencias[it.id] = evidPorResposta[r.id];
+                });
+
+                return assinarPaths(paths).then(function (urls) {
+                  return { itens: itens, respostas: respostas, evidencias: evidencias, anexos: anexos, urls: urls };
+                });
+              });
+            });
+          });
+      }
+
+      // ------------------------------------------------------------ render lista
+      var pares = [];
+
+      function renderLista() {
+        var linhas = pares.map(function (p, i) {
+          var st = p.auditoria ? p.auditoria.status : null;
+          return (
+            "<tr>" +
+              "<td>" +
+                '<div style="font-weight:600;">' + esc(p.epoNome) + "</div>" +
+                (p.epoLocal ? '<div class="text-muted" style="font-size:12px;">' + esc(p.epoLocal) + "</div>" : "") +
+              "</td>" +
+              "<td>" + esc(p.processoNome) + "</td>" +
+              '<td class="tnum nowrap">' + fmtData(p.data) + "</td>" +
+              "<td>" + badgeAuditoria(st) + "</td>" +
+              "<td>" + badgeEnvio(!!p.alocacao) + "</td>" +
+              '<td style="text-align:right;">' +
+                '<button class="btn btn-ghost btn-sm" type="button" data-conferir="' + i + '">' +
+                  '<i class="ti ti-zoom-check" aria-hidden="true"></i>Conferir</button>' +
+              "</td>" +
+            "</tr>"
+          );
+        }).join("");
+
+        var corpoTabela = pares.length
+          ? '<div class="table-wrap"><table class="table">' +
+              "<thead><tr>" +
+                "<th>EPO</th><th>Questionário</th><th>Data</th>" +
+                "<th>Auditoria</th><th>Envio da EPO</th><th></th>" +
+              "</tr></thead>" +
+              "<tbody>" + linhas + "</tbody>" +
+            "</table></div>"
+          : '<div class="empty">' +
+              '<i class="ti ti-zoom-question" aria-hidden="true"></i>' +
+              "<div>Nenhum par para conferência ainda. Os itens aparecem aqui quando a vistoria é enviada pelo auditor ou o responsável da EPO envia as comprovações.</div>" +
+            "</div>";
+
+        page.innerHTML =
+          avisoDemo() +
+          '<p class="page-intro">Compare, item a item, a vistoria feita em campo pela equipe APSIS com as comprovações ' +
+            "enviadas pelo responsável da EPO. Após a conferência, valide a auditoria para consolidar o resultado.</p>" +
+          '<div class="card mb-0">' +
+            '<div class="card-header">' +
+              '<div class="section-title">' +
+                '<span class="title">Pares para conferência</span>' +
+                '<span class="subtitle">' + pares.length + (pares.length === 1 ? " par encontrado" : " pares encontrados") + "</span>" +
+              "</div>" +
+            "</div>" +
+            corpoTabela +
+          "</div>";
+
+        page.querySelectorAll("[data-conferir]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            abrirDetalhe(pares[Number(btn.getAttribute("data-conferir"))]);
+          });
+        });
+      }
+
+      // ------------------------------------------------------------ render detalhe
+      function arquivoHtml(nome, url, imagem) {
+        if (DEMO || !url) {
+          return '<span class="chk-file is-off" title="Link indisponível no modo demonstração">' +
+            '<i class="ti ' + (imagem ? "ti-photo" : "ti-file") + '" aria-hidden="true"></i>' +
+            '<span class="nm">' + esc(nome) + "</span></span>";
+        }
+        return '<a class="chk-file" href="' + esc(url) + '" target="_blank" rel="noopener">' +
+          '<i class="ti ' + (imagem ? "ti-photo" : "ti-file") + '" aria-hidden="true"></i>' +
+          '<span class="nm">' + esc(nome) + "</span>" +
+          '<i class="ti ti-external-link" aria-hidden="true" style="margin-left:auto;"></i></a>';
+      }
+
+      function thumbHtml(nome, url) {
+        return '<a class="chk-thumb" href="' + esc(url) + '" target="_blank" rel="noopener" title="' + esc(nome) + '">' +
+          '<img src="' + esc(url) + '" alt="' + esc(nome) + '" loading="lazy"></a>';
+      }
+
+      function colunaVistoria(item, det) {
+        var r = det.respostas[item.id];
+        var partes = [];
+        if (!r) {
+          partes.push('<span class="chk-vazio">sem envio</span>');
+        } else {
+          partes.push("<div>" + badgeResposta(r.status) + "</div>");
+          if (r.observacao) partes.push('<div class="chk-obs">' + esc(r.observacao) + "</div>");
+          if (r.justificativa) {
+            partes.push('<div class="chk-just"><i class="ti ti-alert-triangle" aria-hidden="true"></i>' +
+              "<span>" + esc(r.justificativa) + "</span></div>");
+          }
+          var evs = det.evidencias[item.id] || [];
+          if (evs.length) {
+            var thumbs = [];
+            var arquivos = [];
+            evs.forEach(function (ev) {
+              if (DEMO) {
+                arquivos.push(arquivoHtml(ev.nome, null, !!ev.imagem));
+                return;
+              }
+              var url = det.urls[ev.storage_path] || null;
+              var nome = nomeDoPath(ev.storage_path);
+              var img = ev.tipo === "foto" || ehImagem(ev.storage_path);
+              if (img && url) thumbs.push(thumbHtml(nome, url));
+              else arquivos.push(arquivoHtml(nome, url, img));
+            });
+            if (thumbs.length) partes.push('<div class="chk-thumbs">' + thumbs.join("") + "</div>");
+            if (arquivos.length) partes.push('<div class="chk-files">' + arquivos.join("") + "</div>");
+          } else {
+            partes.push('<span class="chk-vazio">sem evidências anexadas</span>');
+          }
+        }
+        return (
+          '<div class="chk-col">' +
+            '<span class="chk-col-title"><i class="ti ti-clipboard-check" aria-hidden="true"></i>Vistoria APSIS</span>' +
+            partes.join("") +
+          "</div>"
+        );
+      }
+
+      function colunaEpo(item, det) {
+        var lista = det.anexos[item.id] || [];
+        var partes = [];
+        if (!lista.length) {
+          partes.push('<span class="chk-vazio">sem envio</span>');
+        } else {
+          var thumbs = [];
+          var arquivos = [];
+          lista.forEach(function (ax) {
+            if (DEMO) {
+              arquivos.push(arquivoHtml(ax.nome, null, ehImagem(ax.nome)));
+              return;
+            }
+            var url = det.urls[ax.storage_path] || null;
+            var nome = ax.nome_arquivo || nomeDoPath(ax.storage_path);
+            var img = (ax.content_type && ax.content_type.indexOf("image/") === 0) || ehImagem(ax.storage_path);
+            if (img && url) thumbs.push(thumbHtml(nome, url));
+            else arquivos.push(arquivoHtml(nome, url, img));
+          });
+          if (thumbs.length) partes.push('<div class="chk-thumbs">' + thumbs.join("") + "</div>");
+          if (arquivos.length) partes.push('<div class="chk-files">' + arquivos.join("") + "</div>");
+        }
+        return (
+          '<div class="chk-col">' +
+            '<span class="chk-col-title"><i class="ti ti-building-warehouse" aria-hidden="true"></i>Comprovações da EPO</span>' +
+            partes.join("") +
+          "</div>"
+        );
+      }
+
+      function renderDetalhe(p, det) {
+        var aud = p.auditoria;
+
+        var meta = [];
+        meta.push('<span class="m"><i class="ti ti-calendar" aria-hidden="true"></i>Visita: <strong>' +
+          fmtData(aud ? aud.data_visita : p.data) + "</strong></span>");
+        if (aud && aud.resp_epo) {
+          meta.push('<span class="m"><i class="ti ti-user" aria-hidden="true"></i>Resp. EPO: <strong>' + esc(aud.resp_epo) + "</strong></span>");
+        }
+        if (aud && aud.resp_claro) {
+          meta.push('<span class="m"><i class="ti ti-user-check" aria-hidden="true"></i>Resp. Claro: <strong>' + esc(aud.resp_claro) + "</strong></span>");
+        }
+        if (p.alocacao && p.alocacao.responsavel_email) {
+          meta.push('<span class="m"><i class="ti ti-mail" aria-hidden="true"></i>Envio da EPO: <strong>' + esc(p.alocacao.responsavel_email) + "</strong></span>");
+        }
+
+        var itensHtml = det.itens.length
+          ? det.itens.map(function (item, i) {
+              return (
+                '<article class="card chk-item">' +
+                  '<div class="chk-item-head">' +
+                    '<span class="chk-item-num">' + (i + 1) + "</span>" +
+                    '<div class="grow">' +
+                      '<div class="chk-item-perg">' + esc(item.pergunta) +
+                        (item.grave ? ' <span class="badge badge-alta" style="margin-left:6px;">grave</span>' : "") +
+                      "</div>" +
+                      (item.evidencia_esperada
+                        ? '<div class="chk-item-evid"><i class="ti ti-paperclip" aria-hidden="true"></i> Evidência esperada: ' + esc(item.evidencia_esperada) + "</div>"
+                        : "") +
+                    "</div>" +
+                  "</div>" +
+                  '<div class="chk-cols">' +
+                    colunaVistoria(item, det) +
+                    colunaEpo(item, det) +
+                  "</div>" +
+                "</article>"
+              );
+            }).join("")
+          : '<div class="card"><div class="empty">' +
+              '<i class="ti ti-list-search" aria-hidden="true"></i>' +
+              "<div>Nenhum item ativo encontrado para este questionário.</div>" +
+            "</div></div>";
+
+        var scoreHtml;
+        if (aud && aud.score !== null && aud.score !== undefined) {
+          var tier = aud.tier || App.tierOf(Number(aud.score));
+          var tm = App.tierMeta(tier);
+          scoreHtml =
+            '<div class="chk-score">' +
+              '<span class="v">' + Math.round(Number(aud.score)) + "</span>" +
+              '<div class="stack">' +
+                '<span class="badge ' + tm.cls + '">' + tm.label + "</span>" +
+                '<span class="l">score da auditoria</span>' +
+              "</div>" +
+            "</div>";
+        } else {
+          scoreHtml = '<span class="chk-vazio">' +
+            (aud ? "Auditoria sem score calculado." : "Auditoria de campo ainda não realizada para este par.") +
+            "</span>";
+        }
+
+        var podeValidar = !!(aud && aud.status === "enviada");
+        var botoes =
+          '<div class="row">' +
+            '<button class="btn btn-ghost btn-sm" type="button" id="btn-voltar">' +
+              '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar</button>' +
+            (aud
+              ? '<button class="btn btn-primary btn-sm" type="button" id="btn-validar"' + (podeValidar ? "" : " disabled") + ">" +
+                  '<i class="ti ti-rosette-discount-check" aria-hidden="true"></i>Validar auditoria</button>'
+              : "") +
+          "</div>";
+
+        page.innerHTML =
+          avisoDemo() +
+          '<div class="card" style="margin-bottom:16px;">' +
+            '<div class="row-between wrap" style="gap:12px;">' +
+              '<div class="section-title">' +
+                '<span class="title">' + esc(p.epoNome) + " · " + esc(p.processoNome) + "</span>" +
+                '<span class="subtitle">' + esc(p.epoLocal || "") + "</span>" +
+              "</div>" +
+              '<div class="row wrap" style="gap:8px;">' +
+                '<span id="badge-aud">' + badgeAuditoria(aud ? aud.status : null) + "</span>" +
+                badgeEnvio(!!p.alocacao) +
+              "</div>" +
+            "</div>" +
+            '<div class="chk-head-meta">' + meta.join("") + "</div>" +
+            (aud && aud.observacoes
+              ? '<p class="text-muted" style="font-size:13px;margin-top:12px;">' +
+                  '<i class="ti ti-notes" aria-hidden="true"></i> ' + esc(aud.observacoes) + "</p>"
+              : "") +
+          "</div>" +
+          itensHtml +
+          '<div class="card mb-0"><div class="chk-footer">' +
+            scoreHtml +
+            botoes +
+          "</div></div>";
+
+        document.getElementById("btn-voltar").addEventListener("click", renderLista);
+
+        var btnValidar = document.getElementById("btn-validar");
+        if (btnValidar) {
+          btnValidar.addEventListener("click", function () {
+            if (btnValidar.disabled) return;
+            btnValidar.disabled = true;
+
+            var aplicar = function () {
+              aud.status = "validada";
+              var host = document.getElementById("badge-aud");
+              if (host) host.innerHTML = badgeAuditoria("validada");
+              App.toast(DEMO
+                ? "Auditoria validada (demonstração - nada foi gravado)."
+                : "Auditoria validada com sucesso.");
+            };
+
+            if (DEMO) { aplicar(); return; }
+
+            Auth.cliente.from("auditorias")
+              .update({ status: "validada" })
+              .eq("id", aud.id)
+              .then(function (r) {
+                if (r.error) {
+                  btnValidar.disabled = false;
+                  App.toast("Não foi possível validar: " + (r.error.message || "erro inesperado"));
+                  return;
+                }
+                aplicar();
+              }, function () {
+                btnValidar.disabled = false;
+                App.toast("Não foi possível validar a auditoria.");
+              });
+          });
+        }
+      }
+
+      function abrirDetalhe(p) {
+        estadoCarregando("Carregando itens para conferência...");
+        carregarDetalhe(p).then(function (det) {
+          renderDetalhe(p, det);
+        }, function (e) {
+          estadoErro("Não foi possível carregar o detalhe: " + ((e && e.message) || "erro inesperado"));
+        });
+      }
+
+      // ------------------------------------------------------------ start
+      estadoCarregando("Buscando auditorias e envios...");
+      carregarPares().then(function (lista) {
+        pares = lista;
+        renderLista();
+      }, function (e) {
+        estadoErro("Não foi possível carregar a lista: " + ((e && e.message) || "erro inesperado"));
+      });
+    })();
+  </script>
+</body>
+</html>

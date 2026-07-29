@@ -25,18 +25,30 @@
   // -----------------------------------------------------------------------
   var processos = [
     {
-      id: "recebimento",
-      nome: "Recebimento",
-      icone: "ti-truck-loading",
-      peso: 15,
-      descricao: "Chegada do material da Claro (caminhão, NF, embalagens)",
+      id: "reversa",
+      nome: "Logística Reversa",
+      icone: "ti-arrow-back-up",
+      peso: 30,
+      descricao: "Devolução do material para a Claro conforme manual",
       itens: [
-        { id: "rec-01", pergunta: "Conferência física x NF (100%) no caminhão da Claro", evidencia: "NF-e, ZTC350/ZTC380, fotos", requerFoto: true },
-        { id: "rec-02", pergunta: "Divergências a menor registradas com RNC e NF de diferença até D+2", evidencia: "Formulários, RNC, NF de diferença", requerFoto: false },
-        { id: "rec-03", pergunta: "Divergências a maior tratadas com NF complementar até D+4", evidencia: "Formulários, NF complementar", requerFoto: false },
-        { id: "rec-04", pergunta: "Integridade das embalagens verificada no recebimento", evidencia: "Fotos das embalagens no descarregamento", requerFoto: true },
-        { id: "rec-05", pergunta: "Registro sistêmico do recebimento no mesmo dia (D+0)", evidencia: "Logs SAP/Atlas", requerFoto: false },
-        { id: "rec-06", pergunta: "Cobertura de estoque monitorada", evidencia: "Relatórios de cobertura", requerFoto: false }
+        { id: "rev-01", pergunta: "Lotes no Qualitor + estados validados no Atlas", evidencia: "Qualitor; Atlas", requerFoto: false },
+        { id: "rev-02", pergunta: "NF-e espelho (J1B1N) emitida até 48h", evidencia: "J1B1N", requerFoto: false },
+        { id: "rev-03", pergunta: "Packlist + NF 96h + validação BPO 24h", evidencia: "Qualitor", requerFoto: false },
+        { id: "rev-04", pergunta: "Identificação correta e proteção individual", evidencia: "Manual; fotos", requerFoto: true },
+        { id: "rev-05", pergunta: "Agendamento/entrega D+1", evidencia: "Agenda; canhotos", requerFoto: false },
+        { id: "rev-06", pergunta: "Conferência 100% seriais (ZTC) + RNC", evidencia: "ZTC; RNC", requerFoto: false },
+        { id: "rev-07", pergunta: "Devolução Bom p/ Uso - MB1C (Z42)", evidencia: "Autorização; MB1C", requerFoto: false }
+      ]
+    },
+    {
+      id: "baixas",
+      nome: "Baixas - BTP / SAP / TOA",
+      icone: "ti-scan",
+      peso: 25,
+      descricao: "Consumo do técnico lançado e baixado no sistema",
+      itens: [
+        { id: "bai-01", pergunta: "Baixas diárias via BTP", evidencia: "Logs BTP; MB51/MB1C; TOA", requerFoto: false },
+        { id: "bai-02", pergunta: "Consumo TOA consistente com BOM", evidencia: "OS/WO; BOM", requerFoto: false }
       ]
     },
     {
@@ -46,89 +58,49 @@
       peso: 10,
       descricao: "Guarda, segregação e condições do estoque",
       itens: [
-        { id: "arm-01", pergunta: "Empilhamento, segregação e identificação corretos", evidencia: "Fotos/layout do estoque", requerFoto: true },
-        { id: "arm-02", pergunta: "Área de defeito/reversa segregada e sinalizada", evidencia: "Fotos da área segregada", requerFoto: true },
-        { id: "arm-03", pergunta: "CFTV/alarme ativos com registros disponíveis", evidencia: "Logs/prints do CFTV", requerFoto: false },
-        { id: "arm-04", pergunta: "Condições prediais adequadas (telhado, piso, iluminação, ergonomia)", evidencia: "Relatórios/fotos", requerFoto: false },
-        { id: "arm-05", pergunta: "Proteção contra umidade, poeira e impacto", evidencia: "Fotos das embalagens padrão", requerFoto: true },
-        { id: "arm-06", pergunta: "Inventário rotativo executado e conciliado com o sistema", evidencia: "Planilhas/relatórios de inventário", requerFoto: false },
-        { id: "arm-07", pergunta: "Separação física entre novo, reuso e defeito", evidencia: "Fotos das áreas distintas/sinalizadas", requerFoto: true }
+        { id: "arm-01", pergunta: "Empilhamento/segregação/identificação corretos", evidencia: "Fotos/layout", requerFoto: true },
+        { id: "arm-02", pergunta: "Área de defeitos/reversa segregada e sinalizada", evidencia: "Fotos", requerFoto: true },
+        { id: "arm-03", pergunta: "Condições prediais (telhado/piso/iluminação/ergonomia) adequadas", evidencia: "Relatórios/fotos", requerFoto: true },
+        { id: "arm-04", pergunta: "Integridade das embalagens checada antes da expedição", evidencia: "Check de qualidade", requerFoto: false }
       ]
     },
     {
-      id: "baixas",
-      nome: "Baixas (BTP/SAP)",
-      icone: "ti-scan",
-      peso: 20,
-      descricao: "Consumo do técnico lançado e baixado no sistema",
+      id: "recebimento-expedicao",
+      nome: "Recebimento & Expedição",
+      icone: "ti-truck-loading",
+      peso: 10,
+      descricao: "Chegada do material da Claro e expedição ao campo",
       itens: [
-        { id: "bx-01", pergunta: "Baixas diárias via BTP", evidencia: "Logs BTP", requerFoto: false },
-        { id: "bx-02", pergunta: "Consumo lançado no PDA pelo técnico", evidencia: "Registros do PDA / OS", requerFoto: false },
-        { id: "bx-03", pergunta: "Relatório de consumo gerado pela empreiteira", evidencia: "Relatório de consumo", requerFoto: false },
-        { id: "bx-04", pergunta: "Integração BTP -> SAP sem pendências", evidencia: "MB51/MB1C", requerFoto: false },
-        { id: "bx-05", pergunta: "OS executada = OS baixada (sem backlog)", evidencia: "Comparativo OS x baixas", requerFoto: false, grave: true },
-        { id: "bx-06", pergunta: "Saldo sem estagnação (linha de corte respeitada)", evidencia: "Relatório de saldo/aging", requerFoto: false }
-      ]
-    },
-    {
-      id: "devolucao",
-      nome: "Devolução - Logística Reversa",
-      icone: "ti-arrow-back-up",
-      peso: 25,
-      descricao: "Despacho de volta para a Claro conforme manual",
-      itens: [
-        { id: "dev-01", pergunta: "Cumprimento da calendarização (devolução no dia agendado)", evidencia: "Agenda de devolução, canhotos", requerFoto: false, grave: true },
-        { id: "dev-02", pergunta: "Equipamentos em plástico-bolha individual", evidencia: "Fotos dos equipamentos embalados", requerFoto: true },
-        { id: "dev-03", pergunta: "Separação por modelo/família", evidencia: "Fotos da separação por modelo", requerFoto: true },
-        { id: "dev-04", pergunta: "Caixa padrão ou Ecobox", evidencia: "Fotos das caixas utilizadas", requerFoto: true },
-        { id: "dev-05", pergunta: "Volumes lacrados", evidencia: "Fotos dos lacres", requerFoto: true },
-        { id: "dev-06", pergunta: "Volumes identificados com conteúdo completo", evidencia: "Fotos da identificação dos volumes", requerFoto: true },
-        { id: "dev-07", pergunta: "Packlist + NF em 96h e validação BPO em 24h", evidencia: "Qualitor", requerFoto: false },
-        { id: "dev-08", pergunta: "NF-e espelho (J1B1N) emitida em até 48h", evidencia: "J1B1N", requerFoto: false },
-        { id: "dev-09", pergunta: "Conferência 100% dos seriais (ZTC) + RNC quando divergente", evidencia: "ZTC, RNC", requerFoto: false },
-        { id: "dev-10", pergunta: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%", evidencia: "Relatório de reversa (fontes x equipamentos)", requerFoto: false, grave: true },
-        { id: "dev-11", pergunta: "Controles remotos devolvidos conforme equipamentos que os usam", evidencia: "Relatório de reversa (controles x equipamentos)", requerFoto: false },
-        { id: "dev-12", pergunta: "Lotes no Qualitor + status validados no Atlas", evidencia: "Qualitor, Atlas", requerFoto: false }
+        { id: "rec-01", pergunta: "Conferência física x NF (100%) no recebimento do CD", evidencia: "NF-e, ZTC350/ZTC380, fotos", requerFoto: true },
+        { id: "rec-02", pergunta: "Divergências a menor registradas com RNC e NF de diferença até D+2", evidencia: "Formulários, RNC, NF", requerFoto: false },
+        { id: "rec-03", pergunta: "Divergências a maior tratadas com NF complementar até D+4", evidencia: "Formulários, NF complementar", requerFoto: false },
+        { id: "rec-04", pergunta: "Expedição protegida (saco bolha), identificada e segregada de defeito/reversa", evidencia: "Fotos de staging", requerFoto: true },
+        { id: "rec-05", pergunta: "Kitting completo por OS (terminais + acessórios)", evidencia: "Lista de conferência, fotos", requerFoto: true },
+        { id: "rec-06", pergunta: "Triangulações aprovadas e registradas (SAP/Atlas)", evidencia: "NF triangulação, e-mails, SAP/Atlas", requerFoto: false },
+        { id: "rec-07", pergunta: "Reinicializações/reusos via SharePoint com anexos padrão e comunicação ao DMT", evidencia: "SharePoint (Anexo I/II), e-mails", requerFoto: false },
+        { id: "rec-08", pergunta: "Separação física entre novo, reuso e defeito (áreas distintas/sinalizadas)", evidencia: "Layout/fotos", requerFoto: true }
       ]
     },
     {
       id: "presos",
       nome: "Presos em Assinante",
       icone: "ti-home-exclamation",
-      peso: 10,
+      peso: 7,
       descricao: "Equipamentos retirados do cliente sem baixa",
       itens: [
-        { id: "pa-01", pergunta: "Alerta quinzenal para aging > 30 dias", evidencia: "Atlas, e-mails", requerFoto: false },
-        { id: "pa-02", pergunta: "Equipamentos retirados do cliente sem baixa sinalizados à Claro", evidencia: "Atlas/Portal IN, e-mails", requerFoto: false, grave: true },
-        { id: "pa-03", pergunta: "Segregação física dos equipamentos presos", evidencia: "Fotos da área segregada", requerFoto: true },
-        { id: "pa-04", pergunta: "Fluxo fotos 10% + Pipefy", evidencia: "Portal IN, Pipefy", requerFoto: true },
-        { id: "pa-05", pergunta: "Revisita bimestral", evidencia: "Relatórios periódicos", requerFoto: false }
-      ]
-    },
-    {
-      id: "documentacao",
-      nome: "Documentação & Sistemas",
-      icone: "ti-files",
-      peso: 8,
-      descricao: "POPs, books e uso correto dos sistemas",
-      itens: [
-        { id: "doc-01", pergunta: "Books/POPs/manuais atualizados", evidencia: "Repositório de documentos", requerFoto: false },
-        { id: "doc-02", pergunta: "Uso correto de SAP/Atlas/SIAK/BTP/Qualitor", evidencia: "Prints/logs dos sistemas", requerFoto: false },
-        { id: "doc-03", pergunta: "Evidências de reinicialização/triangulação arquivadas", evidencia: "SharePoint, NFs", requerFoto: false },
-        { id: "doc-04", pergunta: "Checklist técnico de triagem completo", evidencia: "Registros de triagem", requerFoto: false }
+        { id: "pre-01", pergunta: "Alerta quinzenal para aging > 30 dias", evidencia: "Atlas; e-mails", requerFoto: false },
+        { id: "pre-02", pergunta: "Fluxo fotos 10% + Pipefy", evidencia: "Portal IN; Pipefy", requerFoto: true },
+        { id: "pre-03", pergunta: "Reversa liberados + segregação presos", evidencia: "Atlas; Qualitor", requerFoto: false }
       ]
     },
     {
       id: "treinamento",
       nome: "Treinamento & Pessoas",
       icone: "ti-school",
-      peso: 7,
-      descricao: "Certificações Aprenda Mais e acessos individuais",
+      peso: 5,
+      descricao: "Adesão do time ao Portal de treinamento",
       itens: [
-        { id: "tr-01", pergunta: "Certificados \"Aprenda Mais\" de quem executa o processo", evidencia: "Certificados Aprenda Mais", requerFoto: false },
-        { id: "tr-02", pergunta: "Todo usuário com acesso a Atlas/sistemas tem treinamento", evidencia: "Matriz de acessos x certificados", requerFoto: false },
-        { id: "tr-03", pergunta: "Login individual - sem compartilhamento de senha", evidencia: "Logs de acesso, matriz de usuários", requerFoto: false, grave: true },
-        { id: "tr-04", pergunta: "Novos colaboradores treinados (rotatividade)", evidencia: "Registros de treinamento admissional", requerFoto: false }
+        { id: "tre-01", pergunta: "100% do time no Portal (KPI1)", evidencia: "Portal", requerFoto: false }
       ]
     },
     {
@@ -138,10 +110,20 @@
       peso: 5,
       descricao: "Tratamento de desvios e planos de melhoria",
       itens: [
-        { id: "gov-01", pergunta: "Desvios críticos reportados imediatamente", evidencia: "RNC, fotos/logs", requerFoto: false },
-        { id: "gov-02", pergunta: "RNCs com prazo, responsável e verificação de eficácia", evidencia: "5W2H, RNC", requerFoto: false },
-        { id: "gov-03", pergunta: "Reunião mensal + ranking", evidencia: "Ata da reunião", requerFoto: false },
-        { id: "gov-04", pergunta: "Plano de melhorias atualizado", evidencia: "Plano de ação, 5W2H", requerFoto: false }
+        { id: "gov-01", pergunta: "RNCs com prazos, responsáveis e eficácia", evidencia: "5W2H; RNC", requerFoto: false },
+        { id: "gov-02", pergunta: "Plano de melhorias atualizado", evidencia: "Plano; 5W2H", requerFoto: false }
+      ]
+    },
+    {
+      id: "documentacao",
+      nome: "Documentação & Sistemas",
+      icone: "ti-files",
+      peso: 8,
+      descricao: "POPs, books e uso correto dos sistemas",
+      itens: [
+        { id: "doc-01", pergunta: "Books/POPs/manuais atualizados", evidencia: "Repositório", requerFoto: false },
+        { id: "doc-02", pergunta: "Uso correto SAP/Atlas/SIAK/BTP/Qualitor", evidencia: "Prints/logs", requerFoto: false },
+        { id: "doc-03", pergunta: "Checklist técnico (triagem) completo", evidencia: "Registros de triagem", requerFoto: false }
       ]
     }
   ];
@@ -948,6 +930,9 @@
     { key: "comparativo", label: "Comparativo",              icone: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial",         icone: "ti-report-analytics", href: "gerencial.html" },
     { key: "auditoria",   label: "Nova auditoria",           icone: "ti-clipboard-check",  href: "auditoria.html" },
+    { key: "envio",       label: "Envio de comprovações",    icone: "ti-cloud-upload",     href: "envio.html" },
+    { key: "checagem",    label: "Dupla checagem",           icone: "ti-zoom-check",       href: "checagem.html" },
+    { key: "alocacoes",   label: "Alocações",                icone: "ti-user-plus",        href: "alocacoes.html" },
     { key: "evidencias",  label: "Evidências",               icone: "ti-camera",           href: "evidencias.html" },
     { key: "config",      label: "Configurações",            icone: "ti-settings",         href: "configuracoes.html" },
     { key: "acessos",     label: "Gerenciamento de acessos", icone: "ti-lock-access",      href: "acessos.html" }
@@ -956,11 +941,13 @@
   // -----------------------------------------------------------------------
   // Presets de permissão por papel (usados como sugestão na tela de acessos).
   // -----------------------------------------------------------------------
+  // "A princípio": responsável só envia comprovações; auditor APSIS só vê os questionários.
   var papeisPreset = {
-    admin:   { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: true,  evidencias: true,  config: true,  acessos: true  },
-    gestor:  { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: true,  evidencias: true,  config: true,  acessos: false },
-    auditor: { geral: true,  ranking: false, comparativo: false, gerencial: false, auditoria: true,  evidencias: true,  config: false, acessos: false },
-    cliente: { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: false, evidencias: false, config: false, acessos: false }
+    admin:       { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,  evidencias: true,  config: true,  acessos: true  },
+    gestor:      { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,  evidencias: true,  config: true,  acessos: false },
+    auditor:     { geral: false, ranking: false, comparativo: false, gerencial: false, auditoria: true,  envio: false, checagem: false, alocacoes: false, evidencias: false, config: false, acessos: false },
+    cliente:     { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: false, envio: false, checagem: false, alocacoes: true,  evidencias: false, config: false, acessos: false },
+    responsavel: { geral: false, ranking: false, comparativo: false, gerencial: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, evidencias: false, config: false, acessos: false }
   };
 
   function copiaPreset(papel) {

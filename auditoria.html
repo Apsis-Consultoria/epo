@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=5">
+  <link rel="stylesheet" href="assets/app.css?v=6">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -109,24 +109,37 @@
     .wiz-attach.is-attached { border-style: solid; border-color: var(--success); color: var(--success); background: var(--success-bg); }
     .wiz-attach i { font-size: 18px; }
 
-    /* Botão secundário - link seguro para anexos externos */
-    .wiz-linkbtn {
-      display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
-      min-height: 48px; padding: 12px; border-radius: var(--radius);
-      border: 1.5px solid var(--border-strong); background: var(--surface);
-      color: var(--text-2); font-size: 14px; font-weight: 600; margin-bottom: 14px; cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .wiz-linkbtn i { font-size: 18px; }
-    .wiz-linkbtn:active { background: var(--surface-2); }
+    /* Dois botões lado a lado: tirar foto (câmera) + anexar arquivo */
+    .wiz-attach-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .wiz-attach-row .wiz-attach { flex: 1; margin-bottom: 0; padding: 12px 8px; font-size: 13px; }
 
-    .wiz-linkbox {
-      display: flex; align-items: center; gap: 8px;
-      background: var(--surface-2); border: 1px dashed var(--border-strong);
-      border-radius: var(--radius-sm); padding: 12px 14px;
-      font-size: 13px; font-weight: 600; color: var(--text); word-break: break-all;
+    /* Chips dos arquivos anexados em memória (nome + remover) */
+    .wiz-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+    .wiz-chip {
+      display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+      background: var(--success-bg); color: var(--success);
+      border-radius: 99px; padding: 6px 6px 6px 11px; font-size: 12px; font-weight: 600;
     }
-    .wiz-linkbox i { font-size: 16px; flex: 0 0 auto; color: var(--text-2); }
+    .wiz-chip .nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+    .wiz-chip button {
+      border: 0; background: none; color: inherit; cursor: pointer;
+      display: grid; place-items: center; font-size: 15px; padding: 2px; line-height: 1;
+    }
+
+    /* Overlay de envio real ao Supabase */
+    .wiz-sending {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(255, 255, 255, .88);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    .wiz-sending-spin {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 4px solid var(--surface-2); border-top-color: var(--apsis-orange);
+      animation: wizspin .8s linear infinite;
+    }
+    .wiz-sending p { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+    @keyframes wizspin { to { transform: rotate(360deg); } }
+
 
     .wiz-tempo-stepper { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 28px 0 8px; }
     .wiz-stepper-btn {
@@ -274,27 +287,8 @@
     </footer>
   </div>
 
-  <!-- Modal - link seguro temporário para anexos externos (mock) -->
-  <div class="modal-overlay" id="link-modal">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="link-modal-title">
-      <div class="modal-header">
-        <h2 class="modal-title" id="link-modal-title">Solicitar anexos por link seguro</h2>
-        <button class="modal-close" id="link-modal-x" type="button" aria-label="Fechar"><i class="ti ti-x" aria-hidden="true"></i></button>
-      </div>
-      <div class="modal-body">
-        <p style="margin:0 0 12px;font-size:14px;color:var(--text-2);line-height:1.55;" id="link-modal-item"></p>
-        <div class="wiz-linkbox"><i class="ti ti-lock" aria-hidden="true"></i><span id="link-modal-url"></span></div>
-        <p style="margin:12px 0 0;font-size:13px;color:var(--text-muted);line-height:1.55;">O responsável da EPO envia e-mails, prints do Atlas e NFs por este link; os anexos retornam ao checklist. Válido por 24h.</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" id="link-modal-fechar" type="button">Fechar</button>
-        <button class="btn btn-primary" id="link-modal-copiar" type="button"><i class="ti ti-copy" aria-hidden="true"></i>Copiar link</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="assets/data.js?v=5"></script>
-  <script src="assets/app.js?v=5"></script>
+  <script src="assets/data.js?v=6"></script>
+  <script src="assets/app.js?v=6"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -352,70 +346,6 @@
         return "auditoria.html?processo=" + encodeURIComponent(id) +
           (epoParam ? "&epo=" + encodeURIComponent(epoParam) : "");
       }
-
-      // ------------------------------------------------- Modal de link seguro
-      // Código aleatório determinístico por item (mesmo item -> mesmo link).
-      function codeFor(id) {
-        var h = 0;
-        for (var i = 0; i < id.length; i++) h = ((h * 31 + id.charCodeAt(i)) >>> 0);
-        var x = Math.abs(Math.sin(h) * 43758.5453);
-        return String(Math.floor((x - Math.floor(x)) * 9000) + 1000);
-      }
-
-      var linkModal = document.getElementById("link-modal");
-      var linkItemAtual = null;
-      var linkAtual = "";
-
-      function abrirLinkModal(itemId, rotulo) {
-        linkItemAtual = itemId;
-        linkAtual = "https://secure.apsis.com.br/upload/EPO-" + codeFor(itemId);
-        document.getElementById("link-modal-item").textContent = "Item: " + rotulo;
-        document.getElementById("link-modal-url").textContent = linkAtual;
-        linkModal.classList.add("is-open");
-      }
-      function fecharLinkModal() {
-        linkModal.classList.remove("is-open");
-      }
-
-      function copiarTexto(txt, done) {
-        function fallback() {
-          var ta = document.createElement("textarea");
-          ta.value = txt;
-          ta.style.position = "fixed";
-          ta.style.opacity = "0";
-          document.body.appendChild(ta);
-          ta.select();
-          try { document.execCommand("copy"); } catch (e) { /* mock */ }
-          document.body.removeChild(ta);
-          done();
-        }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(txt).then(done, fallback);
-        } else {
-          fallback();
-        }
-      }
-
-      linkModal.addEventListener("click", function (ev) {
-        if (ev.target === linkModal) fecharLinkModal();
-      });
-      document.getElementById("link-modal-x").addEventListener("click", fecharLinkModal);
-      document.getElementById("link-modal-fechar").addEventListener("click", fecharLinkModal);
-      document.addEventListener("keydown", function (ev) {
-        if (ev.key === "Escape") fecharLinkModal();
-      });
-      document.getElementById("link-modal-copiar").addEventListener("click", function () {
-        var id = linkItemAtual;
-        copiarTexto(linkAtual, function () {
-          if (id) {
-            var r = respostaDe(id);
-            r.linkEnviado = true;
-          }
-          App.toast("Link copiado. O responsável da EPO pode enviar os anexos.");
-          fecharLinkModal();
-          if (typeof renderStep === "function" && processo) renderStep();
-        });
-      });
 
       /* ====================================================================
          MODO 1 - SELETOR DE PROCESSO (sem ?processo= na URL)
@@ -481,17 +411,21 @@
       // Tempos do ciclo: só nos processos onde a etapa acontece de fato.
       // Fluxo: chegada -> armazenagem -> distribuição -> retorno de campo -> devolução.
       var TEMPOS_POR_PROCESSO = {
-        recebimento: [
+        "recebimento-expedicao": [
           { key: "chegada", label: "Tempo de chegada: quantos dias entre a saída do material da Claro e a entrada na EPO?", icon: "ti-truck-delivery" },
           { key: "armazenagem", label: "Tempo de armazenagem: quantos dias o material permanece em estoque até ser distribuído?", icon: "ti-building-warehouse" }
         ],
-        devolucao: [
+        "reversa": [
           { key: "distribuicao", label: "Tempo de distribuição: quantos dias até o material chegar ao técnico?", icon: "ti-package-export" },
           { key: "retornoCampo", label: "Tempo de retorno de campo: quantos dias até o material retirado voltar do campo à EPO?", icon: "ti-arrow-back-up" },
           { key: "devolucao", label: "Tempo de devolução: quantos dias entre o retorno de campo e o despacho para a Claro?", icon: "ti-truck-return" }
         ]
       };
       var temposDefs = isContagem ? [] : (TEMPOS_POR_PROCESSO[processo.id] || []);
+
+      // Envio real: Supabase configurado, fora do modo demo e processo do
+      // catálogo do banco (contagem-reversa é operacional/local).
+      var envioReal = !isContagem && window.Auth && Auth.pronto && !Auth.modoDemo();
 
       var steps = [];
       steps.push({ type: "intro" });
@@ -522,7 +456,7 @@
         cidade: "", uf: "", data: "", auditor: "Ana Ribeiro",
         tempos: { chegada: null, armazenagem: null, distribuicao: null, retornoCampo: null, devolucao: null },
         contagens: { equipamentos: null, fontes: null, controles: null, equipControle: null },
-        respostas: {}, // id -> { status, obs, just, foto, linkEnviado }
+        respostas: {}, // id -> { status, obs, just, arquivos: File[] }
         assin: { respEpo: "", respClaro: "", data: "" }
       };
       (function initEpo() {
@@ -536,18 +470,21 @@
       // (declaração de função: içada, também visível para o handler do modal)
       function respostaDe(id) {
         if (!state.respostas[id]) {
-          state.respostas[id] = { status: null, obs: "", just: "", foto: false, linkEnviado: false };
+          // arquivos: File[] em memória (câmera ou arquivo), enviados só no fim
+          state.respostas[id] = { status: null, obs: "", just: "", arquivos: [] };
         }
         return state.respostas[id];
       }
 
       function justOk(r) { return !!(r && r.just && r.just.trim()); }
 
+      function temAnexo(r) { return !!(r && r.arquivos && r.arquivos.length); }
+
       function evidenciaOk(item, r) {
         // N.A. dispensa evidência; sem "evidencia" definida, nada é exigido.
         if (!item.evidencia) return true;
         if (!r || !r.status || r.status === "na") return true;
-        return !!(r.foto || justOk(r));
+        return temAnexo(r) || justOk(r);
       }
 
       function computeScore() {
@@ -830,16 +767,73 @@
         );
       }
 
+      // Chips dos arquivos anexados em memória (nome + botão remover)
+      function chipsHtml(r) {
+        if (!temAnexo(r)) return "";
+        return '<div class="wiz-chips" id="wiz-chips">' +
+          r.arquivos.map(function (f, i) {
+            var ico = (f.type || "").indexOf("image") === 0 ? "ti-photo" : "ti-paperclip";
+            return (
+              '<span class="wiz-chip">' +
+                '<i class="ti ' + ico + '" aria-hidden="true"></i>' +
+                '<span class="nome">' + esc(f.name) + "</span>" +
+                '<button type="button" data-rm="' + i + '" aria-label="Remover ' + esc(f.name) + '"><i class="ti ti-x" aria-hidden="true"></i></button>' +
+              "</span>"
+            );
+          }).join("") +
+        "</div>";
+      }
+
+      // Botões "Tirar foto" (câmera no celular) e "Anexar arquivo" + inputs ocultos
+      function anexoHtml(r) {
+        return (
+          '<div class="wiz-attach-row">' +
+            '<button type="button" class="wiz-attach" id="btn-foto"><i class="ti ti-camera-plus" aria-hidden="true"></i>Tirar foto</button>' +
+            '<button type="button" class="wiz-attach" id="btn-arquivo"><i class="ti ti-paperclip" aria-hidden="true"></i>Anexar arquivo</button>' +
+          "</div>" +
+          '<input type="file" id="inp-foto" accept="image/*" capture="environment" style="display:none;">' +
+          '<input type="file" id="inp-arquivo" multiple style="display:none;">' +
+          chipsHtml(r)
+        );
+      }
+
+      // Liga botões/inputs/chips do bloco de anexos ao estado do item
+      function wireAnexos(r) {
+        var inpFoto = document.getElementById("inp-foto");
+        var inpArq = document.getElementById("inp-arquivo");
+        if (!inpFoto || !inpArq) return; // passo sem bloco de anexos (ex.: Presente)
+        function addTodos(lista) {
+          Array.prototype.forEach.call(lista, function (f) { r.arquivos.push(f); });
+          renderStep();
+        }
+        document.getElementById("btn-foto").addEventListener("click", function () { inpFoto.click(); });
+        document.getElementById("btn-arquivo").addEventListener("click", function () { inpArq.click(); });
+        inpFoto.addEventListener("change", function () {
+          if (inpFoto.files && inpFoto.files.length) addTodos(inpFoto.files);
+        });
+        inpArq.addEventListener("change", function () {
+          if (inpArq.files && inpArq.files.length) addTodos(inpArq.files);
+        });
+        var chips = document.getElementById("wiz-chips");
+        if (chips) {
+          chips.addEventListener("click", function (ev) {
+            var btn = ev.target.closest("button[data-rm]");
+            if (!btn) return;
+            r.arquivos.splice(parseInt(btn.getAttribute("data-rm"), 10), 1);
+            renderStep();
+          });
+        }
+      }
+
       function renderItem(step) {
         var it = step.item;
         var r = respostaDe(it.id);
         var precisaAgora = !!it.evidencia && (r.status === "conforme" || r.status === "nao");
-        var evOk = r.foto || justOk(r);
+        var evOk = temAnexo(r) || justOk(r);
 
         var tags = "";
         if (it.requerFoto) tags += ' <span class="evidence-tag"><i class="ti ti-camera" aria-hidden="true"></i>foto obrigatória</span>';
         if (it.grave) tags += ' <span class="evidence-tag tag-grave"><i class="ti ti-alert-triangle" aria-hidden="true"></i>NC grave</span>';
-        if (r.linkEnviado) tags += ' <span class="evidence-tag"><i class="ti ti-link" aria-hidden="true"></i>link enviado</span>';
 
         var opts = [
           { val: "conforme", icon: "ti-check", label: "Conforme" },
@@ -861,16 +855,11 @@
           '<div class="wiz-warn" id="wiz-warn" style="display:' + (precisaAgora && !evOk ? "flex" : "none") + ';">' +
             '<i class="ti ti-alert-triangle" aria-hidden="true"></i><span>Evidência obrigatória - anexe ou justifique.</span>' +
           "</div>" +
-          '<button type="button" class="wiz-attach' + (r.foto ? " is-attached" : "") + '" id="wiz-attach">' +
-            (r.foto
-              ? '<i class="ti ti-photo-check" aria-hidden="true"></i>Evidência anexada'
-              : '<i class="ti ti-camera-plus" aria-hidden="true"></i>Anexar foto ou anexo de evidência') +
-          "</button>" +
-          '<div class="wiz-field" id="just-wrap" style="display:' + (precisaAgora && !r.foto ? "block" : "none") + ';">' +
+          anexoHtml(r) +
+          '<div class="wiz-field" id="just-wrap" style="display:' + (precisaAgora && !temAnexo(r) ? "block" : "none") + ';">' +
             '<label for="f-just">Justificativa da ausência de evidência</label>' +
             '<textarea id="f-just" placeholder="Explique por que a evidência não pôde ser anexada">' + esc(r.just) + "</textarea>" +
           "</div>" +
-          '<button type="button" class="wiz-linkbtn" id="wiz-linkbtn"><i class="ti ti-lock" aria-hidden="true"></i>Solicitar anexos por link seguro</button>' +
           '<div class="wiz-field"><label for="f-obs">Observações</label><textarea id="f-obs" placeholder="Detalhes, divergências, contexto…">' + esc(r.obs) + "</textarea></div>"
         );
       }
@@ -879,7 +868,7 @@
         var it = step.item;
         var r = respostaDe(it.id);
         var isAusente = r.status === "ausente";
-        var tags = r.linkEnviado ? ' <span class="evidence-tag"><i class="ti ti-link" aria-hidden="true"></i>link enviado</span>' : "";
+        var tags = "";
 
         var opts = [
           { val: "presente", icon: "ti-check", label: "Presente" },
@@ -896,11 +885,7 @@
               '<label for="f-just">Justificativa da ausência (obrigatória)</label>' +
               '<textarea id="f-just" placeholder="Explique por que o item não retornou com o equipamento">' + esc(r.just) + "</textarea>" +
             "</div>" +
-            '<button type="button" class="wiz-attach' + (r.foto ? " is-attached" : "") + '" id="wiz-attach">' +
-              (r.foto
-                ? '<i class="ti ti-photo-check" aria-hidden="true"></i>Evidência anexada'
-                : '<i class="ti ti-camera-plus" aria-hidden="true"></i>Anexar evidência da ausência') +
-            "</button>";
+            anexoHtml(r);
         }
 
         return (
@@ -914,8 +899,7 @@
               return '<button type="button" class="wiz-opt' + sel + '" data-val="' + o.val + '"><i class="ti ' + o.icon + '" aria-hidden="true"></i>' + o.label + "</button>";
             }).join("") +
           "</div>" +
-          blocoAusente +
-          '<button type="button" class="wiz-linkbtn" id="wiz-linkbtn"><i class="ti ti-lock" aria-hidden="true"></i>Solicitar anexos por link seguro</button>'
+          blocoAusente
         );
       }
 
@@ -985,7 +969,10 @@
             '<div class="wiz-summary-grid">' + statsHtml + "</div>" +
           "</div>" +
           extra +
-          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' + r.answered + " de " + totalItens + " itens deste processo avaliados. Protótipo - nada é gravado no servidor ainda.</p>" +
+          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' + r.answered + " de " + totalItens + " itens deste processo avaliados. " +
+            (envioReal
+              ? "Ao enviar, respostas e anexos seguem para a dupla checagem da equipe APSIS."
+              : "Modo demonstração - nada é gravado.") + "</p>" +
           '<button type="button" class="wiz-btn wiz-btn-back" style="width:100%;flex:1 1 auto;margin-bottom:8px;" id="btn-rascunho"><i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho</button>'
         );
       }
@@ -1108,13 +1095,7 @@
             });
           });
 
-          var attach = document.getElementById("wiz-attach");
-          if (attach) {
-            attach.addEventListener("click", function () {
-              r.foto = !r.foto;
-              renderStep();
-            });
-          }
+          wireAnexos(r);
 
           var just = document.getElementById("f-just");
           if (just) {
@@ -1124,7 +1105,7 @@
               if (warn) {
                 var pendente = isCarregadores
                   ? (r.status === "ausente" && !justOk(r))
-                  : (!!it.evidencia && (r.status === "conforme" || r.status === "nao") && !r.foto && !justOk(r));
+                  : (!!it.evidencia && (r.status === "conforme" || r.status === "nao") && !temAnexo(r) && !justOk(r));
                 warn.style.display = pendente ? "flex" : "none";
               }
               updateChrome();
@@ -1134,13 +1115,6 @@
           var obs = document.getElementById("f-obs");
           if (obs) {
             obs.addEventListener("input", function (ev) { r.obs = ev.target.value; });
-          }
-
-          var linkBtn = document.getElementById("wiz-linkbtn");
-          if (linkBtn) {
-            linkBtn.addEventListener("click", function () {
-              abrirLinkModal(it.id, isCarregadores ? it.item : it.pergunta);
-            });
           }
         } else if (step.type === "assinaturas") {
           document.getElementById("f-resp-epo").addEventListener("input", function (ev) { state.assin.respEpo = ev.target.value; });
@@ -1180,7 +1154,7 @@
         nextBtn.disabled = !stepAnswered(cur);
       }
 
-      function showDone() {
+      function showDone(gravadaNoBanco) {
         headerEl.style.display = "none";
         footer.style.display = "none";
 
@@ -1214,7 +1188,10 @@
           '<div class="wiz-done">' +
             '<div class="wiz-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></div>' +
             '<h1 class="wiz-done-title">Auditoria enviada</h1>' +
-            '<p class="wiz-done-sub">Checklist de <b>' + esc(processo.nome) + "</b> concluído com sucesso. (Protótipo - nada é gravado no servidor ainda.)</p>" +
+            '<p class="wiz-done-sub">Checklist de <b>' + esc(processo.nome) + "</b> concluído com sucesso. " +
+              (gravadaNoBanco
+                ? "Enviada para dupla checagem: a equipe APSIS vai comparar suas respostas e evidências com as do responsável da EPO."
+                : "Modo demonstração - nada é gravado.") + "</p>" +
             '<div class="wiz-done-score">' +
               (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : "") +
               '<strong class="tnum">' + fmtScore01(r.score01) + " / 1,00</strong>" +
@@ -1227,6 +1204,141 @@
         main.scrollTop = 0;
       }
 
+      // ------------------------------------------------- Envio real (Supabase)
+      // Só quando há Supabase configurado, fora do modo demo e com sessão ativa.
+      // Contagem da reversa não existe no catálogo do banco: segue local.
+      function sanitizarNome(nome) {
+        var s = String(nome || "arquivo").toLowerCase().replace(/[^a-z0-9._-]/g, "_");
+        return s.length > 80 ? s.slice(-80) : s;
+      }
+
+      var sendingEl = null;
+      function mostrarEnvio(on) {
+        if (on) {
+          if (!sendingEl) {
+            sendingEl = document.createElement("div");
+            sendingEl.className = "wiz-sending";
+            sendingEl.innerHTML = '<div class="wiz-sending-spin" aria-hidden="true"></div><p>Enviando auditoria…</p>';
+            document.body.appendChild(sendingEl);
+          }
+        } else if (sendingEl) {
+          sendingEl.remove();
+          sendingEl = null;
+        }
+        nextBtn.disabled = on;
+      }
+
+      var MAPA_STATUS_DB = { conforme: "conforme", nao: "nao_conforme", na: "na", presente: "presente", ausente: "ausente" };
+
+      function enviarReal(sess) {
+        mostrarEnvio(true);
+        var db = Auth.cliente;
+        var epoMock = App.epoById(state.epoId);
+        var procDb = null, itensDb = [], audId = null;
+
+        db.from("processos").select("id").eq("slug", processo.id).eq("ativo", true).single()
+          .then(function (r) {
+            if (r.error || !r.data) throw new Error("Processo não encontrado no banco: " + processo.id);
+            procDb = r.data;
+            return db.from("itens_checklist").select("id")
+              .eq("processo_id", procDb.id).eq("ativo", true).order("ordem");
+          })
+          .then(function (r) {
+            if (r.error) throw r.error;
+            itensDb = r.data || [];
+            return db.from("epos").select("id, nome").eq("ativo", true);
+          })
+          .then(function (r) {
+            if (r.error) throw r.error;
+            var lista = r.data || [];
+            var epoDb = null;
+            for (var i = 0; i < lista.length; i++) {
+              if (epoMock && lista[i].nome === epoMock.nome) { epoDb = lista[i]; break; }
+            }
+            if (!epoDb) {
+              epoDb = lista[0];
+              console.warn("EPO \"" + (epoMock ? epoMock.nome : state.epoId) + "\" não encontrada no banco; usando a primeira EPO cadastrada.");
+            }
+            if (!epoDb) throw new Error("Nenhuma EPO cadastrada no banco.");
+            var sc = computeScore();
+            return db.from("auditorias").insert({
+              epo_id: epoDb.id,
+              processo_id: procDb.id,
+              auditor_id: sess.user.id,
+              data_visita: state.data || new Date().toISOString().slice(0, 10),
+              status: "enviada",
+              score: Math.round(sc.pts * 100) / 100,
+              tier: sc.answered > 0 ? App.tierOf(sc.pts) : null,
+              resp_epo: (state.assin.respEpo || "").trim() || null,
+              resp_claro: (state.assin.respClaro || "").trim() || null,
+              enviada_em: new Date().toISOString()
+            }).select("id").single();
+          })
+          .then(function (r) {
+            if (r.error) throw r.error;
+            audId = r.data.id;
+            // Respostas: item do wizard -> item do banco PELO ÍNDICE (mesma ordem)
+            var rows = [];
+            processo.itens.forEach(function (it, idx) {
+              var resp = state.respostas[it.id];
+              var itemDb = itensDb[idx];
+              if (!resp || !resp.status || !itemDb) return;
+              rows.push({
+                auditoria_id: audId,
+                item_id: itemDb.id,
+                status: MAPA_STATUS_DB[resp.status] || resp.status,
+                observacao: (resp.obs || "").trim() || null,
+                justificativa: (resp.just || "").trim() || null
+              });
+            });
+            if (!rows.length) return { data: [] };
+            return db.from("respostas").insert(rows).select("id, item_id");
+          })
+          .then(function (r) {
+            if (r.error) throw r.error;
+            var respIdPorItemDb = {};
+            (r.data || []).forEach(function (x) { respIdPorItemDb[x.item_id] = x.id; });
+            // Fila de uploads: um a um, para não estourar conexões no celular
+            var fila = [];
+            processo.itens.forEach(function (it, idx) {
+              var resp = state.respostas[it.id];
+              var itemDb = itensDb[idx];
+              if (!resp || !itemDb || !temAnexo(resp)) return;
+              var respostaId = respIdPorItemDb[itemDb.id];
+              if (!respostaId) return;
+              resp.arquivos.forEach(function (file) {
+                fila.push({ file: file, itemDbId: itemDb.id, respostaId: respostaId });
+              });
+            });
+            var p = Promise.resolve();
+            fila.forEach(function (job) {
+              p = p.then(function () {
+                var path = "auditorias/" + audId + "/" + job.itemDbId + "/" + Date.now() + "-" + sanitizarNome(job.file.name);
+                return db.storage.from("evidencias").upload(path, job.file).then(function (up) {
+                  if (up.error) throw up.error;
+                  return db.from("evidencias").insert({
+                    resposta_id: job.respostaId,
+                    storage_path: path,
+                    tipo: (job.file.type || "").indexOf("image") === 0 ? "foto" : "arquivo",
+                    origem: "consultor"
+                  }).then(function (ins) { if (ins.error) throw ins.error; });
+                });
+              });
+            });
+            return p;
+          })
+          .then(function () {
+            mostrarEnvio(false);
+            showDone(true);
+          })
+          .catch(function (err) {
+            mostrarEnvio(false);
+            console.error("Falha ao enviar auditoria:", err);
+            App.toast("Falha ao enviar: " + ((err && err.message) || "erro inesperado") + ". Revise e tente novamente.");
+            updateChrome(); // reabilita o botão conforme o passo atual
+          });
+      }
+
       backBtn.addEventListener("click", function () {
         if (cur > 0) { cur -= 1; renderStep(); }
       });
@@ -1234,7 +1346,15 @@
       nextBtn.addEventListener("click", function () {
         if (nextBtn.disabled) return;
         if (cur === steps.length - 1) {
-          showDone();
+          if (envioReal) {
+            nextBtn.disabled = true; // evita duplo envio enquanto busca a sessão
+            Auth.sessao().then(function (s) {
+              if (s) enviarReal(s);
+              else showDone(false); // sem sessão (ex.: expirada): não grava
+            });
+          } else {
+            showDone(false);
+          }
           return;
         }
         cur += 1;

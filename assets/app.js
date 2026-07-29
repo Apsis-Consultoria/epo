@@ -40,6 +40,9 @@
     { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },
     { key: "auditoria",   label: "Nova auditoria",   icon: "ti-clipboard-check",  href: "auditoria.html", children: subAuditoria },
+    { key: "envio",       label: "Envio de comprovações", icon: "ti-cloud-upload", href: "envio.html" },
+    { key: "checagem",    label: "Dupla checagem",   icon: "ti-zoom-check",       href: "checagem.html" },
+    { key: "alocacoes",   label: "Alocações",        icon: "ti-user-plus",        href: "alocacoes.html" },
     { key: "evidencias",  label: "Evidências",       icon: "ti-camera",           href: "evidencias.html" },
     { key: "acessos",     label: "Gerenciamento de acessos", icon: "ti-lock-access", href: "acessos.html" },
     { key: "config",      label: "Configurações",    icon: "ti-settings",         href: "configuracoes.html" }
