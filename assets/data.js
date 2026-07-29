@@ -72,7 +72,7 @@
     },
     {
       id: "devolucao",
-      nome: "Devolução — Logística Reversa",
+      nome: "Devolução - Logística Reversa",
       icone: "ti-arrow-back-up",
       peso: 25,
       descricao: "Despacho de volta para a Claro conforme manual",
@@ -127,7 +127,7 @@
       itens: [
         { id: "tr-01", pergunta: "Certificados \"Aprenda Mais\" de quem executa o processo", evidencia: "Certificados Aprenda Mais", requerFoto: false },
         { id: "tr-02", pergunta: "Todo usuário com acesso a Atlas/sistemas tem treinamento", evidencia: "Matriz de acessos x certificados", requerFoto: false },
-        { id: "tr-03", pergunta: "Login individual — sem compartilhamento de senha", evidencia: "Logs de acesso, matriz de usuários", requerFoto: false, grave: true },
+        { id: "tr-03", pergunta: "Login individual - sem compartilhamento de senha", evidencia: "Logs de acesso, matriz de usuários", requerFoto: false, grave: true },
         { id: "tr-04", pergunta: "Novos colaboradores treinados (rotatividade)", evidencia: "Registros de treinamento admissional", requerFoto: false }
       ]
     },
@@ -154,7 +154,7 @@
     id: "carregadores",
     nome: "Itens obrigatórios na retirada",
     icone: "ti-plug",
-    descricao: "Checklist separado — carregadores e itens obrigatórios na devolução do assinante",
+    descricao: "Checklist separado - carregadores e itens obrigatórios na devolução do assinante",
     itens: [
       { id: "cg-01", item: "Carregador/fonte" },
       { id: "cg-02", item: "Controle remoto" },
@@ -203,7 +203,7 @@
       naoConformidades: [
         {
           item: "Volumes identificados com conteúdo completo",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "baixa",
           evidencia: true,
           legenda: "Dois volumes com etiqueta de conteúdo incompleta no lote de julho.",
@@ -252,7 +252,7 @@
       naoConformidades: [
         {
           item: "Cumprimento da calendarização (devolução no dia agendado)",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "media",
           evidencia: true,
           legenda: "Um lote devolvido com 2 dias de atraso em relação à agenda.",
@@ -268,7 +268,7 @@
         },
         {
           item: "Equipamentos em plástico-bolha individual",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "baixa",
           evidencia: false,
           legenda: "Amostra com equipamentos sem plástico-bolha em um volume.",
@@ -325,7 +325,7 @@
         },
         {
           item: "Volumes identificados com conteúdo completo",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "baixa",
           evidencia: false,
           legenda: "Etiquetas ausentes em volumes recém-montados.",
@@ -366,7 +366,7 @@
       naoConformidades: [
         {
           item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "media",
           evidencia: true,
           legenda: "Fontes devolvidas em 74% - logo abaixo da meta de 75%.",
@@ -382,7 +382,7 @@
         },
         {
           item: "Cumprimento da calendarização (devolução no dia agendado)",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "baixa",
           evidencia: false,
           legenda: "Dois lotes devolvidos fora do dia agendado no mês.",
@@ -398,7 +398,7 @@
         },
         {
           item: "Separação por modelo/família",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "baixa",
           evidencia: false,
           legenda: "Modelos misturados em parte dos volumes conferidos.",
@@ -439,7 +439,7 @@
       naoConformidades: [
         {
           item: "Conferência 100% dos seriais (ZTC) + RNC quando divergente",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "alta",
           evidencia: true,
           legenda: "Saldo no sistema de 845 x 700 devolvidos - diferença sem justificativa.",
@@ -447,7 +447,7 @@
         },
         {
           item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "media",
           evidencia: true,
           legenda: "Fontes devolvidas em 66% contra meta de 75%.",
@@ -471,7 +471,7 @@
         },
         {
           item: "Volumes lacrados",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "baixa",
           evidencia: false,
           legenda: "Volumes sem lacre aguardando coleta na doca.",
@@ -520,7 +520,7 @@
       naoConformidades: [
         {
           item: "Cumprimento da calendarização (devolução no dia agendado)",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "alta",
           evidencia: true,
           legenda: "Metade dos lotes do mês devolvida fora do dia agendado.",
@@ -528,7 +528,7 @@
         },
         {
           item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "alta",
           evidencia: true,
           legenda: "Fontes devolvidas em 58% - muito abaixo da meta de 75%.",
@@ -544,14 +544,14 @@
         },
         {
           item: "Caixa padrão ou Ecobox",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "media",
           evidencia: true,
           legenda: "Uso de caixas fora do padrão em parte dos volumes.",
           data: "2026-07-20"
         },
         {
-          item: "Login individual — sem compartilhamento de senha",
+          item: "Login individual - sem compartilhamento de senha",
           processo: "Treinamento & Pessoas",
           gravidade: "media",
           evidencia: false,
@@ -601,7 +601,7 @@
       naoConformidades: [
         {
           item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "alta",
           evidencia: true,
           legenda: "Fontes devolvidas em 47% contra meta de 75%.",
@@ -609,7 +609,7 @@
         },
         {
           item: "Cumprimento da calendarização (devolução no dia agendado)",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "alta",
           evidencia: true,
           legenda: "Devoluções sem aderência à agenda - lotes represados na doca.",
@@ -625,7 +625,7 @@
         },
         {
           item: "Equipamentos em plástico-bolha individual",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "media",
           evidencia: true,
           legenda: "Equipamentos soltos na caixa, sem proteção individual.",
@@ -682,7 +682,7 @@
       naoConformidades: [
         {
           item: "Cumprimento da calendarização (devolução no dia agendado)",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "alta",
           evidencia: true,
           legenda: "Sem calendário de devolução - lotes despachados sem agendamento.",
@@ -690,14 +690,14 @@
         },
         {
           item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "alta",
           evidencia: true,
           legenda: "Fontes devolvidas em 38% - menos da metade da meta de 75%.",
           data: "2026-07-22"
         },
         {
-          item: "Login individual — sem compartilhamento de senha",
+          item: "Login individual - sem compartilhamento de senha",
           processo: "Treinamento & Pessoas",
           gravidade: "alta",
           evidencia: true,
@@ -714,7 +714,7 @@
         },
         {
           item: "Caixa padrão ou Ecobox",
-          processo: "Devolução — Logística Reversa",
+          processo: "Devolução - Logística Reversa",
           gravidade: "media",
           evidencia: true,
           legenda: "Devolução em caixas improvisadas, sem lacre nem identificação.",
@@ -784,7 +784,7 @@
       epoId: "nexus",
       epoNome: "EPO Nexus",
       item: "Conferência 100% dos seriais (ZTC) + RNC quando divergente",
-      processo: "Devolução — Logística Reversa",
+      processo: "Devolução - Logística Reversa",
       legenda: "Saldo no sistema de 845 x 700 devolvidos - diferença sem justificativa.",
       gravidade: "alta",
       data: "2026-07-18"
@@ -795,7 +795,7 @@
       epoId: "litoral",
       epoNome: "EPO Litoral",
       item: "Cumprimento da calendarização (devolução no dia agendado)",
-      processo: "Devolução — Logística Reversa",
+      processo: "Devolução - Logística Reversa",
       legenda: "Lotes de devolução represados na doca, fora da agenda.",
       gravidade: "alta",
       data: "2026-07-21"
@@ -806,7 +806,7 @@
       epoId: "delta",
       epoNome: "EPO Delta",
       item: "Caixa padrão ou Ecobox",
-      processo: "Devolução — Logística Reversa",
+      processo: "Devolução - Logística Reversa",
       legenda: "Devolução em caixas improvisadas, sem lacre nem identificação.",
       gravidade: "alta",
       data: "2026-07-22"
@@ -817,7 +817,7 @@
       epoId: "orbita",
       epoNome: "EPO Órbita",
       item: "Qualidade da reversa: fontes devolvidas ≥ meta de 75%",
-      processo: "Devolução — Logística Reversa",
+      processo: "Devolução - Logística Reversa",
       legenda: "Fontes devolvidas em 58% - muito abaixo da meta de 75%.",
       gravidade: "alta",
       data: "2026-07-20"
@@ -839,7 +839,7 @@
       epoId: "farol",
       epoNome: "EPO Farol",
       item: "Cumprimento da calendarização (devolução no dia agendado)",
-      processo: "Devolução — Logística Reversa",
+      processo: "Devolução - Logística Reversa",
       legenda: "Um lote devolvido com 2 dias de atraso em relação à agenda.",
       gravidade: "media",
       data: "2026-07-11"
@@ -1061,7 +1061,7 @@
       id: "ax-03",
       epoId: "aurora",
       epoNome: "EPO Aurora",
-      processo: "Devolução — Logística Reversa",
+      processo: "Devolução - Logística Reversa",
       item: "Cumprimento da calendarização",
       tipo: "E-mail",
       arquivo: "email-agenda-devolucao.eml",

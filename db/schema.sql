@@ -1,5 +1,5 @@
 -- ============================================================================
--- Auditoria de EPOs — schema proposto (Supabase / Postgres)
+-- Auditoria de EPOs - schema proposto (Supabase / Postgres)
 -- Rascunho para validação. Reflete o modelo pós-reunião Claro 27/07/2026:
 --   checklists por PROCESSO, evidência obrigatória com justificativa,
 --   link seguro para anexos, indicadores de reversa, multi-cliente.
@@ -73,7 +73,7 @@ create table auditorias (
   criado_em      timestamptz not null default now()
 );
 
--- Tempos do ciclo do material (SEM reparo — fluxo real da EPO), em dias.
+-- Tempos do ciclo do material (SEM reparo - fluxo real da EPO), em dias.
 create table tempos_ciclo (
   auditoria_id   uuid primary key references auditorias(id) on delete cascade,
   chegada        numeric(6,1),
@@ -156,11 +156,11 @@ create table perfis (
 );
 
 -- ============================================================================
--- RLS (resumo — políticas detalhadas na migration):
+-- RLS (resumo - políticas detalhadas na migration):
 --  * admin/gestor APSIS: tudo.
 --  * auditor: CRUD nas próprias auditorias (rascunho); leitura do catálogo.
 --  * cliente (Claro): SOMENTE leitura de auditorias enviadas/validadas do seu
---    cliente_id (dashboards/ranking) — nunca rascunhos.
+--    cliente_id (dashboards/ranking) - nunca rascunhos.
 --  * links_seguros: acesso anônimo apenas via edge function validando token
 --    não expirado (upload no bucket 'evidencias' com prefixo do link).
 -- Storage: bucket privado 'evidencias' (fotos/arquivos), políticas por papel.

@@ -52,7 +52,7 @@
             <span style="color: rgb(26, 71, 49);">AUDITORIA</span> <span style="color: rgb(244, 129, 38);">EPO'S</span>
           </h1>
           <p class="text-gray-500 text-sm mb-2">Faça login com sua conta corporativa</p>
-          <button onclick="location.href='index.html'" class="w-full mt-10 flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed text-slate-700 font-semibold py-3.5 px-6 rounded-xl shadow-sm transition-colors">
+          <button id="btn-ms" class="w-full mt-10 flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed text-slate-700 font-semibold py-3.5 px-6 rounded-xl shadow-sm transition-colors">
             <svg width="20" height="20" viewBox="0 0 23 23" aria-hidden="true" class="flex-shrink-0"><rect x="1" y="1" width="10" height="10" fill="#F25022" /><rect x="12" y="1" width="10" height="10" fill="#7FBA00" /><rect x="1" y="12" width="10" height="10" fill="#00A4EF" /><rect x="12" y="12" width="10" height="10" fill="#FFB900" /></svg>
             Entre com a sua conta Microsoft
           </button>
@@ -61,11 +61,35 @@
             <span class="text-xs text-gray-400 uppercase tracking-wide">ou</span>
             <span class="h-px flex-1 bg-slate-200"></span>
           </div>
-          <button onclick="location.href='index.html'" class="w-full flex items-center justify-center gap-3 font-semibold py-3.5 px-6 rounded-xl shadow-sm transition-colors text-white" style="background: rgb(26, 71, 49);" onmouseover="this.style.background='rgb(20, 56, 39)'" onmouseout="this.style.background='rgb(26, 71, 49)'">
+          <button id="btn-cliente" class="w-full flex items-center justify-center gap-3 font-semibold py-3.5 px-6 rounded-xl shadow-sm transition-colors text-white" style="background: rgb(26, 71, 49);" onmouseover="this.style.background='rgb(20, 56, 39)'" onmouseout="this.style.background='rgb(26, 71, 49)'">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><path d="M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/><path d="M3 21v-1a5 5 0 0 1 5-5h2"/><path d="m15 19 2 2 4-4"/></svg>
             Entrar como cliente
           </button>
+
+          <!-- Login do cliente: e-mail -> código de verificação (token) -->
+          <div id="painel-cliente" class="w-full hidden">
+            <div id="etapa-email">
+              <label class="block text-left text-xs font-semibold text-gray-500 mb-1" for="cli-email">E-mail corporativo</label>
+              <input id="cli-email" type="email" placeholder="nome@claro.com.br" autocomplete="email"
+                class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
+              <button id="btn-enviar-codigo" class="w-full mt-3 font-semibold py-3 px-6 rounded-xl text-white transition-colors" style="background: rgb(244, 121, 32);">
+                Enviar código de verificação
+              </button>
+            </div>
+            <div id="etapa-codigo" class="hidden">
+              <p class="text-sm text-gray-500 text-left mb-1">Enviamos um código de 6 dígitos para <b id="cli-email-eco"></b>.</p>
+              <input id="cli-token" type="text" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code"
+                class="w-full border border-slate-200 rounded-xl py-3 px-4 text-center text-2xl tracking-[.4em] text-slate-700 focus:outline-none" style="border-width:1.5px;" />
+              <button id="btn-verificar" class="w-full mt-3 font-semibold py-3 px-6 rounded-xl text-white transition-colors" style="background: rgb(26, 71, 49);">
+                Confirmar e entrar
+              </button>
+              <button id="btn-voltar-email" class="w-full mt-2 text-xs text-gray-400 underline">Usar outro e-mail</button>
+            </div>
+            <p id="cli-msg" class="text-xs text-center mt-3 hidden"></p>
+          </div>
+
           <p class="text-xs text-gray-400 text-center">Acesso restrito a colaboradores APSIS.<br />Use sua conta <span class="font-medium">@apsis.com.br</span></p>
+          <button id="btn-demo" class="text-xs text-gray-400 underline">Ver demonstração sem login</button>
         </div>
         <div style="flex:1 1 auto; display:flex; align-items:center; justify-content:center; width:100%; min-height:90px;">
           <img src="assets/brand/logo-claro.png" alt="Claro" onerror="this.style.display='none'" style="height:84px; width:auto; object-fit:contain; opacity:.95;" />
@@ -85,6 +109,81 @@
         i = (i + 1) % imgs.length;
         imgs[i].classList.remove('opacity-0'); imgs[i].classList.add('opacity-100');
       }, 6500);
+    })();
+  </script>
+
+  <script src="assets/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/auth.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      var $ = function (id) { return document.getElementById(id); };
+
+      function msg(texto, erro) {
+        var el = $("cli-msg");
+        el.textContent = texto;
+        el.classList.remove("hidden");
+        el.style.color = erro ? "#dc2626" : "#16a34a";
+      }
+
+      // Já logado? Vai direto para o app.
+      if (window.Auth && Auth.pronto) {
+        Auth.sessao().then(function (s) { if (s) location.replace("index.html"); });
+      }
+
+      // SSO Microsoft (Entra ID)
+      $("btn-ms").addEventListener("click", function () {
+        if (!window.Auth || !Auth.pronto) { location.href = "index.html"; return; }
+        Auth.entrarMicrosoft().then(function (r) {
+          if (r && r.error) msg("SSO Microsoft ainda não configurado no Supabase (App Registration pendente na TI).", true);
+        }).catch(function () {
+          msg("SSO Microsoft ainda não configurado no Supabase (App Registration pendente na TI).", true);
+        });
+      });
+
+      // Cliente: abre painel e-mail -> código
+      $("btn-cliente").addEventListener("click", function () {
+        $("painel-cliente").classList.toggle("hidden");
+        $("cli-email").focus();
+      });
+
+      $("btn-enviar-codigo").addEventListener("click", function () {
+        var email = ($("cli-email").value || "").trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg("Informe um e-mail válido.", true); return; }
+        $("btn-enviar-codigo").disabled = true;
+        Auth.enviarCodigo(email).then(function (r) {
+          $("btn-enviar-codigo").disabled = false;
+          if (r.error) { msg(r.error.message || "Falha ao enviar o código.", true); return; }
+          $("cli-email-eco").textContent = email;
+          $("etapa-email").classList.add("hidden");
+          $("etapa-codigo").classList.remove("hidden");
+          msg("Código enviado. Confira sua caixa de entrada (e o spam).");
+          $("cli-token").focus();
+        });
+      });
+
+      $("btn-verificar").addEventListener("click", function () {
+        var email = $("cli-email-eco").textContent;
+        var token = ($("cli-token").value || "").trim();
+        if (token.length < 6) { msg("Digite o código de 6 dígitos.", true); return; }
+        $("btn-verificar").disabled = true;
+        Auth.verificarCodigo(email, token).then(function (r) {
+          $("btn-verificar").disabled = false;
+          if (r.error) { msg("Código inválido ou expirado. Tente novamente.", true); return; }
+          location.replace("index.html");
+        });
+      });
+
+      $("btn-voltar-email").addEventListener("click", function () {
+        $("etapa-codigo").classList.add("hidden");
+        $("etapa-email").classList.remove("hidden");
+      });
+
+      // Demonstração sem login (protótipo continua navegável)
+      $("btn-demo").addEventListener("click", function () {
+        if (window.Auth) Auth.entrarDemo(); else location.href = "index.html";
+      });
     })();
   </script>
 </body>
