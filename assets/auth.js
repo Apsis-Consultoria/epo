@@ -83,6 +83,18 @@
     try { return sessionStorage.getItem("epoDemo") === "1"; } catch (e) { return false; }
   }
 
+  // Papel escolhido na entrada de teste. Vazio = vê tudo, como sempre foi.
+  // Serve para conferir a tela de um perfil antes de o acesso dele existir.
+  function papelDemo() {
+    try { return sessionStorage.getItem("epoDemoPapel") || ""; } catch (e) { return ""; }
+  }
+
+  var NOME_DEMO = {
+    responsavel: "Responsável da EPO (teste)",
+    cliente: "Gerente Claro (teste)",
+    auditor: "Consultor APSIS (teste)"
+  };
+
   function iniciais(nome) {
     return String(nome || "?").trim().split(/\s+/).slice(0, 2)
       .map(function (n) { return n.charAt(0).toUpperCase(); }).join("");
@@ -186,16 +198,24 @@
   function sair() {
     try {
       sessionStorage.removeItem("epoDemo");
-      sessionStorage.removeItem("epoAbriu");
+      sessionStorage.removeItem("epoDemoPapel");
     } catch (e) {}
     var fim = function () { location.replace("login.html"); };
     if (!client) { fim(); return; }
     client.auth.signOut().then(fim).catch(fim);
   }
 
-  function entrarDemo() {
-    try { sessionStorage.setItem("epoDemo", "1"); } catch (e) {}
-    location.href = "index.html";
+  // papel vazio = visitante, com todas as telas. Com papel, entra já na
+  // primeira tela permitida daquele perfil.
+  function entrarDemo(papel) {
+    try {
+      sessionStorage.setItem("epoDemo", "1");
+      if (papel) sessionStorage.setItem("epoDemoPapel", papel);
+      else sessionStorage.removeItem("epoDemoPapel");
+    } catch (e) {}
+    var presets = (window.APP && window.APP.papeisPreset) || {};
+    var perms = papel ? presets[papel] : null;
+    location.href = perms ? primeiraPermitida(perms) : "index.html";
   }
 
   // ------------------------------------------------------------------- UI
@@ -226,7 +246,21 @@
   // ------------------------------------------------------------------ Guard
   function guard(pageKey) {
     if (modoDemo()) {
-      atualizarUi({ nome: "Visitante", email: "", papel: "" });
+      var papelT = papelDemo();
+      var presets = (window.APP && window.APP.papeisPreset) || {};
+      var permsT = papelT ? presets[papelT] : null;
+      // Na entrada de teste por papel, a tela obedece às mesmas permissões do
+      // papel de verdade: menu filtrado e página fora do alcance é redirecionada.
+      if (permsT && pageKey && permsT[pageKey] === false) {
+        location.replace(primeiraPermitida(permsT));
+        return Promise.resolve("sem-permissao");
+      }
+      atualizarUi({
+        nome: NOME_DEMO[papelT] || "Visitante",
+        email: "",
+        papel: papelT
+      });
+      if (permsT) filtrarNav(permsT);
       return Promise.resolve("demo");
     }
     if (!client) {
@@ -274,6 +308,7 @@
     verificarCodigo: verificarCodigo,
     entrarDemo: entrarDemo,
     sair: sair,
-    modoDemo: modoDemo
+    modoDemo: modoDemo,
+    papelDemo: papelDemo
   };
 })();

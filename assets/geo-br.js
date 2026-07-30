@@ -122,6 +122,28 @@
     "santa maria|rs": [-29.6842, -53.8069]
   };
 
+  // Regiões do IBGE. O código (codarea) é o mesmo do desenho em
+  // assets/regioes-br.json, então o mapa liga um no outro sem tabela extra.
+  // A região de cada EPO sai da UF, nunca do desenho: assim a nota por região
+  // continua certa mesmo que o contorno não carregue.
+  var REGIOES = [
+    { id: "1", nome: "Norte",        ufs: ["AC", "AP", "AM", "PA", "RO", "RR", "TO"] },
+    { id: "2", nome: "Nordeste",     ufs: ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"] },
+    { id: "3", nome: "Sudeste",      ufs: ["ES", "MG", "RJ", "SP"] },
+    { id: "4", nome: "Sul",          ufs: ["PR", "RS", "SC"] },
+    { id: "5", nome: "Centro-Oeste", ufs: ["DF", "GO", "MT", "MS"] }
+  ];
+
+  var REGIAO_POR_UF = {};
+  REGIOES.forEach(function (r) {
+    r.ufs.forEach(function (u) { REGIAO_POR_UF[u.toLowerCase()] = r; });
+  });
+
+  function regiaoDaUf(uf) {
+    var r = REGIAO_POR_UF[chave(uf)];
+    return r ? { id: r.id, nome: r.nome } : null;
+  }
+
   // Centro aproximado de cada UF, para o caso de a cidade não estar na lista.
   var UFS = {
     ac: [-9.0, -70.0],   al: [-9.6, -36.6],   ap: [1.4, -51.8],    am: [-4.0, -63.0],
@@ -217,6 +239,9 @@
   window.GeoBR = {
     LIMITES: [[-34.0, -74.0], [5.5, -34.5]],   // Brasil inteiro
     CENTRO: [-15.0, -52.0],
+    REGIOES: REGIOES,
+    DESENHO_REGIOES: "assets/regioes-br.json",
+    regiaoDaUf: regiaoDaUf,
     daCidade: daCidade,
     daUf: daUf,
     pontoDaEpo: pontoDaEpo,

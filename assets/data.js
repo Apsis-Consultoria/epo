@@ -711,6 +711,58 @@
           data: "2026-07-22"
         }
       ]
+    },
+    {
+      // Unidade de teste no Centro-Oeste, para a regiao aparecer no mapa.
+      id: "cerrado",
+      nome: "EPO Cerrado (teste)",
+      cidade: "Goiânia",
+      uf: "GO",
+      endereco: "Avenida Anhanguera, 5000",
+      cep: "74110-010",
+      tier: "bronze",
+      score: 68,
+      equipamentos: 265,
+      equipamentosParados: 21,
+      tempos: { chegada: 2.1, armazenagem: 2.6, distribuicao: 2.2, retornoCampo: 3.1, devolucao: 2.8 },
+      conformidade: 71,
+      ncs: 6,
+      reversa: {
+        aderenciaCalendario: 78,
+        volumeDevolvido: 610,
+        saldoSistema: 742,
+        pctFontes: 69,
+        pctControles: 64,
+        metaFontes: 75,
+        metaControles: 75,
+        altoGiro: { equipamentos: 610, fontes: 421, controles: 390 }
+      },
+      historico: [
+        { mes: "Fev", score: 58 },
+        { mes: "Mar", score: 60 },
+        { mes: "Abr", score: 63 },
+        { mes: "Mai", score: 64 },
+        { mes: "Jun", score: 66 },
+        { mes: "Jul", score: 68 }
+      ],
+      naoConformidades: [
+        {
+          item: "Área de defeitos/reversa segregada e sinalizada",
+          processo: "Armazenagem & Facilities",
+          gravidade: "media",
+          evidencia: true,
+          legenda: "Área de reversa sem sinalização e dividindo espaço com material bom para uso.",
+          data: "2026-07-16"
+        },
+        {
+          item: "Baixas diárias via BTP",
+          processo: "Baixas - BTP / SAP / TOA",
+          gravidade: "alta",
+          evidencia: false,
+          legenda: "Baixas acumuladas de três dias lançadas de uma vez.",
+          data: "2026-07-16"
+        }
+      ]
     }
   ];
 

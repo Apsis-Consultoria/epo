@@ -12,69 +12,11 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=13">
+  <link rel="stylesheet" href="assets/app.css?v=14">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
 
-    /* ---------------- Mapa das EPOs ---------------- */
-    .mapa-caixa { position: relative; }
-    #mapa-epos {
-      height: min(56vh, 520px); min-height: 340px; width: 100%;
-      background: var(--surface-2);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-    @media (max-width: 900px) { #mapa-epos { height: 48vh; min-height: 300px; } }
-
-    .mapa-camadas {
-      position: absolute; z-index: 500; top: 12px; right: 12px;
-      display: flex; background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm);
-    }
-    .mapa-camadas button {
-      border: 0; background: transparent; cursor: pointer; font-family: inherit;
-      font-size: 12.5px; font-weight: 600; color: var(--text-2);
-      padding: 7px 12px; display: inline-flex; align-items: center; gap: 6px;
-    }
-    .mapa-camadas button.is-on { background: var(--primary); color: #fff; }
-    .mapa-camadas button + button { border-left: 1px solid var(--border); }
-
-    .selo-filtros { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 18px 0; }
-    .selo-chip {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: 999px; padding: 6px 13px 6px 9px;
-      font-family: inherit; font-size: 13px; font-weight: 500; color: var(--text-2);
-      cursor: pointer; transition: border-color .15s ease, opacity .15s ease;
-    }
-    .selo-chip:hover { border-color: var(--border-strong); }
-    .selo-chip.is-off { opacity: .42; }
-    .selo-chip .pino {
-      width: 22px; height: 22px; flex: 0 0 22px; border-radius: 50%;
-      display: grid; place-items: center; color: #fff; font-size: 13px;
-    }
-    .selo-chip b { color: var(--text); font-variant-numeric: tabular-nums; }
-
-    .pino-mapa {
-      width: 34px; height: 34px; border-radius: 50%;
-      display: grid; place-items: center; color: #fff; font-size: 18px;
-      border: 2.5px solid #fff; box-shadow: 0 2px 8px rgba(15, 33, 24, .35);
-    }
-    .pino-mapa.is-aprox { border-style: dashed; }
-
-    .leaflet-popup-content { margin: 12px 14px; font-family: Inter, sans-serif; }
-    .pop-nome { font-size: 15px; font-weight: 600; color: var(--text); margin: 0 0 2px; }
-    .pop-local { font-size: 12.5px; color: var(--text-2); margin: 0 0 10px; }
-    .pop-linha { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .pop-score { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
-    .pop-obs { font-size: 12px; color: var(--text-muted); margin: 0 0 10px; }
-    .pop-btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: var(--primary); color: #fff; text-decoration: none;
-      font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: var(--radius-sm);
-    }
-    .mapa-fora { font-size: 12.5px; color: var(--text-2); padding: 12px 18px 0; }
 
     /* Faixa de abertura: contexto da carteira + ação principal */
     .hero-acao {
@@ -170,12 +112,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=13"></script>
-  <script src="assets/app.js?v=13"></script>
-  <script src="assets/geo-br.js?v=13"></script>
-  <script src="assets/supabase-config.js?v=13"></script>
+  <script src="assets/data.js?v=14"></script>
+  <script src="assets/app.js?v=14"></script>
+  <script src="assets/geo-br.js?v=14"></script>
+  <script src="assets/mapa-epos.js?v=14"></script>
+  <script src="assets/supabase-config.js?v=14"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=13"></script>
+  <script src="assets/auth.js?v=14"></script>
   <script>
     (function () {
       "use strict";
@@ -291,10 +234,6 @@
             '</a>' +
           '</section>' +
 
-          // (1b) Mapa das EPOs - só para gerente da Claro e admin da APSIS.
-          // Preenchido depois, quando o papel de quem entrou é conhecido.
-          '<section class="card" id="card-mapa" hidden></section>' +
-
           // (2) KPIs
           '<section class="kpi-grid">' +
             kpi("ti-building-warehouse", "", "EPOs auditadas", App.fmtNum(kpis.eposAuditadas),
@@ -309,12 +248,16 @@
                 App.fmtNum(altaCount) + " de gravidade alta", "ti-flame") +
           '</section>' +
 
+          // (2b) Mapa das EPOs, abaixo das caixas. Só para gerente da Claro e
+          // admin da APSIS: preenchido quando o papel de quem entrou é conhecido.
+          '<section class="card" id="card-mapa" hidden></section>' +
+
           // (3) Qualidade da reversa
           '<section class="card">' +
             '<div class="card-header">' +
               '<div class="section-title">' +
                 '<h2 class="title">Qualidade da reversa</h2>' +
-                '<span class="subtitle">Fontes e controles remotos devolvidos junto aos equipamentos · média das 8 EPOs · meta 75%</span>' +
+                '<span class="subtitle">Fontes e controles remotos devolvidos junto aos equipamentos · média da carteira · meta 75%</span>' +
               '</div>' +
             '</div>' +
             '<div class="reversa-grid">' +
@@ -353,7 +296,7 @@
               '<div class="card-header">' +
                 '<div class="section-title">' +
                   '<h2 class="title">Score médio mensal</h2>' +
-                  '<span class="subtitle">Média das 8 EPOs · fevereiro a julho</span>' +
+                  '<span class="subtitle">Média da carteira · fevereiro a julho</span>' +
                 '</div>' +
               '</div>' +
               '<div class="chart-box">' +
@@ -491,281 +434,9 @@
           });
         }
       }
-      // ------------------------------------------------------------------
-      // Mapa das EPOs no Brasil.
-      // Aparece só para o gerente da Claro e para o admin da APSIS: é a leitura
-      // de carteira que esses dois papéis abrem o sistema para ver. O selo do
-      // pino vem da nota da última vistoria; crítico virou sinal de atenção.
-      // ------------------------------------------------------------------
-      (function mapaDasEpos() {
-        var card = document.getElementById("card-mapa");
-        if (!card || typeof L === "undefined" || !window.GeoBR) return;
-
-        var escM = App.escapeHtml;
-        var SELOS = {
-          ouro:    { label: "Ouro",         icone: "ti-medal",          cor: "#C08A2B" },
-          prata:   { label: "Prata",        icone: "ti-medal",          cor: "#7E8592" },
-          bronze:  { label: "Bronze",       icone: "ti-medal",          cor: "#B06A3B" },
-          critico: { label: "Atenção",      icone: "ti-alert-triangle", cor: "#EF4444" },
-          nenhum:  { label: "Sem vistoria", icone: "ti-map-pin",        cor: "#94A3B8" }
-        };
-        var ORDEM = ["ouro", "prata", "bronze", "critico", "nenhum"];
-
-        var ligados = { ouro: true, prata: true, bronze: true, critico: true, nenhum: true };
-        var unidades = [];
-        var mapa = null, camadaPinos = null, camadas = {};
-
-        function papelDe() {
-          // Protótipo e demonstração mostram o mapa: é o que a Claro vê na reunião.
-          if (!window.Auth || !Auth.pronto || Auth.modoDemo()) return Promise.resolve("admin");
-          return Auth.perfil().then(function (p) { return p ? p.papel : null; });
-        }
-
-        function dataBr(iso) {
-          if (!iso) return "";
-          var p = String(iso).slice(0, 10).split("-");
-          return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : "";
-        }
-
-        function seloDe(u) {
-          if (u.score === null || u.score === undefined) return "nenhum";
-          return u.tier || App.tierOf(u.score);
-        }
-
-        function montarCasca() {
-          card.hidden = false;
-          card.innerHTML =
-            '<div class="card-header">' +
-              '<div class="section-title">' +
-                '<h2 class="title">EPOs no Brasil</h2>' +
-                '<span class="subtitle">Selo de cada EPO pela nota da última vistoria · quem está crítico aparece com sinal de atenção</span>' +
-              "</div>" +
-            "</div>" +
-            '<div class="selo-filtros" id="selo-filtros"></div>' +
-            '<div class="mapa-fora" id="mapa-fora" hidden></div>' +
-            '<div class="mapa-caixa">' +
-              '<div class="mapa-camadas">' +
-                '<button type="button" data-camada="ruas" class="is-on"><i class="ti ti-map" aria-hidden="true"></i>Ruas</button>' +
-                '<button type="button" data-camada="satelite"><i class="ti ti-satellite" aria-hidden="true"></i>Satélite</button>' +
-              "</div>" +
-              '<div id="mapa-epos"></div>' +
-            "</div>";
-        }
-
-        function criarMapa() {
-          mapa = L.map("mapa-epos", {
-            center: GeoBR.CENTRO,
-            zoom: 4,
-            scrollWheelZoom: false   // a roda continua rolando a página
-          });
-          mapa.on("click", function () { mapa.scrollWheelZoom.enable(); });
-          mapa.on("mouseout", function () { mapa.scrollWheelZoom.disable(); });
-
-          camadas.ruas = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 18, attribution: "&copy; OpenStreetMap"
-          });
-          camadas.satelite = L.tileLayer(
-            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-            { maxZoom: 18, attribution: "Imagens: Esri" }
-          );
-          camadas.ruas.addTo(mapa);
-          camadaPinos = L.layerGroup().addTo(mapa);
-
-          card.querySelector(".mapa-camadas").addEventListener("click", function (ev) {
-            var b = ev.target.closest("[data-camada]");
-            if (!b) return;
-            var qual = b.getAttribute("data-camada");
-            Object.keys(camadas).forEach(function (k) {
-              if (mapa.hasLayer(camadas[k])) mapa.removeLayer(camadas[k]);
-            });
-            camadas[qual].addTo(mapa);
-            card.querySelectorAll(".mapa-camadas button").forEach(function (el) {
-              el.classList.toggle("is-on", el === b);
-            });
-          });
-        }
-
-        function iconeDe(u) {
-          var m = SELOS[u.selo];
-          return L.divIcon({
-            className: "",
-            html: '<div class="pino-mapa' + (u.precisao === "endereco" ? "" : " is-aprox") + '" ' +
-                  'style="background:' + m.cor + '"><i class="ti ' + m.icone + '"></i></div>',
-            iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -18]
-          });
-        }
-
-        function baloneDe(u) {
-          var m = SELOS[u.selo];
-          var local = [u.cidade, u.uf].filter(Boolean).join(" · ");
-          var nota = (u.score === null || u.score === undefined)
-            ? '<p class="pop-obs">Ainda sem vistoria registrada.</p>'
-            : '<div class="pop-linha"><span class="pop-score">' + App.fmtNum(u.score) + "</span>" +
-              '<span class="badge ' + App.tierMeta(u.selo).cls + '">' + escM(m.label) + "</span></div>" +
-              (u.dataVisita ? '<p class="pop-obs">Última vistoria em ' + escM(u.dataVisita) + ".</p>" : "");
-          var aviso = u.precisao === "endereco" ? "" :
-            '<p class="pop-obs">Posição aproximada pel' +
-            (u.precisao === "cidade" ? "a cidade: o endereço" : "o estado: cidade e endereço") +
-            " ainda não está no cadastro da EPO.</p>";
-          return '<p class="pop-nome">' + escM(u.nome) + "</p>" +
-            '<p class="pop-local">' + escM(local || "Local não informado") + "</p>" +
-            nota + aviso +
-            '<a class="pop-btn" href="epo-detalhe.html?id=' + encodeURIComponent(u.id) + '">' +
-            '<i class="ti ti-arrow-right" aria-hidden="true"></i>Ver a EPO</a>';
-        }
-
-        function visiveis() {
-          return unidades.filter(function (u) { return u.ponto && ligados[u.selo]; });
-        }
-
-        function desenharPinos() {
-          camadaPinos.clearLayers();
-          var lista = visiveis();
-          lista.forEach(function (u) {
-            L.marker(u.ponto, { icon: iconeDe(u), title: u.nome })
-              .bindPopup(baloneDe(u), { maxWidth: 280 })
-              .addTo(camadaPinos);
-          });
-          if (lista.length) {
-            mapa.fitBounds(lista.map(function (u) { return u.ponto; }), { padding: [40, 40], maxZoom: 10 });
-          } else {
-            mapa.fitBounds(GeoBR.LIMITES);
-          }
-        }
-
-        function renderFiltros() {
-          var cont = document.getElementById("selo-filtros");
-          var conta = {};
-          ORDEM.forEach(function (s) { conta[s] = 0; });
-          unidades.forEach(function (u) { conta[u.selo] += 1; });
-
-          cont.innerHTML = ORDEM.filter(function (s) { return conta[s] > 0; }).map(function (s) {
-            var m = SELOS[s];
-            return '<button class="selo-chip" type="button" data-selo="' + s + '" aria-pressed="true">' +
-              '<span class="pino" style="background:' + m.cor + '"><i class="ti ' + m.icone + '" aria-hidden="true"></i></span>' +
-              escM(m.label) + " <b>" + conta[s] + "</b></button>";
-          }).join("");
-
-          cont.addEventListener("click", function (ev) {
-            var b = ev.target.closest("[data-selo]");
-            if (!b) return;
-            var s = b.getAttribute("data-selo");
-            ligados[s] = !ligados[s];
-            b.classList.toggle("is-off", !ligados[s]);
-            b.setAttribute("aria-pressed", ligados[s] ? "true" : "false");
-            desenharPinos();
-          });
-        }
-
-        function renderFora() {
-          var fora = unidades.filter(function (u) { return !u.ponto; });
-          var el = document.getElementById("mapa-fora");
-          if (!fora.length) { el.hidden = true; return; }
-          el.hidden = false;
-          el.innerHTML = '<i class="ti ti-map-pin-off" aria-hidden="true"></i> ' +
-            "Sem cidade nem endereço no cadastro, fora do mapa: " +
-            fora.map(function (u) { return escM(u.nome); }).join(", ") + ".";
-        }
-
-        // O mapa nasce dentro de um cartão que ainda está sendo montado, e o
-        // menu lateral pode recolher depois. Sem recalcular o tamanho o mapa
-        // fica com as peças fora de lugar, então ele passa a reagir a qualquer
-        // mudança de largura.
-        function reagirAoTamanho() {
-          var caixa = document.getElementById("mapa-epos");
-          var ultimo = 0;
-          var recalcular = function () {
-            if (!mapa || !caixa) return;
-            var l = caixa.clientWidth;
-            if (l === ultimo) return;
-            ultimo = l;
-            if (l > 0) mapa.invalidateSize();
-          };
-          setTimeout(recalcular, 60);
-          window.addEventListener("resize", recalcular);
-          if (typeof ResizeObserver === "function") {
-            new ResizeObserver(recalcular).observe(caixa);
-          }
-        }
-
-        function montar(brutos) {
-          unidades = brutos.map(function (e) {
-            var pos = GeoBR.pontoDaEpo(e);
-            var u = {
-              id: e.id, nome: e.nome, cidade: e.cidade || "", uf: e.uf || "",
-              score: (e.score === null || e.score === undefined) ? null : Number(e.score),
-              tier: e.tier || null,
-              dataVisita: dataBr(e.dataVisita),
-              ponto: pos.ponto, precisao: pos.precisao
-            };
-            u.selo = seloDe(u);
-            return u;
-          });
-          if (!unidades.length) return;
-          GeoBR.espalhar(unidades);
-
-          montarCasca();
-          criarMapa();
-          renderFiltros();
-          renderFora();
-          desenharPinos();
-          reagirAoTamanho();
-        }
-
-        function daDemo() {
-          return (APP.epos || []).map(function (e) {
-            return {
-              id: e.id, nome: e.nome, cidade: e.cidade, uf: e.uf,
-              endereco: e.endereco || null, lat: e.lat, lng: e.lng,
-              score: e.score, tier: e.tier,
-              dataVisita: (e.vistorias && e.vistorias.length)
-                ? e.vistorias[e.vistorias.length - 1].data : null
-            };
-          });
-        }
-
-        function doBanco() {
-          var db = Auth.cliente;
-          return db.from("epos")
-            .select("id, nome, cidade, uf, endereco, lat, lng")
-            .eq("ativo", true).order("nome")
-            .then(function (r) {
-              if (r.error) throw new Error(r.error.message);
-              var lista = r.data || [];
-              if (!lista.length) return [];
-              return db.from("auditorias")
-                .select("epo_id, score, tier, data_visita, enviada_em, status")
-                .in("status", ["enviada", "validada"])
-                .order("data_visita", { ascending: false })
-                .then(function (ra) {
-                  var ultima = {};
-                  if (!ra.error) {
-                    (ra.data || []).forEach(function (a) {
-                      if (!ultima[a.epo_id]) ultima[a.epo_id] = a;
-                    });
-                  }
-                  return lista.map(function (e) {
-                    var a = ultima[e.id];
-                    e.score = a ? a.score : null;
-                    e.tier = a ? a.tier : null;
-                    e.dataVisita = a ? (a.data_visita || a.enviada_em) : null;
-                    return e;
-                  });
-                });
-            });
-        }
-
-        papelDe().then(function (papel) {
-          if (papel !== "cliente" && papel !== "admin") return;
-          var usaBanco = window.Auth && Auth.pronto && Auth.cliente && !Auth.modoDemo();
-          if (!usaBanco) { montar(daDemo()); return; }
-          return doBanco().then(montar, function (err) {
-            console.error("mapa das EPOs:", err);
-          });
-        }).catch(function (err) {
-          console.error("mapa das EPOs:", err);
-        });
-      })();
+      // Mapa das EPOs, logo abaixo das caixas de indicadores.
+      // Quem monta e quem decide se aparece e o assets/mapa-epos.js.
+      MapaEpos.montar("card-mapa");
     })();
   </script>
 </body>
