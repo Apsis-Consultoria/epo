@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=17">
+  <link rel="stylesheet" href="assets/app.css?v=18">
   <style>
     /* Ajustes locais - tela do responsável da EPO */
 
@@ -162,11 +162,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=17"></script>
-  <script src="assets/app.js?v=17"></script>
-  <script src="assets/supabase-config.js?v=17"></script>
+  <script src="assets/data.js?v=18"></script>
+  <script src="assets/app.js?v=18"></script>
+  <script src="assets/supabase-config.js?v=18"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=17"></script>
+  <script src="assets/auth.js?v=18"></script>
   <script>
     (function () {
       "use strict";
@@ -184,6 +184,9 @@
       var itens = [];           // itens_checklist do processo aberto
       var anexosPorItem = {};   // itemId -> [anexo]
       var enviando = false;
+      // Enviar nao e ponto final: o responsavel pode reabrir e mandar mais
+      // comprovacao quantas vezes precisar, antes ou durante a visita.
+      var editando = false;
 
       var STATUS_META = {
         pendente:     { label: "Pendente",     cls: "badge-media" },
@@ -366,8 +369,10 @@
       // ------------------------------------------------------------------
       // Upload / remoção de anexos
       // ------------------------------------------------------------------
+      // Anexo novo (primeiro ou complementar) devolve o questionario para
+      // "em andamento": e o que a equipe APSIS ve como movimento na EPO.
       function marcarEmAndamento() {
-        if (!atual || atual.status !== "pendente") return Promise.resolve();
+        if (!atual || atual.status === "em_andamento") return Promise.resolve();
         atual.status = "em_andamento";
         if (DEMO) return Promise.resolve();
         return db.from("alocacoes").update({ status: "em_andamento" }).eq("id", atual.id)
@@ -513,6 +518,7 @@
           atual.status = "enviada";
           atual.enviada_em = agora;
           enviando = false;
+          editando = false;
           renderSucesso();
           // ultima rede de protecao: o que nao foi encaminhado na hora de
           // anexar vai agora. Roda em segundo plano.
@@ -528,7 +534,11 @@
           })
           .catch(function (err) {
             enviando = false;
-            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-send" aria-hidden="true"></i>Enviar comprovações'; }
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = '<i class="ti ti-send" aria-hidden="true"></i>' +
+                (atual.enviada_em ? "Enviar de novo" : "Enviar comprovações");
+            }
             console.error("enviarComprovacoes", err);
             App.toast("Não foi possível concluir o envio. Tente novamente.");
           });
@@ -629,7 +639,7 @@
 
       function renderDetalhe() {
         if (!atual) { renderLista(); return; }
-        var readonly = atual.status === "enviada";
+        var readonly = atual.status === "enviada" && !editando;
         var epo = atual.epos || {};
         var proc = atual.processos || {};
 
@@ -659,13 +669,15 @@
         }).join("");
 
         var n = totalAnexos();
+        var jaEnviou = !!atual.enviada_em;
         var htmlBarra = readonly ? "" :
           '<div class="send-bar">' +
             '<span class="send-bar-info" id="send-bar-info">' +
               (n ? n + (n === 1 ? " anexo adicionado" : " anexos adicionados") : "Anexe pelo menos 1 arquivo para enviar") +
             "</span>" +
             '<button class="btn btn-primary" id="btn-enviar" type="button"' + (n < 1 ? " disabled" : "") + ">" +
-              '<i class="ti ti-send" aria-hidden="true"></i>Enviar comprovações' +
+              '<i class="ti ti-send" aria-hidden="true"></i>' +
+              (jaEnviou ? "Enviar de novo" : "Enviar comprovações") +
             "</button>" +
           "</div>";
 
@@ -687,10 +699,21 @@
             "<span>O auditor da APSIS vê estes anexos em tempo real durante a vistoria.</span>" +
           "</div>" +
           (readonly
-            ? '<div class="readonly-note"><i class="ti ti-lock-check" aria-hidden="true"></i>' +
-              "Comprovações enviadas" + (atual.enviada_em ? " em " + esc(dataBr(atual.enviada_em)) : "") +
-              ". Este questionário está em modo somente leitura.</div>"
-            : "") +
+            ? '<div class="readonly-note">' +
+                '<i class="ti ti-circle-check" aria-hidden="true"></i>' +
+                '<span style="flex:1;">Comprovações enviadas' +
+                  (atual.enviada_em ? " em " + esc(dataBr(atual.enviada_em)) : "") +
+                ". Precisa complementar? Você pode adicionar mais a qualquer momento.</span>" +
+                '<button class="btn btn-sm" id="btn-reabrir" type="button" ' +
+                  'style="flex:0 0 auto;background:var(--surface);color:var(--apsis-green);">' +
+                  '<i class="ti ti-plus" aria-hidden="true"></i>Adicionar mais' +
+                "</button>" +
+              "</div>"
+            : (jaEnviou
+              ? '<div class="live-note"><i class="ti ti-pencil" aria-hidden="true"></i>' +
+                "<span>Você está complementando um envio já feito. Ao terminar, use <b>Enviar de novo</b> " +
+                "para avisar a equipe APSIS.</span></div>"
+              : "")) +
           htmlPerguntas +
           htmlBarra;
 
@@ -699,8 +722,19 @@
 
       function wireDetalhe(readonly) {
         document.getElementById("btn-voltar").addEventListener("click", function () {
+          editando = false;
           carregarAlocacoes();
         });
+
+        var btnReabrir = document.getElementById("btn-reabrir");
+        if (btnReabrir) {
+          btnReabrir.addEventListener("click", function () {
+            editando = true;
+            renderDetalhe();
+            var primeira = page.querySelector(".dropzone");
+            if (primeira && primeira.scrollIntoView) primeira.scrollIntoView({ block: "center" });
+          });
+        }
 
         // Abrir anexo (signed URL) - também no modo leitura
         page.querySelectorAll(".anexo-nome").forEach(function (b) {
@@ -771,15 +805,24 @@
             "<p><b>" + esc(proc.nome || "Questionário") + "</b> da " + esc(epo.nome || "EPO") +
               " foi enviado com " + totalAnexos() + (totalAnexos() === 1 ? " anexo" : " anexos") +
               ". A equipe APSIS vai comparar as comprovações com a vistoria em campo na dupla checagem." +
-              
+              " Se aparecer mais algum documento, você pode complementar este envio quando quiser." +
             "</p>" +
-            '<button class="btn btn-primary" id="btn-voltar-lista" type="button">' +
-              '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar aos meus questionários' +
-            "</button>" +
+            '<div class="row wrap" style="gap:10px;justify-content:center;">' +
+              '<button class="btn btn-primary" id="btn-voltar-lista" type="button">' +
+                '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar aos meus questionários' +
+              "</button>" +
+              '<button class="btn btn-ghost" id="btn-complementar" type="button">' +
+                '<i class="ti ti-plus" aria-hidden="true"></i>Adicionar mais comprovações' +
+              "</button>" +
+            "</div>" +
           "</div></div>";
 
         document.getElementById("btn-voltar-lista").addEventListener("click", function () {
           carregarAlocacoes();
+        });
+        document.getElementById("btn-complementar").addEventListener("click", function () {
+          editando = true;
+          renderDetalhe();
         });
       }
 
