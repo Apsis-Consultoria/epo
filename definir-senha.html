@@ -67,7 +67,7 @@
     </div>
   </div>
 
-  <script src="assets/supabase-config.js?v=15"></script>
+  <script src="assets/supabase-config.js?v=16"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
     (function () {
@@ -142,7 +142,8 @@
           if (r.error) {
             btn.disabled = false;
             btn.textContent = "Salvar e entrar";
-            msg("Não foi possível salvar a senha: " + r.error.message, true);
+            console.error("definirSenha", r.error);
+            msg("Não foi possível salvar a senha. Tente de novo pelo link do e-mail.", true);
             return;
           }
           // avisa o sistema de que a senha agora é escolhida por ele

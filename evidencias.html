@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=15">
+  <link rel="stylesheet" href="assets/app.css?v=16">
 </head>
 <body>
   <div class="app-shell">
@@ -18,16 +18,18 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=15"></script>
-  <script src="assets/app.js?v=15"></script>
-  <script src="assets/supabase-config.js?v=15"></script>
+  <script src="assets/data.js?v=16"></script>
+  <script src="assets/app.js?v=16"></script>
+  <script src="assets/supabase-config.js?v=16"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=15"></script>
+  <script src="assets/auth.js?v=16"></script>
   <script>
     (function () {
       "use strict";
 
       var acoes =
+        '<button class="btn btn-ghost btn-sm" id="btn-reenviar" type="button" style="display:none;">' +
+          '<i class="ti ti-refresh" aria-hidden="true"></i><span id="btn-reenviar-txt">Reenviar documentos</span></button>' +
         '<button class="btn btn-ghost btn-sm" id="btn-exportar" type="button">' +
           '<i class="ti ti-download" aria-hidden="true"></i>Exportar</button>';
 
@@ -532,6 +534,80 @@
           App.toast("Exportação de evidências iniciada.");
         });
       }
+
+      /* ====================================================================
+         REENVIAR DOCUMENTOS QUE FICARAM PARA TRÁS
+         Documento anexado antes de a pasta oficial estar pronta, ou que falhou
+         no caminho, fica marcado como não encaminhado e ninguém tenta de novo.
+         Este botão fecha essa lacuna: aparece só para admin e gestor, e só
+         quando existe algo parado.
+         ==================================================================== */
+      (function () {
+        var db = (window.Auth && Auth.pronto && !Auth.modoDemo()) ? Auth.cliente : null;
+        var btn = document.getElementById("btn-reenviar");
+        var rotulo = document.getElementById("btn-reenviar-txt");
+        if (!db || !btn) return;
+
+        var PARADOS = ["pendente", "erro"];
+
+        function contar() {
+          return Promise.all([
+            db.from("alocacao_anexos").select("id", { count: "exact", head: true }).in("sharepoint_status", PARADOS),
+            db.from("evidencias").select("id", { count: "exact", head: true }).in("sharepoint_status", PARADOS)
+          ]).then(function (rs) {
+            var n = 0;
+            rs.forEach(function (r) { if (!r.error && r.count) n += r.count; });
+            return n;
+          });
+        }
+
+        function mostrar(n) {
+          if (!n) { btn.style.display = "none"; return; }
+          rotulo.textContent = "Reenviar " + App.fmtNum(n) + (n === 1 ? " documento" : " documentos");
+          btn.style.display = "";
+        }
+
+        // só admin e gestor reenviam
+        Auth.sessao().then(function (s) {
+          if (!s) return null;
+          return db.from("perfis").select("papel").eq("user_id", s.user.id).maybeSingle();
+        }).then(function (r) {
+          var papel = (r && r.data && r.data.papel) || "";
+          if (papel !== "admin" && papel !== "gestor") return;
+          return contar().then(mostrar);
+        }).catch(function (e) { console.warn("documentos parados:", e); });
+
+        btn.addEventListener("click", function () {
+          btn.disabled = true;
+          var antes = rotulo.textContent;
+          rotulo.textContent = "Reenviando...";
+          db.functions.invoke("sincronizar-sharepoint", { body: { tudo: true } })
+            .then(function (r) {
+              var d = (r && r.data) || {};
+              if (r && r.error) throw r.error;
+              if (d.ok === false && d.configurado === false) {
+                App.toast("O envio automático ainda não está liberado. Fale com a Gestão de TI.");
+              } else if (d.enviados) {
+                App.toast(
+                  App.fmtNum(d.enviados) + (d.enviados === 1 ? " documento enviado." : " documentos enviados.") +
+                  (d.lote_cheio ? " Ainda há documentos na fila: toque de novo." : "")
+                );
+              } else if (d.falhas && d.falhas.length) {
+                App.toast("Não foi possível enviar " + d.falhas.length + (d.falhas.length === 1 ? " documento." : " documentos."));
+                console.warn("falhas no reenvio:", d.falhas);
+              } else {
+                App.toast("Nenhum documento pendente.");
+              }
+              return contar().then(mostrar);
+            })
+            .catch(function (e) {
+              console.error("reenvio", e);
+              App.toast("Não foi possível reenviar agora. Tente novamente.");
+              rotulo.textContent = antes;
+            })
+            .then(function () { btn.disabled = false; });
+        });
+      })();
     })();
   </script>
 </body>
