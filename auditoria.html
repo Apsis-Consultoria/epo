@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=6">
+  <link rel="stylesheet" href="assets/app.css?v=7">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -59,6 +59,54 @@
     .wiz-evidence b { color: var(--text); font-weight: 600; }
     .wiz-evidence .evidence-tag { margin-top: 6px; }
     .evidence-tag.tag-grave { background: var(--danger-bg); color: var(--danger); }
+
+    /* Comprovações enviadas pela EPO (responsável anexa antes da visita).
+       Painel compacto, lista vertical, miniatura 44px, toque >= 44px. */
+    .wiz-comprov {
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface); padding: 11px 12px; margin: -8px 0 20px;
+    }
+    .wiz-comprov-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); }
+    .wiz-comprov-head > i { font-size: 16px; color: var(--apsis-green); flex: 0 0 auto; }
+    .wiz-comprov-count {
+      margin-left: auto; flex: 0 0 auto;
+      background: var(--apsis-orange); color: #fff;
+      border-radius: 99px; min-width: 20px; padding: 1px 7px;
+      font-size: 11px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums;
+    }
+    .wiz-comprov-msg { margin: 8px 0 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.5; }
+    .wiz-comprov-novo {
+      display: flex; gap: 6px; align-items: flex-start;
+      background: var(--warning-bg); color: var(--warning);
+      border-radius: var(--radius-sm); padding: 8px 10px; margin: 9px 0 0;
+      font-size: 12px; font-weight: 600; line-height: 1.45;
+    }
+    .wiz-comprov-novo i { font-size: 15px; flex: 0 0 auto; margin-top: 1px; }
+    .wiz-comprov-list { list-style: none; margin: 9px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .wiz-comprov-item {
+      display: flex; align-items: center; gap: 10px; min-height: 44px;
+      background: var(--surface-2); border-radius: var(--radius-sm); padding: 6px 8px;
+    }
+    .wiz-comprov-item > i { font-size: 19px; color: var(--apsis-green); flex: 0 0 32px; text-align: center; }
+    .wiz-comprov-thumb {
+      width: 44px; height: 44px; flex: 0 0 44px; border-radius: 8px;
+      object-fit: cover; background: var(--surface); display: block;
+    }
+    .wiz-comprov-info { flex: 1; min-width: 0; }
+    .wiz-comprov-nome {
+      display: block; font-size: 13px; font-weight: 600; color: var(--text);
+      text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    a.wiz-comprov-nome:active, a.wiz-comprov-nome:hover { color: var(--apsis-green); text-decoration: underline; }
+    .wiz-comprov-meta { display: block; font-size: 11.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wiz-comprov-open {
+      width: 44px; height: 44px; flex: 0 0 44px; border-radius: 10px;
+      display: grid; place-items: center; color: var(--text-2); text-decoration: none; font-size: 17px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wiz-comprov-open:active { background: var(--surface); }
+    .wiz-comprov-sp { display: flex; gap: 6px; align-items: flex-start; margin: 10px 0 0; font-size: 11.5px; color: var(--text-muted); line-height: 1.45; }
+    .wiz-comprov-sp i { font-size: 14px; flex: 0 0 auto; margin-top: 1px; }
 
     /* Aviso âmbar - evidência obrigatória */
     .wiz-warn {
@@ -287,8 +335,8 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=6"></script>
-  <script src="assets/app.js?v=6"></script>
+  <script src="assets/data.js?v=7"></script>
+  <script src="assets/app.js?v=7"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -825,6 +873,292 @@
         }
       }
 
+      /* ====================================================================
+         COMPROVAÇÕES ENVIADAS PELA EPO (tempo real)
+         O acesso do responsável da EPO sai antes da visita: ele anexa a
+         comprovação de cada pergunta em alocacao_anexos. Aqui o auditor vê,
+         no mesmo item, o que já chegou - via vw_comprovacoes_epo (que já
+         resolve alocação -> epo/processo). Atualização por Realtime, com
+         polling de 20s e recarga no foco da janela como rede de segurança.
+         ==================================================================== */
+      var comprovDemo = !(window.Auth && Auth.pronto && !Auth.modoDemo());
+
+      var comprov = {
+        idsPromise: null,   // { procId, itens: [uuid por índice], set: {uuid:true} }
+        eposPromise: null,  // lista de EPOs ativas do banco
+        canal: null,        // canal Realtime
+        timer: null,        // polling do passo aberto
+        seq: 0,             // invalida respostas de passos já trocados
+        itemAtual: null,    // uuid do item na tela
+        pendentes: 0,       // anexos novos vistos em OUTROS itens
+        avisoStep: "",      // aviso desses outros itens, exibido no passo atual
+        cache: null         // { idx, conteudo, n } do passo atual
+      };
+
+      function comprovTamanho(bytes) {
+        var n = Number(bytes) || 0;
+        if (!n) return "";
+        if (n < 1024) return n + " B";
+        if (n < 1024 * 1024) return (n / 1024).toFixed(0) + " KB";
+        return (n / (1024 * 1024)).toFixed(1) + " MB";
+      }
+
+      function comprovHora(iso) {
+        if (!iso) return "";
+        try {
+          return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        } catch (e) { return ""; }
+      }
+
+      function comprovIcone(nome, contentType) {
+        var ct = String(contentType || "").toLowerCase();
+        var ext = String(nome || "").toLowerCase().split(".").pop();
+        if (ct.indexOf("image/") === 0 || /^(jpg|jpeg|png|gif|webp|heic)$/.test(ext)) return "ti-photo";
+        if (ct.indexOf("pdf") >= 0 || ext === "pdf") return "ti-file-typography";
+        return "ti-file";
+      }
+
+      // Resolve UMA vez: processo (por slug) e itens_checklist na ordem oficial.
+      function comprovIds() {
+        if (comprov.idsPromise) return comprov.idsPromise;
+        var db = Auth.cliente;
+        comprov.idsPromise = db.from("processos").select("id")
+          .eq("slug", processo.id).eq("ativo", true).maybeSingle()
+          .then(function (r) {
+            if (r.error) throw r.error;
+            if (!r.data) throw new Error("processo fora do catálogo do banco: " + processo.id);
+            var procId = r.data.id;
+            return db.from("itens_checklist").select("id")
+              .eq("processo_id", procId).eq("ativo", true).order("ordem")
+              .then(function (ri) {
+                if (ri.error) throw ri.error;
+                var lista = (ri.data || []).map(function (x) { return x.id; });
+                var set = {};
+                lista.forEach(function (id) { set[id] = true; });
+                comprov.itensSet = set;
+                return { procId: procId, itens: lista, set: set };
+              });
+          });
+        return comprov.idsPromise;
+      }
+
+      // uuid da EPO da tela (a seleção pode mudar no passo de identificação)
+      function comprovEpoId() {
+        var db = Auth.cliente;
+        if (!comprov.eposPromise) {
+          comprov.eposPromise = db.from("epos").select("id, nome").eq("ativo", true)
+            .then(function (r) {
+              if (r.error) throw r.error;
+              return r.data || [];
+            });
+        }
+        var alvo = App.epoById(state.epoId);
+        return comprov.eposPromise.then(function (lista) {
+          for (var i = 0; i < lista.length; i++) {
+            if (alvo && lista[i].nome === alvo.nome) return lista[i].id;
+          }
+          return null;
+        });
+      }
+
+      function comprovCabecalho(n) {
+        return (
+          '<div class="wiz-comprov-head">' +
+            '<i class="ti ti-inbox" aria-hidden="true"></i>' +
+            "<span>Comprovações enviadas pela EPO</span>" +
+            (n ? '<span class="wiz-comprov-count tnum">' + n + "</span>" : "") +
+          "</div>"
+        );
+      }
+
+      function comprovPintar(conteudo, n, cachear) {
+        if (cachear) comprov.cache = { idx: comprov.cacheIdx, conteudo: conteudo, n: n };
+        var el = document.getElementById("wiz-comprov");
+        if (!el) return;
+        el.innerHTML =
+          comprovCabecalho(n) +
+          comprov.avisoStep +
+          conteudo +
+          '<p class="wiz-comprov-sp"><i class="ti ti-cloud-upload" aria-hidden="true"></i>' +
+            "<span>Os arquivos vão para o SharePoint da Claro.</span></p>";
+      }
+
+      var COMPROV_VAZIO = '<p class="wiz-comprov-msg">A EPO ainda não enviou comprovação para este item.</p>';
+
+      function comprovListaHtml(rows) {
+        return '<ul class="wiz-comprov-list">' + rows.map(function (a) {
+          var ct = String(a.content_type || "");
+          var nome = esc(a.nome_arquivo || "arquivo");
+          var visual = (ct.indexOf("image/") === 0 && a.url)
+            ? '<img class="wiz-comprov-thumb" src="' + esc(a.url) + '" alt="' + nome + '" loading="lazy">'
+            : '<i class="ti ' + comprovIcone(a.nome_arquivo, ct) + '" aria-hidden="true"></i>';
+          var partes = [];
+          var tam = comprovTamanho(a.tamanho);
+          if (tam) partes.push(tam);
+          var hora = comprovHora(a.criado_em);
+          if (hora) partes.push("enviado " + hora);
+          if (a.responsavel_email) partes.push(esc(a.responsavel_email));
+          var nomeHtml = a.url
+            ? '<a class="wiz-comprov-nome" href="' + esc(a.url) + '" target="_blank" rel="noopener">' + nome + "</a>"
+            : '<span class="wiz-comprov-nome">' + nome + "</span>";
+          var abrir = a.url
+            ? '<a class="wiz-comprov-open" href="' + esc(a.url) + '" target="_blank" rel="noopener" aria-label="Abrir ' + nome + '"><i class="ti ti-external-link" aria-hidden="true"></i></a>'
+            : "";
+          return (
+            '<li class="wiz-comprov-item">' + visual +
+              '<div class="wiz-comprov-info">' + nomeHtml +
+                '<span class="wiz-comprov-meta">' + partes.join(" · ") + "</span>" +
+              "</div>" + abrir +
+            "</li>"
+          );
+        }).join("") + "</ul>";
+      }
+
+      // Modo demo/offline: 1 anexo fictício no primeiro item, sem rede.
+      function comprovDemoRows() {
+        var d = new Date();
+        d.setHours(9, 12, 0, 0);
+        return [{
+          nome_arquivo: "nf-espelho-4821.pdf",
+          content_type: "application/pdf",
+          tamanho: 184320,
+          criado_em: d.toISOString(),
+          responsavel_email: "responsável da EPO",
+          url: null
+        }];
+      }
+
+      // silencioso: recarga de fundo (Realtime, polling, foco) - não pisca o
+      // estado de "carregando", mantém o conteúdo atual até chegar o novo.
+      function comprovCarregar(step, silencioso) {
+        var idx = step.pos - 1;
+        comprov.cacheIdx = idx;
+        var pedido = ++comprov.seq;
+
+        if (comprovDemo) {
+          if (idx === 0) {
+            comprovPintar(
+              comprovListaHtml(comprovDemoRows()) +
+              '<p class="wiz-comprov-msg">Modo demonstração - nada é gravado e o arquivo não abre.</p>',
+              1, true
+            );
+          } else {
+            comprovPintar(
+              COMPROV_VAZIO +
+              '<p class="wiz-comprov-msg">Modo demonstração - nada é gravado.</p>',
+              0, true
+            );
+          }
+          return;
+        }
+
+        if (!silencioso) comprovPintar('<p class="wiz-comprov-msg">Carregando comprovações da EPO…</p>', 0, false);
+
+        Promise.all([comprovIds(), comprovEpoId()]).then(function (rs) {
+          var ids = rs[0], epoId = rs[1];
+          var itemId = ids.itens[idx];
+          if (!epoId) throw new Error("EPO não encontrada no banco");
+          if (!itemId) throw new Error("item sem correspondente no banco");
+          if (pedido === comprov.seq) comprov.itemAtual = itemId;
+          return Auth.cliente.from("vw_comprovacoes_epo").select("*")
+            .eq("epo_id", epoId).eq("processo_id", ids.procId).eq("item_id", itemId)
+            .order("criado_em")
+            .then(function (r) {
+              if (r.error) throw r.error;
+              return r.data || [];
+            });
+        }).then(function (rows) {
+          if (pedido !== comprov.seq) return null;
+          if (!rows.length) { comprovPintar(COMPROV_VAZIO, 0, true); return null; }
+          return Promise.all(rows.map(function (a) {
+            if (!a.storage_path) { a.url = null; return a; }
+            return Auth.cliente.storage.from("evidencias").createSignedUrl(a.storage_path, 3600)
+              .then(function (u) { a.url = (u.data && u.data.signedUrl) || null; return a; },
+                    function () { a.url = null; return a; });
+          })).then(function (lista) {
+            if (pedido !== comprov.seq) return;
+            comprovPintar(comprovListaHtml(lista), lista.length, true);
+          });
+        }).catch(function (err) {
+          if (pedido !== comprov.seq) return;
+          console.warn("Comprovações da EPO indisponíveis:", (err && err.message) || err);
+          comprovPintar('<p class="wiz-comprov-msg">Não foi possível carregar as comprovações da EPO agora.</p>', 0, true);
+        });
+      }
+
+      // Realtime: uma assinatura por auditoria. O payload de alocacao_anexos
+      // não traz epo_id/processo_id, então filtramos pelo item_id conhecido e
+      // recarregamos pela view (que aplica o filtro de EPO e processo).
+      function comprovAssinar() {
+        if (comprovDemo || comprov.canal || !Auth.cliente) return;
+        comprov.canal = Auth.cliente.channel("comprov-epo")
+          .on("postgres_changes", { event: "*", schema: "public", table: "alocacao_anexos" }, function (payload) {
+            var row = payload.new || payload.old || {};
+            var itemId = row.item_id;
+            if (!itemId || !comprov.itensSet || !comprov.itensSet[itemId]) return;
+            var step = steps[cur];
+            if (itemId === comprov.itemAtual && step && step.type === "item") {
+              comprovCarregar(step, true);
+            } else {
+              comprov.pendentes += 1;
+            }
+          })
+          .subscribe();
+      }
+
+      function comprovParar() {
+        if (comprov.timer) { clearInterval(comprov.timer); comprov.timer = null; }
+        comprov.itemAtual = null;
+        comprov.seq += 1; // descarta respostas em voo do passo anterior
+      }
+
+      // Chamado no wire de cada passo de item
+      function comprovIniciarPasso(step) {
+        var idx = step.pos - 1;
+        var mesmoPasso = !!(comprov.cache && comprov.cache.idx === idx);
+
+        if (!mesmoPasso) {
+          comprov.avisoStep = comprov.pendentes > 0
+            ? '<p class="wiz-comprov-novo"><i class="ti ti-bell-ringing" aria-hidden="true"></i><span>' +
+                comprov.pendentes + (comprov.pendentes > 1 ? " novas comprovações chegaram" : " nova comprovação chegou") +
+                " em outros itens deste questionário.</span></p>"
+            : "";
+          comprov.pendentes = 0;
+          comprov.cache = null;
+        }
+
+        if (mesmoPasso) {
+          // re-render do mesmo item (troca de resposta, anexo): repinta do cache
+          comprov.cacheIdx = idx;
+          comprovPintar(comprov.cache.conteudo, comprov.cache.n, false);
+        } else {
+          comprovCarregar(step);
+        }
+
+        if (comprovDemo) return;
+        comprovAssinar();
+        if (comprov.timer) clearInterval(comprov.timer);
+        comprov.timer = setInterval(function () {
+          var s = steps[cur];
+          if (s && s.type === "item") comprovCarregar(s, true);
+          else comprovParar();
+        }, 20000);
+      }
+
+      // Fallback: volta do app da câmera / troca de aba recarrega o painel
+      window.addEventListener("focus", function () {
+        var s = steps[cur];
+        if (!comprovDemo && s && s.type === "item" && document.getElementById("wiz-comprov")) comprovCarregar(s, true);
+      });
+
+      window.addEventListener("pagehide", function () {
+        comprovParar();
+        if (comprov.canal && Auth.cliente) {
+          Auth.cliente.removeChannel(comprov.canal);
+          comprov.canal = null;
+        }
+      });
+
       function renderItem(step) {
         var it = step.item;
         var r = respostaDe(it.id);
@@ -846,6 +1180,7 @@
           '<p class="wiz-subeyebrow">Item ' + step.pos + " de " + step.total + " deste processo</p>" +
           '<h1 class="wiz-question">' + esc(it.pergunta) + "</h1>" +
           '<div class="wiz-evidence"><i class="ti ti-file-check" aria-hidden="true"></i><span><b>Evidência esperada:</b> ' + esc(it.evidencia || "-") + tags + "</span></div>" +
+          '<div class="wiz-comprov" id="wiz-comprov"></div>' +
           '<div class="wiz-options" id="wiz-options">' +
             opts.map(function (o) {
               var sel = r.status === o.val ? " is-selected" : "";
@@ -893,6 +1228,7 @@
           '<p class="wiz-subeyebrow">Item ' + step.pos + " de " + step.total + "</p>" +
           '<h1 class="wiz-question">' + esc(it.item) + "</h1>" +
           '<div class="wiz-evidence"><i class="ti ti-plug" aria-hidden="true"></i><span>O item obrigatório retornou junto com o equipamento na retirada do assinante?' + tags + "</span></div>" +
+          '<div class="wiz-comprov" id="wiz-comprov"></div>' +
           '<div class="wiz-options" id="wiz-options">' +
             opts.map(function (o) {
               var sel = r.status === o.val ? " is-selected" : "";
@@ -1001,6 +1337,7 @@
 
       function renderStep() {
         var step = steps[cur];
+        comprovParar(); // encerra polling/consultas do passo anterior
         var html;
         if (step.type === "intro") html = renderIntro();
         else if (step.type === "identificacao") html = renderIdentificacao();
@@ -1087,6 +1424,8 @@
         } else if (step.type === "item") {
           var it = step.item;
           var r = respostaDe(it.id);
+
+          comprovIniciarPasso(step); // painel de comprovações da EPO (tempo real)
 
           Array.prototype.forEach.call(document.querySelectorAll(".wiz-opt"), function (btn) {
             btn.addEventListener("click", function () {
@@ -1340,7 +1679,11 @@
       }
 
       backBtn.addEventListener("click", function () {
-        if (cur > 0) { cur -= 1; renderStep(); }
+        if (cur > 0) {
+          cur -= 1;
+          comprov.cache = null; // trocou de passo: recarrega do banco
+          renderStep();
+        }
       });
 
       nextBtn.addEventListener("click", function () {
@@ -1358,6 +1701,7 @@
           return;
         }
         cur += 1;
+        comprov.cache = null; // trocou de passo: recarrega do banco
         renderStep();
       });
 

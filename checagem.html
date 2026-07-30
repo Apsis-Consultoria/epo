@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=6">
+  <link rel="stylesheet" href="assets/app.css?v=7">
   <style>
     /* Ajustes locais da dupla checagem */
 
@@ -75,6 +75,7 @@
     .chk-file:hover { border-color: var(--border-strong); background: var(--surface); }
     .chk-file i { font-size: 16px; color: var(--text-2); flex: 0 0 auto; }
     .chk-file .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .chk-file .hr { font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
     .chk-file.is-off { cursor: not-allowed; color: var(--text-muted); }
     .chk-thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
     .chk-thumb {
@@ -88,6 +89,12 @@
     .chk-score { display: flex; align-items: center; gap: 12px; }
     .chk-score .v { font-size: 26px; font-weight: 600; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
     .chk-score .l { font-size: 12px; color: var(--text-2); }
+    .chk-nota {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text-muted); line-height: 1.5;
+      margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--border);
+    }
+    .chk-nota i { font-size: 15px; flex: 0 0 auto; }
 
     @media (max-width: 760px) {
       .chk-cols { grid-template-columns: 1fr; }
@@ -103,8 +110,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=6"></script>
-  <script src="assets/app.js?v=6"></script>
+  <script src="assets/data.js?v=7"></script>
+  <script src="assets/app.js?v=7"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -138,6 +145,14 @@
         var s = String(v).slice(0, 10).split("-");
         if (s.length !== 3) return String(v);
         return s[2] + "/" + s[1] + "/" + s[0];
+      }
+
+      // hora de envio (HH:MM) do criado_em de um anexo da EPO
+      function horaEnvio(v) {
+        if (!v) return "";
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       }
 
       function ehImagem(path) {
@@ -237,10 +252,10 @@
               "demo-item-1": [{ nome: "rnc-julho.pdf", imagem: false }]
             },
             anexos: {
-              "demo-item-0": [{ nome: "nfe-conferencia-lote-8841.pdf" }],
+              "demo-item-0": [{ nome: "nfe-conferencia-lote-8841.pdf", criado_em: "2026-07-24T11:32:00" }],
               "demo-item-1": [
-                { nome: "rnc-0071-formulario.pdf" },
-                { nome: "nf-diferenca-2231.pdf" }
+                { nome: "rnc-0071-formulario.pdf", criado_em: "2026-07-24T14:05:00" },
+                { nome: "nf-diferenca-2231.pdf", criado_em: "2026-07-24T14:07:00" }
               ]
             }
           }
@@ -439,20 +454,21 @@
       }
 
       // ------------------------------------------------------------ render detalhe
-      function arquivoHtml(nome, url, imagem) {
+      function arquivoHtml(nome, url, imagem, hora) {
+        var hr = hora ? '<span class="hr" title="Enviado às ' + esc(hora) + '">' + esc(hora) + "</span>" : "";
         if (DEMO || !url) {
           return '<span class="chk-file is-off" title="Link indisponível no modo demonstração">' +
             '<i class="ti ' + (imagem ? "ti-photo" : "ti-file") + '" aria-hidden="true"></i>' +
-            '<span class="nm">' + esc(nome) + "</span></span>";
+            '<span class="nm">' + esc(nome) + "</span>" + hr + "</span>";
         }
         return '<a class="chk-file" href="' + esc(url) + '" target="_blank" rel="noopener">' +
           '<i class="ti ' + (imagem ? "ti-photo" : "ti-file") + '" aria-hidden="true"></i>' +
-          '<span class="nm">' + esc(nome) + "</span>" +
+          '<span class="nm">' + esc(nome) + "</span>" + hr +
           '<i class="ti ti-external-link" aria-hidden="true" style="margin-left:auto;"></i></a>';
       }
 
-      function thumbHtml(nome, url) {
-        return '<a class="chk-thumb" href="' + esc(url) + '" target="_blank" rel="noopener" title="' + esc(nome) + '">' +
+      function thumbHtml(nome, url, hora) {
+        return '<a class="chk-thumb" href="' + esc(url) + '" target="_blank" rel="noopener" title="' + esc(nome) + (hora ? " - enviado às " + esc(hora) : "") + '">' +
           '<img src="' + esc(url) + '" alt="' + esc(nome) + '" loading="lazy"></a>';
       }
 
@@ -506,15 +522,16 @@
           var thumbs = [];
           var arquivos = [];
           lista.forEach(function (ax) {
+            var hora = horaEnvio(ax.criado_em);
             if (DEMO) {
-              arquivos.push(arquivoHtml(ax.nome, null, ehImagem(ax.nome)));
+              arquivos.push(arquivoHtml(ax.nome, null, ehImagem(ax.nome), hora));
               return;
             }
             var url = det.urls[ax.storage_path] || null;
             var nome = ax.nome_arquivo || nomeDoPath(ax.storage_path);
             var img = (ax.content_type && ax.content_type.indexOf("image/") === 0) || ehImagem(ax.storage_path);
-            if (img && url) thumbs.push(thumbHtml(nome, url));
-            else arquivos.push(arquivoHtml(nome, url, img));
+            if (img && url) thumbs.push(thumbHtml(nome, url, hora));
+            else arquivos.push(arquivoHtml(nome, url, img, hora));
           });
           if (thumbs.length) partes.push('<div class="chk-thumbs">' + thumbs.join("") + "</div>");
           if (arquivos.length) partes.push('<div class="chk-files">' + arquivos.join("") + "</div>");
@@ -622,7 +639,10 @@
           '<div class="card mb-0"><div class="chk-footer">' +
             scoreHtml +
             botoes +
-          "</div></div>";
+          "</div>" +
+          '<p class="chk-nota"><i class="ti ti-cloud-lock" aria-hidden="true"></i>' +
+            "Arquivos armazenados no bucket privado e sincronizados com o SharePoint da Claro." +
+          "</p></div>";
 
         document.getElementById("btn-voltar").addEventListener("click", renderLista);
 

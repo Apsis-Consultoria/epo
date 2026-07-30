@@ -43,6 +43,7 @@
     { key: "envio",       label: "Envio de comprovações", icon: "ti-cloud-upload", href: "envio.html" },
     { key: "checagem",    label: "Dupla checagem",   icon: "ti-zoom-check",       href: "checagem.html" },
     { key: "alocacoes",   label: "Alocações",        icon: "ti-user-plus",        href: "alocacoes.html" },
+    { key: "giro",        label: "Montagem de estoque", icon: "ti-packages",      href: "contagem-giro.html" },
     { key: "evidencias",  label: "Evidências",       icon: "ti-camera",           href: "evidencias.html" },
     { key: "acessos",     label: "Gerenciamento de acessos", icon: "ti-lock-access", href: "acessos.html" },
     { key: "config",      label: "Configurações",    icon: "ti-settings",         href: "configuracoes.html" }

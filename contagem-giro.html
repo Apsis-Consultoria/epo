@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Montagem de estoque - Auditoria de EPOs</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/app.css?v=7">
+  <style>
+    /* Ajustes locais - montagem de estoque (contagem de giro), mobile-first */
+
+    .demo-note {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12.5px; color: var(--text-2);
+      background: var(--warning-bg); border: 1px dashed var(--warning);
+      border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 14px;
+    }
+    .demo-note i { color: var(--warning); font-size: 16px; flex: 0 0 auto; }
+
+    .giro-cod {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13.5px; font-weight: 600; color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .badge-alto  { background: var(--warning-bg); color: var(--warning); }
+    .badge-baixo { background: var(--surface-2);  color: var(--text-2); }
+
+    /* ------ Busca ------ */
+    .busca-wrap { position: relative; }
+    .busca-input {
+      width: 100%; min-height: 52px; font-size: 16px; font-weight: 500;
+      padding: 12px 14px 12px 42px;
+      background: var(--surface); color: var(--text);
+      border: 1.5px solid var(--border-strong); border-radius: var(--radius);
+      font-family: inherit; -webkit-appearance: none; appearance: none;
+    }
+    .busca-input::placeholder { color: var(--text-muted); font-weight: 400; }
+    .busca-input:focus { outline: 0; border-color: var(--apsis-green); box-shadow: 0 0 0 3px rgba(26, 71, 49, .12); }
+    .busca-icone {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 19px; color: var(--text-muted); pointer-events: none;
+    }
+    .busca-limpar {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      width: 36px; height: 36px; border: 0; border-radius: var(--radius-sm);
+      background: transparent; color: var(--text-muted);
+      display: none; place-items: center; font-size: 18px; cursor: pointer;
+    }
+    .busca-limpar.is-on { display: grid; }
+    .busca-limpar:hover { background: var(--surface-2); color: var(--text); }
+    .busca-meta {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--text-muted);
+    }
+
+    .res-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .res-item {
+      display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+      min-height: 56px; padding: 10px 12px; font-family: inherit;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); cursor: pointer;
+      transition: border-color .15s ease, background .15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .res-item:hover { border-color: var(--apsis-green); background: var(--primary-tint); }
+    .res-item:active { transform: scale(.995); }
+    .res-item.is-sel { border-color: var(--apsis-green); background: var(--primary-tint); }
+    .res-info { flex: 1; min-width: 0; }
+    .res-tec { display: block; font-size: 13.5px; font-weight: 500; color: var(--text); line-height: 1.35; }
+    .res-cat { display: block; font-size: 12px; color: var(--text-2); }
+    .res-item .badge { flex: 0 0 auto; }
+
+    /* ------ Item selecionado ------ */
+    .sel-card {
+      background: var(--surface); border: 1.5px solid var(--apsis-green);
+      border-radius: var(--radius); padding: 16px; margin-top: 14px;
+    }
+    .sel-top { display: flex; align-items: flex-start; gap: 12px; }
+    .sel-icone {
+      width: 42px; height: 42px; flex: 0 0 42px; border-radius: 12px;
+      background: var(--primary-tint); color: var(--apsis-green);
+      display: grid; place-items: center; font-size: 22px;
+    }
+    .sel-info { flex: 1; min-width: 0; }
+    .sel-info b { display: block; font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .sel-info span { display: block; font-size: 12.5px; color: var(--text-2); }
+    .sel-fechar {
+      width: 34px; height: 34px; flex: 0 0 34px; border: 0; border-radius: var(--radius-sm);
+      background: transparent; color: var(--text-muted);
+      display: grid; place-items: center; font-size: 18px; cursor: pointer;
+    }
+    .sel-fechar:hover { background: var(--surface-2); color: var(--text); }
+    .sel-acoes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+    .sel-acoes .btn-primary { flex: 1; min-width: 190px; min-height: 48px; justify-content: center; }
+
+    /* ------ Stepper ------ */
+    .stepper { display: inline-flex; align-items: stretch; gap: 0; }
+    .stepper button {
+      width: 48px; height: 48px; flex: 0 0 48px;
+      border: 1.5px solid var(--border-strong); background: var(--surface);
+      color: var(--text); font-size: 22px; cursor: pointer;
+      display: grid; place-items: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .stepper button:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    .stepper button:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+    .stepper button:hover { background: var(--primary-tint); border-color: var(--apsis-green); color: var(--apsis-green); }
+    .stepper input {
+      width: 72px; height: 48px; text-align: center;
+      font-size: 16px; font-weight: 600; font-family: inherit;
+      font-variant-numeric: tabular-nums;
+      color: var(--text); background: var(--surface);
+      border: 1.5px solid var(--border-strong); border-left: 0; border-right: 0;
+      -webkit-appearance: none; appearance: none;
+    }
+    .stepper input:focus { outline: 0; border-color: var(--apsis-green); box-shadow: 0 0 0 3px rgba(26, 71, 49, .12); }
+    .stepper input::-webkit-outer-spin-button,
+    .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    .stepper-sm button { width: 38px; height: 38px; flex-basis: 38px; font-size: 18px; }
+    .stepper-sm input { width: 54px; height: 38px; font-size: 15px; }
+
+    .nota-acessorio {
+      display: flex; align-items: flex-start; gap: 7px;
+      font-size: 12.5px; color: var(--text-2); line-height: 1.45; margin-top: 12px;
+    }
+    .nota-acessorio i { font-size: 15px; color: var(--apsis-orange); flex: 0 0 auto; margin-top: 1px; }
+
+    /* ------ Lista da contagem ------ */
+    .cnt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .cnt-item {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 12px;
+    }
+    .cnt-info { flex: 1; min-width: 160px; }
+    .cnt-tec { display: block; font-size: 13.5px; font-weight: 500; color: var(--text); line-height: 1.35; }
+    .cnt-cat { display: block; font-size: 12px; color: var(--text-2); }
+    .cnt-del {
+      width: 38px; height: 38px; flex: 0 0 38px; border: 0; border-radius: var(--radius-sm);
+      background: transparent; color: var(--text-muted);
+      display: grid; place-items: center; font-size: 17px; cursor: pointer;
+    }
+    .cnt-del:hover { background: var(--danger-bg); color: var(--danger); }
+
+    /* ------ Resumo + envio ------ */
+    .resumo-bar {
+      position: sticky; bottom: 0; z-index: 5;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 12px 16px; margin: 18px -4px 0;
+      box-shadow: 0 -6px 18px rgba(15, 33, 24, .08);
+      display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+    }
+    .resumo-nums { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .resumo-num { display: flex; flex-direction: column; line-height: 1.2; }
+    .resumo-num .lbl { font-size: 11.5px; color: var(--text-2); font-weight: 500; }
+    .resumo-num .val { font-size: 20px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+    .resumo-num.is-alto .val { color: var(--apsis-orange); }
+    .resumo-acoes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .resumo-acoes .btn { min-height: 44px; }
+
+    /* ------ Conclusão ------ */
+    .giro-done {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 48px 24px;
+    }
+    .giro-done-icon {
+      width: 96px; height: 96px; border-radius: 50%;
+      background: var(--success-bg); color: var(--success);
+      display: grid; place-items: center; font-size: 52px; margin-bottom: 24px;
+    }
+    .giro-done h2 { font-size: 26px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
+    .giro-done p { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 420px; margin: 0 0 22px; }
+    .giro-done-nums { display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; margin-bottom: 26px; }
+    .giro-done-acoes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+    @media (max-width: 640px) {
+      .resumo-bar { margin-left: -8px; margin-right: -8px; flex-direction: column; align-items: stretch; }
+      .resumo-nums { justify-content: space-between; gap: 10px; }
+      .resumo-acoes { flex-direction: column-reverse; align-items: stretch; }
+      .resumo-acoes .btn { width: 100%; justify-content: center; min-height: 48px; }
+      .sel-acoes .btn-primary { width: 100%; min-width: 0; }
+      .cnt-item { gap: 8px; }
+      .cnt-info { flex-basis: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=7"></script>
+  <script src="assets/app.js?v=7"></script>
+  <script src="assets/catalogo-giro.js?v=7"></script>
+  <script src="assets/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/auth.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var acoes =
+        '<button class="btn btn-ghost btn-sm" id="btn-rascunho-top" type="button">' +
+          '<i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho' +
+        "</button>";
+
+      Layout.mount("giro", "Montagem de estoque", acoes);
+
+      var esc = App.escapeHtml;
+      var page = document.getElementById("page");
+      var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
+      var db = window.Auth ? Auth.cliente : null;
+
+      var CATALOGO = window.CATALOGO_GIRO || [];
+      var MAX_RESULTADOS = 25;
+
+      // Estado ------------------------------------------------------------
+      var epos = [];            // { id, nome, cidade, uf }
+      var selecionado = null;   // item do catálogo
+      var qtdSelecionada = 1;
+      var contados = [];        // { cod, tec, tipo, cat, giro, qtd }
+      var enviando = false;
+      var termo = "";
+      var timerBusca = null;
+
+      // Índice de busca (texto normalizado) --------------------------------
+      function normalizar(s) {
+        return String(s == null ? "" : s)
+          .normalize("NFD").replace(/[̀-ͯ]/g, "")
+          .toLowerCase();
+      }
+
+      var INDICE = CATALOGO.map(function (it) {
+        return {
+          it: it,
+          cod: String(it.cod || ""),
+          texto: normalizar((it.tec || "") + " " + (it.cat || "") + " " + (it.tipo || ""))
+        };
+      });
+
+      var SUGESTOES = CATALOGO.filter(function (it) { return it.giro === "alto"; }).slice(0, 15);
+
+      function buscar(q) {
+        var alvo = normalizar(q).trim();
+        if (!alvo) return SUGESTOES;
+
+        var comeca = [];
+        var contem = [];
+        for (var i = 0; i < INDICE.length; i++) {
+          var reg = INDICE[i];
+          if (reg.cod.indexOf(alvo) === 0) comeca.push(reg.it);
+          else if (reg.cod.indexOf(alvo) > 0 || reg.texto.indexOf(alvo) >= 0) contem.push(reg.it);
+          if (comeca.length >= MAX_RESULTADOS) break;
+        }
+        return comeca.concat(contem).slice(0, MAX_RESULTADOS);
+      }
+
+      // Helpers -----------------------------------------------------------
+      function badgeGiro(giro) {
+        var alto = giro === "alto";
+        return (
+          '<span class="badge ' + (alto ? "badge-alto" : "badge-baixo") + '">' +
+            '<i class="ti ti-circle-filled" aria-hidden="true"></i>' +
+            (alto ? "Alto giro" : "Baixo giro") +
+          "</span>"
+        );
+      }
+
+      function hojeIso() {
+        var d = new Date();
+        var mm = String(d.getMonth() + 1);
+        var dd = String(d.getDate());
+        return d.getFullYear() + "-" + (mm.length < 2 ? "0" + mm : mm) + "-" + (dd.length < 2 ? "0" + dd : dd);
+      }
+
+      function itemContado(cod) {
+        for (var i = 0; i < contados.length; i++) {
+          if (String(contados[i].cod) === String(cod)) return contados[i];
+        }
+        return null;
+      }
+
+      function totais() {
+        var t = { linhas: contados.length, itens: 0, alto: 0, baixo: 0 };
+        contados.forEach(function (c) {
+          var q = Number(c.qtd) || 0;
+          t.itens += q;
+          if (c.giro === "alto") t.alto += q; else t.baixo += q;
+        });
+        return t;
+      }
+
+      function limitarQtd(n) {
+        var v = Math.floor(Number(n));
+        if (!isFinite(v) || v < 0) v = 0;
+        if (v > 99999) v = 99999;
+        return v;
+      }
+
+      function avisoDemo() {
+        if (!DEMO) return "";
+        return (
+          '<div class="demo-note">' +
+            '<i class="ti ti-flask" aria-hidden="true"></i>' +
+            "<span>Modo demonstração - nada é gravado. A contagem fica apenas nesta sessão.</span>" +
+          "</div>"
+        );
+      }
+
+      // Dados: EPOs --------------------------------------------------------
+      function eposLocais() {
+        return (window.APP.epos || []).map(function (e) {
+          return { id: e.id, nome: e.nome, cidade: e.cidade, uf: e.uf };
+        });
+      }
+
+      function carregarEpos() {
+        if (DEMO) {
+          epos = eposLocais();
+          return Promise.resolve();
+        }
+        return db.from("epos").select("id, nome, cidade, uf").eq("ativo", true).order("nome")
+          .then(function (r) {
+            if (r.error) {
+              App.toast("Erro ao carregar EPOs: " + r.error.message);
+              epos = [];
+            } else {
+              epos = r.data || [];
+            }
+          });
+      }
+
+      // Renderização -------------------------------------------------------
+      function htmlCabecalho() {
+        var opts = epos.map(function (e) {
+          var local = (e.cidade || "") + (e.uf ? "/" + e.uf : "");
+          return '<option value="' + esc(e.id) + '">' + esc(e.nome) + (local ? " - " + esc(local) : "") + "</option>";
+        }).join("");
+
+        return (
+          '<div class="card">' +
+            '<div class="card-header">' +
+              '<div class="section-title">' +
+                '<span class="title">Dados da contagem</span>' +
+                '<span class="subtitle">Identifica a EPO, a data e quem fez a contagem</span>' +
+              "</div>" +
+            "</div>" +
+            '<div class="grid-3">' +
+              '<div class="field" style="margin-bottom:0;">' +
+                '<label for="giro-epo">EPO</label>' +
+                '<select class="select" id="giro-epo">' +
+                  (opts || '<option value="">Nenhuma EPO disponível</option>') +
+                "</select>" +
+              "</div>" +
+              '<div class="field" style="margin-bottom:0;">' +
+                '<label for="giro-data">Data da contagem</label>' +
+                '<input class="input" type="date" id="giro-data" value="' + hojeIso() + '">' +
+              "</div>" +
+              '<div class="field" style="margin-bottom:0;">' +
+                '<label for="giro-resp">Responsável pela contagem</label>' +
+                '<input class="input" type="text" id="giro-resp" placeholder="Nome de quem está contando" autocomplete="off">' +
+              "</div>" +
+            "</div>" +
+          "</div>"
+        );
+      }
+
+      function htmlBusca() {
+        return (
+          '<div class="card">' +
+            '<div class="card-header">' +
+              '<div class="section-title">' +
+                '<span class="title">Buscar o item</span>' +
+                '<span class="subtitle">Digite o código SAP ou o nome e informe a quantidade recebida</span>' +
+              "</div>" +
+            "</div>" +
+            '<div class="busca-wrap">' +
+              '<i class="ti ti-search busca-icone" aria-hidden="true"></i>' +
+              '<input class="busca-input" id="giro-busca" type="search" inputmode="search" autocomplete="off" ' +
+                'placeholder="Buscar por código SAP ou nome do item" aria-label="Buscar por código SAP ou nome do item">' +
+              '<button class="busca-limpar" id="giro-limpar" type="button" aria-label="Limpar busca"><i class="ti ti-x" aria-hidden="true"></i></button>' +
+            "</div>" +
+            '<div class="busca-meta">' +
+              '<span id="giro-busca-info">Sugestões de alto giro</span>' +
+              "<span>" + App.fmtNum(CATALOGO.length) + " itens no catálogo</span>" +
+            "</div>" +
+            '<div id="giro-resultados"></div>' +
+            '<div id="giro-selecionado"></div>' +
+          "</div>"
+        );
+      }
+
+      function htmlContagem() {
+        return (
+          '<div class="card mb-0">' +
+            '<div class="card-header">' +
+              '<div class="section-title">' +
+                '<span class="title">Itens contados</span>' +
+                '<span class="subtitle">Ajuste as quantidades ou remova linhas antes de enviar</span>' +
+              "</div>" +
+            "</div>" +
+            '<div id="giro-lista"></div>' +
+          "</div>" +
+          '<div id="giro-resumo"></div>'
+        );
+      }
+
+      function renderShell() {
+        page.innerHTML =
+          avisoDemo() +
+          '<p class="page-intro">' +
+            "Informe quantos itens de cada tipo chegaram na EPO. Serve para medir quantos itens de alto giro " +
+            "estão sendo perdidos na devolução." +
+          "</p>" +
+          htmlCabecalho() +
+          htmlBusca() +
+          htmlContagem();
+
+        wireShell();
+        renderResultados();
+        renderSelecionado();
+        renderLista();
+        renderResumo();
+      }
+
+      function renderResultados() {
+        var host = document.getElementById("giro-resultados");
+        var info = document.getElementById("giro-busca-info");
+        if (!host) return;
+
+        var lista = buscar(termo);
+        if (info) {
+          info.textContent = termo.trim()
+            ? (lista.length ? lista.length + (lista.length === 1 ? " item encontrado" : " itens encontrados") + (lista.length >= MAX_RESULTADOS ? " (refine a busca)" : "") : "Nenhum item encontrado")
+            : "Sugestões de alto giro";
+        }
+
+        if (!lista.length) {
+          host.innerHTML =
+            '<div class="empty" style="padding:24px 12px;">' +
+              '<i class="ti ti-search-off" aria-hidden="true"></i>' +
+              "Nenhum item com <b>" + esc(termo) + "</b>.<br>" +
+              '<span class="text-muted" style="font-size:12.5px;">Tente outro código SAP ou parte do nome.</span>' +
+            "</div>";
+          return;
+        }
+
+        host.innerHTML =
+          '<ul class="res-list">' +
+          lista.map(function (it) {
+            var jaTem = !!itemContado(it.cod);
+            var sel = selecionado && selecionado.cod === it.cod;
+            return (
+              "<li>" +
+                '<button class="res-item' + (sel ? " is-sel" : "") + '" type="button" data-cod="' + esc(it.cod) + '">' +
+                  '<span class="giro-cod">' + esc(it.cod) + "</span>" +
+                  '<span class="res-info">' +
+                    '<span class="res-tec">' + esc(it.tec || "-") + "</span>" +
+                    '<span class="res-cat">' + esc(it.tipo || "") + (it.cat ? " · " + esc(it.cat) : "") +
+                      (jaTem ? " · já na contagem" : "") +
+                    "</span>" +
+                  "</span>" +
+                  badgeGiro(it.giro) +
+                "</button>" +
+              "</li>"
+            );
+          }).join("") +
+          "</ul>";
+
+        host.querySelectorAll(".res-item").forEach(function (b) {
+          b.addEventListener("click", function () { selecionar(b.getAttribute("data-cod")); });
+        });
+      }
+
+      function renderSelecionado() {
+        var host = document.getElementById("giro-selecionado");
+        if (!host) return;
+
+        if (!selecionado) { host.innerHTML = ""; return; }
+
+        var it = selecionado;
+        host.innerHTML =
+          '<div class="sel-card">' +
+            '<div class="sel-top">' +
+              '<span class="sel-icone"><i class="ti ti-package" aria-hidden="true"></i></span>' +
+              '<div class="sel-info">' +
+                "<b>" + esc(it.tec || "-") + "</b>" +
+                '<span class="giro-cod" style="margin-top:2px;">' + esc(it.cod) + "</span>" +
+                "<span>" + esc(it.tipo || "") + (it.cat ? " · " + esc(it.cat) : "") + "</span>" +
+                '<span style="margin-top:6px;">' + badgeGiro(it.giro) + "</span>" +
+              "</div>" +
+              '<button class="sel-fechar" id="giro-sel-fechar" type="button" aria-label="Fechar item selecionado">' +
+                '<i class="ti ti-x" aria-hidden="true"></i>' +
+              "</button>" +
+            "</div>" +
+            '<div class="sel-acoes">' +
+              '<span class="stepper">' +
+                '<button type="button" id="giro-menos" aria-label="Diminuir quantidade">-</button>' +
+                '<input type="number" id="giro-qtd" inputmode="numeric" min="0" step="1" value="' + qtdSelecionada + '" aria-label="Quantidade recebida">' +
+                '<button type="button" id="giro-mais" aria-label="Aumentar quantidade">+</button>' +
+              "</span>" +
+              '<button class="btn btn-primary" id="giro-adicionar" type="button">' +
+                '<i class="ti ti-plus" aria-hidden="true"></i>Adicionar à contagem' +
+              "</button>" +
+            "</div>" +
+            '<p class="nota-acessorio">' +
+              '<i class="ti ti-info-circle" aria-hidden="true"></i>' +
+              "<span>Acessórios (fonte, controle) ainda não estão vinculados ao item principal - conte cada um separadamente.</span>" +
+            "</p>" +
+          "</div>";
+
+        var input = document.getElementById("giro-qtd");
+
+        document.getElementById("giro-sel-fechar").addEventListener("click", function () {
+          selecionado = null;
+          renderSelecionado();
+          renderResultados();
+        });
+        document.getElementById("giro-menos").addEventListener("click", function () {
+          qtdSelecionada = limitarQtd(qtdSelecionada - 1);
+          input.value = qtdSelecionada;
+        });
+        document.getElementById("giro-mais").addEventListener("click", function () {
+          qtdSelecionada = limitarQtd(qtdSelecionada + 1);
+          input.value = qtdSelecionada;
+        });
+        input.addEventListener("input", function () {
+          qtdSelecionada = limitarQtd(input.value);
+        });
+        input.addEventListener("blur", function () {
+          input.value = qtdSelecionada;
+        });
+        input.addEventListener("keydown", function (ev) {
+          if (ev.key === "Enter") { ev.preventDefault(); adicionar(); }
+        });
+        document.getElementById("giro-adicionar").addEventListener("click", adicionar);
+      }
+
+      function renderLista() {
+        var host = document.getElementById("giro-lista");
+        if (!host) return;
+
+        if (!contados.length) {
+          host.innerHTML =
+            '<div class="empty" style="padding:28px 12px;">' +
+              '<i class="ti ti-clipboard-list" aria-hidden="true"></i>' +
+              "Nenhum item contado ainda.<br>" +
+              '<span class="text-muted" style="font-size:12.5px;">Busque o item acima, informe a quantidade e adicione à contagem.</span>' +
+            "</div>";
+          return;
+        }
+
+        host.innerHTML =
+          '<ul class="cnt-list">' +
+          contados.map(function (c) {
+            return (
+              '<li class="cnt-item" data-linha="' + esc(c.cod) + '">' +
+                '<span class="giro-cod">' + esc(c.cod) + "</span>" +
+                '<span class="cnt-info">' +
+                  '<span class="cnt-tec">' + esc(c.tec || "-") + "</span>" +
+                  '<span class="cnt-cat">' + esc(c.tipo || "") + (c.cat ? " · " + esc(c.cat) : "") + "</span>" +
+                "</span>" +
+                badgeGiro(c.giro) +
+                '<span class="stepper stepper-sm">' +
+                  '<button type="button" data-menos="' + esc(c.cod) + '" aria-label="Diminuir quantidade de ' + esc(c.cod) + '">-</button>' +
+                  '<input type="number" inputmode="numeric" min="0" step="1" value="' + c.qtd + '" ' +
+                    'data-qtd="' + esc(c.cod) + '" aria-label="Quantidade de ' + esc(c.cod) + '">' +
+                  '<button type="button" data-mais="' + esc(c.cod) + '" aria-label="Aumentar quantidade de ' + esc(c.cod) + '">+</button>' +
+                "</span>" +
+                '<button class="cnt-del" type="button" data-remover="' + esc(c.cod) + '" aria-label="Remover ' + esc(c.cod) + ' da contagem">' +
+                  '<i class="ti ti-trash" aria-hidden="true"></i>' +
+                "</button>" +
+              "</li>"
+            );
+          }).join("") +
+          "</ul>";
+
+        host.querySelectorAll("[data-menos]").forEach(function (b) {
+          b.addEventListener("click", function () { ajustar(b.getAttribute("data-menos"), -1); });
+        });
+        host.querySelectorAll("[data-mais]").forEach(function (b) {
+          b.addEventListener("click", function () { ajustar(b.getAttribute("data-mais"), 1); });
+        });
+        host.querySelectorAll("[data-qtd]").forEach(function (inp) {
+          inp.addEventListener("input", function () {
+            var linha = itemContado(inp.getAttribute("data-qtd"));
+            if (!linha) return;
+            linha.qtd = limitarQtd(inp.value);
+            renderResumo();
+          });
+          inp.addEventListener("blur", function () {
+            var linha = itemContado(inp.getAttribute("data-qtd"));
+            if (linha) inp.value = linha.qtd;
+          });
+        });
+        host.querySelectorAll("[data-remover]").forEach(function (b) {
+          b.addEventListener("click", function () { remover(b.getAttribute("data-remover")); });
+        });
+      }
+
+      function renderResumo() {
+        var host = document.getElementById("giro-resumo");
+        if (!host) return;
+
+        var t = totais();
+        host.innerHTML =
+          '<div class="resumo-bar">' +
+            '<div class="resumo-nums">' +
+              '<span class="resumo-num">' +
+                '<span class="lbl">Total de itens</span>' +
+                '<span class="val">' + App.fmtNum(t.itens) + "</span>" +
+              "</span>" +
+              '<span class="resumo-num is-alto">' +
+                '<span class="lbl">Alto giro</span>' +
+                '<span class="val">' + App.fmtNum(t.alto) + "</span>" +
+              "</span>" +
+              '<span class="resumo-num">' +
+                '<span class="lbl">Baixo giro</span>' +
+                '<span class="val">' + App.fmtNum(t.baixo) + "</span>" +
+              "</span>" +
+              '<span class="resumo-num">' +
+                '<span class="lbl">Tipos contados</span>' +
+                '<span class="val">' + App.fmtNum(t.linhas) + "</span>" +
+              "</span>" +
+            "</div>" +
+            '<div class="resumo-acoes">' +
+              '<button class="btn btn-ghost" id="giro-rascunho" type="button">' +
+                '<i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho' +
+              "</button>" +
+              '<button class="btn btn-primary" id="giro-enviar" type="button"' + (t.linhas < 1 || enviando ? " disabled" : "") + ">" +
+                '<i class="ti ti-send" aria-hidden="true"></i>' + (enviando ? "Enviando..." : "Enviar contagem") +
+              "</button>" +
+            "</div>" +
+          "</div>";
+
+        document.getElementById("giro-rascunho").addEventListener("click", salvarRascunho);
+        document.getElementById("giro-enviar").addEventListener("click", enviar);
+      }
+
+      // Ações --------------------------------------------------------------
+      function selecionar(cod) {
+        for (var i = 0; i < CATALOGO.length; i++) {
+          if (String(CATALOGO[i].cod) === String(cod)) {
+            selecionado = CATALOGO[i];
+            qtdSelecionada = 1;
+            renderSelecionado();
+            renderResultados();
+            var input = document.getElementById("giro-qtd");
+            if (input) { input.focus(); input.select(); }
+            return;
+          }
+        }
+      }
+
+      function adicionar() {
+        if (!selecionado) return;
+        var q = limitarQtd(qtdSelecionada);
+        if (q < 1) { App.toast("Informe uma quantidade maior que zero."); return; }
+
+        var linha = itemContado(selecionado.cod);
+        if (linha) {
+          linha.qtd = limitarQtd(linha.qtd + q);
+          App.toast("Quantidade somada: " + selecionado.cod + " agora com " + linha.qtd + ".");
+        } else {
+          contados.push({
+            cod: selecionado.cod,
+            tec: selecionado.tec,
+            tipo: selecionado.tipo,
+            cat: selecionado.cat,
+            giro: selecionado.giro,
+            qtd: q
+          });
+          App.toast(q + (q === 1 ? " item adicionado" : " itens adicionados") + " à contagem.");
+        }
+
+        selecionado = null;
+        qtdSelecionada = 1;
+        termo = "";
+        var busca = document.getElementById("giro-busca");
+        if (busca) {
+          busca.value = "";
+          document.getElementById("giro-limpar").classList.remove("is-on");
+          busca.focus();
+        }
+        renderSelecionado();
+        renderResultados();
+        renderLista();
+        renderResumo();
+      }
+
+      function ajustar(cod, delta) {
+        var linha = itemContado(cod);
+        if (!linha) return;
+        linha.qtd = limitarQtd(linha.qtd + delta);
+        var inp = page.querySelector('[data-qtd="' + cod + '"]');
+        if (inp) inp.value = linha.qtd;
+        renderResumo();
+      }
+
+      function remover(cod) {
+        contados = contados.filter(function (c) { return String(c.cod) !== String(cod); });
+        App.toast("Item removido da contagem.");
+        renderLista();
+        renderResumo();
+        renderResultados();
+      }
+
+      function salvarRascunho() {
+        if (!contados.length) { App.toast("Adicione pelo menos 1 item antes de salvar."); return; }
+        App.toast("Rascunho salvo nesta sessão (mock nesta versão).");
+      }
+
+      function dadosCabecalho() {
+        var sel = document.getElementById("giro-epo");
+        var data = document.getElementById("giro-data");
+        var resp = document.getElementById("giro-resp");
+        return {
+          epoId: sel ? sel.value : "",
+          epoNome: sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : "",
+          data: data ? data.value : "",
+          responsavel: resp ? resp.value.trim() : ""
+        };
+      }
+
+      function enviar() {
+        if (enviando || !contados.length) return;
+
+        var cab = dadosCabecalho();
+        if (!cab.epoId) { App.toast("Selecione a EPO da contagem."); return; }
+        if (!cab.data) { App.toast("Informe a data da contagem."); return; }
+        if (!cab.responsavel) {
+          App.toast("Informe quem fez a contagem.");
+          var resp = document.getElementById("giro-resp");
+          if (resp) resp.focus();
+          return;
+        }
+
+        enviando = true;
+        renderResumo();
+
+        function falhou(msg) {
+          enviando = false;
+          renderResumo();
+          App.toast("Falha ao enviar: " + msg);
+        }
+
+        if (DEMO) {
+          enviando = false;
+          renderConclusao(cab, totais());
+          return;
+        }
+
+        var t = totais();
+        Auth.sessao().then(function (s) {
+          if (!s) throw new Error("sessão expirada, entre novamente.");
+          return db.from("contagens_giro").insert({
+            epo_id: cab.epoId,
+            usuario_id: s.user.id,
+            responsavel: cab.responsavel,
+            data_contagem: cab.data,
+            status: "enviada",
+            enviada_em: new Date().toISOString()
+          }).select("id").single();
+        }).then(function (r) {
+          if (r.error) throw new Error(r.error.message);
+          var contagemId = r.data.id;
+          var linhas = contados.map(function (c) {
+            return {
+              contagem_id: contagemId,
+              codigo_sap: String(c.cod),
+              tecnologia: c.tec || null,
+              tipo: c.tipo || null,
+              categoria: c.cat || null,
+              giro: c.giro,
+              quantidade: limitarQtd(c.qtd)
+            };
+          });
+          return db.from("contagem_giro_itens").insert(linhas);
+        }).then(function (r) {
+          if (r && r.error) throw new Error(r.error.message);
+          enviando = false;
+          renderConclusao(cab, t);
+        }).catch(function (err) {
+          falhou(err.message);
+        });
+      }
+
+      function renderConclusao(cab, t) {
+        page.innerHTML =
+          avisoDemo() +
+          '<div class="card mb-0"><div class="giro-done">' +
+            '<span class="giro-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></span>' +
+            "<h2>Contagem enviada!</h2>" +
+            "<p>Montagem de estoque da <b>" + esc(cab.epoNome || "EPO") + "</b> registrada por " +
+              esc(cab.responsavel) + "." +
+              (DEMO ? " (Demonstração - nada foi gravado.)" : "") +
+            "</p>" +
+            '<div class="giro-done-nums">' +
+              '<span class="resumo-num"><span class="lbl">Total de itens</span><span class="val">' + App.fmtNum(t.itens) + "</span></span>" +
+              '<span class="resumo-num is-alto"><span class="lbl">Alto giro</span><span class="val">' + App.fmtNum(t.alto) + "</span></span>" +
+              '<span class="resumo-num"><span class="lbl">Baixo giro</span><span class="val">' + App.fmtNum(t.baixo) + "</span></span>" +
+              '<span class="resumo-num"><span class="lbl">Tipos contados</span><span class="val">' + App.fmtNum(t.linhas) + "</span></span>" +
+            "</div>" +
+            '<div class="giro-done-acoes">' +
+              '<button class="btn btn-primary" id="giro-nova" type="button">' +
+                '<i class="ti ti-plus" aria-hidden="true"></i>Nova contagem' +
+              "</button>" +
+              '<a class="btn btn-ghost" href="index.html">' +
+                '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar à visão geral' +
+              "</a>" +
+            "</div>" +
+          "</div></div>";
+
+        document.getElementById("giro-nova").addEventListener("click", function () {
+          contados = [];
+          selecionado = null;
+          qtdSelecionada = 1;
+          termo = "";
+          renderShell();
+        });
+      }
+
+      // Wiring do shell ----------------------------------------------------
+      function wireShell() {
+        var busca = document.getElementById("giro-busca");
+        var limpar = document.getElementById("giro-limpar");
+
+        busca.addEventListener("input", function () {
+          limpar.classList.toggle("is-on", busca.value.length > 0);
+          if (timerBusca) clearTimeout(timerBusca);
+          timerBusca = setTimeout(function () {
+            termo = busca.value;
+            renderResultados();
+          }, 150);
+        });
+        busca.addEventListener("keydown", function (ev) {
+          if (ev.key === "Escape" && busca.value) {
+            ev.preventDefault();
+            busca.value = "";
+            termo = "";
+            limpar.classList.remove("is-on");
+            renderResultados();
+          }
+        });
+        limpar.addEventListener("click", function () {
+          busca.value = "";
+          termo = "";
+          limpar.classList.remove("is-on");
+          renderResultados();
+          busca.focus();
+        });
+      }
+
+      var btnTopo = document.getElementById("btn-rascunho-top");
+      if (btnTopo) btnTopo.addEventListener("click", salvarRascunho);
+
+      // Início -------------------------------------------------------------
+      page.innerHTML = '<div class="empty"><i class="ti ti-loader-2" aria-hidden="true"></i>Carregando EPOs...</div>';
+      carregarEpos().then(function () {
+        renderShell();
+      }, function (err) {
+        App.toast("Erro ao iniciar: " + (err && err.message ? err.message : err));
+        renderShell();
+      });
+    })();
+  </script>
+</body>
+</html>

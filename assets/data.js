@@ -933,6 +933,7 @@
     { key: "envio",       label: "Envio de comprovações",    icone: "ti-cloud-upload",     href: "envio.html" },
     { key: "checagem",    label: "Dupla checagem",           icone: "ti-zoom-check",       href: "checagem.html" },
     { key: "alocacoes",   label: "Alocações",                icone: "ti-user-plus",        href: "alocacoes.html" },
+    { key: "giro",        label: "Montagem de estoque",      icone: "ti-packages",         href: "contagem-giro.html" },
     { key: "evidencias",  label: "Evidências",               icone: "ti-camera",           href: "evidencias.html" },
     { key: "config",      label: "Configurações",            icone: "ti-settings",         href: "configuracoes.html" },
     { key: "acessos",     label: "Gerenciamento de acessos", icone: "ti-lock-access",      href: "acessos.html" }
@@ -943,11 +944,11 @@
   // -----------------------------------------------------------------------
   // "A princípio": responsável só envia comprovações; auditor APSIS só vê os questionários.
   var papeisPreset = {
-    admin:       { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,  evidencias: true,  config: true,  acessos: true  },
-    gestor:      { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,  evidencias: true,  config: true,  acessos: false },
-    auditor:     { geral: false, ranking: false, comparativo: false, gerencial: false, auditoria: true,  envio: false, checagem: false, alocacoes: false, evidencias: false, config: false, acessos: false },
-    cliente:     { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: false, envio: false, checagem: false, alocacoes: true,  evidencias: false, config: false, acessos: false },
-    responsavel: { geral: false, ranking: false, comparativo: false, gerencial: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, evidencias: false, config: false, acessos: false }
+    admin:       { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,  giro: true,  evidencias: true,  config: true,  acessos: true  },
+    gestor:      { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,  giro: true,  evidencias: true,  config: true,  acessos: false },
+    auditor:     { geral: false, ranking: false, comparativo: false, gerencial: false, auditoria: true,  envio: false, checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false },
+    cliente:     { geral: true,  ranking: true,  comparativo: true,  gerencial: true,  auditoria: false, envio: false, checagem: false, alocacoes: true,  giro: true,  evidencias: false, config: false, acessos: false },
+    responsavel: { geral: false, ranking: false, comparativo: false, gerencial: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false }
   };
 
   function copiaPreset(papel) {
