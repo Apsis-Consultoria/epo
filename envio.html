@@ -499,6 +499,9 @@
           atual.enviada_em = agora;
           enviando = false;
           renderSucesso();
+          // ultima rede de protecao: o que nao foi encaminhado na hora de
+          // anexar vai agora. Roda em segundo plano.
+          encaminharArquivos();
         }
 
         if (DEMO) { concluir(); return; }
