@@ -3,11 +3,35 @@
 Copia versionada do que esta publicado no projeto Supabase. Publicar de novo
 depois de editar (pelo painel, pela CLI ou pelo assistente).
 
-- `convidar-responsavel` - avisa por e-mail o responsavel da EPO que ha
-  relatorio para enviar. Conta nova recebe convite; conta existente recebe um
-  novo codigo de acesso. O link nunca volta na resposta.
+- `convidar-responsavel` - cria a conta do responsavel da EPO e manda um e-mail
+  com link para **ele mesmo definir a senha**. Depois disso ele entra sempre com
+  e-mail e senha. Conta que ja existe recebe link de redefinicao. O link nunca
+  volta na resposta nem vai para log: e credencial.
 - `sincronizar-sharepoint` - encaminha para a pasta oficial os arquivos que
   ainda nao subiram e grava a url de volta na linha.
+
+## convidar-responsavel
+
+Fluxo: cadastro da EPO com o e-mail do responsavel -> conta criada sem senha ->
+e-mail com link -> ele define a senha em `definir-senha.html` -> passa a entrar
+em `login.html` com e-mail e senha. `perfis.senha_provisoria` fica `true` entre
+o convite e a definicao, e a tela cobra a definicao antes de qualquer outra.
+
+O e-mail sai por duas vias, nesta ordem:
+
+1. **Microsoft Graph**, com o mesmo app do Azure que leva os arquivos para a
+   pasta oficial. Precisa de permissao **de aplicacao `Mail.Send`** com
+   consentimento do administrador e do segredo `AZURE_REMETENTE` com a caixa que
+   assina a mensagem (ex.: `naoresponda@apsis.com.br`).
+2. **Servico de e-mail do proprio projeto**, se o Graph nao puder enviar. Sem
+   SMTP proprio configurado, o servico padrao so entrega para o e-mail do dono
+   do projeto - nao serve para responsavel de EPO.
+
+Sem nenhuma das duas, a funcao devolve `ok:false` com o motivo e a tela avisa
+que o e-mail nao saiu. Nada e prometido para quem cadastrou.
+
+Segredo opcional `APP_URL`: endereco do sistema usado no link quando a chamada
+nao vem do navegador (padrao `https://apsis-consultoria.github.io/epo/`).
 
 ## sincronizar-sharepoint
 
@@ -50,6 +74,7 @@ Obrigatorios:
 | `AZURE_TENANT_ID` | tenant da APSIS no Azure (Entra ID) |
 | `AZURE_CLIENT_ID` | app registrado no Azure |
 | `AZURE_CLIENT_SECRET` | segredo desse app |
+| `AZURE_REMETENTE` | caixa que envia o e-mail de acesso (so para o convite) |
 
 Tambem servem, para o mesmo fim, `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID` e
 `GRAPH_CLIENT_SECRET` (nomes do primeiro rascunho).

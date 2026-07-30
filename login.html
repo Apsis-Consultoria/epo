@@ -74,27 +74,35 @@
           </div>
           <button id="btn-cliente" class="w-full flex items-center justify-center gap-3 font-semibold py-3.5 px-6 rounded-xl shadow-sm transition-colors text-white" style="background: rgb(26, 71, 49);" onmouseover="this.style.background='rgb(20, 56, 39)'" onmouseout="this.style.background='rgb(26, 71, 49)'">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><path d="M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/><path d="M3 21v-1a5 5 0 0 1 5-5h2"/><path d="m15 19 2 2 4-4"/></svg>
-            Entrar com código por e-mail
+            Entrar com e-mail e senha
           </button>
 
-          <!-- Login do cliente: e-mail -> código de verificação (token) -->
+          <!-- Cliente Claro e responsável da EPO: e-mail e senha.
+               A senha é definida pelo próprio dono do e-mail, pelo link que
+               recebe quando a EPO é cadastrada. -->
           <div id="painel-cliente" class="w-full hidden">
-            <div id="etapa-email">
-              <label class="block text-left text-xs font-semibold text-gray-500 mb-1" for="cli-email">E-mail corporativo</label>
-              <input id="cli-email" type="email" placeholder="nome@apsis.com.br ou nome@claro.com.br" autocomplete="email"
+            <div id="etapa-senha">
+              <label class="block text-left text-xs font-semibold text-gray-500 mb-1" for="cli-email">E-mail</label>
+              <input id="cli-email" type="email" placeholder="o e-mail cadastrado na sua EPO" autocomplete="email"
                 class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
-              <button id="btn-enviar-codigo" class="w-full mt-3 font-semibold py-3 px-6 rounded-xl text-white transition-colors" style="background: rgb(244, 121, 32);">
-                Enviar código de verificação
+
+              <label class="block text-left text-xs font-semibold text-gray-500 mb-1 mt-3" for="cli-senha">Senha</label>
+              <input id="cli-senha" type="password" placeholder="a senha que você definiu" autocomplete="current-password"
+                class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
+
+              <button id="btn-entrar-senha" class="w-full mt-4 font-semibold py-3 px-6 rounded-xl text-white transition-colors disabled:opacity-60" style="background: rgb(26, 71, 49);">
+                Entrar
+              </button>
+              <button id="btn-esqueci" class="w-full mt-2 text-xs text-gray-400 underline">
+                Primeiro acesso ou esqueci a senha
               </button>
             </div>
-            <div id="etapa-codigo" class="hidden">
-              <p class="text-sm text-gray-500 text-left mb-1">Enviamos um código de 6 dígitos para <b id="cli-email-eco"></b>.</p>
-              <input id="cli-token" type="text" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code"
-                class="w-full border border-slate-200 rounded-xl py-3 px-4 text-center text-2xl tracking-[.4em] text-slate-700 focus:outline-none" style="border-width:1.5px;" />
-              <button id="btn-verificar" class="w-full mt-3 font-semibold py-3 px-6 rounded-xl text-white transition-colors" style="background: rgb(26, 71, 49);">
-                Confirmar e entrar
-              </button>
-              <button id="btn-voltar-email" class="w-full mt-2 text-xs text-gray-400 underline">Usar outro e-mail</button>
+            <div id="etapa-enviado" class="hidden text-left">
+              <p class="text-sm text-gray-600 leading-relaxed">
+                Se esse e-mail estiver cadastrado, você recebe em instantes um link para
+                <b>definir a sua senha</b>. Confira a caixa de entrada e o spam.
+              </p>
+              <button id="btn-voltar-senha" class="w-full mt-3 text-xs text-gray-400 underline">Voltar</button>
             </div>
           </div>
 
@@ -136,9 +144,9 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=14"></script>
+  <script src="assets/supabase-config.js?v=15"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=14"></script>
+  <script src="assets/auth.js?v=15"></script>
   <script>
     (function () {
       "use strict";
@@ -179,36 +187,64 @@
         $("cli-email").focus();
       });
 
-      $("btn-enviar-codigo").addEventListener("click", function () {
+      function entrarComSenha() {
         var email = ($("cli-email").value || "").trim().toLowerCase();
+        var senha = $("cli-senha").value || "";
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg("Informe um e-mail válido.", true); return; }
-        $("btn-enviar-codigo").disabled = true;
-        Auth.enviarCodigo(email).then(function (r) {
-          $("btn-enviar-codigo").disabled = false;
-          if (r.error) { console.error("enviarCodigo", r.error); msg("Não foi possível enviar o código agora. Tente novamente em alguns minutos.", true); return; }
-          $("cli-email-eco").textContent = email;
-          $("etapa-email").classList.add("hidden");
-          $("etapa-codigo").classList.remove("hidden");
-          msg("Código enviado. Confira sua caixa de entrada (e o spam).");
-          $("cli-token").focus();
-        });
-      });
+        if (!senha) { msg("Digite a sua senha.", true); return; }
 
-      $("btn-verificar").addEventListener("click", function () {
-        var email = $("cli-email-eco").textContent;
-        var token = ($("cli-token").value || "").trim();
-        if (token.length < 6) { msg("Digite o código de 6 dígitos.", true); return; }
-        $("btn-verificar").disabled = true;
-        Auth.verificarCodigo(email, token).then(function (r) {
-          $("btn-verificar").disabled = false;
-          if (r.error) { msg("Código inválido ou expirado. Tente novamente.", true); return; }
+        var btn = $("btn-entrar-senha");
+        btn.disabled = true;
+        btn.textContent = "Entrando...";
+        Auth.entrarComSenha(email, senha).then(function (r) {
+          if (r && r.error) {
+            btn.disabled = false;
+            btn.textContent = "Entrar";
+            // A mensagem é a mesma para e-mail errado e senha errada, de propósito.
+            msg("E-mail ou senha não conferem. Se é o seu primeiro acesso, use o link abaixo.", true);
+            return;
+          }
           location.replace("index.html");
+        }, function (e) {
+          btn.disabled = false;
+          btn.textContent = "Entrar";
+          console.error("entrarComSenha", e);
+          msg("Não foi possível entrar agora. Tente novamente em alguns instantes.", true);
+        });
+      }
+
+      $("btn-entrar-senha").addEventListener("click", entrarComSenha);
+      $("cli-senha").addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") entrarComSenha();
+      });
+      $("cli-email").addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") $("cli-senha").focus();
+      });
+
+      // Primeiro acesso e esqueci a senha são o mesmo caminho: link por e-mail.
+      $("btn-esqueci").addEventListener("click", function () {
+        var email = ($("cli-email").value || "").trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg("Informe o seu e-mail primeiro.", true); return; }
+        var btn = this;
+        btn.disabled = true;
+        Auth.pedirLinkDeSenha(email).then(function () {
+          btn.disabled = false;
+          $("etapa-senha").classList.add("hidden");
+          $("etapa-enviado").classList.remove("hidden");
+          $("msg").classList.add("hidden");
+        }, function (e) {
+          btn.disabled = false;
+          console.error("pedirLinkDeSenha", e);
+          // Não revela se o e-mail existe: a resposta é sempre a mesma.
+          $("etapa-senha").classList.add("hidden");
+          $("etapa-enviado").classList.remove("hidden");
         });
       });
 
-      $("btn-voltar-email").addEventListener("click", function () {
-        $("etapa-codigo").classList.add("hidden");
-        $("etapa-email").classList.remove("hidden");
+      $("btn-voltar-senha").addEventListener("click", function () {
+        $("etapa-enviado").classList.add("hidden");
+        $("etapa-senha").classList.remove("hidden");
+        $("cli-email").focus();
       });
 
       // Demonstração sem login (protótipo continua navegável)

@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=14">
+  <link rel="stylesheet" href="assets/app.css?v=15">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -108,6 +108,8 @@
     }
     .nota-modal i { font-size: 15px; margin-top: 1px; color: var(--apsis-green); flex: none; }
 
+    .acoes-cel { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+
     .pend-cel { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
     .pend-cel b { color: var(--text); font-variant-numeric: tabular-nums; }
   </style>
@@ -121,12 +123,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=14"></script>
-  <script src="assets/app.js?v=14"></script>
-  <script src="assets/geo-br.js?v=14"></script>
-  <script src="assets/supabase-config.js?v=14"></script>
+  <script src="assets/data.js?v=15"></script>
+  <script src="assets/app.js?v=15"></script>
+  <script src="assets/geo-br.js?v=15"></script>
+  <script src="assets/supabase-config.js?v=15"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=14"></script>
+  <script src="assets/auth.js?v=15"></script>
   <script>
     (function () {
       "use strict";
@@ -242,7 +244,7 @@
                   '<div class="field">' +
                     '<label for="f-email">E-mail do responsável da EPO</label>' +
                     '<input class="input" id="f-email" type="email" placeholder="nome@empresa.com.br" autocomplete="off">' +
-                    '<span class="hint">Ele recebe o link de acesso e anexa os documentos de cada pergunta.</span>' +
+                    '<span class="hint">Ele recebe um e-mail para definir a própria senha e passa a entrar com esse e-mail.</span>' +
                   "</div>" +
                   '<div class="field">' +
                     '<div class="procs-head">' +
@@ -264,7 +266,7 @@
                   "</div>" +
                   '<div class="nota-modal">' +
                     '<i class="ti ti-send" aria-hidden="true"></i>' +
-                    "<span>Ao salvar, cada questionário marcado fica pendente para o responsável e o link de acesso é enviado para o e-mail informado. Questionário já pedido continua pendente e não é duplicado.</span>" +
+                    "<span>Ao salvar, cada questionário marcado fica pendente para o responsável e ele recebe um e-mail para definir a senha de acesso. Questionário já pedido continua pendente e não é duplicado.</span>" +
                   "</div>" +
                 "</div>" +
 
@@ -434,6 +436,14 @@
         return '<span class="pin-tag pin-fora"><i class="ti ti-map-pin-off" aria-hidden="true"></i>Fora do mapa</span>';
       }
 
+      // Um pedido dessa EPO que tenha e-mail, para reenviar o acesso por ele.
+      function pedidoComEmail(epoId) {
+        for (var i = 0; i < pedidos.length; i++) {
+          if (String(pedidos[i].epoId) === String(epoId) && pedidos[i].email) return pedidos[i];
+        }
+        return null;
+      }
+
       function celulaQuestionarios(epo) {
         var meus = pedidos.filter(function (a) { return String(a.epoId) === String(epo.id); });
         if (!meus.length) return '<span class="pend-cel" style="color:var(--text-muted)">nenhum pedido</span>';
@@ -482,8 +492,15 @@
             '<td><span class="badge ' + (e.ativo === false ? "badge-baixa" : "badge-success") + '">' +
               (e.ativo === false ? "Inativa" : "Ativa") + "</span></td>" +
             '<td class="num">' +
-              '<button class="btn btn-ghost btn-sm" type="button" data-editar="' + esc(e.id) + '">' +
-              '<i class="ti ti-pencil" aria-hidden="true"></i>Editar</button>' +
+              '<span class="acoes-cel">' +
+                (pedidoComEmail(e.id)
+                  ? '<button class="btn btn-ghost btn-sm" type="button" data-acesso="' + esc(e.id) + '" ' +
+                    'title="Reenviar o link de acesso para o responsável">' +
+                    '<i class="ti ti-mail-forward" aria-hidden="true"></i>Reenviar acesso</button>'
+                  : "") +
+                '<button class="btn btn-ghost btn-sm" type="button" data-editar="' + esc(e.id) + '">' +
+                '<i class="ti ti-pencil" aria-hidden="true"></i>Editar</button>' +
+              "</span>" +
             "</td>" +
           "</tr>";
         }).join("");
@@ -492,6 +509,24 @@
       document.getElementById("epo-filtro").addEventListener("input", renderLista);
 
       document.getElementById("epo-body").addEventListener("click", function (ev) {
+        // Reenviar o link de acesso do responsável
+        var re = ev.target.closest("[data-acesso]");
+        if (re) {
+          var pedido = pedidoComEmail(re.getAttribute("data-acesso"));
+          if (!pedido) return;
+          if (DEMO) { App.toast("No modo de teste o e-mail não é enviado."); return; }
+          re.disabled = true;
+          var textoRe = re.innerHTML;
+          re.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true"></i>Enviando...';
+          enviarConvite(pedido.id).then(function (ok) {
+            re.disabled = false;
+            re.innerHTML = textoRe;
+            if (ok) App.toast("Link de acesso enviado para " + pedido.email + ".");
+            else avisarConviteManual();
+          });
+          return;
+        }
+
         var b = ev.target.closest("[data-editar]");
         if (!b) return;
         var id = b.getAttribute("data-editar");
@@ -509,42 +544,6 @@
       // ------------------------------------------------------------------
       // Convite do responsável
       // ------------------------------------------------------------------
-      function linkEnvio() {
-        var origem = location.origin && location.origin !== "null" ? location.origin : "";
-        if (origem) return origem + location.pathname.replace(/[^/]*$/, "") + "envio.html";
-        var href = location.href.split("#")[0].split("?")[0];
-        return href.replace(/[^/]*$/, "") + "envio.html";
-      }
-
-      function copiarFallback(txt) {
-        try {
-          var inp = document.createElement("input");
-          inp.value = txt;
-          inp.setAttribute("readonly", "readonly");
-          inp.style.position = "fixed";
-          inp.style.top = "-1000px";
-          inp.style.opacity = "0";
-          document.body.appendChild(inp);
-          inp.select();
-          if (inp.setSelectionRange) inp.setSelectionRange(0, txt.length);
-          var ok = document.execCommand("copy");
-          document.body.removeChild(inp);
-          return !!ok;
-        } catch (e) {
-          return false;
-        }
-      }
-
-      function copiarTexto(txt) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          return navigator.clipboard.writeText(txt).then(
-            function () { return true; },
-            function () { return copiarFallback(txt); }
-          );
-        }
-        return Promise.resolve(copiarFallback(txt));
-      }
-
       function enviarConvite(alocacaoId) {
         if (DEMO || !alocacaoId) return Promise.resolve(false);
         var cli = window.Auth ? Auth.cliente : null;
@@ -557,14 +556,11 @@
         }
       }
 
+      // Sem e-mail entregue nao existe atalho: o link de definir senha e uma
+      // credencial e nao pode aparecer na tela de quem cadastrou.
       function avisarConviteManual() {
-        var link = linkEnvio();
-        return copiarTexto(link).then(function (ok) {
-          App.toast(
-            "Não foi possível enviar o e-mail agora. " +
-            (ok ? "O link de acesso foi copiado - envie para o responsável." : "Copie o link manualmente: " + link)
-          );
-        });
+        App.toast("Nao foi possivel enviar o e-mail de acesso agora. Tente reenviar em alguns instantes.");
+        return Promise.resolve();
       }
 
       // Convite: uma chamada por e-mail, nunca por questionário

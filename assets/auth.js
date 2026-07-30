@@ -109,7 +109,7 @@
   }
 
   function perfilDe(user) {
-    return client.from("perfis").select("nome, papel, cliente_id")
+    return client.from("perfis").select("nome, papel, cliente_id, senha_provisoria")
       .eq("user_id", user.id).maybeSingle()
       .then(function (r) {
         return r.data || { nome: user.email, papel: "auditor", cliente_id: null };
@@ -182,17 +182,20 @@
     });
   }
 
-  function enviarCodigo(email) {
+  // Cliente Claro e responsável da EPO: e-mail e senha. A primeira senha é
+  // definida pelo próprio dono do e-mail, pelo link que ele recebe.
+  function entrarComSenha(email, senha) {
     if (!client) return Promise.reject(new Error("Login indisponível no momento."));
-    return client.auth.signInWithOtp({
-      email: email,
-      options: { shouldCreateUser: true }
-    });
+    return client.auth.signInWithPassword({ email: email, password: senha });
   }
 
-  function verificarCodigo(email, token) {
+  // Manda o link para definir ou redefinir a senha. Serve para o "esqueci minha
+  // senha" e para quem nunca definiu a dele.
+  function pedirLinkDeSenha(email) {
     if (!client) return Promise.reject(new Error("Login indisponível no momento."));
-    return client.auth.verifyOtp({ email: email, token: token, type: "email" });
+    return client.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin + location.pathname.replace(/[^/]*$/, "") + "definir-senha.html"
+    });
   }
 
   function sair() {
@@ -272,6 +275,11 @@
       return sincronizarPapel().then(function () {
         return perfilDe(s.user);
       }).then(function (p) {
+        // Recebeu acesso e ainda não escolheu a senha: define primeiro.
+        if (p.senha_provisoria) {
+          location.replace("definir-senha.html");
+          return "definir-senha";
+        }
         var mapa = (window.APP && window.APP.papeisPreset) || {};
         var perms = mapa[p.papel];
         if (perms && pageKey && perms[pageKey] === false) {
@@ -304,8 +312,8 @@
     perfil: perfil,
     entrarMicrosoft: entrarMicrosoft,
     formasDeEntrar: formasDeEntrar,
-    enviarCodigo: enviarCodigo,
-    verificarCodigo: verificarCodigo,
+    entrarComSenha: entrarComSenha,
+    pedirLinkDeSenha: pedirLinkDeSenha,
     entrarDemo: entrarDemo,
     sair: sair,
     modoDemo: modoDemo,
