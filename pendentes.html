@@ -7,17 +7,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=9">
+  <link rel="stylesheet" href="assets/app.css?v=10">
   <style>
     /* Ajustes locais - tela de relatórios pendentes (escolher EPO e questionário) */
-
-    .demo-note {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 12.5px; color: var(--text-2);
-      background: var(--warning-bg); border: 1px dashed var(--warning);
-      border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 14px;
-    }
-    .demo-note i { color: var(--warning); font-size: 16px; flex: 0 0 auto; }
 
     .is-hidden { display: none; }
 
@@ -133,8 +125,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=9"></script>
-  <script src="assets/app.js?v=9"></script>
+  <script src="assets/data.js?v=10"></script>
+  <script src="assets/app.js?v=10"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -235,13 +227,7 @@
       }
 
       function avisoDemo() {
-        if (!DEMO) return "";
-        return (
-          '<div class="demo-note">' +
-            '<i class="ti ti-flask" aria-hidden="true"></i>' +
-            "<span>Modo demonstração - nada é salvo. Os relatórios abaixo são de exemplo.</span>" +
-          "</div>"
-        );
+        return "";
       }
 
       // ------------------------------------------------------------------

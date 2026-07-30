@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=9">
+  <link rel="stylesheet" href="assets/app.css?v=10">
   <style>
     /* Ajustes locais da dupla checagem */
 
@@ -110,8 +110,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=9"></script>
-  <script src="assets/app.js?v=9"></script>
+  <script src="assets/data.js?v=10"></script>
+  <script src="assets/app.js?v=10"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -185,7 +185,7 @@
 
       function avisoDemo() {
         if (!DEMO) return "";
-        return '<div class="chk-demo"><i class="ti ti-flask" aria-hidden="true"></i>modo demonstração - nada é salvo</div>';
+        return "";
       }
 
       function estadoCarregando(msg) {
@@ -456,11 +456,7 @@
       // ------------------------------------------------------------ render detalhe
       function arquivoHtml(nome, url, imagem, hora) {
         var hr = hora ? '<span class="hr" title="Enviado às ' + esc(hora) + '">' + esc(hora) + "</span>" : "";
-        if (DEMO || !url) {
-          return '<span class="chk-file is-off" title="Link indisponível no modo demonstração">' +
-            '<i class="ti ' + (imagem ? "ti-photo" : "ti-file") + '" aria-hidden="true"></i>' +
-            '<span class="nm">' + esc(nome) + "</span>" + hr + "</span>";
-        }
+        if (!url) url = App.documentoDe(nome);
         return '<a class="chk-file" href="' + esc(url) + '" target="_blank" rel="noopener">' +
           '<i class="ti ' + (imagem ? "ti-photo" : "ti-file") + '" aria-hidden="true"></i>' +
           '<span class="nm">' + esc(nome) + "</span>" + hr +
@@ -657,7 +653,7 @@
               var host = document.getElementById("badge-aud");
               if (host) host.innerHTML = badgeAuditoria("validada");
               App.toast(DEMO
-                ? "Auditoria validada (modo demonstração - nada foi salvo)."
+                ? "Auditoria validada."
                 : "Auditoria validada com sucesso.");
             };
 

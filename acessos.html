@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=9">
+  <link rel="stylesheet" href="assets/app.css?v=10">
   <style>
     /* Ajustes locais da tela de acessos */
 
@@ -115,8 +115,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=9"></script>
-  <script src="assets/app.js?v=9"></script>
+  <script src="assets/data.js?v=10"></script>
+  <script src="assets/app.js?v=10"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -410,7 +410,7 @@
       // Ações do topo
       // ------------------------------------------------------------------
       document.getElementById("btn-salvar").addEventListener("click", function () {
-        App.toast("Acessos atualizados (protótipo).");
+        App.toast("Acessos atualizados.");
       });
 
       // Modal de novo usuário -------------------------------------------------
@@ -455,7 +455,7 @@
         fecharModal();
         renderKpis();
         renderMatriz();
-        App.toast("Usuário " + nome + " adicionado (protótipo).");
+        App.toast("Usuário " + nome + " adicionado.");
       });
     })();
   </script>

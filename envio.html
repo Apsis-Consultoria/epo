@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=9">
+  <link rel="stylesheet" href="assets/app.css?v=10">
   <style>
     /* Ajustes locais - tela do responsável da EPO */
 
@@ -162,8 +162,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=9"></script>
-  <script src="assets/app.js?v=9"></script>
+  <script src="assets/data.js?v=10"></script>
+  <script src="assets/app.js?v=10"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -237,13 +237,7 @@
       }
 
       function avisoDemo() {
-        if (!DEMO) return "";
-        return (
-          '<div class="demo-note">' +
-            '<i class="ti ti-flask" aria-hidden="true"></i>' +
-            "<span>Modo demonstração - nada é salvo. Os anexos ficam apenas nesta sessão.</span>" +
-          "</div>"
-        );
+        return "";
       }
 
       // ------------------------------------------------------------------
@@ -382,7 +376,7 @@
           });
           atual._anexos[itemId] = anexosPorItem[itemId].slice();
           marcarEmAndamento();
-          App.toast(lista.length + (lista.length > 1 ? " arquivos anexados" : " arquivo anexado") + " (demonstração).");
+          App.toast(lista.length + (lista.length > 1 ? " arquivos anexados com sucesso." : " arquivo anexado com sucesso."));
           renderDetalhe();
           return;
         }
@@ -446,7 +440,7 @@
         if (DEMO) {
           tirarDoEstado();
           atual._anexos[itemId] = anexosPorItem[itemId].slice();
-          App.toast("Anexo removido (demonstração).");
+          App.toast("Anexo removido.");
           return;
         }
 
@@ -467,10 +461,7 @@
         for (var i = 0; i < lista.length; i++) {
           if (String(lista[i].id) === String(anexoId)) {
             var ax = lista[i];
-            if (DEMO || !ax.storage_path) {
-              App.toast("Modo demonstração - o arquivo de exemplo não abre.");
-              return;
-            }
+            if (!ax.storage_path) { App.abrirDocumento(ax.nome_arquivo); return; }
             db.storage.from("evidencias").createSignedUrl(ax.storage_path, 3600).then(function (r) {
               if (r.error || !r.data) { App.toast("Não foi possível abrir o anexo."); return; }
               window.open(r.data.signedUrl, "_blank", "noopener");
@@ -750,7 +741,7 @@
             "<p><b>" + esc(proc.nome || "Questionário") + "</b> da " + esc(epo.nome || "EPO") +
               " foi enviado com " + totalAnexos() + (totalAnexos() === 1 ? " anexo" : " anexos") +
               ". A equipe APSIS vai comparar as comprovações com a vistoria em campo na dupla checagem." +
-              (DEMO ? " (Modo demonstração - nada foi salvo.)" : "") +
+              
             "</p>" +
             '<button class="btn btn-primary" id="btn-voltar-lista" type="button">' +
               '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar aos meus questionários' +

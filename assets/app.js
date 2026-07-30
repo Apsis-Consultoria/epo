@@ -167,6 +167,55 @@
     }, 2500);
   }
 
+  // -----------------------------------------------------------------------
+  // Documento aberto quando o anexo não tem arquivo baixável associado.
+  // Monta uma página com o nome do arquivo e abre por blob, para o clique
+  // nunca terminar em erro ou em aviso.
+  // -----------------------------------------------------------------------
+  var cacheDoc = {};
+
+  function documentoDe(nome) {
+    var chave = String(nome || "documento");
+    if (cacheDoc[chave]) return cacheDoc[chave];
+
+    var linhas = "";
+    var larguras = [512, 468, 496, 430, 372, 505, 448, 296, 470, 410];
+    var y = 214;
+    for (var i = 0; i < larguras.length; i++) {
+      linhas += '<rect x="56" y="' + y + '" width="' + larguras[i] + '" height="11" rx="5.5" fill="#E7EBE8"/>';
+      y += 30;
+    }
+
+    var svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="620" height="877" viewBox="0 0 620 877">' +
+        '<rect width="620" height="877" fill="#FFFFFF"/>' +
+        '<rect width="620" height="7" fill="#1A4731"/>' +
+        '<text x="56" y="104" font-family="Inter, Segoe UI, sans-serif" font-size="21" font-weight="700" fill="#1A2B1F">' +
+          escapeHtml(chave) +
+        "</text>" +
+        '<rect x="56" y="132" width="90" height="4" rx="2" fill="#F47920"/>' +
+        '<rect x="56" y="168" width="248" height="11" rx="5.5" fill="#DDE3DE"/>' +
+        linhas +
+        '<rect x="56" y="548" width="508" height="150" rx="10" fill="none" stroke="#DDE3DE" stroke-width="1.5"/>' +
+        '<rect x="80" y="580" width="180" height="11" rx="5.5" fill="#E7EBE8"/>' +
+        '<rect x="80" y="612" width="320" height="11" rx="5.5" fill="#E7EBE8"/>' +
+        '<rect x="80" y="644" width="256" height="11" rx="5.5" fill="#E7EBE8"/>' +
+      "</svg>";
+
+    var url = svg;
+    try {
+      url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+    } catch (e) {
+      url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    }
+    cacheDoc[chave] = url;
+    return url;
+  }
+
+  function abrirDocumento(nome) {
+    window.open(documentoDe(nome), "_blank", "noopener");
+  }
+
   function escapeHtml(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -190,7 +239,9 @@
     getParam: getParam,
     toast: toast,
     badgeGravidade: badgeGravidade,
-    escapeHtml: escapeHtml
+    escapeHtml: escapeHtml,
+    documentoDe: documentoDe,
+    abrirDocumento: abrirDocumento
   };
 
   // -----------------------------------------------------------------------

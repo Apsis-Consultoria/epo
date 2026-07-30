@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=9">
+  <link rel="stylesheet" href="assets/app.css?v=10">
   <style>
     /* Ajustes locais da tela de cadastro de EPO e pedido de relatórios */
 
@@ -135,8 +135,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=9"></script>
-  <script src="assets/app.js?v=9"></script>
+  <script src="assets/data.js?v=10"></script>
+  <script src="assets/app.js?v=10"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -179,9 +179,7 @@
       // ------------------------------------------------------------------
       // Estrutura estática da página
       // ------------------------------------------------------------------
-      var htmlAviso = DEMO
-        ? '<div class="aloc-demo-note"><i class="ti ti-flask" aria-hidden="true"></i>modo demonstração - nada é salvo</div>'
-        : "";
+      var htmlAviso = "";
 
       var htmlTabela =
         '<div class="card mb-0">' +
@@ -946,7 +944,7 @@
           preencherSelects();
           modalEpo.fechar();
           var resumoDemo = resumoPedido(resDemo, email);
-          App.toast("EPO " + nome + " criada" + (resumoDemo ? " - " + resumoDemo : " sem relatórios pedidos") + " (modo demonstração - nada foi salvo).");
+          App.toast("EPO " + nome + " criada" + (resumoDemo ? " - " + resumoDemo : " sem relatórios pedidos") + ".");
           return;
         }
 
@@ -1006,7 +1004,7 @@
           var resDemo = criarPedidosDemo(epoDemo, procIds, email, visita, obs);
           renderLista();
           modalAloc.fechar();
-          App.toast(resumoPedido(resDemo, email) + " (modo demonstração - nada foi salvo).");
+          App.toast(resumoPedido(resDemo, email) + ".");
           return;
         }
 
@@ -1057,7 +1055,7 @@
           if (DEMO) {
             if (linhaConvite) linhaConvite.conviteEnviadoEm = new Date().toISOString();
             renderLista();
-            App.toast("Convite reenviado (modo demonstração - nada foi salvo).");
+            App.toast("Convite reenviado para " + (alvo ? alvo.email : "o responsável") + ".");
             return;
           }
           btnConvite.disabled = true;
@@ -1082,7 +1080,7 @@
         if (DEMO) {
           alocacoes = alocacoes.filter(function (a) { return String(a.id) !== String(id); });
           renderLista();
-          App.toast("Pedido excluído (modo demonstração - nada foi salvo).");
+          App.toast("Pedido de relatório excluído.");
           return;
         }
 

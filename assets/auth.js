@@ -176,7 +176,7 @@
   // ------------------------------------------------------------------ Guard
   function guard(pageKey) {
     if (modoDemo()) {
-      atualizarUi({ nome: "Modo demonstração", email: "sem login · dados fictícios", papel: "demo" });
+      atualizarUi({ nome: "Visitante", email: "", papel: "" });
       return Promise.resolve("demo");
     }
     if (!client) {

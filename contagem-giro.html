@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=9">
+  <link rel="stylesheet" href="assets/app.css?v=10">
   <style>
     /* ==========================================================================
        Montagem de estoque (contagem de giro) - questionario de tela cheia,
@@ -378,8 +378,8 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=9"></script>
-  <script src="assets/app.js?v=9"></script>
+  <script src="assets/data.js?v=10"></script>
+  <script src="assets/app.js?v=10"></script>
   <script src="assets/catalogo-giro.js"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -514,13 +514,7 @@
       }
 
       function avisoDemo() {
-        if (!DEMO) return "";
-        return (
-          '<div class="demo-note">' +
-            '<i class="ti ti-flask" aria-hidden="true"></i>' +
-            "<span>Modo demonstração - nada vai ao banco. A contagem fica apenas nesta sessão.</span>" +
-          "</div>"
-        );
+        return "";
       }
 
       // --------------------------------------------------- Busca no catalogo
@@ -920,7 +914,7 @@
           "</div>" +
           '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' +
             (DEMO
-              ? "Modo demonstração - nada é salvo."
+              ? ""
               : "Ao enviar, a contagem é registrada e entra no indicador de perda de alto giro.") +
             (alocacaoParam ? " Esta contagem está ligada ao relatório pedido para esta EPO." : "") +
           "</p>" +
@@ -1125,7 +1119,7 @@
             '<p class="wiz-done-sub">' +
               (gravadaNoBanco
                 ? "Montagem de estoque de <b>" + esc(e ? e.nome : "EPO") + "</b> registrada. Ela entra no indicador de perda de itens de alto giro."
-                : "Modo demonstração - nada foi salvo.") +
+                : "") +
             "</p>" +
             '<div class="wiz-done-score">' +
               '<span class="badge badge-baixo">Total ' + App.fmtNum(t.itens) + "</span>" +
@@ -1223,7 +1217,7 @@
       function salvarRascunho() {
         if (salvandoRascunho) return;
         if (!temItemValido()) { App.toast("Adicione pelo menos 1 item antes de salvar."); return; }
-        if (DEMO) { App.toast("Rascunho salvo nesta sessão (modo demonstração)."); return; }
+        if (DEMO) { App.toast("Rascunho salvo."); return; }
         if (rascunhoSalvo) { App.toast("Rascunho já salvo. Use Enviar contagem para concluir."); return; }
 
         salvandoRascunho = true;

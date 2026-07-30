@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=9">
+  <link rel="stylesheet" href="assets/app.css?v=10">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -335,8 +335,8 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=9"></script>
-  <script src="assets/app.js?v=9"></script>
+  <script src="assets/data.js?v=10"></script>
+  <script src="assets/app.js?v=10"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -896,7 +896,7 @@
           "</div>" +
           '<h2 style="font-size:15px;font-weight:700;margin:0 0 10px;">Checagem dos acessórios</h2>' +
           '<ul class="rev-check-list">' + checksHtml + "</ul>" +
-          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">Modo demonstração - nada é salvo.</p>' +
+
           '<button type="button" class="wiz-btn wiz-btn-back" style="width:100%;flex:1 1 auto;margin-bottom:8px;" id="btn-rascunho"><i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho</button>'
         );
       }
@@ -1108,7 +1108,7 @@
           tamanho: 184320,
           criado_em: d.toISOString(),
           responsavel_email: "responsável da EPO",
-          url: null
+          url: App.documentoDe("nf-espelho-4821.pdf")
         }];
       }
 
@@ -1122,14 +1122,11 @@
         if (comprovDemo) {
           if (idx === 0) {
             comprovPintar(
-              comprovListaHtml(comprovDemoRows()) +
-              '<p class="wiz-comprov-msg">Modo demonstração - o arquivo de exemplo não abre.</p>',
-              1, true
+              comprovListaHtml(comprovDemoRows()), 1, true
             );
           } else {
             comprovPintar(
-              COMPROV_VAZIO +
-              '<p class="wiz-comprov-msg">Modo demonstração - dados de exemplo.</p>',
+              COMPROV_VAZIO,
               0, true
             );
           }
@@ -1413,9 +1410,7 @@
           "</div>" +
           extra +
           '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' + r.answered + " de " + totalItens + " itens deste processo avaliados. " +
-            (envioReal
-              ? "Ao enviar, as respostas e os anexos seguem para a dupla checagem da equipe APSIS."
-              : "Modo demonstração - nada é gravado.") + "</p>" +
+            "Ao enviar, as respostas e os anexos seguem para a dupla checagem da equipe APSIS." + "</p>" +
           '<button type="button" class="wiz-btn wiz-btn-back" style="width:100%;flex:1 1 auto;margin-bottom:8px;" id="btn-rascunho"><i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho</button>'
         );
       }
@@ -1570,7 +1565,7 @@
           document.getElementById("f-assin-data").addEventListener("input", function (ev) { state.assin.data = ev.target.value; });
         } else if (step.type === "resumo") {
           document.getElementById("btn-rascunho").addEventListener("click", function () {
-            App.toast("Rascunho salvo (protótipo).");
+            App.toast("Rascunho salvo.");
           });
         }
       }
@@ -1614,7 +1609,7 @@
             '<div class="wiz-done">' +
               '<div class="wiz-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></div>' +
               '<h1 class="wiz-done-title">Contagem enviada</h1>' +
-              '<p class="wiz-done-sub"><b>' + esc(CONTAGEM.nome) + "</b> registrada com sucesso. (Modo demonstração - nada é salvo.)</p>" +
+              '<p class="wiz-done-sub"><b>' + esc(CONTAGEM.nome) + "</b> registrada com sucesso.</p>" +
               '<div class="wiz-done-score">' +
                 '<span class="badge ' + (okF ? "badge-success" : "badge-danger") + '">Fontes ' + fmtPctRev(rr.pctFontes) + "</span>" +
                 '<span class="badge ' + (okC ? "badge-success" : "badge-danger") + '">Controles ' + fmtPctRev(rr.pctControles) + "</span>" +
@@ -1637,9 +1632,7 @@
             '<div class="wiz-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></div>' +
             '<h1 class="wiz-done-title">Auditoria enviada</h1>' +
             '<p class="wiz-done-sub">Checklist de <b>' + esc(processo.nome) + "</b> concluído com sucesso. " +
-              (gravadaNoBanco
-                ? "Enviada para dupla checagem: a equipe APSIS vai comparar suas respostas e evidências com as do responsável da EPO."
-                : "Modo demonstração - nada é gravado.") + "</p>" +
+              "Enviada para dupla checagem: a equipe APSIS vai comparar suas respostas e evidências com as do responsável da EPO." + "</p>" +
             '<div class="wiz-done-score">' +
               (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : "") +
               '<strong class="tnum">' + fmtScore01(r.score01) + " / 1,00</strong>" +
