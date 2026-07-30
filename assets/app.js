@@ -39,6 +39,7 @@
     { key: "ranking",     label: "Ranking",          icon: "ti-trophy",           href: "ranking.html" },
     { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },
+    { key: "pendentes",   label: "Relatórios pendentes", icon: "ti-clipboard-list", href: "pendentes.html" },
     { key: "auditoria",   label: "Nova auditoria",   icon: "ti-clipboard-check",  href: "auditoria.html", children: subAuditoria },
     { key: "envio",       label: "Envio de comprovações", icon: "ti-cloud-upload", href: "envio.html" },
     { key: "checagem",    label: "Dupla checagem",   icon: "ti-zoom-check",       href: "checagem.html" },
@@ -248,6 +249,31 @@
     );
   }
 
+  // Barra inferior (só mobile), no padrão do Gmail: dois atalhos fixos.
+  // 1) preencher relatório: "Relatórios pendentes" para a equipe APSIS ou
+  //    "Envio de comprovações" para o responsável da EPO (auth.js troca conforme
+  //    a permissão do papel, mantendo sempre dois botões).
+  // 2) montagem de estoque: contagem dos itens que chegam na EPO.
+  var BOTTOM = [
+    { key: "pendentes", label: "Relatórios", icon: "ti-clipboard-list",  href: "pendentes.html" },
+    { key: "envio",     label: "Enviar",     icon: "ti-cloud-upload",    href: "envio.html", oculto: true },
+    { key: "giro",      label: "Estoque",    icon: "ti-packages",        href: "contagem-giro.html" }
+  ];
+
+  function buildBottombar(activeKey) {
+    return BOTTOM.map(function (b) {
+      var ativo = b.key === activeKey ? " active" : "";
+      return (
+        '<a class="bottombar-item' + ativo + '" href="' + b.href + '" data-bb="' + b.key + '"' +
+          (b.oculto ? ' style="display:none;"' : "") +
+          (ativo ? ' aria-current="page"' : "") + ">" +
+          '<i class="ti ' + b.icon + '" aria-hidden="true"></i>' +
+          "<span>" + b.label + "</span>" +
+        "</a>"
+      );
+    }).join("");
+  }
+
   function buildTopbar(title, actionsHTML) {
     return (
       '<div class="topbar-left">' +
@@ -277,6 +303,17 @@
     if (topbar) topbar.innerHTML = buildTopbar(title, actionsHTML);
 
     if (title) document.title = title + " - Auditoria de EPOs";
+
+    // Barra inferior no mobile (o CSS a esconde no desktop)
+    var shell = document.querySelector(".app-shell");
+    if (shell && !document.querySelector(".bottombar")) {
+      var bb = document.createElement("nav");
+      bb.className = "bottombar";
+      bb.setAttribute("aria-label", "Atalhos");
+      bb.innerHTML = buildBottombar(activeKey);
+      shell.appendChild(bb);
+      shell.classList.add("has-bottombar");
+    }
 
     // Toggle da sidebar no mobile (com backdrop)
     var menuBtn = document.getElementById("topbar-menu");

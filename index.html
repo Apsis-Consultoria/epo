@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=7">
+  <link rel="stylesheet" href="assets/app.css?v=9">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
@@ -44,8 +44,12 @@
     }
     .cta-nova-btn:hover { background: var(--primary-600); }
     .cta-nova-btn i { font-size: 18px; }
+    .cta-nova-btn.is-ghost { background: var(--surface-2); color: var(--text); }
+    .cta-nova-btn.is-ghost:hover { background: var(--border); }
+    .hero-acao-btns { display: flex; gap: 10px; flex: 0 0 auto; }
     @media (max-width: 900px) {
       .hero-acao { flex-direction: column; align-items: stretch; gap: 16px; padding: 18px; border-left-width: 3px; }
+      .hero-acao-btns { flex-direction: column; }
       .cta-nova-btn { width: 100%; min-height: 52px; }
     }
 
@@ -105,8 +109,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=7"></script>
-  <script src="assets/app.js?v=7"></script>
+  <script src="assets/data.js?v=9"></script>
+  <script src="assets/app.js?v=9"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -220,9 +224,14 @@
               '<span class="hero-acao-title">Visão geral da carteira</span>' +
               '<span class="hero-acao-desc">' + App.fmtNum(kpis.eposAuditadas) + ' EPOs auditadas para a Claro · ciclo médio de ' + App.fmtDias(kpis.tempoMedioCiclo) + ' da chegada à devolução.</span>' +
             '</div>' +
-            '<a class="cta-nova-btn" href="auditoria.html">' +
-              '<i class="ti ti-clipboard-check" aria-hidden="true"></i>Nova auditoria' +
-            '</a>' +
+            '<div class="hero-acao-btns">' +
+              '<a class="cta-nova-btn" href="pendentes.html">' +
+                '<i class="ti ti-clipboard-list" aria-hidden="true"></i>Relatórios pendentes' +
+              '</a>' +
+              '<a class="cta-nova-btn is-ghost" href="auditoria.html">' +
+                '<i class="ti ti-clipboard-check" aria-hidden="true"></i>Nova auditoria' +
+              '</a>' +
+            '</div>' +
           '</section>' +
 
           // (2) KPIs
@@ -273,8 +282,8 @@
                 '</div>' +
                 '<div class="legend grow">' +
                   legendItem("var(--ouro)", "Ouro", "≥ " + regras.ouroMin + " pts", dist.ouro) +
-                  legendItem("var(--prata)", "Prata", regras.prataMin + "–" + (regras.ouroMin - 1) + " pts", dist.prata) +
-                  legendItem("var(--bronze)", "Bronze", regras.bronzeMin + "–" + (regras.prataMin - 1) + " pts", dist.bronze) +
+                  legendItem("var(--prata)", "Prata", regras.prataMin + "-" + (regras.ouroMin - 1) + " pts", dist.prata) +
+                  legendItem("var(--bronze)", "Bronze", regras.bronzeMin + "-" + (regras.prataMin - 1) + " pts", dist.bronze) +
                   legendItem("var(--critico)", "Crítico", "< " + regras.bronzeMin + " pts", dist.critico) +
                 '</div>' +
               '</div>' +

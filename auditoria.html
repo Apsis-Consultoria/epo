@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=7">
+  <link rel="stylesheet" href="assets/app.css?v=9">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -335,8 +335,8 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=7"></script>
-  <script src="assets/app.js?v=7"></script>
+  <script src="assets/data.js?v=9"></script>
+  <script src="assets/app.js?v=9"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -381,14 +381,24 @@
 
       // ------------------------------------------------------------ Contexto
       var epoParam = App.getParam("epo");
+      // ?alocacao= : a auditoria nasce de um relatorio pedido na criacao da EPO
+      // (tela "Relatorios pendentes"). Com ele sabemos a EPO, o responsavel e
+      // onde estao os anexos que ele ja enviou.
+      var alocParam = App.getParam("alocacao");
       var epoIdInicial = (epoParam && App.epoById(epoParam)) ? epoParam : (epos[0] && epos[0].id);
       var procParam = App.getParam("processo");
       var isContagem = procParam === CONTAGEM.id;
       var processo = isContagem ? CONTAGEM : (procParam ? App.processoById(procParam) : null);
       var isCarregadores = !!(processo && carregadores && processo.id === carregadores.id);
 
+      // Quando a auditoria veio de um relatorio pedido, "voltar" é a lista de
+      // relatorios pendentes; senao, é o seletor de processo desta tela.
       function urlSeletor() {
+        if (alocParam) return "pendentes.html";
         return "auditoria.html" + (epoParam ? "?epo=" + encodeURIComponent(epoParam) : "");
+      }
+      function rotuloSeletor() {
+        return alocParam ? "Voltar aos relatórios pendentes" : "Escolher outro processo";
       }
       function urlProcesso(id) {
         return "auditoria.html?processo=" + encodeURIComponent(id) +
@@ -514,6 +524,73 @@
 
       var cur = 0;
 
+      /* ====================================================================
+         CONTEXTO REAL (banco)
+         Fora do modo demo a lista de EPOs vem do banco - o select passa a
+         guardar o uuid, e nao mais o id ficticio de data.js. Quando a
+         auditoria nasce de um relatorio pedido (?alocacao=), a EPO, o
+         responsavel e a visita prevista ja vem definidos e a EPO fica travada.
+         ==================================================================== */
+      var eposDb = null;   // [{ id, nome, cidade, uf }] do banco
+      var aloc = null;     // linha de alocacoes (relatorio pedido)
+      var contextoPromise = null;
+
+      function eposDisponiveis() { return eposDb || epos; }
+
+      function epoAtual() {
+        var lista = eposDisponiveis();
+        for (var i = 0; i < lista.length; i++) {
+          if (lista[i].id === state.epoId) return lista[i];
+        }
+        return null;
+      }
+
+      function carregarContexto() {
+        if (!envioReal) return Promise.resolve(null);
+        return Auth.cliente.from("epos").select("id, nome, cidade, uf")
+          .eq("ativo", true).order("nome")
+          .then(function (r) {
+            if (r.error) throw r.error;
+            eposDb = r.data || [];
+            var achou = null;
+            for (var i = 0; i < eposDb.length; i++) {
+              if (eposDb[i].id === epoParam) achou = eposDb[i];
+            }
+            var alvo = achou || eposDb[0];
+            if (alvo) {
+              state.epoId = alvo.id;
+              state.cidade = alvo.cidade || "";
+              state.uf = alvo.uf || "";
+            }
+            if (!alocParam) return null;
+            return Auth.cliente.from("alocacoes")
+              .select("id, epo_id, processo_id, responsavel_email, status, visita_prevista, epos(nome, cidade, uf)")
+              .eq("id", alocParam).maybeSingle()
+              .then(function (ra) {
+                if (ra.error || !ra.data) {
+                  console.warn("Relatorio pedido nao encontrado:", alocParam);
+                  return null;
+                }
+                aloc = ra.data;
+                state.epoId = aloc.epo_id;
+                var e = aloc.epos || {};
+                state.cidade = e.cidade || "";
+                state.uf = e.uf || "";
+                if (aloc.visita_prevista && !state.data) state.data = aloc.visita_prevista;
+                return aloc;
+              });
+          })
+          .catch(function (err) {
+            console.warn("Contexto do banco indisponivel:", (err && err.message) || err);
+            return null;
+          });
+      }
+
+      function contexto() {
+        if (!contextoPromise) contextoPromise = carregarContexto();
+        return contextoPromise;
+      }
+
       // ------------------------------------------------------------- Helpers
       // (declaração de função: içada, também visível para o handler do modal)
       function respostaDe(id) {
@@ -604,7 +681,7 @@
 
       // -------------------------------------------------------- Renderizações
       function renderIntro() {
-        var epo = App.epoById(state.epoId);
+        var epo = epoAtual();
 
         if (isContagem) {
           return (
@@ -624,7 +701,7 @@
                 '<li><i class="ti ti-device-remote" aria-hidden="true"></i>Controles remotos recebidos - % de retorno vs meta</li>' +
                 '<li><i class="ti ti-checklist" aria-hidden="true"></i>Checagem dos acessórios (Sim/Não, sem evidência)</li>' +
               "</ul>" +
-              '<button type="button" class="wiz-skip" id="btn-trocar-proc">Escolher outro processo</button>' +
+              '<button type="button" class="wiz-skip" id="btn-trocar-proc">' + esc(rotuloSeletor()) + '</button>' +
             "</div>"
           );
         }
@@ -660,21 +737,30 @@
             '<p class="wiz-intro-sub">' + esc(processo.descricao) + ".</p>" +
             '<div class="wiz-intro-stats">' + stats + "</div>" +
             '<ul class="wiz-intro-list">' + bullets + "</ul>" +
-            '<button type="button" class="wiz-skip" id="btn-trocar-proc">Escolher outro processo</button>' +
+            '<button type="button" class="wiz-skip" id="btn-trocar-proc">' + esc(rotuloSeletor()) + '</button>' +
           "</div>"
         );
       }
 
       function renderIdentificacao() {
-        var epoOpts = epos.map(function (e) {
-          return '<option value="' + e.id + '"' + (e.id === state.epoId ? " selected" : "") + ">" + esc(e.nome) + "</option>";
+        var epoOpts = eposDisponiveis().map(function (e) {
+          return '<option value="' + esc(e.id) + '"' + (e.id === state.epoId ? " selected" : "") + ">" + esc(e.nome) + "</option>";
         }).join("");
+        // Relatorio pedido: a EPO ja foi definida por quem cadastrou a EPO
+        var travado = !!aloc;
+        var notaAloc = travado
+          ? '<div class="wiz-evidence"><i class="ti ti-clipboard-list" aria-hidden="true"></i><span>' +
+              "Relatório pedido para <b>" + esc(aloc.responsavel_email) + "</b>. " +
+              "As comprovações que ele enviar aparecem em cada pergunta." +
+            "</span></div>"
+          : "";
         return (
           '<p class="wiz-eyebrow">' + esc(processo.nome) + " · Identificação</p>" +
           '<h1 class="wiz-question">Vamos começar a auditoria</h1>' +
+          notaAloc +
           '<div class="wiz-field">' +
             '<label for="f-epo">EPO auditada</label>' +
-            '<select class="input" id="f-epo">' + epoOpts + "</select>" +
+            '<select class="input" id="f-epo"' + (travado ? " disabled" : "") + ">" + epoOpts + "</select>" +
             '<p class="hint-static" id="f-epo-local">' + esc(state.cidade) + " · " + esc(state.uf) + "</p>" +
           "</div>" +
           '<div class="wiz-field"><label for="f-data">Data da visita</label><input class="input" id="f-data" type="date" value="' + esc(state.data) + '"></div>' +
@@ -689,7 +775,7 @@
           '<h1 class="wiz-question">' + esc(def.label) + "</h1>" +
           '<div class="wiz-evidence"><i class="ti ' + def.icon + '" aria-hidden="true"></i><span>Registre em <b>dias</b>. Estes tempos compõem o ciclo do material na EPO: chegada, armazenagem, distribuição, retorno de campo e devolução.</span></div>' +
           '<div class="wiz-tempo-stepper">' +
-            '<button class="wiz-stepper-btn" type="button" data-step="-1" aria-label="Diminuir">–</button>' +
+            '<button class="wiz-stepper-btn" type="button" data-step="-1" aria-label="Diminuir">-</button>' +
             '<div class="wiz-tempo-input-wrap">' +
               '<input type="number" inputmode="decimal" min="0" step="0.1" id="f-tempo" value="' + (val == null ? "" : val) + '" placeholder="0">' +
               "<span>dias</span>" +
@@ -708,7 +794,7 @@
           '<h1 class="wiz-question">' + esc(def.label) + "</h1>" +
           '<div class="wiz-evidence"><i class="ti ' + esc(def.icon) + '" aria-hidden="true"></i><span>' + esc(def.hint) + "</span></div>" +
           '<div class="wiz-tempo-stepper">' +
-            '<button class="wiz-stepper-btn" type="button" data-step="-1" aria-label="Diminuir">–</button>' +
+            '<button class="wiz-stepper-btn" type="button" data-step="-1" aria-label="Diminuir">-</button>' +
             '<div class="wiz-tempo-input-wrap">' +
               '<input type="number" inputmode="numeric" min="0" step="1" id="f-contagem" value="' + (val == null ? "" : val) + '" placeholder="0">' +
               "<span>" + esc(def.unidade) + "</span>" +
@@ -942,22 +1028,22 @@
         return comprov.idsPromise;
       }
 
-      // uuid da EPO da tela (a seleção pode mudar no passo de identificação)
+      // uuid da EPO da tela. Depois de carregarContexto() o select já guarda o
+      // uuid do banco; a busca por nome fica só como rede de segurança para o
+      // caso de a lista real não ter carregado.
       function comprovEpoId() {
-        var db = Auth.cliente;
-        if (!comprov.eposPromise) {
-          comprov.eposPromise = db.from("epos").select("id, nome").eq("ativo", true)
+        return contexto().then(function () {
+          if (eposDb) return state.epoId || null;
+          var alvo = App.epoById(state.epoId);
+          return Auth.cliente.from("epos").select("id, nome").eq("ativo", true)
             .then(function (r) {
               if (r.error) throw r.error;
-              return r.data || [];
+              var lista = r.data || [];
+              for (var i = 0; i < lista.length; i++) {
+                if (alvo && lista[i].nome === alvo.nome) return lista[i].id;
+              }
+              return null;
             });
-        }
-        var alvo = App.epoById(state.epoId);
-        return comprov.eposPromise.then(function (lista) {
-          for (var i = 0; i < lista.length; i++) {
-            if (alvo && lista[i].nome === alvo.nome) return lista[i].id;
-          }
-          return null;
         });
       }
 
@@ -980,7 +1066,7 @@
           comprov.avisoStep +
           conteudo +
           '<p class="wiz-comprov-sp"><i class="ti ti-cloud-upload" aria-hidden="true"></i>' +
-            "<span>Os arquivos vão para o SharePoint da Claro.</span></p>";
+            "<span>Os arquivos vão para o SharePoint da APSIS.</span></p>";
       }
 
       var COMPROV_VAZIO = '<p class="wiz-comprov-msg">A EPO ainda não enviou comprovação para este item.</p>';
@@ -1056,10 +1142,31 @@
 
         Promise.all([comprovIds(), comprovEpoId()]).then(function (rs) {
           var ids = rs[0], epoId = rs[1];
+          if (ids.itens.length !== processo.itens.length) {
+            throw new Error("o checklist do banco tem " + ids.itens.length +
+              " itens e esta tela tem " + processo.itens.length + " - atualize o catálogo");
+          }
           var itemId = ids.itens[idx];
-          if (!epoId) throw new Error("EPO não encontrada no banco");
           if (!itemId) throw new Error("item sem correspondente no banco");
           if (pedido === comprov.seq) comprov.itemAtual = itemId;
+
+          // Com o relatorio pedido em mãos, lemos direto os anexos daquela
+          // alocação: é o caminho mais direto e não depende de casar a EPO.
+          if (aloc) {
+            return Auth.cliente.from("alocacao_anexos")
+              .select("id, storage_path, nome_arquivo, content_type, tamanho, criado_em")
+              .eq("alocacao_id", aloc.id).eq("item_id", itemId)
+              .order("criado_em")
+              .then(function (r) {
+                if (r.error) throw r.error;
+                return (r.data || []).map(function (a) {
+                  a.responsavel_email = aloc.responsavel_email;
+                  return a;
+                });
+              });
+          }
+
+          if (!epoId) throw new Error("EPO não encontrada no banco");
           return Auth.cliente.from("vw_comprovacoes_epo").select("*")
             .eq("epo_id", epoId).eq("processo_id", ids.procId).eq("item_id", itemId)
             .order("criado_em")
@@ -1096,6 +1203,8 @@
             var row = payload.new || payload.old || {};
             var itemId = row.item_id;
             if (!itemId || !comprov.itensSet || !comprov.itensSet[itemId]) return;
+            // com relatorio pedido, ignora anexo de outra alocacao
+            if (aloc && row.alocacao_id && row.alocacao_id !== aloc.id) return;
             var step = steps[cur];
             if (itemId === comprov.itemAtual && step && step.type === "item") {
               comprovCarregar(step, true);
@@ -1364,11 +1473,13 @@
           var epoSel = document.getElementById("f-epo");
           epoSel.addEventListener("change", function () {
             state.epoId = epoSel.value;
-            var e = App.epoById(state.epoId);
+            var e = epoAtual();
             if (e) {
-              state.cidade = e.cidade; state.uf = e.uf;
-              document.getElementById("f-epo-local").textContent = e.cidade + " · " + e.uf;
+              state.cidade = e.cidade || ""; state.uf = e.uf || "";
+              document.getElementById("f-epo-local").textContent = state.cidade + " · " + state.uf;
             }
+            comprov.eposPromise = null; // trocou de EPO: refaz a busca de anexos
+            comprov.cache = null;
           });
           document.getElementById("f-data").addEventListener("input", function (ev) { state.data = ev.target.value; });
           document.getElementById("f-auditor").addEventListener("input", function (ev) { state.auditor = ev.target.value; });
@@ -1511,7 +1622,7 @@
                 '<span class="badge ' + (okC ? "badge-success" : "badge-danger") + '">Controles ' + fmtPctRev(rr.pctControles) + "</span>" +
               "</div>" +
               '<div class="wiz-done-actions">' +
-                '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Auditar outro processo</a>' +
+                '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>' + (alocParam ? "Outros relatórios pendentes" : "Auditar outro processo") + '</a>' +
                 '<a class="wiz-btn wiz-btn-back" href="index.html"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
               "</div>" +
             "</div>";
@@ -1536,7 +1647,7 @@
               '<strong class="tnum">' + fmtScore01(r.score01) + " / 1,00</strong>" +
             "</div>" +
             '<div class="wiz-done-actions">' +
-              '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Auditar outro processo</a>' +
+              '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>' + (alocParam ? "Outros relatórios pendentes" : "Auditar outro processo") + '</a>' +
               '<a class="wiz-btn wiz-btn-back" href="index.html"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
             "</div>" +
           "</div>";
@@ -1591,8 +1702,16 @@
             if (r.error) throw r.error;
             var lista = r.data || [];
             var epoDb = null;
-            for (var i = 0; i < lista.length; i++) {
-              if (epoMock && lista[i].nome === epoMock.nome) { epoDb = lista[i]; break; }
+            var i;
+            // 1) id do banco (select já carregado por carregarContexto)
+            for (i = 0; i < lista.length; i++) {
+              if (lista[i].id === state.epoId) { epoDb = lista[i]; break; }
+            }
+            // 2) rede de segurança: casa pelo nome do catálogo local
+            if (!epoDb) {
+              for (i = 0; i < lista.length; i++) {
+                if (epoMock && lista[i].nome === epoMock.nome) { epoDb = lista[i]; break; }
+              }
             }
             if (!epoDb) {
               epoDb = lista[0];
@@ -1603,6 +1722,7 @@
             return db.from("auditorias").insert({
               epo_id: epoDb.id,
               processo_id: procDb.id,
+              alocacao_id: aloc ? aloc.id : null,
               auditor_id: sess.user.id,
               data_visita: state.data || new Date().toISOString().slice(0, 10),
               status: "enviada",
@@ -1706,6 +1826,13 @@
       });
 
       renderStep();
+
+      // Contexto do banco (EPOs reais + relatorio pedido): a capa e a
+      // identificacao sao repintadas quando os dados chegam.
+      contexto().then(function () {
+        var s0 = steps[cur];
+        if (s0 && (s0.type === "intro" || s0.type === "identificacao")) renderStep();
+      });
     })();
   </script>
 </body>

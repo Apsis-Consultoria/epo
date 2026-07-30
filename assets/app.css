@@ -867,3 +867,62 @@ img { max-width: 100%; display: block; }
   .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* =========================================================================
+   Barra inferior (só mobile) - dois atalhos fixos, no padrão do Gmail:
+   preencher o relatório e contar o estoque que chega na EPO.
+   Injetada por Layout.mount(); no desktop fica escondida.
+   ========================================================================= */
+.bottombar { display: none; }
+
+@media (max-width: 900px) {
+  .bottombar {
+    display: flex;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 38;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(15, 33, 24, .07);
+    padding: 6px 6px max(6px, env(safe-area-inset-bottom));
+  }
+  .bottombar-item {
+    flex: 1 1 0; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    min-height: 54px; padding: 6px 4px;
+    border: 0; border-radius: 14px; background: none;
+    color: var(--text-2); font-family: inherit; font-size: 11.5px; font-weight: 600;
+    text-decoration: none; -webkit-tap-highlight-color: transparent;
+  }
+  .bottombar-item i { font-size: 23px; line-height: 1; }
+  .bottombar-item span { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bottombar-item:active { background: var(--surface-2); }
+  .bottombar-item.active { color: var(--apsis-green); background: var(--primary-tint); }
+
+  /* a barra não pode cobrir o fim da página */
+  .app-shell.has-bottombar .page { padding-bottom: 86px; }
+}
+
+/* =========================================================================
+   Toque no celular: dois toques rapidos em botao (ex.: + e - do stepper de
+   quantidade) davam zoom na tela e selecionavam o texto do botao.
+   touch-action: manipulation desliga o duplo-toque-para-zoom SEM travar o
+   zoom por pinca (acessibilidade preservada).
+   ========================================================================= */
+button,
+a.btn,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+.btn,
+.bottombar-item,
+.nav-item,
+.nav-sub-item {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+/* O wizard inteiro tambem dispensa o duplo-toque-para-zoom (o texto segue
+   selecionavel, o zoom por pinca continua funcionando). */
+.wiz-shell,
+.wiz-tempo-stepper { touch-action: manipulation; }

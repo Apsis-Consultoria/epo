@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=7">
+  <link rel="stylesheet" href="assets/app.css?v=9">
   <style>
     /* Ajustes locais - tela do responsável da EPO */
 
@@ -162,8 +162,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=7"></script>
-  <script src="assets/app.js?v=7"></script>
+  <script src="assets/data.js?v=9"></script>
+  <script src="assets/app.js?v=9"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -560,8 +560,10 @@
         page.innerHTML =
           avisoDemo() +
           '<p class="page-intro">' +
-            "Questionários alocados para você. Abra cada um, anexe as comprovações pedidas em cada pergunta " +
-            "e finalize com o botão de envio - a equipe APSIS usa esses arquivos na dupla checagem da auditoria." +
+            "Relatórios pedidos para a sua EPO. Abra cada um, anexe as comprovações de cada pergunta " +
+            "e finalize com o botão de envio. Você pode fazer isso de duas formas: <b>antes da visita</b> " +
+            "(prévia, para adiantar o trabalho) ou <b>durante a visita</b> do colaborador APSIS - neste caso " +
+            "cada arquivo aparece na tela dele na hora." +
           "</p>" +
           corpo;
 
@@ -657,7 +659,7 @@
           '<div class="live-note">' +
             '<i class="ti ti-eye" aria-hidden="true"></i>' +
             "<span>O auditor da APSIS vê estes anexos em tempo real durante a vistoria. " +
-            "Os arquivos vão para o SharePoint da Claro.</span>" +
+            "Os arquivos vão para o SharePoint da APSIS.</span>" +
           "</div>" +
           (readonly
             ? '<div class="readonly-note"><i class="ti ti-lock-check" aria-hidden="true"></i>' +

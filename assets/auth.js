@@ -20,6 +20,7 @@
     "ranking.html": "ranking",
     "comparar.html": "comparativo",
     "gerencial.html": "gerencial",
+    "pendentes.html": "pendentes",
     "auditoria.html": "auditoria",
     "envio.html": "envio",
     "checagem.html": "checagem",
@@ -32,7 +33,7 @@
 
   // Primeira página permitida do papel (destino padrão pós-login/negado)
   function primeiraPermitida(perms) {
-    var ordem = ["geral", "auditoria", "envio", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "config", "acessos"];
+    var ordem = ["geral", "pendentes", "auditoria", "envio", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "config", "acessos"];
     var mapaInverso = {};
     Object.keys(MAPA_PAGINAS).forEach(function (arq) { mapaInverso[MAPA_PAGINAS[arq]] = arq; });
     for (var i = 0; i < ordem.length; i++) {
@@ -53,6 +54,23 @@
         }
       }
     });
+    filtrarBarraInferior(perms);
+  }
+
+  // Barra inferior do mobile: sempre dois botões. O primeiro é "Relatórios"
+  // (equipe APSIS preenche) ou "Enviar" (responsável da EPO anexa); o segundo
+  // é a montagem de estoque.
+  function filtrarBarraInferior(perms) {
+    var bb = document.querySelector(".bottombar");
+    if (!bb) return;
+    var mostra = function (chave, on) {
+      var el = bb.querySelector('[data-bb="' + chave + '"]');
+      if (el) el.style.display = on ? "" : "none";
+    };
+    var pendentes = perms.pendentes !== false;
+    mostra("pendentes", pendentes);
+    mostra("envio", !pendentes && perms.envio !== false);
+    mostra("giro", perms.giro !== false);
   }
 
   function arquivoAtual() {

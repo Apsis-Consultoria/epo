@@ -2,43 +2,239 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Montagem de estoque - Auditoria de EPOs</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=7">
+  <link rel="stylesheet" href="assets/app.css?v=9">
   <style>
-    /* Ajustes locais - montagem de estoque (contagem de giro), mobile-first */
+    /* ==========================================================================
+       Montagem de estoque (contagem de giro) - questionario de tela cheia,
+       mesmo padrao visual do assistente de auditoria (auditoria.html).
+       Pensado para ser preenchido no navegador do celular, dentro da EPO.
+       ========================================================================== */
+    html, body { height: 100%; }
+    body.wiz-body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
 
-    .demo-note {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 12.5px; color: var(--text-2);
-      background: var(--warning-bg); border: 1px dashed var(--warning);
-      border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 14px;
+    .wiz-shell {
+      min-height: 100dvh;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      max-width: 560px;
+      margin: 0 auto;
+      background: var(--surface);
+      position: relative;
     }
-    .demo-note i { color: var(--warning); font-size: 16px; flex: 0 0 auto; }
+
+    .wiz-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: max(12px, env(safe-area-inset-top)) 16px 10px;
+      flex: 0 0 auto;
+    }
+    .wiz-icon-btn {
+      width: 36px; height: 36px; flex: 0 0 36px;
+      border-radius: 50%;
+      border: 0;
+      background: var(--surface-2);
+      color: var(--text-2);
+      display: grid; place-items: center;
+      font-size: 18px;
+      text-decoration: none;
+    }
+    .wiz-progress-track { flex: 1; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+    .wiz-progress-fill { height: 100%; background: var(--apsis-orange); border-radius: 99px; width: 0%; transition: width .25s ease; }
+    .wiz-counter { flex: 0 0 auto; min-width: 42px; text-align: right; font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+    .wiz-main { flex: 1; overflow-y: auto; padding: 10px 20px 28px; -webkit-overflow-scrolling: touch; }
+    .wiz-eyebrow { font-size: 12px; font-weight: 600; color: var(--apsis-orange); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
+    .wiz-subeyebrow { font-size: 12px; color: var(--text-muted); margin: -4px 0 14px; }
+    .wiz-question { font-size: 21px; font-weight: 700; line-height: 1.32; color: var(--text); margin: 0 0 14px; }
+
+    .wiz-evidence { display: flex; gap: 8px; align-items: flex-start; background: var(--surface-2); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; color: var(--text-2); margin-bottom: 20px; line-height: 1.5; }
+    .wiz-evidence i { font-size: 16px; flex: 0 0 auto; margin-top: 2px; color: var(--text-2); }
+    .wiz-evidence b { color: var(--text); font-weight: 600; }
+
+    .wiz-field { margin-bottom: 18px; }
+    .wiz-field label { display: block; font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; }
+    .wiz-field input, .wiz-field select, .wiz-field textarea {
+      width: 100%; padding: 13px 14px; border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border); background: var(--surface);
+      font-size: 16px; color: var(--text); font-family: inherit;
+    }
+    .wiz-field textarea { min-height: 84px; resize: vertical; line-height: 1.5; }
+    .hint-static { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    .wiz-field .hint-static { margin-top: 6px; }
+
+    /* Overlay de envio real ao Supabase */
+    .wiz-sending {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(255, 255, 255, .88);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    .wiz-sending-spin {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 4px solid var(--surface-2); border-top-color: var(--apsis-orange);
+      animation: wizspin .8s linear infinite;
+    }
+    .wiz-sending p { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+    @keyframes wizspin { to { transform: rotate(360deg); } }
+
+    .wiz-tempo-stepper { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 28px 0 8px; }
+    .wiz-stepper-btn {
+      width: 48px; height: 48px; border-radius: 50%; flex: 0 0 48px;
+      border: 1.5px solid var(--border-strong); background: var(--surface);
+      color: var(--text); font-size: 22px; font-weight: 600; display: grid; place-items: center; cursor: pointer;
+    }
+    .wiz-stepper-btn:active { background: var(--surface-2); }
+    .wiz-tempo-input-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 120px; }
+    .wiz-tempo-input-wrap input {
+      width: 120px; text-align: center; font-size: 38px; font-weight: 700;
+      border: 0; border-bottom: 2px solid var(--border-strong); background: transparent; color: var(--text);
+      padding: 4px 0;
+    }
+    .wiz-tempo-input-wrap input:focus { outline: none; border-color: var(--apsis-orange); }
+    .wiz-tempo-input-wrap span { font-size: 13px; color: var(--text-muted); }
+
+    .wiz-summary-card { background: var(--surface-2); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; text-align: center; }
+    .wiz-summary-score { font-size: 42px; font-weight: 700; line-height: 1; }
+    .wiz-summary-tier { margin-top: 8px; }
+    .wiz-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+    .wiz-summary-stat { background: var(--surface); border-radius: var(--radius-sm); padding: 12px; }
+    .wiz-summary-stat b { display: block; font-size: 20px; line-height: 1.2; }
+    .wiz-summary-stat span { font-size: 12px; color: var(--text-2); }
+
+    .wiz-skip { display: block; width: 100%; text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 2px; text-decoration: underline; background: none; border: 0; cursor: pointer; padding: 10px; }
+
+    /* Tela de capa - exibida antes do questionario e ao concluir o envio */
+    .wiz-header.is-intro .wiz-progress-track,
+    .wiz-header.is-intro .wiz-counter { display: none; }
+
+    .wiz-intro { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 18px 4px 8px; }
+    .wiz-intro-icon {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--primary-tint); color: var(--apsis-orange);
+      display: grid; place-items: center; font-size: 34px; margin-bottom: 20px;
+    }
+    .wiz-intro-title { font-size: 26px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
+    .wiz-intro-sub { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 360px; margin: 0 0 24px; }
+    .wiz-intro-stats { display: flex; gap: 10px; width: 100%; margin-bottom: 24px; }
+    .wiz-intro-stat { flex: 1; background: var(--surface-2); border-radius: var(--radius-sm); padding: 14px 8px; }
+    .wiz-intro-stat b { display: block; font-size: 20px; font-weight: 700; color: var(--text); }
+    .wiz-intro-stat span { font-size: 11px; color: var(--text-2); }
+    .wiz-intro-list { list-style: none; margin: 0; padding: 0; width: 100%; text-align: left; display: flex; flex-direction: column; gap: 12px; }
+    .wiz-intro-list li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2); }
+    .wiz-intro-list li i { font-size: 18px; color: var(--success); flex: 0 0 auto; }
+
+    /* Cartao de item (mesmo cartao usado no seletor de processos do wizard) */
+    .proc-card {
+      display: flex; align-items: center; gap: 14px; width: 100%;
+      min-height: 64px; padding: 12px 14px; text-align: left;
+      border: 1.5px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); cursor: pointer; font-family: inherit;
+      transition: border-color .15s ease, background .15s ease, transform .1s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .proc-card:active { background: var(--surface-2); transform: scale(.99); }
+    .proc-card-icon {
+      width: 42px; height: 42px; flex: 0 0 42px; border-radius: 12px;
+      background: var(--primary-tint); color: var(--apsis-green);
+      display: grid; place-items: center; font-size: 22px;
+    }
+    .proc-card-info { flex: 1; min-width: 0; }
+    .proc-card-info b { display: block; font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .proc-card-info span { font-size: 12px; color: var(--text-2); }
+    .proc-card-caret { color: var(--text-muted); font-size: 18px; flex: 0 0 auto; }
+    .proc-card.is-destaque { border-color: var(--apsis-orange); }
+    .proc-card.is-destaque .proc-card-icon { background: var(--warning-bg); color: var(--apsis-orange); }
+
+    /* Tela cheia de confirmacao (apos enviar) */
+    .wiz-done {
+      min-height: 100dvh; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+      padding: 32px 24px max(28px, env(safe-area-inset-bottom));
+    }
+    .wiz-done-icon {
+      width: 96px; height: 96px; border-radius: 50%;
+      background: var(--success-bg); color: var(--success);
+      display: grid; place-items: center; font-size: 52px; margin-bottom: 24px;
+    }
+    .wiz-done-title { font-size: 27px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
+    .wiz-done-sub { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 340px; margin: 0 0 22px; }
+    .wiz-done-score { display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 30px; }
+    .wiz-done-score strong { font-size: 22px; font-weight: 700; }
+    .wiz-done-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 360px; }
+    .wiz-done-actions .wiz-btn { width: 100%; flex: 0 0 auto; text-decoration: none; }
+
+    .wiz-footer {
+      display: flex; gap: 10px; flex: 0 0 auto;
+      padding: 12px 16px max(14px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border); background: var(--surface);
+      position: sticky; bottom: 0;
+    }
+    .wiz-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      height: 50px; border-radius: var(--radius); font-size: 15px; font-weight: 600;
+      border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .wiz-btn i { font-size: 18px; }
+    .wiz-btn-back { flex: 0 0 100px; background: var(--surface-2); color: var(--text-2); }
+    .wiz-btn-back:disabled { visibility: hidden; }
+    .wiz-btn-next { flex: 1; background: var(--apsis-green); color: #fff; }
+    .wiz-btn-next:disabled { opacity: .4; cursor: not-allowed; }
+    .wiz-btn-next.is-submit { background: var(--apsis-orange); }
+
+    /* ------------------------------------------------ Especifico da contagem */
+    .demo-note {
+      display: flex; align-items: flex-start; gap: 8px; width: 100%; text-align: left;
+      font-size: 12.5px; color: var(--text-2); line-height: 1.45;
+      background: var(--warning-bg); border: 1px dashed var(--warning);
+      border-radius: var(--radius-sm); padding: 9px 12px; margin: 20px 0 0;
+    }
+    .demo-note i { color: var(--warning); font-size: 16px; flex: 0 0 auto; margin-top: 1px; }
 
     .giro-cod {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 13.5px; font-weight: 600; color: var(--text);
       font-variant-numeric: tabular-nums;
     }
+    .proc-card-info b.giro-cod { font-size: 14.5px; }
 
     .badge-alto  { background: var(--warning-bg); color: var(--warning); }
     .badge-baixo { background: var(--surface-2);  color: var(--text-2); }
 
-    /* ------ Busca ------ */
+    .giro-h2 { font-size: 15px; font-weight: 700; color: var(--text); margin: 20px 0 10px; }
+
+    /* Resumo fixo no topo do passo de itens */
+    .giro-sticky {
+      position: sticky; top: 0; z-index: 6;
+      display: flex; align-items: flex-start; gap: 8px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      margin: 0 -20px 16px; padding: 8px 20px 10px;
+    }
+    .giro-sticky::before {
+      content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 10px;
+      background: var(--surface);
+    }
+    .giro-num { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+    .giro-num .lbl { font-size: 10.5px; color: var(--text-2); font-weight: 500; line-height: 1.25; }
+    .giro-num .val { font-size: 19px; font-weight: 700; color: var(--text); }
+    .giro-num.is-alto .val { color: var(--apsis-orange); }
+
+    /* Busca (52px de altura e 16px de fonte para o iOS nao dar zoom) */
     .busca-wrap { position: relative; }
     .busca-input {
       width: 100%; min-height: 52px; font-size: 16px; font-weight: 500;
-      padding: 12px 14px 12px 42px;
+      padding: 12px 46px 12px 42px;
       background: var(--surface); color: var(--text);
       border: 1.5px solid var(--border-strong); border-radius: var(--radius);
       font-family: inherit; -webkit-appearance: none; appearance: none;
     }
     .busca-input::placeholder { color: var(--text-muted); font-weight: 400; }
-    .busca-input:focus { outline: 0; border-color: var(--apsis-green); box-shadow: 0 0 0 3px rgba(26, 71, 49, .12); }
+    .busca-input:focus { outline: 0; border-color: var(--apsis-green); box-shadow: 0 0 0 3px var(--primary-tint); }
     .busca-icone {
       position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
       font-size: 19px; color: var(--text-muted); pointer-events: none;
@@ -50,30 +246,16 @@
       display: none; place-items: center; font-size: 18px; cursor: pointer;
     }
     .busca-limpar.is-on { display: grid; }
-    .busca-limpar:hover { background: var(--surface-2); color: var(--text); }
     .busca-meta {
       display: flex; align-items: center; justify-content: space-between; gap: 10px;
       flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--text-muted);
     }
 
-    .res-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-    .res-item {
-      display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
-      min-height: 56px; padding: 10px 12px; font-family: inherit;
-      background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); cursor: pointer;
-      transition: border-color .15s ease, background .15s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .res-item:hover { border-color: var(--apsis-green); background: var(--primary-tint); }
-    .res-item:active { transform: scale(.995); }
-    .res-item.is-sel { border-color: var(--apsis-green); background: var(--primary-tint); }
-    .res-info { flex: 1; min-width: 0; }
-    .res-tec { display: block; font-size: 13.5px; font-weight: 500; color: var(--text); line-height: 1.35; }
-    .res-cat { display: block; font-size: 12px; color: var(--text-2); }
-    .res-item .badge { flex: 0 0 auto; }
+    .res-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .res-list .badge { flex: 0 0 auto; }
+    .proc-card.is-sel { border-color: var(--apsis-green); background: var(--primary-tint); }
 
-    /* ------ Item selecionado ------ */
+    /* Painel do item selecionado (mesma tela da busca) */
     .sel-card {
       background: var(--surface); border: 1.5px solid var(--apsis-green);
       border-radius: var(--radius); padding: 16px; margin-top: 14px;
@@ -87,120 +269,118 @@
     .sel-info { flex: 1; min-width: 0; }
     .sel-info b { display: block; font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; }
     .sel-info span { display: block; font-size: 12.5px; color: var(--text-2); }
+    .sel-info span.giro-cod { margin-top: 2px; font-size: 13.5px; color: var(--text); }
+    .sel-info .sel-badge { margin-top: 6px; }
     .sel-fechar {
-      width: 34px; height: 34px; flex: 0 0 34px; border: 0; border-radius: var(--radius-sm);
+      width: 38px; height: 38px; flex: 0 0 38px; border: 0; border-radius: var(--radius-sm);
       background: transparent; color: var(--text-muted);
       display: grid; place-items: center; font-size: 18px; cursor: pointer;
     }
-    .sel-fechar:hover { background: var(--surface-2); color: var(--text); }
-    .sel-acoes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
-    .sel-acoes .btn-primary { flex: 1; min-width: 190px; min-height: 48px; justify-content: center; }
+    .sel-fechar:active { background: var(--surface-2); color: var(--text); }
+    .giro-add { width: 100%; flex: 0 0 auto; margin-top: 18px; }
 
-    /* ------ Stepper ------ */
-    .stepper { display: inline-flex; align-items: stretch; gap: 0; }
-    .stepper button {
-      width: 48px; height: 48px; flex: 0 0 48px;
+    /* Observação de apoio: texto discreto, nunca com cara de erro */
+    .nota-acessorio {
+      display: flex; align-items: flex-start; gap: 7px;
+      font-size: 12.5px; color: var(--text-muted); line-height: 1.45; margin: 12px 0 0;
+    }
+    .nota-acessorio i { font-size: 15px; color: var(--text-muted); flex: 0 0 auto; margin-top: 1px; }
+
+    /* Aviso de que o item já está na contagem (informativo, tom da marca) */
+    .nota-soma {
+      display: flex; align-items: flex-start; gap: 7px;
+      background: var(--primary-tint); border-radius: var(--radius-sm);
+      padding: 9px 11px; margin: 12px 0 0;
+      font-size: 12.5px; color: var(--text-2); line-height: 1.45;
+    }
+    .nota-soma i { font-size: 15px; color: var(--apsis-green); flex: 0 0 auto; margin-top: 1px; }
+
+    /* Dica exibida quando a busca está vazia (tela limpa) */
+    .busca-dica {
+      display: flex; align-items: center; gap: 8px;
+      margin: 14px 0 0; padding: 14px 12px;
+      border: 1px dashed var(--border-strong); border-radius: var(--radius);
+      background: var(--surface-2);
+      font-size: 13px; color: var(--text-2); line-height: 1.45;
+    }
+    .busca-dica i { font-size: 17px; color: var(--text-muted); flex: 0 0 auto; }
+
+    /* Lista do que ja foi contado */
+    .cnt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .cnt-item {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 12px;
+    }
+    .cnt-info { flex: 1 1 150px; min-width: 0; }
+    .cnt-tec { display: block; font-size: 13.5px; font-weight: 500; color: var(--text); line-height: 1.35; }
+    .cnt-cat { display: block; font-size: 12px; color: var(--text-2); }
+    .cnt-del {
+      width: 40px; height: 40px; flex: 0 0 40px; border: 0; border-radius: var(--radius-sm);
+      background: transparent; color: var(--text-muted);
+      display: grid; place-items: center; font-size: 17px; cursor: pointer;
+    }
+    .cnt-del:active { background: var(--danger-bg); color: var(--danger); }
+    .cnt-item .badge { flex: 0 0 auto; }
+
+    /* Stepper compacto para editar a quantidade dentro da lista */
+    .qtd-mini { display: inline-flex; align-items: stretch; flex: 0 0 auto; }
+    .qtd-mini button {
+      width: 40px; height: 40px; flex: 0 0 40px;
       border: 1.5px solid var(--border-strong); background: var(--surface);
-      color: var(--text); font-size: 22px; cursor: pointer;
-      display: grid; place-items: center;
+      color: var(--text); font-size: 18px; font-weight: 600; cursor: pointer;
+      display: grid; place-items: center; font-family: inherit;
       -webkit-tap-highlight-color: transparent;
     }
-    .stepper button:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
-    .stepper button:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
-    .stepper button:hover { background: var(--primary-tint); border-color: var(--apsis-green); color: var(--apsis-green); }
-    .stepper input {
-      width: 72px; height: 48px; text-align: center;
+    .qtd-mini button:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    .qtd-mini button:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+    .qtd-mini button:active { background: var(--primary-tint); border-color: var(--apsis-green); color: var(--apsis-green); }
+    .qtd-mini input {
+      width: 58px; height: 40px; text-align: center;
       font-size: 16px; font-weight: 600; font-family: inherit;
       font-variant-numeric: tabular-nums;
       color: var(--text); background: var(--surface);
       border: 1.5px solid var(--border-strong); border-left: 0; border-right: 0;
       -webkit-appearance: none; appearance: none;
     }
-    .stepper input:focus { outline: 0; border-color: var(--apsis-green); box-shadow: 0 0 0 3px rgba(26, 71, 49, .12); }
-    .stepper input::-webkit-outer-spin-button,
-    .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .qtd-mini input:focus { outline: 0; border-color: var(--apsis-green); }
+    .qtd-mini input::-webkit-outer-spin-button,
+    .qtd-mini input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-    .stepper-sm button { width: 38px; height: 38px; flex-basis: 38px; font-size: 18px; }
-    .stepper-sm input { width: 54px; height: 38px; font-size: 15px; }
+    /* Lista completa do resumo (agrupada por giro) */
+    .env-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .env-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface-2); border-radius: var(--radius-sm); padding: 9px 12px;
+    }
+    .env-info { flex: 1; min-width: 0; }
+    .env-tec { display: block; font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.35; }
+    .env-cat { display: block; font-size: 11.5px; color: var(--text-2); }
+    .env-qtd { flex: 0 0 auto; font-size: 16px; font-weight: 700; color: var(--text); }
 
-    .nota-acessorio {
-      display: flex; align-items: flex-start; gap: 7px;
-      font-size: 12.5px; color: var(--text-2); line-height: 1.45; margin-top: 12px;
-    }
-    .nota-acessorio i { font-size: 15px; color: var(--apsis-orange); flex: 0 0 auto; margin-top: 1px; }
-
-    /* ------ Lista da contagem ------ */
-    .cnt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-    .cnt-item {
-      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-      background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 10px 12px;
-    }
-    .cnt-info { flex: 1; min-width: 160px; }
-    .cnt-tec { display: block; font-size: 13.5px; font-weight: 500; color: var(--text); line-height: 1.35; }
-    .cnt-cat { display: block; font-size: 12px; color: var(--text-2); }
-    .cnt-del {
-      width: 38px; height: 38px; flex: 0 0 38px; border: 0; border-radius: var(--radius-sm);
-      background: transparent; color: var(--text-muted);
-      display: grid; place-items: center; font-size: 17px; cursor: pointer;
-    }
-    .cnt-del:hover { background: var(--danger-bg); color: var(--danger); }
-
-    /* ------ Resumo + envio ------ */
-    .resumo-bar {
-      position: sticky; bottom: 0; z-index: 5;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius) var(--radius) 0 0;
-      padding: 12px 16px; margin: 18px -4px 0;
-      box-shadow: 0 -6px 18px rgba(15, 33, 24, .08);
-      display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
-    }
-    .resumo-nums { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-    .resumo-num { display: flex; flex-direction: column; line-height: 1.2; }
-    .resumo-num .lbl { font-size: 11.5px; color: var(--text-2); font-weight: 500; }
-    .resumo-num .val { font-size: 20px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
-    .resumo-num.is-alto .val { color: var(--apsis-orange); }
-    .resumo-acoes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .resumo-acoes .btn { min-height: 44px; }
-
-    /* ------ Conclusão ------ */
-    .giro-done {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 48px 24px;
-    }
-    .giro-done-icon {
-      width: 96px; height: 96px; border-radius: 50%;
-      background: var(--success-bg); color: var(--success);
-      display: grid; place-items: center; font-size: 52px; margin-bottom: 24px;
-    }
-    .giro-done h2 { font-size: 26px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
-    .giro-done p { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 420px; margin: 0 0 22px; }
-    .giro-done-nums { display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; margin-bottom: 26px; }
-    .giro-done-acoes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
-
-    @media (max-width: 640px) {
-      .resumo-bar { margin-left: -8px; margin-right: -8px; flex-direction: column; align-items: stretch; }
-      .resumo-nums { justify-content: space-between; gap: 10px; }
-      .resumo-acoes { flex-direction: column-reverse; align-items: stretch; }
-      .resumo-acoes .btn { width: 100%; justify-content: center; min-height: 48px; }
-      .sel-acoes .btn-primary { width: 100%; min-width: 0; }
-      .cnt-item { gap: 8px; }
-      .cnt-info { flex-basis: 100%; }
+    @media (min-width: 640px) {
+      body.wiz-body { background: var(--surface-2); }
+      .wiz-shell { margin: 28px auto; min-height: calc(100vh - 56px); border-radius: 20px; box-shadow: var(--shadow-md); overflow: hidden; }
     }
   </style>
 </head>
-<body>
-  <div class="app-shell">
-    <aside class="sidebar" id="sidebar"></aside>
-    <div class="app-main">
-      <header class="topbar" id="topbar"></header>
-      <main class="page" id="page"></main>
-    </div>
+<body class="wiz-body">
+  <div class="wiz-shell">
+    <header class="wiz-header" id="wiz-header">
+      <a class="wiz-icon-btn" href="index.html" aria-label="Sair da contagem"><i class="ti ti-x" aria-hidden="true"></i></a>
+      <div class="wiz-progress-track"><div class="wiz-progress-fill" id="wiz-progress"></div></div>
+      <span class="wiz-counter" id="wiz-counter">1/1</span>
+    </header>
+    <main class="wiz-main" id="wiz-main"></main>
+    <footer class="wiz-footer" id="wiz-footer">
+      <button class="wiz-btn wiz-btn-back" id="wiz-back" type="button"><i class="ti ti-chevron-left" aria-hidden="true"></i>Voltar</button>
+      <button class="wiz-btn wiz-btn-next" id="wiz-next" type="button">Próxima<i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+    </footer>
   </div>
 
-  <script src="assets/data.js?v=7"></script>
-  <script src="assets/app.js?v=7"></script>
-  <script src="assets/catalogo-giro.js?v=7"></script>
+  <script src="assets/data.js?v=9"></script>
+  <script src="assets/app.js?v=9"></script>
+  <script src="assets/catalogo-giro.js"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -208,31 +388,142 @@
     (function () {
       "use strict";
 
-      var acoes =
-        '<button class="btn btn-ghost btn-sm" id="btn-rascunho-top" type="button">' +
-          '<i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho' +
-        "</button>";
-
-      Layout.mount("giro", "Montagem de estoque", acoes);
-
       var esc = App.escapeHtml;
-      var page = document.getElementById("page");
+
+      var main = document.getElementById("wiz-main");
+      var footer = document.getElementById("wiz-footer");
+      var headerEl = document.getElementById("wiz-header");
+      var backBtn = document.getElementById("wiz-back");
+      var nextBtn = document.getElementById("wiz-next");
+      var progressFill = document.getElementById("wiz-progress");
+      var counterEl = document.getElementById("wiz-counter");
+
       var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
       var db = window.Auth ? Auth.cliente : null;
 
       var CATALOGO = window.CATALOGO_GIRO || [];
       var MAX_RESULTADOS = 25;
 
-      // Estado ------------------------------------------------------------
-      var epos = [];            // { id, nome, cidade, uf }
-      var selecionado = null;   // item do catálogo
-      var qtdSelecionada = 1;
-      var contados = [];        // { cod, tec, tipo, cat, giro, qtd }
-      var enviando = false;
+      // Relatorio pedido (alocacao) que originou a contagem. A tabela
+      // contagens_giro ainda nao tem coluna para isso: o valor so aparece na
+      // tela do resumo, nada e gravado.
+      var alocacaoParam = App.getParam("alocacao");
+      var epoParam = App.getParam("epo");
+
+      // ------------------------------------------------------------ Contexto
+      var itensAlto = CATALOGO.filter(function (it) { return it.giro === "alto"; });
+
+      var steps = [
+        { type: "intro" },
+        { type: "identificacao" },
+        { type: "itens" },
+        { type: "resumo" }
+      ];
+      var cur = 0;
+
+      var state = {
+        epoId: "",
+        responsavel: "",
+        data: hojeIso(),
+        obs: "",
+        itens: []            // { cod, tec, tipo, cat, giro, qtd }
+      };
+
+      var epos = [];           // { id, nome, cidade, uf }
+      var eposProntas = false;
+      var selecionado = null;  // item do catalogo aberto no painel
+      var qtdSel = 1;
       var termo = "";
       var timerBusca = null;
+      var salvandoRascunho = false;
+      var rascunhoSalvo = false;
 
-      // Índice de busca (texto normalizado) --------------------------------
+      // ------------------------------------------------------------- Helpers
+      function hojeIso() {
+        var d = new Date();
+        var mm = String(d.getMonth() + 1);
+        var dd = String(d.getDate());
+        return d.getFullYear() + "-" + (mm.length < 2 ? "0" + mm : mm) + "-" + (dd.length < 2 ? "0" + dd : dd);
+      }
+
+      // aaaa-mm-dd (valor do input date) -> dd/mm/aaaa
+      function dataBr(iso) {
+        var p = String(iso || "").split("-");
+        return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : String(iso || "");
+      }
+
+      function limitarQtd(n) {
+        var v = Math.floor(Number(n));
+        if (!isFinite(v) || v < 0) v = 0;
+        if (v > 99999) v = 99999;
+        return v;
+      }
+
+      function epoAtual() {
+        for (var i = 0; i < epos.length; i++) {
+          if (String(epos[i].id) === String(state.epoId)) return epos[i];
+        }
+        return null;
+      }
+
+      function localDaEpo() {
+        var e = epoAtual();
+        if (!e) return eposProntas ? "Escolha a EPO para ver cidade e UF." : "Carregando EPOs...";
+        return (e.cidade || "-") + " · " + (e.uf || "-");
+      }
+
+      function itemDoCatalogo(cod) {
+        for (var i = 0; i < CATALOGO.length; i++) {
+          if (String(CATALOGO[i].cod) === String(cod)) return CATALOGO[i];
+        }
+        return null;
+      }
+
+      function itemContado(cod) {
+        for (var i = 0; i < state.itens.length; i++) {
+          if (String(state.itens[i].cod) === String(cod)) return state.itens[i];
+        }
+        return null;
+      }
+
+      function totais() {
+        var t = { linhas: state.itens.length, itens: 0, alto: 0, baixo: 0 };
+        state.itens.forEach(function (c) {
+          var q = limitarQtd(c.qtd);
+          t.itens += q;
+          if (c.giro === "alto") t.alto += q; else t.baixo += q;
+        });
+        return t;
+      }
+
+      function temItemValido() {
+        for (var i = 0; i < state.itens.length; i++) {
+          if (limitarQtd(state.itens[i].qtd) >= 1) return true;
+        }
+        return false;
+      }
+
+      function badgeGiro(giro) {
+        var alto = giro === "alto";
+        return (
+          '<span class="badge ' + (alto ? "badge-alto" : "badge-baixo") + '">' +
+            '<i class="ti ti-circle-filled" aria-hidden="true"></i>' +
+            (alto ? "Alto giro" : "Baixo giro") +
+          "</span>"
+        );
+      }
+
+      function avisoDemo() {
+        if (!DEMO) return "";
+        return (
+          '<div class="demo-note">' +
+            '<i class="ti ti-flask" aria-hidden="true"></i>' +
+            "<span>Modo demonstração - nada vai ao banco. A contagem fica apenas nesta sessão.</span>" +
+          "</div>"
+        );
+      }
+
+      // --------------------------------------------------- Busca no catalogo
       function normalizar(s) {
         return String(s == null ? "" : s)
           .normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -247,11 +538,11 @@
         };
       });
 
-      var SUGESTOES = CATALOGO.filter(function (it) { return it.giro === "alto"; }).slice(0, 15);
-
+      // Sem busca, nada é listado: a tela começa limpa e o item só aparece
+      // quando o usuário procura pelo código SAP ou pelo nome.
       function buscar(q) {
         var alvo = normalizar(q).trim();
-        if (!alvo) return SUGESTOES;
+        if (!alvo) return [];
 
         var comeca = [];
         var contem = [];
@@ -264,68 +555,12 @@
         return comeca.concat(contem).slice(0, MAX_RESULTADOS);
       }
 
-      // Helpers -----------------------------------------------------------
-      function badgeGiro(giro) {
-        var alto = giro === "alto";
-        return (
-          '<span class="badge ' + (alto ? "badge-alto" : "badge-baixo") + '">' +
-            '<i class="ti ti-circle-filled" aria-hidden="true"></i>' +
-            (alto ? "Alto giro" : "Baixo giro") +
-          "</span>"
-        );
-      }
-
-      function hojeIso() {
-        var d = new Date();
-        var mm = String(d.getMonth() + 1);
-        var dd = String(d.getDate());
-        return d.getFullYear() + "-" + (mm.length < 2 ? "0" + mm : mm) + "-" + (dd.length < 2 ? "0" + dd : dd);
-      }
-
-      function itemContado(cod) {
-        for (var i = 0; i < contados.length; i++) {
-          if (String(contados[i].cod) === String(cod)) return contados[i];
-        }
-        return null;
-      }
-
-      function totais() {
-        var t = { linhas: contados.length, itens: 0, alto: 0, baixo: 0 };
-        contados.forEach(function (c) {
-          var q = Number(c.qtd) || 0;
-          t.itens += q;
-          if (c.giro === "alto") t.alto += q; else t.baixo += q;
-        });
-        return t;
-      }
-
-      function limitarQtd(n) {
-        var v = Math.floor(Number(n));
-        if (!isFinite(v) || v < 0) v = 0;
-        if (v > 99999) v = 99999;
-        return v;
-      }
-
-      function avisoDemo() {
-        if (!DEMO) return "";
-        return (
-          '<div class="demo-note">' +
-            '<i class="ti ti-flask" aria-hidden="true"></i>' +
-            "<span>Modo demonstração - nada é gravado. A contagem fica apenas nesta sessão.</span>" +
-          "</div>"
-        );
-      }
-
-      // Dados: EPOs --------------------------------------------------------
-      function eposLocais() {
-        return (window.APP.epos || []).map(function (e) {
-          return { id: e.id, nome: e.nome, cidade: e.cidade, uf: e.uf };
-        });
-      }
-
+      // ------------------------------------------------------------ EPOs
       function carregarEpos() {
         if (DEMO) {
-          epos = eposLocais();
+          epos = (window.APP.epos || []).map(function (e) {
+            return { id: e.id, nome: e.nome, cidade: e.cidade, uf: e.uf };
+          });
           return Promise.resolve();
         }
         return db.from("epos").select("id, nome, cidade, uf").eq("ativo", true).order("nome")
@@ -339,97 +574,96 @@
           });
       }
 
-      // Renderização -------------------------------------------------------
-      function htmlCabecalho() {
-        var opts = epos.map(function (e) {
-          var local = (e.cidade || "") + (e.uf ? "/" + e.uf : "");
-          return '<option value="' + esc(e.id) + '">' + esc(e.nome) + (local ? " - " + esc(local) : "") + "</option>";
+      // ------------------------------------------------------ Renderizacoes
+      function renderIntro() {
+        return (
+          '<div class="wiz-intro">' +
+            '<div class="wiz-intro-icon"><i class="ti ti-packages" aria-hidden="true"></i></div>' +
+            '<p class="wiz-eyebrow">Montagem de estoque</p>' +
+            '<h1 class="wiz-intro-title">Contagem do estoque da EPO</h1>' +
+            '<p class="wiz-intro-sub">Conte o que chegou na EPO, item por item. A contagem mostra quanto item de alto giro está sendo perdido na devolução do campo.</p>' +
+            '<div class="wiz-intro-stats">' +
+              '<div class="wiz-intro-stat"><b>' + App.fmtNum(CATALOGO.length) + "</b><span>itens no catálogo</span></div>" +
+              '<div class="wiz-intro-stat"><b>' + App.fmtNum(itensAlto.length) + "</b><span>de alto giro</span></div>" +
+              '<div class="wiz-intro-stat"><b>SAP</b><span>busca por código ou nome</span></div>' +
+            "</div>" +
+            '<ul class="wiz-intro-list">' +
+              '<li><i class="ti ti-search" aria-hidden="true"></i>Busque o item pelo código SAP ou pelo nome</li>' +
+              '<li><i class="ti ti-numbers" aria-hidden="true"></i>Informe a quantidade exata que chegou</li>' +
+              '<li><i class="ti ti-flame" aria-hidden="true"></i>Itens de alto giro ficam destacados na lista</li>' +
+              '<li><i class="ti ti-send" aria-hidden="true"></i>Revise o resumo e envie a contagem</li>' +
+            "</ul>" +
+            avisoDemo() +
+          "</div>"
+        );
+      }
+
+      function renderIdentificacao() {
+        var opts = '<option value="">' + (eposProntas ? "Selecione a EPO" : "Carregando EPOs...") + "</option>";
+        opts += epos.map(function (e) {
+          var sel = String(e.id) === String(state.epoId) ? " selected" : "";
+          return '<option value="' + esc(e.id) + '"' + sel + ">" + esc(e.nome) + "</option>";
         }).join("");
 
         return (
-          '<div class="card">' +
-            '<div class="card-header">' +
-              '<div class="section-title">' +
-                '<span class="title">Dados da contagem</span>' +
-                '<span class="subtitle">Identifica a EPO, a data e quem fez a contagem</span>' +
-              "</div>" +
-            "</div>" +
-            '<div class="grid-3">' +
-              '<div class="field" style="margin-bottom:0;">' +
-                '<label for="giro-epo">EPO</label>' +
-                '<select class="select" id="giro-epo">' +
-                  (opts || '<option value="">Nenhuma EPO disponível</option>') +
-                "</select>" +
-              "</div>" +
-              '<div class="field" style="margin-bottom:0;">' +
-                '<label for="giro-data">Data da contagem</label>' +
-                '<input class="input" type="date" id="giro-data" value="' + hojeIso() + '">' +
-              "</div>" +
-              '<div class="field" style="margin-bottom:0;">' +
-                '<label for="giro-resp">Responsável pela contagem</label>' +
-                '<input class="input" type="text" id="giro-resp" placeholder="Nome de quem está contando" autocomplete="off">' +
-              "</div>" +
-            "</div>" +
-          "</div>"
-        );
-      }
-
-      function htmlBusca() {
-        return (
-          '<div class="card">' +
-            '<div class="card-header">' +
-              '<div class="section-title">' +
-                '<span class="title">Buscar o item</span>' +
-                '<span class="subtitle">Digite o código SAP ou o nome e informe a quantidade recebida</span>' +
-              "</div>" +
-            "</div>" +
-            '<div class="busca-wrap">' +
-              '<i class="ti ti-search busca-icone" aria-hidden="true"></i>' +
-              '<input class="busca-input" id="giro-busca" type="search" inputmode="search" autocomplete="off" ' +
-                'placeholder="Buscar por código SAP ou nome do item" aria-label="Buscar por código SAP ou nome do item">' +
-              '<button class="busca-limpar" id="giro-limpar" type="button" aria-label="Limpar busca"><i class="ti ti-x" aria-hidden="true"></i></button>' +
-            "</div>" +
-            '<div class="busca-meta">' +
-              '<span id="giro-busca-info">Sugestões de alto giro</span>' +
-              "<span>" + App.fmtNum(CATALOGO.length) + " itens no catálogo</span>" +
-            "</div>" +
-            '<div id="giro-resultados"></div>' +
-            '<div id="giro-selecionado"></div>' +
-          "</div>"
-        );
-      }
-
-      function htmlContagem() {
-        return (
-          '<div class="card mb-0">' +
-            '<div class="card-header">' +
-              '<div class="section-title">' +
-                '<span class="title">Itens contados</span>' +
-                '<span class="subtitle">Ajuste as quantidades ou remova linhas antes de enviar</span>' +
-              "</div>" +
-            "</div>" +
-            '<div id="giro-lista"></div>' +
+          '<p class="wiz-eyebrow">Montagem de estoque · Identificação</p>' +
+          '<h1 class="wiz-question">Onde e quem está fazendo a contagem?</h1>' +
+          '<div class="wiz-evidence"><i class="ti ti-info-circle" aria-hidden="true"></i>' +
+            "<span>A contagem é registrada no nome da <b>EPO</b> e de quem contou. " +
+            "Só é possível avançar com a EPO e o responsável preenchidos.</span></div>" +
+          '<div class="wiz-field">' +
+            '<label for="f-epo">EPO contada</label>' +
+            '<select class="input" id="f-epo">' + opts + "</select>" +
+            '<p class="hint-static" id="f-epo-local">' + esc(localDaEpo()) + "</p>" +
           "</div>" +
-          '<div id="giro-resumo"></div>'
+          '<div class="wiz-field">' +
+            '<label for="f-resp">Responsável pela contagem</label>' +
+            '<input class="input" id="f-resp" type="text" autocomplete="off" ' +
+              'placeholder="Nome de quem está contando na EPO" value="' + esc(state.responsavel) + '">' +
+          "</div>" +
+          '<div class="wiz-field">' +
+            '<label for="f-data">Data da contagem</label>' +
+            '<input class="input" id="f-data" type="date" value="' + esc(state.data) + '">' +
+          "</div>"
         );
       }
 
-      function renderShell() {
-        page.innerHTML =
-          avisoDemo() +
-          '<p class="page-intro">' +
-            "Informe quantos itens de cada tipo chegaram na EPO. Serve para medir quantos itens de alto giro " +
-            "estão sendo perdidos na devolução." +
-          "</p>" +
-          htmlCabecalho() +
-          htmlBusca() +
-          htmlContagem();
+      function renderItens() {
+        var e = epoAtual();
+        return (
+          '<p class="wiz-eyebrow">Montagem de estoque · Itens</p>' +
+          '<p class="wiz-subeyebrow">' + (e ? esc(e.nome) + " · " + esc(e.cidade || "-") + " - " + esc(e.uf || "-") : "EPO não selecionada") + "</p>" +
+          '<h1 class="wiz-question">Quais itens chegaram e em qual quantidade?</h1>' +
+          '<div class="giro-sticky" id="giro-resumo"></div>' +
+          '<div class="busca-wrap">' +
+            '<i class="ti ti-search busca-icone" aria-hidden="true"></i>' +
+            '<input class="busca-input" id="giro-busca" type="search" inputmode="search" autocomplete="off" ' +
+              'placeholder="Código SAP ou nome do item" aria-label="Buscar por código SAP ou nome do item" ' +
+              'value="' + esc(termo) + '">' +
+            '<button class="busca-limpar' + (termo ? " is-on" : "") + '" id="giro-limpar" type="button" aria-label="Limpar busca">' +
+              '<i class="ti ti-x" aria-hidden="true"></i>' +
+            "</button>" +
+          "</div>" +
+          '<div class="busca-meta">' +
+            '<span id="giro-busca-info">Sugestões de alto giro</span>' +
+            "<span>" + App.fmtNum(CATALOGO.length) + " itens no catálogo</span>" +
+          "</div>" +
+          '<div id="giro-selecionado"></div>' +
+          '<div id="giro-resultados"></div>' +
+          '<h2 class="giro-h2">Itens na contagem</h2>' +
+          '<div id="giro-lista"></div>'
+        );
+      }
 
-        wireShell();
-        renderResultados();
-        renderSelecionado();
-        renderLista();
-        renderResumo();
+      function renderBarraResumo() {
+        var host = document.getElementById("giro-resumo");
+        if (!host) return;
+        var t = totais();
+        host.innerHTML =
+          '<span class="giro-num"><span class="lbl">Total de itens</span><span class="val tnum">' + App.fmtNum(t.itens) + "</span></span>" +
+          '<span class="giro-num is-alto"><span class="lbl">Alto giro</span><span class="val tnum">' + App.fmtNum(t.alto) + "</span></span>" +
+          '<span class="giro-num"><span class="lbl">Baixo giro</span><span class="val tnum">' + App.fmtNum(t.baixo) + "</span></span>" +
+          '<span class="giro-num"><span class="lbl">Tipos diferentes</span><span class="val tnum">' + App.fmtNum(t.linhas) + "</span></span>";
       }
 
       function renderResultados() {
@@ -438,10 +672,24 @@
         if (!host) return;
 
         var lista = buscar(termo);
+
         if (info) {
-          info.textContent = termo.trim()
-            ? (lista.length ? lista.length + (lista.length === 1 ? " item encontrado" : " itens encontrados") + (lista.length >= MAX_RESULTADOS ? " (refine a busca)" : "") : "Nenhum item encontrado")
-            : "Sugestões de alto giro";
+          if (!termo.trim()) {
+            info.textContent = "";
+          } else if (!lista.length) {
+            info.textContent = "Nenhum item encontrado";
+          } else {
+            info.textContent = lista.length + (lista.length === 1 ? " item encontrado" : " itens encontrados") +
+              (lista.length >= MAX_RESULTADOS ? " (refine a busca)" : "");
+          }
+        }
+
+        // Busca vazia: nada de lista. Só uma dica curta de como procurar.
+        if (!termo.trim()) {
+          host.innerHTML =
+            '<p class="busca-dica"><i class="ti ti-arrow-up" aria-hidden="true"></i>' +
+              "<span>Digite o código SAP ou o nome do item para incluir na contagem.</span></p>";
+          return;
         }
 
         if (!lista.length) {
@@ -449,7 +697,7 @@
             '<div class="empty" style="padding:24px 12px;">' +
               '<i class="ti ti-search-off" aria-hidden="true"></i>' +
               "Nenhum item com <b>" + esc(termo) + "</b>.<br>" +
-              '<span class="text-muted" style="font-size:12.5px;">Tente outro código SAP ou parte do nome.</span>' +
+              '<span class="hint-static">Tente outro código SAP ou parte do nome.</span>' +
             "</div>";
           return;
         }
@@ -457,16 +705,17 @@
         host.innerHTML =
           '<ul class="res-list">' +
           lista.map(function (it) {
-            var jaTem = !!itemContado(it.cod);
-            var sel = selecionado && selecionado.cod === it.cod;
+            var jaTem = itemContado(it.cod);
+            var sel = selecionado && String(selecionado.cod) === String(it.cod);
+            var classes = "proc-card" + (it.giro === "alto" ? " is-destaque" : "") + (sel ? " is-sel" : "");
             return (
               "<li>" +
-                '<button class="res-item' + (sel ? " is-sel" : "") + '" type="button" data-cod="' + esc(it.cod) + '">' +
-                  '<span class="giro-cod">' + esc(it.cod) + "</span>" +
-                  '<span class="res-info">' +
-                    '<span class="res-tec">' + esc(it.tec || "-") + "</span>" +
-                    '<span class="res-cat">' + esc(it.tipo || "") + (it.cat ? " · " + esc(it.cat) : "") +
-                      (jaTem ? " · já na contagem" : "") +
+                '<button type="button" class="' + classes + '" data-cod="' + esc(it.cod) + '">' +
+                  '<span class="proc-card-icon"><i class="ti ti-package" aria-hidden="true"></i></span>' +
+                  '<span class="proc-card-info">' +
+                    '<b class="giro-cod">' + esc(it.cod) + "</b>" +
+                    "<span>" + esc(it.tec || "-") + (it.cat ? " · " + esc(it.cat) : "") +
+                      (jaTem ? " · " + App.fmtNum(limitarQtd(jaTem.qtd)) + " na contagem" : "") +
                     "</span>" +
                   "</span>" +
                   badgeGiro(it.giro) +
@@ -476,7 +725,7 @@
           }).join("") +
           "</ul>";
 
-        host.querySelectorAll(".res-item").forEach(function (b) {
+        Array.prototype.forEach.call(host.querySelectorAll(".proc-card"), function (b) {
           b.addEventListener("click", function () { selecionar(b.getAttribute("data-cod")); });
         });
       }
@@ -488,34 +737,39 @@
         if (!selecionado) { host.innerHTML = ""; return; }
 
         var it = selecionado;
+        var linha = itemContado(it.cod);
+
         host.innerHTML =
           '<div class="sel-card">' +
             '<div class="sel-top">' +
               '<span class="sel-icone"><i class="ti ti-package" aria-hidden="true"></i></span>' +
-              '<div class="sel-info">' +
+              '<span class="sel-info">' +
                 "<b>" + esc(it.tec || "-") + "</b>" +
-                '<span class="giro-cod" style="margin-top:2px;">' + esc(it.cod) + "</span>" +
-                "<span>" + esc(it.tipo || "") + (it.cat ? " · " + esc(it.cat) : "") + "</span>" +
-                '<span style="margin-top:6px;">' + badgeGiro(it.giro) + "</span>" +
-              "</div>" +
+                '<span class="giro-cod">' + esc(it.cod) + "</span>" +
+                "<span>" + esc(it.tipo || "-") + (it.cat ? " · " + esc(it.cat) : "") + "</span>" +
+                '<span class="sel-badge">' + badgeGiro(it.giro) + "</span>" +
+              "</span>" +
               '<button class="sel-fechar" id="giro-sel-fechar" type="button" aria-label="Fechar item selecionado">' +
                 '<i class="ti ti-x" aria-hidden="true"></i>' +
               "</button>" +
             "</div>" +
-            '<div class="sel-acoes">' +
-              '<span class="stepper">' +
-                '<button type="button" id="giro-menos" aria-label="Diminuir quantidade">-</button>' +
-                '<input type="number" id="giro-qtd" inputmode="numeric" min="0" step="1" value="' + qtdSelecionada + '" aria-label="Quantidade recebida">' +
-                '<button type="button" id="giro-mais" aria-label="Aumentar quantidade">+</button>' +
-              "</span>" +
-              '<button class="btn btn-primary" id="giro-adicionar" type="button">' +
-                '<i class="ti ti-plus" aria-hidden="true"></i>Adicionar à contagem' +
-              "</button>" +
+            (linha
+              ? '<p class="nota-soma"><i class="ti ti-info-circle" aria-hidden="true"></i><span>Este item já está na contagem com <b>' +
+                App.fmtNum(limitarQtd(linha.qtd)) + "</b>. A quantidade abaixo será somada.</span></p>"
+              : "") +
+            '<div class="wiz-tempo-stepper">' +
+              '<button class="wiz-stepper-btn" type="button" data-step="-1" aria-label="Diminuir quantidade">-</button>' +
+              '<div class="wiz-tempo-input-wrap">' +
+                '<input type="number" inputmode="numeric" min="0" step="1" id="giro-qtd" value="' + qtdSel + '" aria-label="Quantidade contada">' +
+                "<span>unidades</span>" +
+              "</div>" +
+              '<button class="wiz-stepper-btn" type="button" data-step="1" aria-label="Aumentar quantidade">+</button>' +
             "</div>" +
-            '<p class="nota-acessorio">' +
-              '<i class="ti ti-info-circle" aria-hidden="true"></i>' +
-              "<span>Acessórios (fonte, controle) ainda não estão vinculados ao item principal - conte cada um separadamente.</span>" +
-            "</p>" +
+            '<button class="wiz-btn wiz-btn-next giro-add" id="giro-adicionar" type="button">' +
+              '<i class="ti ti-plus" aria-hidden="true"></i>Adicionar à contagem' +
+            "</button>" +
+            '<p class="nota-acessorio"><i class="ti ti-info-circle" aria-hidden="true"></i>' +
+              "<span>Acessórios (fonte, controle) ainda não estão vinculados ao item principal - conte cada um separadamente.</span></p>" +
           "</div>";
 
         var input = document.getElementById("giro-qtd");
@@ -525,23 +779,21 @@
           renderSelecionado();
           renderResultados();
         });
-        document.getElementById("giro-menos").addEventListener("click", function () {
-          qtdSelecionada = limitarQtd(qtdSelecionada - 1);
-          input.value = qtdSelecionada;
+
+        Array.prototype.forEach.call(host.querySelectorAll(".wiz-stepper-btn"), function (btn) {
+          btn.addEventListener("click", function () {
+            var base = limitarQtd(input.value);
+            qtdSel = limitarQtd(base + parseInt(btn.getAttribute("data-step"), 10));
+            input.value = qtdSel;
+          });
         });
-        document.getElementById("giro-mais").addEventListener("click", function () {
-          qtdSelecionada = limitarQtd(qtdSelecionada + 1);
-          input.value = qtdSelecionada;
-        });
-        input.addEventListener("input", function () {
-          qtdSelecionada = limitarQtd(input.value);
-        });
-        input.addEventListener("blur", function () {
-          input.value = qtdSelecionada;
-        });
+
+        input.addEventListener("input", function () { qtdSel = limitarQtd(input.value); });
+        input.addEventListener("blur", function () { input.value = qtdSel; });
         input.addEventListener("keydown", function (ev) {
           if (ev.key === "Enter") { ev.preventDefault(); adicionar(); }
         });
+
         document.getElementById("giro-adicionar").addEventListener("click", adicionar);
       }
 
@@ -549,30 +801,30 @@
         var host = document.getElementById("giro-lista");
         if (!host) return;
 
-        if (!contados.length) {
+        if (!state.itens.length) {
           host.innerHTML =
-            '<div class="empty" style="padding:28px 12px;">' +
+            '<div class="empty" style="padding:26px 12px;">' +
               '<i class="ti ti-clipboard-list" aria-hidden="true"></i>' +
               "Nenhum item contado ainda.<br>" +
-              '<span class="text-muted" style="font-size:12.5px;">Busque o item acima, informe a quantidade e adicione à contagem.</span>' +
+              '<span class="hint-static">Busque o item acima, informe a quantidade e adicione à contagem.</span>' +
             "</div>";
           return;
         }
 
         host.innerHTML =
           '<ul class="cnt-list">' +
-          contados.map(function (c) {
+          state.itens.map(function (c) {
             return (
-              '<li class="cnt-item" data-linha="' + esc(c.cod) + '">' +
+              '<li class="cnt-item">' +
                 '<span class="giro-cod">' + esc(c.cod) + "</span>" +
                 '<span class="cnt-info">' +
                   '<span class="cnt-tec">' + esc(c.tec || "-") + "</span>" +
-                  '<span class="cnt-cat">' + esc(c.tipo || "") + (c.cat ? " · " + esc(c.cat) : "") + "</span>" +
+                  '<span class="cnt-cat">' + esc(c.tipo || "-") + (c.cat ? " · " + esc(c.cat) : "") + "</span>" +
                 "</span>" +
                 badgeGiro(c.giro) +
-                '<span class="stepper stepper-sm">' +
+                '<span class="qtd-mini">' +
                   '<button type="button" data-menos="' + esc(c.cod) + '" aria-label="Diminuir quantidade de ' + esc(c.cod) + '">-</button>' +
-                  '<input type="number" inputmode="numeric" min="0" step="1" value="' + c.qtd + '" ' +
+                  '<input type="number" inputmode="numeric" min="0" step="1" value="' + limitarQtd(c.qtd) + '" ' +
                     'data-qtd="' + esc(c.cod) + '" aria-label="Quantidade de ' + esc(c.cod) + '">' +
                   '<button type="button" data-mais="' + esc(c.cod) + '" aria-label="Aumentar quantidade de ' + esc(c.cod) + '">+</button>' +
                 "</span>" +
@@ -584,94 +836,124 @@
           }).join("") +
           "</ul>";
 
-        host.querySelectorAll("[data-menos]").forEach(function (b) {
+        Array.prototype.forEach.call(host.querySelectorAll("[data-menos]"), function (b) {
           b.addEventListener("click", function () { ajustar(b.getAttribute("data-menos"), -1); });
         });
-        host.querySelectorAll("[data-mais]").forEach(function (b) {
+        Array.prototype.forEach.call(host.querySelectorAll("[data-mais]"), function (b) {
           b.addEventListener("click", function () { ajustar(b.getAttribute("data-mais"), 1); });
         });
-        host.querySelectorAll("[data-qtd]").forEach(function (inp) {
+        Array.prototype.forEach.call(host.querySelectorAll("[data-qtd]"), function (inp) {
           inp.addEventListener("input", function () {
             var linha = itemContado(inp.getAttribute("data-qtd"));
             if (!linha) return;
             linha.qtd = limitarQtd(inp.value);
-            renderResumo();
+            renderBarraResumo();
+            updateChrome();
           });
           inp.addEventListener("blur", function () {
             var linha = itemContado(inp.getAttribute("data-qtd"));
-            if (linha) inp.value = linha.qtd;
+            if (linha) inp.value = limitarQtd(linha.qtd);
           });
         });
-        host.querySelectorAll("[data-remover]").forEach(function (b) {
+        Array.prototype.forEach.call(host.querySelectorAll("[data-remover]"), function (b) {
           b.addEventListener("click", function () { remover(b.getAttribute("data-remover")); });
         });
       }
 
-      function renderResumo() {
-        var host = document.getElementById("giro-resumo");
-        if (!host) return;
-
-        var t = totais();
-        host.innerHTML =
-          '<div class="resumo-bar">' +
-            '<div class="resumo-nums">' +
-              '<span class="resumo-num">' +
-                '<span class="lbl">Total de itens</span>' +
-                '<span class="val">' + App.fmtNum(t.itens) + "</span>" +
-              "</span>" +
-              '<span class="resumo-num is-alto">' +
-                '<span class="lbl">Alto giro</span>' +
-                '<span class="val">' + App.fmtNum(t.alto) + "</span>" +
-              "</span>" +
-              '<span class="resumo-num">' +
-                '<span class="lbl">Baixo giro</span>' +
-                '<span class="val">' + App.fmtNum(t.baixo) + "</span>" +
-              "</span>" +
-              '<span class="resumo-num">' +
-                '<span class="lbl">Tipos contados</span>' +
-                '<span class="val">' + App.fmtNum(t.linhas) + "</span>" +
-              "</span>" +
-            "</div>" +
-            '<div class="resumo-acoes">' +
-              '<button class="btn btn-ghost" id="giro-rascunho" type="button">' +
-                '<i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho' +
-              "</button>" +
-              '<button class="btn btn-primary" id="giro-enviar" type="button"' + (t.linhas < 1 || enviando ? " disabled" : "") + ">" +
-                '<i class="ti ti-send" aria-hidden="true"></i>' + (enviando ? "Enviando..." : "Enviar contagem") +
-              "</button>" +
-            "</div>" +
-          "</div>";
-
-        document.getElementById("giro-rascunho").addEventListener("click", salvarRascunho);
-        document.getElementById("giro-enviar").addEventListener("click", enviar);
+      function linhaEnvioHtml(c) {
+        return (
+          '<li class="env-item">' +
+            '<span class="giro-cod">' + esc(c.cod) + "</span>" +
+            '<span class="env-info">' +
+              '<span class="env-tec">' + esc(c.tec || "-") + "</span>" +
+              '<span class="env-cat">' + esc(c.tipo || "-") + (c.cat ? " · " + esc(c.cat) : "") + "</span>" +
+            "</span>" +
+            '<b class="env-qtd tnum">' + App.fmtNum(limitarQtd(c.qtd)) + "</b>" +
+          "</li>"
+        );
       }
 
-      // Ações --------------------------------------------------------------
-      function selecionar(cod) {
-        for (var i = 0; i < CATALOGO.length; i++) {
-          if (String(CATALOGO[i].cod) === String(cod)) {
-            selecionado = CATALOGO[i];
-            qtdSelecionada = 1;
-            renderSelecionado();
-            renderResultados();
-            var input = document.getElementById("giro-qtd");
-            if (input) { input.focus(); input.select(); }
-            return;
-          }
+      function listaEnvioHtml() {
+        var alto = state.itens.filter(function (c) { return c.giro === "alto"; });
+        var baixo = state.itens.filter(function (c) { return c.giro !== "alto"; });
+        var out = "";
+        if (alto.length) {
+          out += '<h2 class="giro-h2">Alto giro · ' + alto.length + (alto.length === 1 ? " tipo" : " tipos") + "</h2>" +
+            '<ul class="env-list">' + alto.map(linhaEnvioHtml).join("") + "</ul>";
         }
+        if (baixo.length) {
+          out += '<h2 class="giro-h2">Baixo giro · ' + baixo.length + (baixo.length === 1 ? " tipo" : " tipos") + "</h2>" +
+            '<ul class="env-list">' + baixo.map(linhaEnvioHtml).join("") + "</ul>";
+        }
+        return out;
+      }
+
+      function renderResumo() {
+        var t = totais();
+        var e = epoAtual();
+
+        return (
+          '<p class="wiz-eyebrow">Montagem de estoque · Resumo</p>' +
+          '<p class="wiz-subeyebrow">' +
+            (e ? esc(e.nome) + " · " + esc(e.cidade || "-") + " - " + esc(e.uf || "-") + " · " : "") +
+            esc(state.responsavel || "sem responsável") + " · " + esc(dataBr(state.data || hojeIso())) +
+          "</p>" +
+          '<h1 class="wiz-question">Contagem pronta para envio</h1>' +
+          '<div class="wiz-summary-card">' +
+            '<div class="wiz-summary-score tnum">' + App.fmtNum(t.itens) + "</div>" +
+            '<div class="wiz-summary-tier" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">' +
+              '<span class="badge badge-alto">Alto giro ' + App.fmtNum(t.alto) + "</span>" +
+              '<span class="badge badge-baixo">Baixo giro ' + App.fmtNum(t.baixo) + "</span>" +
+            "</div>" +
+            '<div class="wiz-summary-grid">' +
+              '<div class="wiz-summary-stat"><b class="tnum">' + App.fmtNum(t.itens) + "</b><span>Total de itens</span></div>" +
+              '<div class="wiz-summary-stat"><b class="tnum">' + App.fmtNum(t.alto) + "</b><span>Alto giro</span></div>" +
+              '<div class="wiz-summary-stat"><b class="tnum">' + App.fmtNum(t.baixo) + "</b><span>Baixo giro</span></div>" +
+              '<div class="wiz-summary-stat"><b class="tnum">' + App.fmtNum(t.linhas) + "</b><span>Tipos diferentes</span></div>" +
+            "</div>" +
+          "</div>" +
+          listaEnvioHtml() +
+          '<div class="wiz-field" style="margin-top:20px;">' +
+            '<label for="f-obs">Observações</label>' +
+            '<textarea id="f-obs" placeholder="Divergências, itens sem código, contexto da contagem (opcional)">' + esc(state.obs) + "</textarea>" +
+          "</div>" +
+          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' +
+            (DEMO
+              ? "Modo demonstração - nada é gravado."
+              : "Ao enviar, a contagem é registrada e entra no indicador de perda de alto giro.") +
+            (alocacaoParam ? " Esta contagem está ligada ao relatório pedido para esta EPO." : "") +
+          "</p>" +
+          '<button type="button" class="wiz-btn wiz-btn-back" style="width:100%;flex:1 1 auto;margin-bottom:8px;" id="btn-rascunho">' +
+            '<i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho' +
+          "</button>"
+        );
+      }
+
+      // -------------------------------------------------------------- Acoes
+      function selecionar(cod) {
+        var it = itemDoCatalogo(cod);
+        if (!it) return;
+        selecionado = it;
+        qtdSel = 1;
+        renderSelecionado();
+        renderResultados();
+        var host = document.getElementById("giro-selecionado");
+        if (host && host.scrollIntoView) host.scrollIntoView({ block: "start" });
+        var input = document.getElementById("giro-qtd");
+        if (input) input.select();
       }
 
       function adicionar() {
         if (!selecionado) return;
-        var q = limitarQtd(qtdSelecionada);
+        var q = limitarQtd(qtdSel);
         if (q < 1) { App.toast("Informe uma quantidade maior que zero."); return; }
 
         var linha = itemContado(selecionado.cod);
         if (linha) {
           linha.qtd = limitarQtd(linha.qtd + q);
-          App.toast("Quantidade somada: " + selecionado.cod + " agora com " + linha.qtd + ".");
+          App.toast("Quantidade somada: " + selecionado.cod + " agora com " + App.fmtNum(linha.qtd) + ".");
         } else {
-          contados.push({
+          state.itens.push({
             cod: selecionado.cod,
             tec: selecionado.tec,
             tipo: selecionado.tipo,
@@ -679,197 +961,340 @@
             giro: selecionado.giro,
             qtd: q
           });
-          App.toast(q + (q === 1 ? " item adicionado" : " itens adicionados") + " à contagem.");
+          App.toast(App.fmtNum(q) + (q === 1 ? " item adicionado" : " itens adicionados") + " à contagem.");
         }
 
         selecionado = null;
-        qtdSelecionada = 1;
+        qtdSel = 1;
         termo = "";
+
         var busca = document.getElementById("giro-busca");
-        if (busca) {
-          busca.value = "";
-          document.getElementById("giro-limpar").classList.remove("is-on");
-          busca.focus();
-        }
+        var limpar = document.getElementById("giro-limpar");
+        if (busca) busca.value = "";
+        if (limpar) limpar.classList.remove("is-on");
+
         renderSelecionado();
         renderResultados();
         renderLista();
-        renderResumo();
+        renderBarraResumo();
+        updateChrome();
+        if (busca) busca.focus();
       }
 
       function ajustar(cod, delta) {
         var linha = itemContado(cod);
         if (!linha) return;
         linha.qtd = limitarQtd(linha.qtd + delta);
-        var inp = page.querySelector('[data-qtd="' + cod + '"]');
+        var inp = document.querySelector('[data-qtd="' + cod + '"]');
         if (inp) inp.value = linha.qtd;
-        renderResumo();
+        renderBarraResumo();
+        updateChrome();
       }
 
       function remover(cod) {
-        contados = contados.filter(function (c) { return String(c.cod) !== String(cod); });
+        state.itens = state.itens.filter(function (c) { return String(c.cod) !== String(cod); });
         App.toast("Item removido da contagem.");
         renderLista();
-        renderResumo();
+        renderBarraResumo();
+        renderSelecionado(); // o painel mostra quanto o item ja tem na contagem
         renderResultados();
+        updateChrome();
       }
 
-      function salvarRascunho() {
-        if (!contados.length) { App.toast("Adicione pelo menos 1 item antes de salvar."); return; }
-        App.toast("Rascunho salvo nesta sessão (mock nesta versão).");
+      // ------------------------------------------------------------- Render
+      function stepAnswered(index) {
+        var step = steps[index];
+        if (step.type === "identificacao") {
+          return !!state.epoId && !!state.responsavel.trim();
+        }
+        if (step.type === "itens") {
+          return temItemValido();
+        }
+        return true;
       }
 
-      function dadosCabecalho() {
-        var sel = document.getElementById("giro-epo");
-        var data = document.getElementById("giro-data");
-        var resp = document.getElementById("giro-resp");
-        return {
-          epoId: sel ? sel.value : "",
-          epoNome: sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : "",
-          data: data ? data.value : "",
-          responsavel: resp ? resp.value.trim() : ""
-        };
+      function renderStep() {
+        var step = steps[cur];
+        var html;
+        if (step.type === "intro") html = renderIntro();
+        else if (step.type === "identificacao") html = renderIdentificacao();
+        else if (step.type === "itens") html = renderItens();
+        else html = renderResumo();
+
+        main.innerHTML = html;
+        main.scrollTop = 0;
+        wireStep(step);
+        updateChrome();
       }
 
-      function enviar() {
-        if (enviando || !contados.length) return;
-
-        var cab = dadosCabecalho();
-        if (!cab.epoId) { App.toast("Selecione a EPO da contagem."); return; }
-        if (!cab.data) { App.toast("Informe a data da contagem."); return; }
-        if (!cab.responsavel) {
-          App.toast("Informe quem fez a contagem.");
-          var resp = document.getElementById("giro-resp");
-          if (resp) resp.focus();
-          return;
-        }
-
-        enviando = true;
-        renderResumo();
-
-        function falhou(msg) {
-          enviando = false;
-          renderResumo();
-          App.toast("Falha ao enviar: " + msg);
-        }
-
-        if (DEMO) {
-          enviando = false;
-          renderConclusao(cab, totais());
-          return;
-        }
-
-        var t = totais();
-        Auth.sessao().then(function (s) {
-          if (!s) throw new Error("sessão expirada, entre novamente.");
-          return db.from("contagens_giro").insert({
-            epo_id: cab.epoId,
-            usuario_id: s.user.id,
-            responsavel: cab.responsavel,
-            data_contagem: cab.data,
-            status: "enviada",
-            enviada_em: new Date().toISOString()
-          }).select("id").single();
-        }).then(function (r) {
-          if (r.error) throw new Error(r.error.message);
-          var contagemId = r.data.id;
-          var linhas = contados.map(function (c) {
-            return {
-              contagem_id: contagemId,
-              codigo_sap: String(c.cod),
-              tecnologia: c.tec || null,
-              tipo: c.tipo || null,
-              categoria: c.cat || null,
-              giro: c.giro,
-              quantidade: limitarQtd(c.qtd)
-            };
+      function wireStep(step) {
+        if (step.type === "identificacao") {
+          var epoSel = document.getElementById("f-epo");
+          epoSel.addEventListener("change", function () {
+            state.epoId = epoSel.value;
+            document.getElementById("f-epo-local").textContent = localDaEpo();
+            updateChrome();
           });
-          return db.from("contagem_giro_itens").insert(linhas);
-        }).then(function (r) {
-          if (r && r.error) throw new Error(r.error.message);
-          enviando = false;
-          renderConclusao(cab, t);
-        }).catch(function (err) {
-          falhou(err.message);
-        });
-      }
+          document.getElementById("f-resp").addEventListener("input", function (ev) {
+            state.responsavel = ev.target.value;
+            updateChrome();
+          });
+          document.getElementById("f-data").addEventListener("input", function (ev) {
+            state.data = ev.target.value;
+          });
+        } else if (step.type === "itens") {
+          var busca = document.getElementById("giro-busca");
+          var limpar = document.getElementById("giro-limpar");
 
-      function renderConclusao(cab, t) {
-        page.innerHTML =
-          avisoDemo() +
-          '<div class="card mb-0"><div class="giro-done">' +
-            '<span class="giro-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></span>' +
-            "<h2>Contagem enviada!</h2>" +
-            "<p>Montagem de estoque da <b>" + esc(cab.epoNome || "EPO") + "</b> registrada por " +
-              esc(cab.responsavel) + "." +
-              (DEMO ? " (Demonstração - nada foi gravado.)" : "") +
-            "</p>" +
-            '<div class="giro-done-nums">' +
-              '<span class="resumo-num"><span class="lbl">Total de itens</span><span class="val">' + App.fmtNum(t.itens) + "</span></span>" +
-              '<span class="resumo-num is-alto"><span class="lbl">Alto giro</span><span class="val">' + App.fmtNum(t.alto) + "</span></span>" +
-              '<span class="resumo-num"><span class="lbl">Baixo giro</span><span class="val">' + App.fmtNum(t.baixo) + "</span></span>" +
-              '<span class="resumo-num"><span class="lbl">Tipos contados</span><span class="val">' + App.fmtNum(t.linhas) + "</span></span>" +
-            "</div>" +
-            '<div class="giro-done-acoes">' +
-              '<button class="btn btn-primary" id="giro-nova" type="button">' +
-                '<i class="ti ti-plus" aria-hidden="true"></i>Nova contagem' +
-              "</button>" +
-              '<a class="btn btn-ghost" href="index.html">' +
-                '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar à visão geral' +
-              "</a>" +
-            "</div>" +
-          "</div></div>";
-
-        document.getElementById("giro-nova").addEventListener("click", function () {
-          contados = [];
-          selecionado = null;
-          qtdSelecionada = 1;
-          termo = "";
-          renderShell();
-        });
-      }
-
-      // Wiring do shell ----------------------------------------------------
-      function wireShell() {
-        var busca = document.getElementById("giro-busca");
-        var limpar = document.getElementById("giro-limpar");
-
-        busca.addEventListener("input", function () {
-          limpar.classList.toggle("is-on", busca.value.length > 0);
-          if (timerBusca) clearTimeout(timerBusca);
-          timerBusca = setTimeout(function () {
-            termo = busca.value;
-            renderResultados();
-          }, 150);
-        });
-        busca.addEventListener("keydown", function (ev) {
-          if (ev.key === "Escape" && busca.value) {
-            ev.preventDefault();
+          busca.addEventListener("input", function () {
+            limpar.classList.toggle("is-on", busca.value.length > 0);
+            if (timerBusca) clearTimeout(timerBusca);
+            timerBusca = setTimeout(function () {
+              termo = busca.value;
+              renderResultados();
+            }, 120);
+          });
+          busca.addEventListener("keydown", function (ev) {
+            if (ev.key === "Escape" && busca.value) {
+              ev.preventDefault();
+              busca.value = "";
+              termo = "";
+              limpar.classList.remove("is-on");
+              renderResultados();
+            }
+          });
+          limpar.addEventListener("click", function () {
             busca.value = "";
             termo = "";
             limpar.classList.remove("is-on");
             renderResultados();
-          }
-        });
-        limpar.addEventListener("click", function () {
-          busca.value = "";
-          termo = "";
-          limpar.classList.remove("is-on");
+            busca.focus();
+          });
+
+          renderBarraResumo();
+          renderSelecionado();
           renderResultados();
-          busca.focus();
+          renderLista();
+        } else if (step.type === "resumo") {
+          document.getElementById("f-obs").addEventListener("input", function (ev) {
+            state.obs = ev.target.value;
+          });
+          document.getElementById("btn-rascunho").addEventListener("click", salvarRascunho);
+        }
+      }
+
+      function updateChrome() {
+        var step = steps[cur];
+        var isIntro = step.type === "intro";
+        var isLast = cur === steps.length - 1;
+
+        headerEl.classList.toggle("is-intro", isIntro);
+
+        // Progresso/contador ignoram a capa (passo 0)
+        var qTotal = steps.length - 1;
+        var pct = (cur / qTotal) * 100;
+        progressFill.style.width = pct + "%";
+        counterEl.textContent = cur + "/" + qTotal;
+
+        backBtn.style.display = isIntro ? "none" : "";
+        backBtn.disabled = cur === 0;
+
+        nextBtn.classList.toggle("is-submit", isLast);
+        if (isIntro) {
+          nextBtn.innerHTML = 'Iniciar contagem<i class="ti ti-arrow-right" aria-hidden="true"></i>';
+        } else if (isLast) {
+          nextBtn.innerHTML = 'Enviar contagem<i class="ti ti-send" aria-hidden="true"></i>';
+        } else {
+          nextBtn.innerHTML = 'Próxima<i class="ti ti-chevron-right" aria-hidden="true"></i>';
+        }
+        nextBtn.disabled = !stepAnswered(cur);
+      }
+
+      function showDone(gravadaNoBanco) {
+        var t = totais();
+        var e = epoAtual();
+
+        headerEl.style.display = "none";
+        footer.style.display = "none";
+
+        main.innerHTML =
+          '<div class="wiz-done">' +
+            '<div class="wiz-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></div>' +
+            '<h1 class="wiz-done-title">Contagem enviada</h1>' +
+            '<p class="wiz-done-sub">' +
+              (gravadaNoBanco
+                ? "Montagem de estoque de <b>" + esc(e ? e.nome : "EPO") + "</b> registrada. Ela entra no indicador de perda de itens de alto giro."
+                : "Modo demonstração - nada foi gravado no banco.") +
+            "</p>" +
+            '<div class="wiz-done-score">' +
+              '<span class="badge badge-baixo">Total ' + App.fmtNum(t.itens) + "</span>" +
+              '<span class="badge badge-alto">Alto giro ' + App.fmtNum(t.alto) + "</span>" +
+            "</div>" +
+            '<div class="wiz-done-actions">' +
+              '<button class="wiz-btn wiz-btn-next" id="giro-nova" type="button"><i class="ti ti-plus" aria-hidden="true"></i>Nova contagem</button>' +
+              '<a class="wiz-btn wiz-btn-back" href="index.html"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
+            "</div>" +
+          "</div>";
+        main.scrollTop = 0;
+
+        document.getElementById("giro-nova").addEventListener("click", function () {
+          state.itens = [];
+          state.obs = "";
+          selecionado = null;
+          qtdSel = 1;
+          termo = "";
+          rascunhoSalvo = false;
+          headerEl.style.display = "";
+          footer.style.display = "";
+          cur = 0;
+          renderStep();
         });
       }
 
-      var btnTopo = document.getElementById("btn-rascunho-top");
-      if (btnTopo) btnTopo.addEventListener("click", salvarRascunho);
+      // ---------------------------------------------- Envio real (Supabase)
+      var sendingEl = null;
+      function mostrarEnvio(on) {
+        if (on) {
+          if (!sendingEl) {
+            sendingEl = document.createElement("div");
+            sendingEl.className = "wiz-sending";
+            sendingEl.innerHTML = '<div class="wiz-sending-spin" aria-hidden="true"></div><p>Enviando contagem…</p>';
+            document.body.appendChild(sendingEl);
+          }
+        } else if (sendingEl) {
+          sendingEl.remove();
+          sendingEl = null;
+        }
+        nextBtn.disabled = on;
+      }
 
-      // Início -------------------------------------------------------------
-      page.innerHTML = '<div class="empty"><i class="ti ti-loader-2" aria-hidden="true"></i>Carregando EPOs...</div>';
+      function cabecalhoRow(status) {
+        var row = {
+          epo_id: state.epoId,
+          responsavel: state.responsavel.trim(),
+          data_contagem: state.data || hojeIso(),
+          observacoes: state.obs.trim() || null,
+          status: status
+        };
+        if (status === "enviada") row.enviada_em = new Date().toISOString();
+        return row;
+      }
+
+      function linhasItens(contagemId) {
+        return state.itens.filter(function (c) {
+          return limitarQtd(c.qtd) >= 1;
+        }).map(function (c) {
+          return {
+            contagem_id: contagemId,
+            codigo_sap: String(c.cod),
+            tecnologia: c.tec || null,
+            tipo: c.tipo || null,
+            categoria: c.cat || null,
+            giro: c.giro,
+            quantidade: limitarQtd(c.qtd)
+          };
+        });
+      }
+
+      function enviarReal(sess) {
+        mostrarEnvio(true);
+        var row = cabecalhoRow("enviada");
+        row.usuario_id = sess.user.id;
+
+        db.from("contagens_giro").insert(row).select("id").single()
+          .then(function (r) {
+            if (r.error) throw r.error;
+            return db.from("contagem_giro_itens").insert(linhasItens(r.data.id));
+          })
+          .then(function (r) {
+            if (r && r.error) throw r.error;
+            mostrarEnvio(false);
+            showDone(true);
+          })
+          .catch(function (err) {
+            mostrarEnvio(false);
+            console.error("Falha ao enviar contagem:", err);
+            App.toast("Falha ao enviar: " + ((err && err.message) || "erro inesperado") + ". Revise e tente novamente.");
+            updateChrome(); // reabilita o botao conforme o passo atual
+          });
+      }
+
+      function salvarRascunho() {
+        if (salvandoRascunho) return;
+        if (!temItemValido()) { App.toast("Adicione pelo menos 1 item antes de salvar."); return; }
+        if (DEMO) { App.toast("Rascunho salvo nesta sessão (modo demonstração)."); return; }
+        if (rascunhoSalvo) { App.toast("Rascunho já salvo. Use Enviar contagem para concluir."); return; }
+
+        salvandoRascunho = true;
+        Auth.sessao().then(function (s) {
+          if (!s) throw new Error("sessão expirada, entre novamente");
+          var row = cabecalhoRow("rascunho");
+          row.usuario_id = s.user.id;
+          return db.from("contagens_giro").insert(row).select("id").single();
+        }).then(function (r) {
+          if (r.error) throw r.error;
+          return db.from("contagem_giro_itens").insert(linhasItens(r.data.id));
+        }).then(function (r) {
+          if (r && r.error) throw r.error;
+          salvandoRascunho = false;
+          rascunhoSalvo = true;
+          App.toast("Rascunho salvo. Você pode enviar a contagem depois.");
+        }).catch(function (err) {
+          salvandoRascunho = false;
+          console.error("Falha ao salvar rascunho:", err);
+          App.toast("Falha ao salvar rascunho: " + ((err && err.message) || "erro inesperado"));
+        });
+      }
+
+      // ------------------------------------------------------------ Rodape
+      backBtn.addEventListener("click", function () {
+        if (cur > 0) {
+          cur -= 1;
+          renderStep();
+        }
+      });
+
+      nextBtn.addEventListener("click", function () {
+        if (nextBtn.disabled) return;
+        if (cur === steps.length - 1) {
+          if (DEMO) {
+            showDone(false);
+          } else {
+            nextBtn.disabled = true; // evita duplo envio enquanto busca a sessao
+            Auth.sessao().then(function (s) {
+              if (s) {
+                enviarReal(s);
+              } else {
+                App.toast("Sessão expirada. Entre novamente para enviar a contagem.");
+                updateChrome();
+              }
+            }, function (err) {
+              App.toast("Não foi possível confirmar a sessão: " + ((err && err.message) || "erro inesperado") + ".");
+              updateChrome();
+            });
+          }
+          return;
+        }
+        cur += 1;
+        renderStep();
+      });
+
+      // ------------------------------------------------------------- Inicio
+      renderStep();
+
       carregarEpos().then(function () {
-        renderShell();
+        eposProntas = true;
+        if (epoParam) {
+          for (var i = 0; i < epos.length; i++) {
+            if (String(epos[i].id) === String(epoParam)) { state.epoId = epos[i].id; break; }
+          }
+        }
+        if (steps[cur].type === "identificacao") renderStep();
+        else updateChrome();
       }, function (err) {
-        App.toast("Erro ao iniciar: " + (err && err.message ? err.message : err));
-        renderShell();
+        eposProntas = true;
+        App.toast("Erro ao carregar EPOs: " + ((err && err.message) || err));
+        if (steps[cur].type === "identificacao") renderStep();
       });
     })();
   </script>

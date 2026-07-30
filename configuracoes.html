@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=7">
+  <link rel="stylesheet" href="assets/app.css?v=9">
 
   <style>
     /* Ajustes locais desta tela (componentes não previstos no design system). */
@@ -21,7 +21,7 @@
     }
     .num-input { width: 76px; text-align: center; }
 
-    /* Faixa visual dos tiers (0–100) */
+    /* Faixa visual dos tiers (0-100) */
     .tier-band {
       display: flex;
       height: 48px;
@@ -88,8 +88,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=7"></script>
-  <script src="assets/app.js?v=7"></script>
+  <script src="assets/data.js?v=9"></script>
+  <script src="assets/app.js?v=9"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -139,7 +139,7 @@
               '<span class="title">Cortes dos tiers</span>' +
               '<span class="subtitle">Nota mínima para cada classificação (escala de 0 a 100).</span>' +
             '</div>' +
-            '<span class="badge"><i class="ti ti-adjustments" aria-hidden="true"></i>Escala 0–100</span>' +
+            '<span class="badge"><i class="ti ti-adjustments" aria-hidden="true"></i>Escala 0-100</span>' +
           '</div>' +
 
           '<div class="grid-3">' +
@@ -249,13 +249,13 @@
         var ouroW = 100 - state.ouroMin;                 // ouroMin .. 100
         band.innerHTML =
           '<div class="tier-band-seg critico" style="flex-grow:' + criticoW + '">Crítico' +
-            '<small>0–' + (state.bronzeMin - 1) + '</small></div>' +
+            '<small>0-' + (state.bronzeMin - 1) + '</small></div>' +
           '<div class="tier-band-seg bronze" style="flex-grow:' + bronzeW + '">Bronze' +
-            '<small>' + state.bronzeMin + '–' + (state.prataMin - 1) + '</small></div>' +
+            '<small>' + state.bronzeMin + '-' + (state.prataMin - 1) + '</small></div>' +
           '<div class="tier-band-seg prata" style="flex-grow:' + prataW + '">Prata' +
-            '<small>' + state.prataMin + '–' + (state.ouroMin - 1) + '</small></div>' +
+            '<small>' + state.prataMin + '-' + (state.ouroMin - 1) + '</small></div>' +
           '<div class="tier-band-seg ouro" style="flex-grow:' + ouroW + '">Ouro' +
-            '<small>' + state.ouroMin + '–100</small></div>';
+            '<small>' + state.ouroMin + '-100</small></div>';
       }
 
       function renderTierInputs() {
