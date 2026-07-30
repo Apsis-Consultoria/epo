@@ -16,6 +16,7 @@
 
   // Página -> chave de permissão (mesmas chaves de APP.papeisPreset)
   var MAPA_PAGINAS = {
+    "epos.html": "epos",
     "index.html": "geral",
     "ranking.html": "ranking",
     "comparar.html": "comparativo",
@@ -33,7 +34,7 @@
 
   // Primeira página permitida do papel (destino padrão pós-login/negado)
   function primeiraPermitida(perms) {
-    var ordem = ["geral", "pendentes", "auditoria", "envio", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "config", "acessos"];
+    var ordem = ["geral", "epos", "pendentes", "auditoria", "envio", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "config", "acessos"];
     var mapaInverso = {};
     Object.keys(MAPA_PAGINAS).forEach(function (arq) { mapaInverso[MAPA_PAGINAS[arq]] = arq; });
     for (var i = 0; i < ordem.length; i++) {
@@ -103,6 +104,20 @@
       });
   }
 
+  // Perfil de quem está logado, para a tela decidir o que mostrar por papel.
+  // Guardado em memória: o guard e a tela pedem a mesma coisa. Devolve null no
+  // modo demonstração e quando não há sessão.
+  var promessaPerfil = null;
+  function perfil() {
+    if (promessaPerfil) return promessaPerfil;
+    if (modoDemo() || !client) return Promise.resolve(null);
+    promessaPerfil = sessao().then(function (s) {
+      if (!s) return null;
+      return perfilDe(s.user);
+    }).catch(function () { return null; });
+    return promessaPerfil;
+  }
+
   // Se o e-mail ganhou alocação depois de já ter conta, promove a 'responsavel'
   var papelSincronizado = false;
   function sincronizarPapel() {
@@ -112,14 +127,46 @@
   }
 
   // ---------------------------------------------------------------- Login
+
+  // Quais formas de entrar estão ligadas. Consulta leve, sem efeito nenhum, e
+  // guardada em memória: uma vez por carregamento da página basta.
+  var promessaFormas = null;
+  function formasDeEntrar() {
+    if (promessaFormas) return promessaFormas;
+    if (!PRONTO) return Promise.resolve({});
+    promessaFormas = fetch(window.SUPABASE_URL + "/auth/v1/settings", {
+      headers: { apikey: window.SUPABASE_KEY }
+    }).then(function (r) {
+      return r.ok ? r.json() : {};
+    }).then(function (j) {
+      return (j && j.external) || {};
+    }).catch(function () {
+      return {};   // sem resposta: não bloqueia, deixa tentar
+    });
+    return promessaFormas;
+  }
+
+  function destinoPosLogin() {
+    return location.origin + location.pathname.replace(/login\.html.*$/, "") + "index.html";
+  }
+
+  // Antes de sair da página, confere se a conta Microsoft está ligada. Sem essa
+  // conferência o navegador ia embora e parava numa página em branco com o erro
+  // cru, sem volta e sem explicação para quem está tentando entrar.
   function entrarMicrosoft() {
     if (!client) return Promise.reject(new Error("Login indisponível no momento."));
-    return client.auth.signInWithOAuth({
-      provider: "azure",
-      options: {
-        scopes: "email openid profile",
-        redirectTo: location.origin + location.pathname.replace(/login\.html.*$/, "") + "index.html"
+    return formasDeEntrar().then(function (formas) {
+      if (formas.azure === false) {
+        console.warn("entrarMicrosoft: conta Microsoft ainda não liberada na configuração de acesso");
+        return { data: null, error: { message: "Entrada pela conta Microsoft ainda não liberada." } };
       }
+      return client.auth.signInWithOAuth({
+        provider: "azure",
+        options: {
+          scopes: "email openid profile",
+          redirectTo: destinoPosLogin()
+        }
+      });
     });
   }
 
@@ -137,7 +184,10 @@
   }
 
   function sair() {
-    try { sessionStorage.removeItem("epoDemo"); } catch (e) {}
+    try {
+      sessionStorage.removeItem("epoDemo");
+      sessionStorage.removeItem("epoAbriu");
+    } catch (e) {}
     var fim = function () { location.replace("login.html"); };
     if (!client) { fim(); return; }
     client.auth.signOut().then(fim).catch(fim);
@@ -217,7 +267,9 @@
     pronto: !!PRONTO,
     guard: guard,
     sessao: sessao,
+    perfil: perfil,
     entrarMicrosoft: entrarMicrosoft,
+    formasDeEntrar: formasDeEntrar,
     enviarCodigo: enviarCodigo,
     verificarCodigo: verificarCodigo,
     entrarDemo: entrarDemo,

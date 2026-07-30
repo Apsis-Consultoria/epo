@@ -96,8 +96,11 @@
               </button>
               <button id="btn-voltar-email" class="w-full mt-2 text-xs text-gray-400 underline">Usar outro e-mail</button>
             </div>
-            <p id="cli-msg" class="text-xs text-center mt-3 hidden"></p>
           </div>
+
+          <!-- Aviso das duas formas de entrar. Fica fora do painel do e-mail,
+               senão a mensagem do botão da Microsoft nasce escondida. -->
+          <p id="cli-msg" class="w-full text-xs text-center hidden"></p>
 
           <p class="text-xs text-gray-400 text-center">Equipe APSIS, Claro e responsáveis das EPOs.<br />Cada pessoa vê apenas as telas do seu perfil.</p>
           <button id="btn-demo" class="text-xs text-gray-400 underline">Ver o sistema sem entrar</button>
@@ -123,9 +126,9 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js"></script>
+  <script src="assets/supabase-config.js?v=13"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js"></script>
+  <script src="assets/auth.js?v=13"></script>
   <script>
     (function () {
       "use strict";
@@ -144,13 +147,20 @@
       }
 
       // SSO Microsoft (Entra ID)
+      var msOriginal = $("btn-ms").innerHTML;
+      function msFalhou() {
+        $("btn-ms").disabled = false;
+        $("btn-ms").innerHTML = msOriginal;
+        msg("A entrada pela conta Microsoft ainda não está liberada. Use o código por e-mail.", true);
+      }
+
       $("btn-ms").addEventListener("click", function () {
         if (!window.Auth || !Auth.pronto) { location.href = "index.html"; return; }
+        $("btn-ms").disabled = true;
+        $("btn-ms").innerHTML = '<i class="ti ti-loader-2"></i>Abrindo a conta Microsoft...';
         Auth.entrarMicrosoft().then(function (r) {
-          if (r && r.error) msg("O login com Microsoft ainda não está liberado. Use o código por e-mail.", true);
-        }).catch(function () {
-          msg("O login com Microsoft ainda não está liberado. Use o código por e-mail.", true);
-        });
+          if (r && r.error) msFalhou();
+        }).catch(msFalhou);
       });
 
       // Cliente: abre painel e-mail -> código

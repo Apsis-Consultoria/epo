@@ -17,6 +17,7 @@
   // -----------------------------------------------------------------------
   var NAV = [
     { key: "geral",       label: "Visão geral",      icon: "ti-layout-dashboard", href: "index.html" },
+    { key: "epos",        label: "EPOs",             icon: "ti-building-warehouse", href: "epos.html" },
     { key: "ranking",     label: "Ranking",          icon: "ti-trophy",           href: "ranking.html" },
     { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },

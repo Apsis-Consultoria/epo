@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=12">
+  <link rel="stylesheet" href="assets/app.css?v=13">
   <style>
     /* Ajustes locais da tela de cadastro de EPO e pedido de relatórios */
 
@@ -135,19 +135,19 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=12"></script>
-  <script src="assets/app.js?v=12"></script>
-  <script src="assets/supabase-config.js"></script>
+  <script src="assets/data.js?v=13"></script>
+  <script src="assets/app.js?v=13"></script>
+  <script src="assets/supabase-config.js?v=13"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js"></script>
+  <script src="assets/auth.js?v=13"></script>
   <script>
     (function () {
       "use strict";
 
       var acoes =
-        '<button class="btn btn-ghost btn-sm" id="btn-nova-epo" type="button">' +
-          '<i class="ti ti-building-plus" aria-hidden="true"></i>Nova EPO' +
-        "</button>" +
+        '<a class="btn btn-ghost btn-sm" id="btn-nova-epo" href="epos.html">' +
+          '<i class="ti ti-building-plus" aria-hidden="true"></i>Cadastrar EPO' +
+        "</a>" +
         '<button class="btn btn-primary btn-sm" id="btn-pedir-relatorios" type="button">' +
           '<i class="ti ti-file-plus" aria-hidden="true"></i>Pedir relatórios' +
         "</button>";
@@ -243,46 +243,6 @@
         );
       }
 
-      var htmlModalEpo =
-        '<div class="modal-overlay" id="epo-modal" role="dialog" aria-modal="true" aria-labelledby="epo-modal-title">' +
-          '<div class="modal">' +
-            '<div class="modal-header">' +
-              '<h2 class="modal-title" id="epo-modal-title">Nova EPO e relatórios pedidos</h2>' +
-              '<button class="modal-close" id="epo-modal-close" type="button" aria-label="Fechar"><i class="ti ti-x" aria-hidden="true"></i></button>' +
-            "</div>" +
-            '<div class="modal-body">' +
-              '<div class="field">' +
-                '<label for="epo-nome">Nome da EPO</label>' +
-                '<input class="input" id="epo-nome" type="text" placeholder="Ex.: EPO Horizonte" autocomplete="off">' +
-              "</div>" +
-              '<div class="field-row">' +
-                '<div class="field">' +
-                  '<label for="epo-cidade">Cidade</label>' +
-                  '<input class="input" id="epo-cidade" type="text" placeholder="Ex.: Campinas" autocomplete="off">' +
-                "</div>" +
-                '<div class="field uf">' +
-                  '<label for="epo-uf">UF</label>' +
-                  '<select class="select" id="epo-uf">' + htmlOpcoesUf + "</select>" +
-                "</div>" +
-              "</div>" +
-              '<div class="field">' +
-                '<label for="epo-email">E-mail do responsável da EPO</label>' +
-                '<input class="input" id="epo-email" type="email" placeholder="nome@empresa.com.br" autocomplete="off">' +
-                '<span class="hint">Deixe em branco para só cadastrar a EPO e pedir os relatórios depois.</span>' +
-              "</div>" +
-              blocoPedido("epo", "Relatórios pedidos agora") +
-              '<div class="nota-responsavel">' +
-                '<i class="ti ti-info-circle" aria-hidden="true"></i>' +
-                "<span>O responsável recebe o convite por e-mail, entra com um código de verificação e anexa os documentos de cada pergunta. O colaborador APSIS vê os anexos na visita.</span>" +
-              "</div>" +
-            "</div>" +
-            '<div class="modal-footer">' +
-              '<button class="btn btn-ghost btn-sm" id="epo-modal-cancel" type="button">Cancelar</button>' +
-              '<button class="btn btn-primary btn-sm" id="epo-modal-save" type="button"><i class="ti ti-check" aria-hidden="true"></i>Criar EPO</button>' +
-            "</div>" +
-          "</div>" +
-        "</div>";
-
       var htmlModalAloc =
         '<div class="modal-overlay" id="aloc-modal" role="dialog" aria-modal="true" aria-labelledby="aloc-modal-title">' +
           '<div class="modal">' +
@@ -321,7 +281,6 @@
         "</p>" +
         htmlAviso +
         htmlTabela +
-        htmlModalEpo +
         htmlModalAloc;
 
       // ------------------------------------------------------------------
@@ -616,7 +575,6 @@
         atualizarResumo(prefixo);
       }
 
-      wirePedido("epo");
       wirePedido("aloc");
 
       // ------------------------------------------------------------------
@@ -767,7 +725,6 @@
 
         renderLista();
         preencherSelects();
-        renderProcs("epo");
         renderProcs("aloc");
       }
 
@@ -856,8 +813,7 @@
           .then(function () {
             renderLista();
             preencherSelects();
-            renderProcs("epo");
-            renderProcs("aloc");
+                renderProcs("aloc");
           });
       }
 
@@ -890,23 +846,11 @@
         return { abrir: function () { overlay.classList.add("is-open"); }, fechar: fechar, el: overlay };
       }
 
-      var modalEpo = wireModal("epo-modal", ["epo-modal-close", "epo-modal-cancel"]);
       var modalAloc = wireModal("aloc-modal", ["aloc-modal-close", "aloc-modal-cancel"]);
 
       document.addEventListener("keydown", function (ev) {
         if (ev.key !== "Escape") return;
-        modalEpo.fechar();
         modalAloc.fechar();
-      });
-
-      document.getElementById("btn-nova-epo").addEventListener("click", function () {
-        document.getElementById("epo-nome").value = "";
-        document.getElementById("epo-cidade").value = "";
-        document.getElementById("epo-uf").value = "SP";
-        document.getElementById("epo-email").value = "";
-        limparPedido("epo");
-        modalEpo.abrir();
-        document.getElementById("epo-nome").focus();
       });
 
       document.getElementById("btn-pedir-relatorios").addEventListener("click", function () {
@@ -915,74 +859,6 @@
         limparPedido("aloc");
         modalAloc.abrir();
         document.getElementById("aloc-epo").focus();
-      });
-
-      // ------------------------------------------------------------------
-      // Criar EPO já pedindo os relatórios
-      // ------------------------------------------------------------------
-      document.getElementById("epo-modal-save").addEventListener("click", function () {
-        var nome = document.getElementById("epo-nome").value.trim();
-        var cidade = document.getElementById("epo-cidade").value.trim();
-        var uf = document.getElementById("epo-uf").value;
-        var email = document.getElementById("epo-email").value.trim().toLowerCase();
-        var visita = document.getElementById("epo-visita").value;
-        var obs = document.getElementById("epo-obs").value.trim();
-        var procIds = marcadosDe("epo");
-
-        if (!nome) { App.toast("Informe o nome da EPO."); return; }
-        if (!cidade) { App.toast("Informe a cidade da EPO."); return; }
-        if (email && !/^\S+@\S+\.\S+$/.test(email)) { App.toast("Informe um e-mail válido para o responsável."); return; }
-        if (email && !procIds.length) { App.toast("Marque pelo menos um questionário para pedir ao responsável."); return; }
-        if (procIds.length && !email) { App.toast("Informe o e-mail do responsável que vai enviar os documentos."); return; }
-
-        if (DEMO) {
-          var epoDemo = { id: "demo-epo-" + Date.now(), nome: nome, cidade: cidade, uf: uf };
-          epos.push(epoDemo);
-          epos.sort(function (a, b) { return String(a.nome).localeCompare(String(b.nome), "pt-BR"); });
-          var resDemo = criarPedidosDemo(epoDemo, procIds, email, visita, obs);
-          renderLista();
-          preencherSelects();
-          modalEpo.fechar();
-          var resumoDemo = resumoPedido(resDemo, email);
-          App.toast("EPO " + nome + " criada" + (resumoDemo ? " - " + resumoDemo : " sem relatórios pedidos") + ".");
-          return;
-        }
-
-        var btn = this;
-        btn.disabled = true;
-        Auth.cliente.from("clientes").select("id").limit(1)
-          .then(function (r) {
-            if (r.error || !r.data || !r.data.length) {
-              throw new Error((r.error && r.error.message) || "Cliente não encontrado.");
-            }
-            return Auth.cliente.from("epos").insert({
-              cliente_id: r.data[0].id,
-              nome: nome,
-              cidade: cidade,
-              uf: uf,
-              ativo: true
-            }).select("id");
-          })
-          .then(function (r) {
-            if (r.error) throw r.error;
-            var novoId = r.data && r.data[0] ? r.data[0].id : null;
-            if (!novoId || !procIds.length) {
-              modalEpo.fechar();
-              App.toast("EPO " + nome + " criada sem relatórios pedidos.");
-              return recarregar();
-            }
-            return criarPedidos(novoId, procIds, email, visita, obs).then(function (res) {
-              modalEpo.fechar();
-              var resumo = resumoPedido(res, email);
-              App.toast("EPO " + nome + " criada" + (resumo ? " com " + resumo : " sem relatórios pedidos") + ".");
-              return convidarSeNecessario(res, email).then(recarregar);
-            });
-          })
-          .catch(function (e) {
-            console.error("criarEpo", e);
-            App.toast("Não foi possível criar a EPO. Confira os dados e tente novamente.");
-          })
-          .then(function () { btn.disabled = false; });
       });
 
       // ------------------------------------------------------------------

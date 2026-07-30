@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EPOs - Auditoria de EPOs</title>
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+
+  <link rel="stylesheet" href="assets/app.css?v=13">
+
+  <style>
+    /* Ajustes locais só desta tela. */
+    .epo-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 14px; flex-wrap: wrap;
+      padding: 12px 18px; border-bottom: 1px solid var(--border);
+    }
+    .epo-busca { position: relative; flex: 1 1 320px; max-width: 460px; }
+    .epo-busca i {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); font-size: 17px; pointer-events: none;
+    }
+    .epo-busca .input { padding-left: 36px; }
+    .epo-toolbar .dica { font-size: 12.5px; color: var(--text-muted); }
+
+    .epo-nome-cel b { display: block; font-size: 14px; font-weight: 600; color: var(--text); }
+    .epo-nome-cel span { font-size: 12px; color: var(--text-muted); }
+
+    .pin-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 500; padding: 3px 9px; border-radius: 999px;
+    }
+    .pin-exato { background: var(--success-bg); color: var(--success); }
+    .pin-aprox { background: var(--warning-bg); color: var(--warning); }
+    .pin-fora  { background: var(--danger-bg);  color: var(--danger); }
+
+    .epo-loading { padding: 30px 14px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
+
+    /* ---------------- Modal em duas colunas ---------------- */
+    .modal.modal-largo { max-width: 940px; }
+    .modal-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+    .modal-col + .modal-col {
+      border-left: 1px solid var(--border);
+      padding-left: 22px;
+    }
+    .col-titulo {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 14px;
+    }
+    .col-titulo i { font-size: 15px; color: var(--apsis-green); }
+    @media (max-width: 820px) {
+      .modal-cols { grid-template-columns: 1fr; gap: 4px; }
+      .modal-col + .modal-col {
+        border-left: 0; padding-left: 0;
+        border-top: 1px solid var(--border); padding-top: 18px; margin-top: 4px;
+      }
+    }
+
+    .field-row { display: flex; gap: 12px; }
+    .field-row .field { flex: 1 1 0; min-width: 0; }
+    .field-row .field.uf { flex: 0 0 96px; }
+    .field-row .field.cep { flex: 0 0 132px; }
+    @media (max-width: 640px) {
+      .field-row { flex-wrap: wrap; }
+      .field-row .field.uf, .field-row .field.cep { flex: 1 1 auto; }
+    }
+
+    /* Lista de questionários */
+    .procs-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .procs-head .procs-rotulo { font-size: 13px; font-weight: 500; color: var(--text); }
+    .procs-head .procs-count { font-size: 12px; color: var(--text-muted); }
+    .link-mini {
+      border: 0; background: transparent; padding: 0;
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      color: var(--apsis-green); cursor: pointer; text-decoration: underline;
+    }
+    .link-mini:hover { color: var(--apsis-orange); }
+    .procs-box {
+      display: flex; flex-direction: column; gap: 2px;
+      max-height: 232px; overflow: auto;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      padding: 6px;
+    }
+    .proc-opt { width: 100%; padding: 6px 8px; border-radius: var(--radius-sm); }
+    .proc-opt:hover { background: var(--surface-2); }
+    .proc-opt i { font-size: 16px; color: var(--text-2); flex: none; }
+    .proc-opt .nm { font-size: 13.5px; flex: 1; min-width: 0; }
+    .proc-opt.ja-pedido { opacity: .8; }
+    .proc-opt .tag-pedido {
+      font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px;
+      background: var(--primary-tint); color: var(--apsis-green); flex: none;
+    }
+    .procs-vazio { font-size: 13px; color: var(--text-muted); padding: 10px 8px; }
+
+    .nota-modal {
+      display: flex; gap: 8px; align-items: flex-start;
+      font-size: 12.5px; color: var(--text-2); line-height: 1.5;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 11px; margin-top: 4px;
+    }
+    .nota-modal i { font-size: 15px; margin-top: 1px; color: var(--apsis-green); flex: none; }
+
+    .pend-cel { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
+    .pend-cel b { color: var(--text); font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=13"></script>
+  <script src="assets/app.js?v=13"></script>
+  <script src="assets/geo-br.js?v=13"></script>
+  <script src="assets/supabase-config.js?v=13"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/auth.js?v=13"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var acoes =
+        '<button class="btn btn-primary btn-sm" id="btn-nova-epo" type="button">' +
+          '<i class="ti ti-building-plus" aria-hidden="true"></i>Nova EPO' +
+        "</button>";
+
+      Layout.mount("epos", "EPOs", acoes);
+
+      var esc = App.escapeHtml;
+      var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
+
+      var UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+      var htmlOpcoesUf = UFS.map(function (u) {
+        return '<option value="' + u + '"' + (u === "SP" ? " selected" : "") + ">" + u + "</option>";
+      }).join("");
+
+      var epos = [];          // cadastro completo
+      var processos = [];     // questionários pedíveis
+      var pedidos = [];       // relatórios já pedidos { epoId, procId, email, status }
+      var editandoId = null;  // null = criando
+      var demoSeq = 0;
+
+      // ------------------------------------------------------------------
+      // Estrutura da página
+      // ------------------------------------------------------------------
+      var htmlTabela =
+        '<div class="card mb-0">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">EPOs cadastradas</span>' +
+              '<span class="subtitle">O endereço posiciona a EPO no mapa; os questionários marcados viram os relatórios pedidos ao responsável</span>' +
+            "</div>" +
+            '<span id="epo-count" style="font-size:13px;color:var(--text-2);"></span>' +
+          "</div>" +
+          '<div class="epo-toolbar">' +
+            '<div class="epo-busca">' +
+              '<i class="ti ti-search" aria-hidden="true"></i>' +
+              '<input class="input" id="epo-filtro" type="search" placeholder="Filtrar por nome, cidade ou endereço" aria-label="Filtrar por nome, cidade ou endereço" autocomplete="off">' +
+            "</div>" +
+            '<span class="dica">Ordenado por nome</span>' +
+          "</div>" +
+          '<div class="table-wrap">' +
+            '<table class="table">' +
+              "<thead><tr>" +
+                "<th>EPO</th>" +
+                "<th>Cidade / UF</th>" +
+                "<th>Endereço</th>" +
+                "<th>No mapa</th>" +
+                "<th>Questionários</th>" +
+                "<th>Situação</th>" +
+                '<th class="num"></th>' +
+              "</tr></thead>" +
+              '<tbody id="epo-body"><tr><td class="epo-loading" colspan="7">Carregando EPOs...</td></tr></tbody>' +
+            "</table>" +
+          "</div>" +
+        "</div>";
+
+      var htmlModal =
+        '<div class="modal-overlay" id="epo-modal" role="dialog" aria-modal="true" aria-labelledby="epo-modal-title">' +
+          '<div class="modal modal-largo">' +
+            '<div class="modal-header">' +
+              '<h2 class="modal-title" id="epo-modal-title">Nova EPO</h2>' +
+              '<button class="modal-close" id="epo-modal-close" type="button" aria-label="Fechar"><i class="ti ti-x" aria-hidden="true"></i></button>' +
+            "</div>" +
+            '<div class="modal-body">' +
+              '<div class="modal-cols">' +
+
+                // ---------------- coluna 1: cadastro ----------------
+                '<div class="modal-col">' +
+                  '<p class="col-titulo"><i class="ti ti-building-warehouse" aria-hidden="true"></i>Dados da EPO</p>' +
+                  '<div class="field">' +
+                    '<label for="f-nome">Nome da EPO</label>' +
+                    '<input class="input" id="f-nome" type="text" placeholder="Ex.: EPO Horizonte" autocomplete="off">' +
+                  "</div>" +
+                  '<div class="field">' +
+                    '<label for="f-endereco">Endereço</label>' +
+                    '<input class="input" id="f-endereco" type="text" placeholder="Rua, número, complemento" autocomplete="off">' +
+                  "</div>" +
+                  '<div class="field-row">' +
+                    '<div class="field">' +
+                      '<label for="f-cidade">Cidade</label>' +
+                      '<input class="input" id="f-cidade" type="text" placeholder="Ex.: Campinas" autocomplete="off">' +
+                    "</div>" +
+                    '<div class="field uf">' +
+                      '<label for="f-uf">UF</label>' +
+                      '<select class="select" id="f-uf">' + htmlOpcoesUf + "</select>" +
+                    "</div>" +
+                    '<div class="field cep">' +
+                      '<label for="f-cep">CEP</label>' +
+                      '<input class="input" id="f-cep" type="text" inputmode="numeric" placeholder="00000-000" autocomplete="off" maxlength="9">' +
+                    "</div>" +
+                  "</div>" +
+                  '<div class="field">' +
+                    '<label for="f-ativo">Situação</label>' +
+                    '<select class="select" id="f-ativo">' +
+                      '<option value="1" selected>Ativa</option>' +
+                      '<option value="0">Inativa</option>' +
+                    "</select>" +
+                    '<span class="hint">EPO inativa sai do mapa e das listas, mas o histórico dela fica guardado.</span>' +
+                  "</div>" +
+                  '<div class="nota-modal">' +
+                    '<i class="ti ti-map-pin" aria-hidden="true"></i>' +
+                    "<span>Com o endereço preenchido a EPO cai no ponto exato do mapa. Só com cidade e UF ela aparece em posição aproximada.</span>" +
+                  "</div>" +
+                "</div>" +
+
+                // ---------------- coluna 2: questionários ----------------
+                '<div class="modal-col">' +
+                  '<p class="col-titulo"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Questionários e responsável</p>' +
+                  '<div class="field">' +
+                    '<label for="f-email">E-mail do responsável da EPO</label>' +
+                    '<input class="input" id="f-email" type="email" placeholder="nome@empresa.com.br" autocomplete="off">' +
+                    '<span class="hint">Ele recebe o link de acesso e anexa os documentos de cada pergunta.</span>' +
+                  "</div>" +
+                  '<div class="field">' +
+                    '<div class="procs-head">' +
+                      '<span class="procs-rotulo">Questionários desta EPO</span>' +
+                      '<span class="procs-count" id="f-procs-count"></span>' +
+                    "</div>" +
+                    '<div class="procs-box" id="f-procs"></div>' +
+                    '<button class="link-mini" id="f-procs-toggle" type="button" style="align-self:flex-start;">Marcar todos</button>' +
+                  "</div>" +
+                  '<div class="field-row">' +
+                    '<div class="field">' +
+                      '<label for="f-visita">Visita prevista (opcional)</label>' +
+                      '<input class="input" id="f-visita" type="date">' +
+                    "</div>" +
+                  "</div>" +
+                  '<div class="field" style="margin-bottom:4px;">' +
+                    '<label for="f-obs">Observação (opcional)</label>' +
+                    '<textarea class="textarea" id="f-obs" rows="2" style="min-height:62px;" placeholder="Ex.: priorizar notas fiscais dos últimos 30 dias"></textarea>' +
+                  "</div>" +
+                  '<div class="nota-modal">' +
+                    '<i class="ti ti-send" aria-hidden="true"></i>' +
+                    "<span>Ao salvar, cada questionário marcado fica pendente para o responsável e o link de acesso é enviado para o e-mail informado. Questionário já pedido continua pendente e não é duplicado.</span>" +
+                  "</div>" +
+                "</div>" +
+
+              "</div>" +
+            "</div>" +
+            '<div class="modal-footer">' +
+              '<button class="btn btn-ghost btn-sm" id="epo-modal-cancel" type="button">Cancelar</button>' +
+              '<button class="btn btn-primary btn-sm" id="epo-modal-save" type="button"><i class="ti ti-check" aria-hidden="true"></i>Salvar EPO</button>' +
+            "</div>" +
+          "</div>" +
+        "</div>";
+
+      document.getElementById("page").innerHTML = htmlTabela + htmlModal;
+
+      // ------------------------------------------------------------------
+      // Questionários (coluna 2)
+      // ------------------------------------------------------------------
+      function procById(id) {
+        for (var i = 0; i < processos.length; i++) {
+          if (String(processos[i].id) === String(id)) return processos[i];
+        }
+        return null;
+      }
+      function nomeProc(id) {
+        var p = procById(id);
+        return p ? p.nome : "questionário";
+      }
+
+      // Questionários já pedidos para a EPO, para o que está pendente continuar
+      // pendente e não virar pedido repetido.
+      function jaPedidos(epoId) {
+        var mapa = {};
+        if (!epoId) return mapa;
+        pedidos.forEach(function (a) {
+          if (String(a.epoId) === String(epoId)) mapa[String(a.procId)] = a;
+        });
+        return mapa;
+      }
+
+      function htmlProcs(epoId) {
+        if (!processos.length) return '<div class="procs-vazio">Nenhum questionário disponível.</div>';
+        var pedidosDaEpo = jaPedidos(epoId);
+        return processos.map(function (p, i) {
+          var id = "f-proc-" + i;
+          var pedido = pedidosDaEpo[String(p.id)];
+          return (
+            '<label class="checkbox proc-opt' + (pedido ? " ja-pedido" : "") + '" for="' + id + '">' +
+              '<input type="checkbox" id="' + id + '" value="' + esc(p.id) + '"' +
+                (pedido ? " checked disabled" : "") + ">" +
+              '<i class="ti ' + esc(p.icone || "ti-clipboard-list") + '" aria-hidden="true"></i>' +
+              '<span class="nm">' + esc(p.nome) + "</span>" +
+              (pedido ? '<span class="tag-pedido">' + esc(rotuloStatus(pedido.status)) + "</span>" : "") +
+            "</label>"
+          );
+        }).join("");
+      }
+
+      function rotuloStatus(s) {
+        if (s === "enviada") return "enviado";
+        if (s === "em_andamento") return "em andamento";
+        return "pendente";
+      }
+
+      function caixas() {
+        var box = document.getElementById("f-procs");
+        if (!box) return [];
+        return Array.prototype.slice.call(box.querySelectorAll('input[type="checkbox"]'));
+      }
+      function marcados() {
+        var out = [];
+        caixas().forEach(function (c) { if (c.checked && !c.disabled) out.push(c.value); });
+        return out;
+      }
+      function atualizarResumo() {
+        var livres = caixas().filter(function (c) { return !c.disabled; });
+        var n = marcados().length;
+        var jaN = caixas().length - livres.length;
+        var alvo = document.getElementById("f-procs-count");
+        var toggle = document.getElementById("f-procs-toggle");
+        var partes = [];
+        if (jaN) partes.push(jaN + (jaN === 1 ? " já pedido" : " já pedidos"));
+        partes.push(n ? n + (n === 1 ? " novo marcado" : " novos marcados") : "nenhum novo marcado");
+        if (alvo) alvo.textContent = partes.join(" · ");
+        if (toggle) {
+          toggle.style.display = livres.length ? "" : "none";
+          toggle.textContent = (livres.length && n === livres.length) ? "Desmarcar todos" : "Marcar todos";
+        }
+      }
+
+      function renderProcs(epoId) {
+        var box = document.getElementById("f-procs");
+        if (box) box.innerHTML = htmlProcs(epoId);
+        atualizarResumo();
+      }
+
+      document.getElementById("f-procs").addEventListener("change", atualizarResumo);
+      document.getElementById("f-procs-toggle").addEventListener("click", function () {
+        var livres = caixas().filter(function (c) { return !c.disabled; });
+        var marcarTodos = marcados().length !== livres.length;
+        livres.forEach(function (c) { c.checked = marcarTodos; });
+        atualizarResumo();
+      });
+
+      // ------------------------------------------------------------------
+      // Modal
+      // ------------------------------------------------------------------
+      var overlay = document.getElementById("epo-modal");
+      function fecharModal() { overlay.classList.remove("is-open"); }
+      function abrirModal() { overlay.classList.add("is-open"); }
+      ["epo-modal-close", "epo-modal-cancel"].forEach(function (id) {
+        document.getElementById(id).addEventListener("click", fecharModal);
+      });
+      overlay.addEventListener("click", function (ev) { if (ev.target === overlay) fecharModal(); });
+      document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") fecharModal(); });
+
+      function preencherForm(epo) {
+        document.getElementById("f-nome").value = (epo && epo.nome) || "";
+        document.getElementById("f-endereco").value = (epo && epo.endereco) || "";
+        document.getElementById("f-cidade").value = (epo && epo.cidade) || "";
+        document.getElementById("f-uf").value = (epo && epo.uf) || "SP";
+        document.getElementById("f-cep").value = (epo && epo.cep) || "";
+        document.getElementById("f-ativo").value = (epo && epo.ativo === false) ? "0" : "1";
+        document.getElementById("epo-modal-title").textContent = epo ? "Editar EPO" : "Nova EPO";
+
+        // e-mail já usado nos pedidos desta EPO vem preenchido
+        var emailAtual = "";
+        if (epo) {
+          for (var i = 0; i < pedidos.length; i++) {
+            if (String(pedidos[i].epoId) === String(epo.id) && pedidos[i].email) {
+              emailAtual = pedidos[i].email; break;
+            }
+          }
+        }
+        document.getElementById("f-email").value = emailAtual;
+        document.getElementById("f-visita").value = "";
+        document.getElementById("f-obs").value = "";
+        renderProcs(epo ? epo.id : null);
+      }
+
+      document.getElementById("btn-nova-epo").addEventListener("click", function () {
+        editandoId = null;
+        preencherForm(null);
+        abrirModal();
+        document.getElementById("f-nome").focus();
+      });
+
+      // CEP com máscara, só para a leitura ficar limpa
+      document.getElementById("f-cep").addEventListener("input", function () {
+        var d = this.value.replace(/\D/g, "").slice(0, 8);
+        this.value = d.length > 5 ? d.slice(0, 5) + "-" + d.slice(5) : d;
+      });
+
+      // ------------------------------------------------------------------
+      // Lista
+      // ------------------------------------------------------------------
+      function marcaDoPonto(epo) {
+        var pos = GeoBR.pontoDaEpo(epo);
+        if (pos.precisao === "endereco") {
+          return '<span class="pin-tag pin-exato"><i class="ti ti-map-pin-check" aria-hidden="true"></i>Exato</span>';
+        }
+        if (pos.precisao === "cidade") {
+          return '<span class="pin-tag pin-aprox"><i class="ti ti-map-pin" aria-hidden="true"></i>Pela cidade</span>';
+        }
+        if (pos.precisao === "uf") {
+          return '<span class="pin-tag pin-aprox"><i class="ti ti-map-pin" aria-hidden="true"></i>Pelo estado</span>';
+        }
+        return '<span class="pin-tag pin-fora"><i class="ti ti-map-pin-off" aria-hidden="true"></i>Fora do mapa</span>';
+      }
+
+      function celulaQuestionarios(epo) {
+        var meus = pedidos.filter(function (a) { return String(a.epoId) === String(epo.id); });
+        if (!meus.length) return '<span class="pend-cel" style="color:var(--text-muted)">nenhum pedido</span>';
+        var pend = meus.filter(function (a) { return a.status !== "enviada"; }).length;
+        return '<span class="pend-cel"><i class="ti ti-clipboard-list" aria-hidden="true"></i>' +
+          "<b>" + meus.length + "</b> pedidos" +
+          (pend ? " · <b>" + pend + "</b> pendentes" : " · todos enviados") + "</span>";
+      }
+
+      function renderLista() {
+        var termo = (document.getElementById("epo-filtro").value || "").trim().toLowerCase();
+        var lista = epos.filter(function (e) {
+          if (!termo) return true;
+          return [e.nome, e.cidade, e.uf, e.endereco, e.cep].join(" ").toLowerCase().indexOf(termo) >= 0;
+        });
+
+        var tbody = document.getElementById("epo-body");
+        document.getElementById("epo-count").textContent =
+          epos.length ? lista.length + " de " + epos.length : "";
+
+        if (!epos.length) {
+          tbody.innerHTML =
+            '<tr><td colspan="7"><div class="empty">' +
+            '<i class="ti ti-building-warehouse" aria-hidden="true"></i>' +
+            "<p>Nenhuma EPO cadastrada ainda. Comece em <b>Nova EPO</b>.</p>" +
+            "</div></td></tr>";
+          return;
+        }
+        if (!lista.length) {
+          tbody.innerHTML =
+            '<tr><td colspan="7"><div class="empty">' +
+            '<i class="ti ti-search-off" aria-hidden="true"></i>' +
+            "<p>Nenhuma EPO com esse filtro.</p>" +
+            "</div></td></tr>";
+          return;
+        }
+
+        tbody.innerHTML = lista.map(function (e) {
+          return "<tr>" +
+            '<td class="epo-nome-cel"><b>' + esc(e.nome) + "</b>" +
+              (e.cep ? "<span>CEP " + esc(e.cep) + "</span>" : "") + "</td>" +
+            "<td>" + esc([e.cidade, e.uf].filter(Boolean).join(" · ") || "-") + "</td>" +
+            "<td>" + esc(e.endereco || "-") + "</td>" +
+            "<td>" + marcaDoPonto(e) + "</td>" +
+            "<td>" + celulaQuestionarios(e) + "</td>" +
+            '<td><span class="badge ' + (e.ativo === false ? "badge-baixa" : "badge-success") + '">' +
+              (e.ativo === false ? "Inativa" : "Ativa") + "</span></td>" +
+            '<td class="num">' +
+              '<button class="btn btn-ghost btn-sm" type="button" data-editar="' + esc(e.id) + '">' +
+              '<i class="ti ti-pencil" aria-hidden="true"></i>Editar</button>' +
+            "</td>" +
+          "</tr>";
+        }).join("");
+      }
+
+      document.getElementById("epo-filtro").addEventListener("input", renderLista);
+
+      document.getElementById("epo-body").addEventListener("click", function (ev) {
+        var b = ev.target.closest("[data-editar]");
+        if (!b) return;
+        var id = b.getAttribute("data-editar");
+        var epo = null;
+        for (var i = 0; i < epos.length; i++) {
+          if (String(epos[i].id) === String(id)) { epo = epos[i]; break; }
+        }
+        if (!epo) return;
+        editandoId = epo.id;
+        preencherForm(epo);
+        abrirModal();
+        document.getElementById("f-nome").focus();
+      });
+
+      // ------------------------------------------------------------------
+      // Convite do responsável
+      // ------------------------------------------------------------------
+      function linkEnvio() {
+        var origem = location.origin && location.origin !== "null" ? location.origin : "";
+        if (origem) return origem + location.pathname.replace(/[^/]*$/, "") + "envio.html";
+        var href = location.href.split("#")[0].split("?")[0];
+        return href.replace(/[^/]*$/, "") + "envio.html";
+      }
+
+      function copiarFallback(txt) {
+        try {
+          var inp = document.createElement("input");
+          inp.value = txt;
+          inp.setAttribute("readonly", "readonly");
+          inp.style.position = "fixed";
+          inp.style.top = "-1000px";
+          inp.style.opacity = "0";
+          document.body.appendChild(inp);
+          inp.select();
+          if (inp.setSelectionRange) inp.setSelectionRange(0, txt.length);
+          var ok = document.execCommand("copy");
+          document.body.removeChild(inp);
+          return !!ok;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function copiarTexto(txt) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(txt).then(
+            function () { return true; },
+            function () { return copiarFallback(txt); }
+          );
+        }
+        return Promise.resolve(copiarFallback(txt));
+      }
+
+      function enviarConvite(alocacaoId) {
+        if (DEMO || !alocacaoId) return Promise.resolve(false);
+        var cli = window.Auth ? Auth.cliente : null;
+        if (!cli || !cli.functions || !cli.functions.invoke) return Promise.resolve(false);
+        try {
+          return cli.functions.invoke("convidar-responsavel", { body: { alocacao_id: alocacaoId } })
+            .then(function (r) { return !(r && r.error); }, function () { return false; });
+        } catch (e) {
+          return Promise.resolve(false);
+        }
+      }
+
+      function avisarConviteManual() {
+        var link = linkEnvio();
+        return copiarTexto(link).then(function (ok) {
+          App.toast(
+            "Não foi possível enviar o e-mail agora. " +
+            (ok ? "O link de acesso foi copiado - envie para o responsável." : "Copie o link manualmente: " + link)
+          );
+        });
+      }
+
+      // Convite: uma chamada por e-mail, nunca por questionário
+      function convidarSeNecessario(res, email) {
+        if (!email || !res.criados) return Promise.resolve();
+        return enviarConvite(res.ids[0]).then(function (ok) {
+          if (ok) { App.toast("Link de acesso enviado para " + email + "."); return; }
+          return avisarConviteManual();
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // Pedidos de relatório
+      // ------------------------------------------------------------------
+      function criarPedidosDemo(epo, procIds, email, visita, obs) {
+        var res = { criados: 0, dups: [], erros: [], ids: [] };
+        procIds.forEach(function (pid) {
+          var dup = pedidos.some(function (a) {
+            return String(a.epoId) === String(epo.id) && String(a.procId) === String(pid) && a.email === email;
+          });
+          if (dup) { res.dups.push(nomeProc(pid)); return; }
+          demoSeq += 1;
+          pedidos.push({
+            id: "demo-aloc-" + demoSeq,
+            epoId: epo.id, procId: pid, email: email, status: "pendente"
+          });
+          res.criados += 1;
+          res.ids.push("demo-aloc-" + demoSeq);
+        });
+        return res;
+      }
+
+      // Uma linha por questionário, para tratar duplicidade isolada
+      function criarPedidos(epoId, procIds, email, visita, obs) {
+        var res = { criados: 0, dups: [], erros: [], ids: [] };
+        if (!procIds.length) return Promise.resolve(res);
+
+        return Auth.sessao().then(function (s) {
+          var criadoPor = s ? s.user.id : null;
+          var cadeia = Promise.resolve();
+          procIds.forEach(function (pid) {
+            cadeia = cadeia.then(function () {
+              return Auth.cliente.from("alocacoes").insert({
+                epo_id: epoId,
+                processo_id: pid,
+                responsavel_email: email,
+                status: "pendente",
+                criado_por: criadoPor,
+                visita_prevista: visita || null,
+                observacao: obs || null
+              }).select("id").then(
+                function (r) {
+                  if (r.error) {
+                    var msg = r.error.message || "";
+                    if (r.error.code === "23505" || /duplicate|unique/i.test(msg)) {
+                      res.dups.push(nomeProc(pid));
+                    } else {
+                      res.erros.push(nomeProc(pid) + " (" + msg + ")");
+                    }
+                    return;
+                  }
+                  res.criados += 1;
+                  if (r.data && r.data[0]) res.ids.push(r.data[0].id);
+                },
+                function (err) {
+                  res.erros.push(nomeProc(pid) + " (" + (err && err.message ? err.message : "erro inesperado") + ")");
+                }
+              );
+            });
+          });
+          return cadeia.then(function () { return res; });
+        });
+      }
+
+      function resumoPedido(res, email) {
+        var partes = [];
+        if (res.criados) {
+          partes.push(res.criados + (res.criados === 1 ? " questionário pedido" : " questionários pedidos") + (email ? " para " + email : ""));
+        }
+        if (res.dups.length) partes.push("já existiam: " + res.dups.join(", "));
+        if (res.erros.length) partes.push("falharam: " + res.erros.join("; "));
+        return partes.join(". ");
+      }
+
+      // ------------------------------------------------------------------
+      // Salvar
+      // ------------------------------------------------------------------
+      function lerForm() {
+        return {
+          nome: document.getElementById("f-nome").value.trim(),
+          endereco: document.getElementById("f-endereco").value.trim(),
+          cidade: document.getElementById("f-cidade").value.trim(),
+          uf: document.getElementById("f-uf").value,
+          cep: document.getElementById("f-cep").value.trim(),
+          ativo: document.getElementById("f-ativo").value === "1",
+          email: document.getElementById("f-email").value.trim().toLowerCase(),
+          visita: document.getElementById("f-visita").value,
+          obs: document.getElementById("f-obs").value.trim(),
+          procIds: marcados()
+        };
+      }
+
+      // Endereço novo pede coordenada nova. Se o serviço não responder, salva sem
+      // ela: o mapa aproxima pela cidade e a tela mostra que está aproximado.
+      function coordenadaPara(dados, anterior) {
+        var mudou = !anterior ||
+          (anterior.endereco || "") !== dados.endereco ||
+          (anterior.cidade || "") !== dados.cidade ||
+          (anterior.uf || "") !== dados.uf;
+        if (!dados.endereco) return Promise.resolve({ lat: null, lng: null });
+        if (!mudou && anterior && anterior.lat != null) {
+          return Promise.resolve({ lat: anterior.lat, lng: anterior.lng });
+        }
+        return GeoBR.geocodificar(dados.endereco, dados.cidade, dados.uf).then(function (p) {
+          return p || { lat: null, lng: null };
+        });
+      }
+
+      document.getElementById("epo-modal-save").addEventListener("click", function () {
+        var dados = lerForm();
+        if (!dados.nome) { App.toast("Informe o nome da EPO."); return; }
+        if (!dados.cidade) { App.toast("Informe a cidade da EPO."); return; }
+        if (dados.email && !/^\S+@\S+\.\S+$/.test(dados.email)) {
+          App.toast("Informe um e-mail válido para o responsável."); return;
+        }
+        if (dados.procIds.length && !dados.email) {
+          App.toast("Informe o e-mail de quem vai enviar os documentos desses questionários."); return;
+        }
+        if (dados.email && !dados.procIds.length && !editandoId) {
+          App.toast("Marque pelo menos um questionário para pedir ao responsável."); return;
+        }
+
+        var anterior = null;
+        if (editandoId) {
+          for (var i = 0; i < epos.length; i++) {
+            if (String(epos[i].id) === String(editandoId)) { anterior = epos[i]; break; }
+          }
+        }
+
+        var btn = this;
+        var textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true"></i>Salvando...';
+        function terminar() { btn.disabled = false; btn.innerHTML = textoOriginal; }
+
+        coordenadaPara(dados, anterior).then(function (coord) {
+          var linha = {
+            nome: dados.nome,
+            endereco: dados.endereco || null,
+            cidade: dados.cidade,
+            uf: dados.uf,
+            cep: dados.cep || null,
+            ativo: dados.ativo,
+            lat: coord.lat,
+            lng: coord.lng
+          };
+
+          if (DEMO) {
+            var epoDemo = anterior;
+            if (epoDemo) {
+              Object.keys(linha).forEach(function (k) { epoDemo[k] = linha[k]; });
+            } else {
+              demoSeq += 1;
+              epoDemo = JSON.parse(JSON.stringify(linha));
+              epoDemo.id = "demo-epo-" + demoSeq;
+              epos.push(epoDemo);
+            }
+            var resDemo = criarPedidosDemo(epoDemo, dados.procIds, dados.email, dados.visita, dados.obs);
+            ordenar();
+            renderLista();
+            fecharModal();
+            terminar();
+            var rDemo = resumoPedido(resDemo, dados.email);
+            App.toast("EPO " + dados.nome + (anterior ? " atualizada" : " cadastrada") + (rDemo ? " - " + rDemo : "") + ".");
+            return;
+          }
+
+          function depoisDaEpo(epoId) {
+            if (!dados.procIds.length) {
+              fecharModal();
+              App.toast("EPO " + dados.nome + (editandoId ? " atualizada." : " cadastrada."));
+              return carregar();
+            }
+            return criarPedidos(epoId, dados.procIds, dados.email, dados.visita, dados.obs)
+              .then(function (res) {
+                fecharModal();
+                var resumo = resumoPedido(res, dados.email);
+                App.toast("EPO " + dados.nome + (editandoId ? " atualizada" : " cadastrada") + (resumo ? " - " + resumo : "") + ".");
+                return convidarSeNecessario(res, dados.email).then(carregar);
+              });
+          }
+
+          if (editandoId) {
+            return Auth.cliente.from("epos").update(linha).eq("id", editandoId)
+              .then(function (r) {
+                if (r.error) throw r.error;
+                return depoisDaEpo(editandoId);
+              })
+              .then(terminar, function (e) {
+                console.error("salvarEpo", e);
+                terminar();
+                App.toast("Não foi possível salvar a EPO. Confira os dados e tente novamente.");
+              });
+          }
+
+          return Auth.cliente.from("clientes").select("id").limit(1)
+            .then(function (r) {
+              if (r.error || !r.data || !r.data.length) {
+                throw new Error((r.error && r.error.message) || "Cliente não encontrado.");
+              }
+              linha.cliente_id = r.data[0].id;
+              return Auth.cliente.from("epos").insert(linha).select("id");
+            })
+            .then(function (r) {
+              if (r.error) throw r.error;
+              var novoId = r.data && r.data[0] ? r.data[0].id : null;
+              if (!novoId) throw new Error("EPO criada sem identificador.");
+              return depoisDaEpo(novoId);
+            })
+            .then(terminar, function (e) {
+              console.error("salvarEpo", e);
+              terminar();
+              App.toast("Não foi possível salvar a EPO. Confira os dados e tente novamente.");
+            });
+        }, function (e) {
+          console.error("coordenada", e);
+          terminar();
+          App.toast("Não foi possível salvar a EPO agora. Tente novamente.");
+        });
+      });
+
+      // ------------------------------------------------------------------
+      // Carga
+      // ------------------------------------------------------------------
+      function ordenar() {
+        epos.sort(function (a, b) {
+          return String(a.nome).localeCompare(String(b.nome), "pt-BR");
+        });
+      }
+
+      function carregarDemo() {
+        epos = (window.APP.epos || []).map(function (e) {
+          return {
+            id: e.id, nome: e.nome, cidade: e.cidade, uf: e.uf,
+            endereco: e.endereco || "", cep: e.cep || "",
+            lat: e.lat == null ? null : e.lat, lng: e.lng == null ? null : e.lng,
+            ativo: true
+          };
+        });
+        processos = (window.APP.processos || []).map(function (p) {
+          return { id: p.id, nome: p.nome, icone: p.icone, ordem: p.peso || 0 };
+        });
+        pedidos = [];
+        ordenar();
+        renderLista();
+        return Promise.resolve();
+      }
+
+      function carregar() {
+        if (DEMO) return carregarDemo();
+
+        var db = Auth.cliente;
+        return db.from("processos").select("id, nome, icone, ordem, tipo").eq("ativo", true).order("ordem")
+          .then(function (r) {
+            if (r.error) { console.error("carregarProcessos", r.error); processos = []; return; }
+            processos = (r.data || []).filter(function (p) {
+              return p.tipo === undefined || p.tipo === null || p.tipo === "questionario";
+            });
+          })
+          .then(function () {
+            return db.from("alocacoes").select("id, epo_id, processo_id, responsavel_email, status");
+          })
+          .then(function (r) {
+            pedidos = ((r && r.data) || []).map(function (a) {
+              return { id: a.id, epoId: a.epo_id, procId: a.processo_id, email: a.responsavel_email, status: a.status };
+            });
+            return db.from("epos").select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo").order("nome");
+          })
+          .then(function (r) {
+            if (r.error) throw new Error(r.error.message);
+            epos = r.data || [];
+            renderLista();
+          })
+          .catch(function (e) {
+            console.error("carregarEpos", e);
+            document.getElementById("epo-body").innerHTML =
+              '<tr><td colspan="7"><div class="empty">' +
+              '<i class="ti ti-alert-triangle" aria-hidden="true"></i>' +
+              "<p>Não foi possível carregar as EPOs agora. Atualize a página em alguns instantes.</p>" +
+              "</div></td></tr>";
+          });
+      }
+
+      carregar();
+    })();
+  </script>
+</body>
+</html>
