@@ -241,7 +241,7 @@
         return (
           '<div class="demo-note">' +
             '<i class="ti ti-flask" aria-hidden="true"></i>' +
-            "<span>Modo demonstração - nada é gravado. Os anexos ficam apenas nesta sessão.</span>" +
+            "<span>Modo demonstração - nada é salvo. Os anexos ficam apenas nesta sessão.</span>" +
           "</div>"
         );
       }
@@ -303,7 +303,8 @@
           .order("criado_em", { ascending: false })
           .then(function (r) {
             if (r.error) {
-              App.toast("Erro ao carregar alocações: " + r.error.message);
+              console.error("carregarAlocacoes", r.error);
+              App.toast("Não foi possível carregar os seus relatórios. Tente novamente.");
               alocacoes = [];
             } else {
               alocacoes = (r.data || []).map(function (a) {
@@ -338,7 +339,8 @@
         ]).then(function (rs) {
           var rItens = rs[0], rAnexos = rs[1];
           if (rItens.error || rAnexos.error) {
-            App.toast("Erro ao carregar o questionário: " + (rItens.error || rAnexos.error).message);
+            console.error("carregarDetalhe", rItens.error || rAnexos.error);
+            App.toast("Não foi possível abrir o questionário. Tente novamente.");
             renderLista();
             return;
           }
@@ -411,7 +413,8 @@
               anexosPorItem[itemId].push(ins.data);
               enviados += 1;
             }).catch(function (err) {
-              App.toast("Falha ao enviar " + f.name + ": " + err.message);
+              console.error("upload", f.name, err);
+              App.toast("Não foi possível enviar " + f.name + ". Tente novamente.");
             });
           });
         });
@@ -454,7 +457,8 @@
           tirarDoEstado();
           App.toast("Anexo removido.");
         }).catch(function (err) {
-          App.toast("Falha ao remover anexo: " + err.message);
+          console.error("removerAnexo", err);
+          App.toast("Não foi possível remover o anexo. Tente novamente.");
         });
       }
 
@@ -464,7 +468,7 @@
           if (String(lista[i].id) === String(anexoId)) {
             var ax = lista[i];
             if (DEMO || !ax.storage_path) {
-              App.toast("Modo demonstração - o arquivo não foi gravado no servidor.");
+              App.toast("Modo demonstração - o arquivo de exemplo não abre.");
               return;
             }
             db.storage.from("evidencias").createSignedUrl(ax.storage_path, 3600).then(function (r) {
@@ -504,7 +508,8 @@
           .catch(function (err) {
             enviando = false;
             if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-send" aria-hidden="true"></i>Enviar comprovações'; }
-            App.toast("Falha ao enviar: " + err.message);
+            console.error("enviarComprovacoes", err);
+            App.toast("Não foi possível concluir o envio. Tente novamente.");
           });
       }
 
@@ -658,8 +663,7 @@
           "</div>" +
           '<div class="live-note">' +
             '<i class="ti ti-eye" aria-hidden="true"></i>' +
-            "<span>O auditor da APSIS vê estes anexos em tempo real durante a vistoria. " +
-            "Os arquivos vão para o SharePoint da APSIS.</span>" +
+            "<span>O auditor da APSIS vê estes anexos em tempo real durante a vistoria.</span>" +
           "</div>" +
           (readonly
             ? '<div class="readonly-note"><i class="ti ti-lock-check" aria-hidden="true"></i>' +
@@ -746,7 +750,7 @@
             "<p><b>" + esc(proc.nome || "Questionário") + "</b> da " + esc(epo.nome || "EPO") +
               " foi enviado com " + totalAnexos() + (totalAnexos() === 1 ? " anexo" : " anexos") +
               ". A equipe APSIS vai comparar as comprovações com a vistoria em campo na dupla checagem." +
-              (DEMO ? " (Demonstração - nada foi gravado.)" : "") +
+              (DEMO ? " (Modo demonstração - nada foi salvo.)" : "") +
             "</p>" +
             '<button class="btn btn-primary" id="btn-voltar-lista" type="button">' +
               '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar aos meus questionários' +

@@ -239,7 +239,7 @@
         return (
           '<div class="demo-note">' +
             '<i class="ti ti-flask" aria-hidden="true"></i>' +
-            "<span>Modo demonstração - nada é gravado. Os relatórios abaixo são de exemplo.</span>" +
+            "<span>Modo demonstração - nada é salvo. Os relatórios abaixo são de exemplo.</span>" +
           "</div>"
         );
       }
@@ -717,10 +717,11 @@
             if (r.error) {
               carregou = true;
               if (!linhas.length) {
-                erro = "Não foi possível carregar os relatórios: " + (r.error.message || "erro inesperado.");
+                console.error("vw_relatorios_pendentes", r.error);
+                erro = "Não foi possível carregar os relatórios pendentes agora. Atualize a página para tentar de novo.";
                 renderAtual();
               } else {
-                App.toast("Falha ao atualizar a lista: " + (r.error.message || "erro inesperado."));
+                App.toast("Não foi possível atualizar a lista agora.");
               }
               return;
             }

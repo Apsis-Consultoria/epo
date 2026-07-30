@@ -69,7 +69,7 @@
     .hint-static { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
     .wiz-field .hint-static { margin-top: 6px; }
 
-    /* Overlay de envio real ao Supabase */
+    /* Overlay exibido enquanto a contagem esta sendo enviada */
     .wiz-sending {
       position: fixed; inset: 0; z-index: 300;
       background: rgba(255, 255, 255, .88);
@@ -566,7 +566,8 @@
         return db.from("epos").select("id, nome, cidade, uf").eq("ativo", true).order("nome")
           .then(function (r) {
             if (r.error) {
-              App.toast("Erro ao carregar EPOs: " + r.error.message);
+              console.error("carregarEpos", r.error);
+              App.toast("Não foi possível carregar as EPOs. Tente novamente.");
               epos = [];
             } else {
               epos = r.data || [];
@@ -919,7 +920,7 @@
           "</div>" +
           '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' +
             (DEMO
-              ? "Modo demonstração - nada é gravado."
+              ? "Modo demonstração - nada é salvo."
               : "Ao enviar, a contagem é registrada e entra no indicador de perda de alto giro.") +
             (alocacaoParam ? " Esta contagem está ligada ao relatório pedido para esta EPO." : "") +
           "</p>" +
@@ -1124,7 +1125,7 @@
             '<p class="wiz-done-sub">' +
               (gravadaNoBanco
                 ? "Montagem de estoque de <b>" + esc(e ? e.nome : "EPO") + "</b> registrada. Ela entra no indicador de perda de itens de alto giro."
-                : "Modo demonstração - nada foi gravado no banco.") +
+                : "Modo demonstração - nada foi salvo.") +
             "</p>" +
             '<div class="wiz-done-score">' +
               '<span class="badge badge-baixo">Total ' + App.fmtNum(t.itens) + "</span>" +
@@ -1214,7 +1215,7 @@
           .catch(function (err) {
             mostrarEnvio(false);
             console.error("Falha ao enviar contagem:", err);
-            App.toast("Falha ao enviar: " + ((err && err.message) || "erro inesperado") + ". Revise e tente novamente.");
+            App.toast("Não foi possível enviar a contagem. Confira a conexão e tente novamente.");
             updateChrome(); // reabilita o botao conforme o passo atual
           });
       }
@@ -1242,7 +1243,7 @@
         }).catch(function (err) {
           salvandoRascunho = false;
           console.error("Falha ao salvar rascunho:", err);
-          App.toast("Falha ao salvar rascunho: " + ((err && err.message) || "erro inesperado"));
+          App.toast("Não foi possível salvar o rascunho. Tente novamente.");
         });
       }
 
@@ -1269,7 +1270,7 @@
                 updateChrome();
               }
             }, function (err) {
-              App.toast("Não foi possível confirmar a sessão: " + ((err && err.message) || "erro inesperado") + ".");
+              App.toast("Sua sessão expirou. Entre novamente para enviar a contagem.");
               updateChrome();
             });
           }
@@ -1293,7 +1294,7 @@
         else updateChrome();
       }, function (err) {
         eposProntas = true;
-        App.toast("Erro ao carregar EPOs: " + ((err && err.message) || err));
+        App.toast("Não foi possível carregar as EPOs. Tente novamente.");
         if (steps[cur].type === "identificacao") renderStep();
       });
     })();

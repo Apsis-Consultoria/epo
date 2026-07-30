@@ -180,7 +180,7 @@
       // Estrutura estática da página
       // ------------------------------------------------------------------
       var htmlAviso = DEMO
-        ? '<div class="aloc-demo-note"><i class="ti ti-flask" aria-hidden="true"></i>modo demonstração - nada é gravado</div>'
+        ? '<div class="aloc-demo-note"><i class="ti ti-flask" aria-hidden="true"></i>modo demonstração - nada é salvo</div>'
         : "";
 
       var htmlTabela =
@@ -794,7 +794,7 @@
           .eq("ativo", true)
           .order("nome")
           .then(function (r) {
-            if (r.error) { App.toast("Erro ao carregar EPOs: " + r.error.message); return; }
+            if (r.error) { console.error("carregarEpos", r.error); App.toast("Não foi possível carregar as EPOs. Tente novamente."); return; }
             epos = r.data || [];
           });
       }
@@ -805,7 +805,7 @@
           .eq("ativo", true)
           .order("ordem")
           .then(function (r) {
-            if (r.error) { App.toast("Erro ao carregar questionários: " + r.error.message); return; }
+            if (r.error) { console.error("carregarProcessos", r.error); App.toast("Não foi possível carregar os questionários. Tente novamente."); return; }
             processos = (r.data || []).filter(function (p) {
               return p.tipo === "processo" || p.tipo === "itens_obrigatorios";
             });
@@ -817,7 +817,7 @@
           .select("id, epo_id, processo_id, responsavel_email, status, criado_em, visita_prevista, convite_enviado_em, observacao, epos(nome, cidade, uf), processos(nome, slug, icone, ordem)")
           .order("criado_em", { ascending: false })
           .then(function (r) {
-            if (r.error) { App.toast("Erro ao carregar relatórios pedidos: " + r.error.message); return; }
+            if (r.error) { console.error("carregarAlocacoes", r.error); App.toast("Não foi possível carregar os relatórios pedidos. Tente novamente."); return; }
             var linhas = r.data || [];
 
             // Contagem de anexos por alocação
@@ -946,7 +946,7 @@
           preencherSelects();
           modalEpo.fechar();
           var resumoDemo = resumoPedido(resDemo, email);
-          App.toast("EPO " + nome + " criada" + (resumoDemo ? " - " + resumoDemo : " sem relatórios pedidos") + " (demonstração - nada foi gravado).");
+          App.toast("EPO " + nome + " criada" + (resumoDemo ? " - " + resumoDemo : " sem relatórios pedidos") + " (modo demonstração - nada foi salvo).");
           return;
         }
 
@@ -981,7 +981,8 @@
             });
           })
           .catch(function (e) {
-            App.toast("Não foi possível criar a EPO: " + (e && e.message ? e.message : "erro inesperado."));
+            console.error("criarEpo", e);
+            App.toast("Não foi possível criar a EPO. Confira os dados e tente novamente.");
           })
           .then(function () { btn.disabled = false; });
       });
@@ -1005,7 +1006,7 @@
           var resDemo = criarPedidosDemo(epoDemo, procIds, email, visita, obs);
           renderLista();
           modalAloc.fechar();
-          App.toast(resumoPedido(resDemo, email) + " (demonstração - nada foi gravado).");
+          App.toast(resumoPedido(resDemo, email) + " (modo demonstração - nada foi salvo).");
           return;
         }
 
@@ -1023,7 +1024,8 @@
             return convidarSeNecessario(res, email).then(recarregar);
           })
           .catch(function (e) {
-            App.toast("Não foi possível pedir os relatórios: " + (e && e.message ? e.message : "erro inesperado."));
+            console.error("pedirRelatorios", e);
+            App.toast("Não foi possível pedir os relatórios. Tente novamente.");
           })
           .then(function () { btn.disabled = false; });
       });
@@ -1055,7 +1057,7 @@
           if (DEMO) {
             if (linhaConvite) linhaConvite.conviteEnviadoEm = new Date().toISOString();
             renderLista();
-            App.toast("Convite reenviado (demonstração - nada foi gravado).");
+            App.toast("Convite reenviado (modo demonstração - nada foi salvo).");
             return;
           }
           btnConvite.disabled = true;
@@ -1080,7 +1082,7 @@
         if (DEMO) {
           alocacoes = alocacoes.filter(function (a) { return String(a.id) !== String(id); });
           renderLista();
-          App.toast("Pedido excluído (demonstração - nada foi gravado).");
+          App.toast("Pedido excluído (modo demonstração - nada foi salvo).");
           return;
         }
 
@@ -1091,7 +1093,8 @@
             return recarregar();
           })
           .catch(function (e) {
-            App.toast("Não foi possível excluir: " + (e && e.message ? e.message : "erro inesperado."));
+            console.error("excluirAlocacao", e);
+            App.toast("Não foi possível excluir. Tente novamente.");
           });
       });
     })();

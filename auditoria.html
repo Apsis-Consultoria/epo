@@ -174,7 +174,7 @@
       display: grid; place-items: center; font-size: 15px; padding: 2px; line-height: 1;
     }
 
-    /* Overlay de envio real ao Supabase */
+    /* Overlay exibido enquanto a auditoria esta sendo enviada */
     .wiz-sending {
       position: fixed; inset: 0; z-index: 300;
       background: rgba(255, 255, 255, .88);
@@ -896,7 +896,7 @@
           "</div>" +
           '<h2 style="font-size:15px;font-weight:700;margin:0 0 10px;">Checagem dos acessórios</h2>' +
           '<ul class="rev-check-list">' + checksHtml + "</ul>" +
-          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">Protótipo - nada é gravado no servidor ainda.</p>' +
+          '<p class="hint-static" style="text-align:center;margin-bottom:16px;">Modo demonstração - nada é salvo.</p>' +
           '<button type="button" class="wiz-btn wiz-btn-back" style="width:100%;flex:1 1 auto;margin-bottom:8px;" id="btn-rascunho"><i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho</button>'
         );
       }
@@ -1064,9 +1064,7 @@
         el.innerHTML =
           comprovCabecalho(n) +
           comprov.avisoStep +
-          conteudo +
-          '<p class="wiz-comprov-sp"><i class="ti ti-cloud-upload" aria-hidden="true"></i>' +
-            "<span>Os arquivos vão para o SharePoint da APSIS.</span></p>";
+          conteudo;
       }
 
       var COMPROV_VAZIO = '<p class="wiz-comprov-msg">A EPO ainda não enviou comprovação para este item.</p>';
@@ -1125,13 +1123,13 @@
           if (idx === 0) {
             comprovPintar(
               comprovListaHtml(comprovDemoRows()) +
-              '<p class="wiz-comprov-msg">Modo demonstração - nada é gravado e o arquivo não abre.</p>',
+              '<p class="wiz-comprov-msg">Modo demonstração - o arquivo de exemplo não abre.</p>',
               1, true
             );
           } else {
             comprovPintar(
               COMPROV_VAZIO +
-              '<p class="wiz-comprov-msg">Modo demonstração - nada é gravado.</p>',
+              '<p class="wiz-comprov-msg">Modo demonstração - dados de exemplo.</p>',
               0, true
             );
           }
@@ -1416,7 +1414,7 @@
           extra +
           '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' + r.answered + " de " + totalItens + " itens deste processo avaliados. " +
             (envioReal
-              ? "Ao enviar, respostas e anexos seguem para a dupla checagem da equipe APSIS."
+              ? "Ao enviar, as respostas e os anexos seguem para a dupla checagem da equipe APSIS."
               : "Modo demonstração - nada é gravado.") + "</p>" +
           '<button type="button" class="wiz-btn wiz-btn-back" style="width:100%;flex:1 1 auto;margin-bottom:8px;" id="btn-rascunho"><i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho</button>'
         );
@@ -1616,7 +1614,7 @@
             '<div class="wiz-done">' +
               '<div class="wiz-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></div>' +
               '<h1 class="wiz-done-title">Contagem enviada</h1>' +
-              '<p class="wiz-done-sub"><b>' + esc(CONTAGEM.nome) + "</b> registrada com sucesso. (Protótipo - nada é gravado no servidor ainda.)</p>" +
+              '<p class="wiz-done-sub"><b>' + esc(CONTAGEM.nome) + "</b> registrada com sucesso. (Modo demonstração - nada é salvo.)</p>" +
               '<div class="wiz-done-score">' +
                 '<span class="badge ' + (okF ? "badge-success" : "badge-danger") + '">Fontes ' + fmtPctRev(rr.pctFontes) + "</span>" +
                 '<span class="badge ' + (okC ? "badge-success" : "badge-danger") + '">Controles ' + fmtPctRev(rr.pctControles) + "</span>" +
@@ -1793,7 +1791,7 @@
           .catch(function (err) {
             mostrarEnvio(false);
             console.error("Falha ao enviar auditoria:", err);
-            App.toast("Falha ao enviar: " + ((err && err.message) || "erro inesperado") + ". Revise e tente novamente.");
+            App.toast("Não foi possível enviar a auditoria. Confira a conexão e tente novamente.");
             updateChrome(); // reabilita o botão conforme o passo atual
           });
       }

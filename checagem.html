@@ -185,7 +185,7 @@
 
       function avisoDemo() {
         if (!DEMO) return "";
-        return '<div class="chk-demo"><i class="ti ti-flask" aria-hidden="true"></i>modo demonstração - nada é gravado</div>';
+        return '<div class="chk-demo"><i class="ti ti-flask" aria-hidden="true"></i>modo demonstração - nada é salvo</div>';
       }
 
       function estadoCarregando(msg) {
@@ -641,7 +641,7 @@
             botoes +
           "</div>" +
           '<p class="chk-nota"><i class="ti ti-cloud-lock" aria-hidden="true"></i>' +
-            "Arquivos armazenados no bucket privado e sincronizados com o SharePoint da APSIS." +
+            "Os anexos ficam disponíveis para consulta a qualquer momento." +
           "</p></div>";
 
         document.getElementById("btn-voltar").addEventListener("click", renderLista);
@@ -657,7 +657,7 @@
               var host = document.getElementById("badge-aud");
               if (host) host.innerHTML = badgeAuditoria("validada");
               App.toast(DEMO
-                ? "Auditoria validada (demonstração - nada foi gravado)."
+                ? "Auditoria validada (modo demonstração - nada foi salvo)."
                 : "Auditoria validada com sucesso.");
             };
 
@@ -669,7 +669,7 @@
               .then(function (r) {
                 if (r.error) {
                   btnValidar.disabled = false;
-                  App.toast("Não foi possível validar: " + (r.error.message || "erro inesperado"));
+                  App.toast("Não foi possível validar a auditoria. Tente novamente.");
                   return;
                 }
                 aplicar();

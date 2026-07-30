@@ -113,7 +113,7 @@
 
   // ---------------------------------------------------------------- Login
   function entrarMicrosoft() {
-    if (!client) return Promise.reject(new Error("Supabase não configurado."));
+    if (!client) return Promise.reject(new Error("Login indisponível no momento."));
     return client.auth.signInWithOAuth({
       provider: "azure",
       options: {
@@ -124,7 +124,7 @@
   }
 
   function enviarCodigo(email) {
-    if (!client) return Promise.reject(new Error("Supabase não configurado."));
+    if (!client) return Promise.reject(new Error("Login indisponível no momento."));
     return client.auth.signInWithOtp({
       email: email,
       options: { shouldCreateUser: true }
@@ -132,7 +132,7 @@
   }
 
   function verificarCodigo(email, token) {
-    if (!client) return Promise.reject(new Error("Supabase não configurado."));
+    if (!client) return Promise.reject(new Error("Login indisponível no momento."));
     return client.auth.verifyOtp({ email: email, token: token, type: "email" });
   }
 

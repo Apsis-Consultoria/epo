@@ -147,9 +147,9 @@
       $("btn-ms").addEventListener("click", function () {
         if (!window.Auth || !Auth.pronto) { location.href = "index.html"; return; }
         Auth.entrarMicrosoft().then(function (r) {
-          if (r && r.error) msg("SSO Microsoft ainda não configurado no Supabase (App Registration pendente na TI).", true);
+          if (r && r.error) msg("O login com Microsoft ainda não está liberado. Use o código por e-mail.", true);
         }).catch(function () {
-          msg("SSO Microsoft ainda não configurado no Supabase (App Registration pendente na TI).", true);
+          msg("O login com Microsoft ainda não está liberado. Use o código por e-mail.", true);
         });
       });
 
@@ -165,7 +165,7 @@
         $("btn-enviar-codigo").disabled = true;
         Auth.enviarCodigo(email).then(function (r) {
           $("btn-enviar-codigo").disabled = false;
-          if (r.error) { msg(r.error.message || "Falha ao enviar o código.", true); return; }
+          if (r.error) { console.error("enviarCodigo", r.error); msg("Não foi possível enviar o código agora. Tente novamente em alguns minutos.", true); return; }
           $("cli-email-eco").textContent = email;
           $("etapa-email").classList.add("hidden");
           $("etapa-codigo").classList.remove("hidden");
