@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=11">
+  <link rel="stylesheet" href="assets/app.css?v=12">
   <style>
     /* Ajustes locais - tela do responsável da EPO */
 
@@ -162,8 +162,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=11"></script>
-  <script src="assets/app.js?v=11"></script>
+  <script src="assets/data.js?v=12"></script>
+  <script src="assets/app.js?v=12"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -420,7 +420,19 @@
           }
         }).then(function () {
           renderDetalhe();
+          if (enviados > 0) encaminharArquivos();
         });
+      }
+
+      // Encaminha os arquivos recem-enviados para a pasta oficial. Roda em
+      // segundo plano: nada na tela depende disso.
+      function encaminharArquivos() {
+        if (DEMO || !db || !db.functions || !atual) return;
+        db.functions.invoke("sincronizar-sharepoint", { body: { alocacao_id: atual.id } })
+          .then(function (r) {
+            if (r && r.error) console.warn("encaminhamento:", r.error.message || r.error);
+            else if (r && r.data && r.data.falhas && r.data.falhas.length) console.warn("encaminhamento:", r.data.falhas);
+          }, function (e) { console.warn("encaminhamento:", e); });
       }
 
       function removerAnexo(itemId, anexoId) {
