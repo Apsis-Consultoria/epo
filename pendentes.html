@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Relatórios pendentes - Auditoria de EPOs</title>
+  <title>Auditorias pendentes - Auditoria de EPOs</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=10">
+  <link rel="stylesheet" href="assets/app.css?v=11">
   <style>
-    /* Ajustes locais - tela de relatórios pendentes (escolher EPO e questionário) */
+    /* Ajustes locais - tela de auditorias pendentes (escolher EPO e questionário) */
 
     .is-hidden { display: none; }
 
@@ -125,8 +125,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=10"></script>
-  <script src="assets/app.js?v=10"></script>
+  <script src="assets/data.js?v=11"></script>
+  <script src="assets/app.js?v=11"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -134,7 +134,7 @@
     (function () {
       "use strict";
 
-      Layout.mount("pendentes", "Relatórios pendentes");
+      Layout.mount("pendentes", "Auditorias pendentes");
 
       var esc = App.escapeHtml;
       var page = document.getElementById("page");
@@ -147,6 +147,7 @@
       var linhas = [];          // linhas de vw_relatorios_pendentes
       var grupos = [];          // [{ id, nome, cidade, uf, relatorios, pendentes, concluidos, anexos }]
       var epoAberta = null;     // id da EPO aberta no nível 2
+      var epoParam = App.getParam("epo"); // chegou do detalhe da EPO
       var busca = "";
       var carregou = false;
       var erro = "";
@@ -680,6 +681,12 @@
         agrupar();
         carregou = true;
         erro = "";
+        // ?epo= abre direto as auditorias daquela EPO (vem do detalhe da EPO)
+        if (primeira && epoParam && !epoAberta) {
+          for (var i = 0; i < grupos.length; i++) {
+            if (String(grupos[i].id) === String(epoParam)) { mostrarNivel2(grupos[i].id); return; }
+          }
+        }
         renderAtual();
       }
 
@@ -690,7 +697,7 @@
           return Promise.resolve();
         }
         if (!db) {
-          erro = "Sessão indisponível. Entre novamente para ver os relatórios pendentes.";
+          erro = "Sessão indisponível. Entre novamente para ver as auditorias pendentes.";
           carregou = true;
           renderAtual();
           return Promise.resolve();
@@ -704,7 +711,7 @@
               carregou = true;
               if (!linhas.length) {
                 console.error("vw_relatorios_pendentes", r.error);
-                erro = "Não foi possível carregar os relatórios pendentes agora. Atualize a página para tentar de novo.";
+                erro = "Não foi possível carregar as auditorias pendentes agora. Atualize a página para tentar de novo.";
                 renderAtual();
               } else {
                 App.toast("Não foi possível atualizar a lista agora.");
@@ -716,7 +723,7 @@
           }, function () {
             carregou = true;
             if (!linhas.length) {
-              erro = "Não foi possível carregar os relatórios pendentes.";
+              erro = "Não foi possível carregar as auditorias pendentes.";
               renderAtual();
             }
           });

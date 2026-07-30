@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="assets/app.css?v=10">
+  <link rel="stylesheet" href="assets/app.css?v=11">
   <style>
     /* Ajustes locais desta tela (pequenos; reutiliza o design system) */
     .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-weight: 500; margin-bottom: 16px; transition: color .15s ease; }
@@ -77,8 +77,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=10"></script>
-  <script src="assets/app.js?v=10"></script>
+  <script src="assets/data.js?v=11"></script>
+  <script src="assets/app.js?v=11"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -130,7 +130,7 @@
         return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
       }
 
-      var novaAuditoriaHref = "auditoria.html?epo=" + encodeURIComponent(epo.id);
+      var novaAuditoriaHref = "pendentes.html?epo=" + encodeURIComponent(epo.id);
 
       // -------------------------------------------------- Cabeçalho (identidade + score)
       var headerHtml =
@@ -147,7 +147,7 @@
               "</div>" +
               '<div style="margin-top:8px;">' +
                 '<a class="btn btn-primary" href="' + novaAuditoriaHref + '">' +
-                  '<i class="ti ti-clipboard-plus" aria-hidden="true"></i>Nova auditoria para esta EPO' +
+                  '<i class="ti ti-clipboard-list" aria-hidden="true"></i>Auditorias pendentes desta EPO' +
                 "</a>" +
               "</div>" +
             "</div>" +

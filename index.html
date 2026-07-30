@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=10">
+  <link rel="stylesheet" href="assets/app.css?v=11">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
@@ -109,8 +109,8 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=10"></script>
-  <script src="assets/app.js?v=10"></script>
+  <script src="assets/data.js?v=11"></script>
+  <script src="assets/app.js?v=11"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -224,14 +224,9 @@
               '<span class="hero-acao-title">Visão geral da carteira</span>' +
               '<span class="hero-acao-desc">' + App.fmtNum(kpis.eposAuditadas) + ' EPOs auditadas para a Claro · ciclo médio de ' + App.fmtDias(kpis.tempoMedioCiclo) + ' da chegada à devolução.</span>' +
             '</div>' +
-            '<div class="hero-acao-btns">' +
-              '<a class="cta-nova-btn" href="pendentes.html">' +
-                '<i class="ti ti-clipboard-list" aria-hidden="true"></i>Relatórios pendentes' +
-              '</a>' +
-              '<a class="cta-nova-btn is-ghost" href="auditoria.html">' +
-                '<i class="ti ti-clipboard-check" aria-hidden="true"></i>Nova auditoria' +
-              '</a>' +
-            '</div>' +
+            '<a class="cta-nova-btn" href="pendentes.html">' +
+              '<i class="ti ti-clipboard-list" aria-hidden="true"></i>Auditorias pendentes' +
+            '</a>' +
           '</section>' +
 
           // (2) KPIs

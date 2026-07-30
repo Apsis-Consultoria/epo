@@ -10,37 +10,18 @@
   var DATA = window.APP || {};
 
   // -----------------------------------------------------------------------
-  // Navegação. "auditoria" tem submenu: um filho por processo + carregadores.
+  // Navegação. Não existe mais "abrir auditoria quando quiser": a auditoria
+  // sempre nasce de um pedido feito na criação da EPO e é preenchida a partir
+  // de "Auditorias pendentes". A contagem da reversa é a exceção: é operacional,
+  // feita pelo técnico no momento em que a devolução chega do campo.
   // -----------------------------------------------------------------------
-  var subAuditoria = (DATA.processos || []).map(function (p) {
-    return { key: p.id, label: p.nome, href: "auditoria.html?processo=" + p.id };
-  });
-  // Contagem da reversa: questionário preenchido pelo técnico no recebimento
-  // do retorno (percentual de acessórios devolvidos). Entra logo após "devolucao".
-  (function () {
-    var contagem = { key: "contagem-reversa", label: "Contagem da reversa", href: "auditoria.html?processo=contagem-reversa" };
-    var idx = -1;
-    for (var i = 0; i < subAuditoria.length; i++) {
-      if (subAuditoria[i].key === "devolucao") { idx = i; break; }
-    }
-    if (idx >= 0) subAuditoria.splice(idx + 1, 0, contagem);
-    else subAuditoria.push(contagem);
-  })();
-  if (DATA.checklistCarregadores) {
-    subAuditoria.push({
-      key: DATA.checklistCarregadores.id,
-      label: DATA.checklistCarregadores.nome,
-      href: "auditoria.html?processo=" + DATA.checklistCarregadores.id
-    });
-  }
-
   var NAV = [
     { key: "geral",       label: "Visão geral",      icon: "ti-layout-dashboard", href: "index.html" },
     { key: "ranking",     label: "Ranking",          icon: "ti-trophy",           href: "ranking.html" },
     { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },
-    { key: "pendentes",   label: "Relatórios pendentes", icon: "ti-clipboard-list", href: "pendentes.html" },
-    { key: "auditoria",   label: "Nova auditoria",   icon: "ti-clipboard-check",  href: "auditoria.html", children: subAuditoria },
+    { key: "pendentes",   label: "Auditorias pendentes", icon: "ti-clipboard-list", href: "pendentes.html" },
+    { key: "auditoria",   label: "Contagem da reversa", icon: "ti-clipboard-check", href: "auditoria.html?processo=contagem-reversa" },
     { key: "envio",       label: "Envio de comprovações", icon: "ti-cloud-upload", href: "envio.html" },
     { key: "checagem",    label: "Dupla checagem",   icon: "ti-zoom-check",       href: "checagem.html" },
     { key: "alocacoes",   label: "Alocações",        icon: "ti-user-plus",        href: "alocacoes.html" },
@@ -301,12 +282,12 @@
   }
 
   // Barra inferior (só mobile), no padrão do Gmail: dois atalhos fixos.
-  // 1) preencher relatório: "Relatórios pendentes" para a equipe APSIS ou
+  // 1) preencher: "Auditorias pendentes" para a equipe APSIS ou
   //    "Envio de comprovações" para o responsável da EPO (auth.js troca conforme
   //    a permissão do papel, mantendo sempre dois botões).
   // 2) montagem de estoque: contagem dos itens que chegam na EPO.
   var BOTTOM = [
-    { key: "pendentes", label: "Relatórios", icon: "ti-clipboard-list",  href: "pendentes.html" },
+    { key: "pendentes", label: "Auditorias", icon: "ti-clipboard-list",  href: "pendentes.html" },
     { key: "envio",     label: "Enviar",     icon: "ti-cloud-upload",    href: "envio.html", oculto: true },
     { key: "giro",      label: "Estoque",    icon: "ti-packages",        href: "contagem-giro.html" }
   ];
@@ -389,7 +370,7 @@
       });
     }
 
-    // Submenu (Nova auditoria): o clique no pai expande/recolhe, não navega.
+    // Submenu (se algum item ganhar filhos): o clique no pai expande, nao navega.
     if (sidebar) {
       sidebar.addEventListener("click", function (ev) {
         var parent = ev.target.closest(".nav-parent");

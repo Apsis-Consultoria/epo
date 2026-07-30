@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Nova auditoria - Auditoria de EPOs</title>
+  <title>Auditoria de EPOs</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=10">
+  <link rel="stylesheet" href="assets/app.css?v=11">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -335,8 +335,8 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=10"></script>
-  <script src="assets/app.js?v=10"></script>
+  <script src="assets/data.js?v=11"></script>
+  <script src="assets/app.js?v=11"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/auth.js"></script>
@@ -394,77 +394,26 @@
       // Quando a auditoria veio de um relatorio pedido, "voltar" é a lista de
       // relatorios pendentes; senao, é o seletor de processo desta tela.
       function urlSeletor() {
-        if (alocParam) return "pendentes.html";
-        return "auditoria.html" + (epoParam ? "?epo=" + encodeURIComponent(epoParam) : "");
+        return "pendentes.html";
       }
       function rotuloSeletor() {
-        return alocParam ? "Voltar aos relatórios pendentes" : "Escolher outro processo";
-      }
-      function urlProcesso(id) {
-        return "auditoria.html?processo=" + encodeURIComponent(id) +
-          (epoParam ? "&epo=" + encodeURIComponent(epoParam) : "");
+        return "Voltar às auditorias pendentes";
       }
 
       /* ====================================================================
-         MODO 1 - SELETOR DE PROCESSO (sem ?processo= na URL)
+         SEM ?processo= : nao existe mais abrir auditoria por conta propria.
+         A auditoria sempre nasce de um pedido feito na criacao da EPO, e o
+         caminho e a tela de auditorias pendentes.
          ==================================================================== */
       if (!processo) {
-        document.title = "Nova auditoria - Auditoria de EPOs";
-        headerEl.classList.add("is-intro");
-        footer.style.display = "none";
-
-        var epoSel = App.epoById(epoIdInicial);
-        var cards = processos.map(function (p) {
-          return (
-            '<button type="button" class="proc-card" data-proc="' + esc(p.id) + '">' +
-              '<span class="proc-card-icon"><i class="ti ' + esc(p.icone) + '" aria-hidden="true"></i></span>' +
-              '<span class="proc-card-info"><b>' + esc(p.nome) + "</b>" +
-                "<span>" + p.itens.length + " itens · peso " + p.peso + "%</span></span>" +
-              '<i class="ti ti-chevron-right proc-card-caret" aria-hidden="true"></i>' +
-            "</button>"
-          );
-        }).join("");
-
-        cards +=
-          '<button type="button" class="proc-card is-destaque" data-proc="' + esc(CONTAGEM.id) + '">' +
-            '<span class="proc-card-icon"><i class="ti ' + esc(CONTAGEM.icone) + '" aria-hidden="true"></i></span>' +
-            '<span class="proc-card-info"><b>' + esc(CONTAGEM.nome) + "</b>" +
-              "<span>" + esc(CONTAGEM.descricao) + "</span></span>" +
-            '<i class="ti ti-chevron-right proc-card-caret" aria-hidden="true"></i>' +
-          "</button>";
-
-        if (carregadores) {
-          cards +=
-            '<button type="button" class="proc-card is-destaque" data-proc="' + esc(carregadores.id) + '">' +
-              '<span class="proc-card-icon"><i class="ti ' + esc(carregadores.icone) + '" aria-hidden="true"></i></span>' +
-              '<span class="proc-card-info"><b>' + esc(carregadores.nome) + "</b>" +
-                "<span>" + carregadores.itens.length + " itens · checklist separado (Presente/Ausente)</span></span>" +
-              '<i class="ti ti-chevron-right proc-card-caret" aria-hidden="true"></i>' +
-            "</button>";
-        }
-
-        main.innerHTML =
-          '<div class="wiz-intro" style="padding-bottom:12px;">' +
-            '<div class="wiz-intro-icon"><i class="ti ti-clipboard-check" aria-hidden="true"></i></div>' +
-            '<h1 class="wiz-intro-title">Nova auditoria</h1>' +
-            '<p class="wiz-intro-sub">' +
-              (epoSel ? "<b>" + esc(epoSel.nome) + "</b> · " + esc(epoSel.cidade) + " - " + esc(epoSel.uf) + ". " : "") +
-              "Escolha o processo a auditar: cada um tem checklist próprio para medir seus maiores ofensores.</p>" +
-          "</div>" +
-          '<div class="proc-grid">' + cards + "</div>";
-
-        main.addEventListener("click", function (ev) {
-          var card = ev.target.closest(".proc-card");
-          if (!card) return;
-          window.location.href = urlProcesso(card.getAttribute("data-proc"));
-        });
-        return; // nada mais a fazer neste modo
+        window.location.replace("pendentes.html");
+        return;
       }
 
       /* ====================================================================
          MODO 2 - WIZARD DO PROCESSO ESCOLHIDO (?processo=ID)
          ==================================================================== */
-      document.title = processo.nome + " - Nova auditoria";
+      document.title = processo.nome + " - Auditoria de EPOs";
 
       // Tempos do ciclo: só nos processos onde a etapa acontece de fato.
       // Fluxo: chegada -> armazenagem -> distribuição -> retorno de campo -> devolução.
@@ -687,7 +636,7 @@
           return (
             '<div class="wiz-intro">' +
               '<div class="wiz-intro-icon"><i class="ti ' + esc(CONTAGEM.icone) + '" aria-hidden="true"></i></div>' +
-              '<p class="wiz-eyebrow">Nova auditoria' + (epo ? " · " + esc(epo.nome) : "") + "</p>" +
+              '<p class="wiz-eyebrow">Recebimento da devolução' + (epo ? " · " + esc(epo.nome) : "") + "</p>" +
               '<h1 class="wiz-intro-title">' + esc(CONTAGEM.nome) + "</h1>" +
               '<p class="wiz-intro-sub">Preencha na hora em que a devolução chega do campo: conte o que retornou e confira os acessórios. O sistema calcula o % de retorno na tela.</p>' +
               '<div class="wiz-intro-stats">' +
@@ -701,7 +650,6 @@
                 '<li><i class="ti ti-device-remote" aria-hidden="true"></i>Controles remotos recebidos - % de retorno vs meta</li>' +
                 '<li><i class="ti ti-checklist" aria-hidden="true"></i>Checagem dos acessórios (Sim/Não, sem evidência)</li>' +
               "</ul>" +
-              '<button type="button" class="wiz-skip" id="btn-trocar-proc">' + esc(rotuloSeletor()) + '</button>' +
             "</div>"
           );
         }
@@ -732,7 +680,7 @@
         return (
           '<div class="wiz-intro">' +
             '<div class="wiz-intro-icon"><i class="ti ' + esc(processo.icone) + '" aria-hidden="true"></i></div>' +
-            '<p class="wiz-eyebrow">Nova auditoria' + (epo ? " · " + esc(epo.nome) : "") + "</p>" +
+            '<p class="wiz-eyebrow">Auditoria' + (epo ? " · " + esc(epo.nome) : "") + "</p>" +
             '<h1 class="wiz-intro-title">' + esc(processo.nome) + "</h1>" +
             '<p class="wiz-intro-sub">' + esc(processo.descricao) + ".</p>" +
             '<div class="wiz-intro-stats">' + stats + "</div>" +
@@ -1459,9 +1407,13 @@
 
       function wireStep(step) {
         if (step.type === "intro") {
-          document.getElementById("btn-trocar-proc").addEventListener("click", function () {
-            window.location.href = urlSeletor();
-          });
+          // a contagem da reversa não vem de auditoria pedida: não tem o botão
+          var voltar = document.getElementById("btn-trocar-proc");
+          if (voltar) {
+            voltar.addEventListener("click", function () {
+              window.location.href = urlSeletor();
+            });
+          }
         } else if (step.type === "identificacao") {
           var epoSel = document.getElementById("f-epo");
           epoSel.addEventListener("change", function () {
@@ -1588,9 +1540,11 @@
 
         nextBtn.classList.toggle("is-submit", isLast);
         if (isIntro) {
-          nextBtn.innerHTML = 'Iniciar auditoria<i class="ti ti-arrow-right" aria-hidden="true"></i>';
+          nextBtn.innerHTML = (isContagem ? "Iniciar contagem" : "Iniciar auditoria") +
+            '<i class="ti ti-arrow-right" aria-hidden="true"></i>';
         } else if (isLast) {
-          nextBtn.innerHTML = 'Enviar auditoria<i class="ti ti-send" aria-hidden="true"></i>';
+          nextBtn.innerHTML = (isContagem ? "Enviar contagem" : "Enviar auditoria") +
+            '<i class="ti ti-send" aria-hidden="true"></i>';
         } else {
           nextBtn.innerHTML = 'Próxima<i class="ti ti-chevron-right" aria-hidden="true"></i>';
         }
@@ -1615,7 +1569,7 @@
                 '<span class="badge ' + (okC ? "badge-success" : "badge-danger") + '">Controles ' + fmtPctRev(rr.pctControles) + "</span>" +
               "</div>" +
               '<div class="wiz-done-actions">' +
-                '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>' + (alocParam ? "Outros relatórios pendentes" : "Auditar outro processo") + '</a>' +
+                '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Outras auditorias pendentes</a>' +
                 '<a class="wiz-btn wiz-btn-back" href="index.html"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
               "</div>" +
             "</div>";
@@ -1638,7 +1592,7 @@
               '<strong class="tnum">' + fmtScore01(r.score01) + " / 1,00</strong>" +
             "</div>" +
             '<div class="wiz-done-actions">' +
-              '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>' + (alocParam ? "Outros relatórios pendentes" : "Auditar outro processo") + '</a>' +
+              '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Outras auditorias pendentes</a>' +
               '<a class="wiz-btn wiz-btn-back" href="index.html"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
             "</div>" +
           "</div>";
