@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=16">
+  <link rel="stylesheet" href="assets/app.css?v=17">
 </head>
 <body>
   <div class="app-shell">
@@ -18,11 +18,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=16"></script>
-  <script src="assets/app.js?v=16"></script>
-  <script src="assets/supabase-config.js?v=16"></script>
+  <script src="assets/data.js?v=17"></script>
+  <script src="assets/app.js?v=17"></script>
+  <script src="assets/supabase-config.js?v=17"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=16"></script>
+  <script src="assets/auth.js?v=17"></script>
   <script>
     (function () {
       "use strict";
@@ -567,6 +567,67 @@
           btn.style.display = "";
         }
 
+        /* ------------------------------------------------------------------
+           Situação do envio automático, na própria tela.
+           Antes só dava para saber isso rodando um comando no console do
+           navegador, o que não é trabalho de ninguém aqui.
+           ------------------------------------------------------------------ */
+        function faixa(estado, texto) {
+          var cores = {
+            ok:     { fundo: "var(--success-bg)", cor: "var(--success)", icone: "ti-circle-check" },
+            aviso:  { fundo: "var(--warning-bg)", cor: "var(--warning)", icone: "ti-alert-triangle" },
+            neutro: { fundo: "var(--surface-2)",  cor: "var(--text-2)",  icone: "ti-loader-2" }
+          };
+          var c = cores[estado] || cores.neutro;
+          var el = document.getElementById("faixa-envio");
+          if (!el) {
+            el = document.createElement("div");
+            el.id = "faixa-envio";
+            el.style.cssText = "display:flex;align-items:flex-start;gap:8px;border-radius:var(--radius-sm);" +
+              "padding:10px 12px;margin-bottom:16px;font-size:13px;line-height:1.5;";
+            var alvo = document.getElementById("page");
+            alvo.insertBefore(el, alvo.firstChild);
+          }
+          el.style.background = c.fundo;
+          el.style.color = c.cor;
+          el.innerHTML = '<i class="ti ' + c.icone + '" aria-hidden="true" style="font-size:16px;flex:0 0 auto;margin-top:1px;"></i>' +
+            "<span>" + App.escapeHtml(texto) + "</span>";
+        }
+
+        function conferirEnvio(pendentes) {
+          faixa("neutro", "Verificando o envio automático dos documentos...");
+          return db.functions.invoke("sincronizar-sharepoint", { body: { teste: true } })
+            .then(function (r) {
+              var d = (r && r.data) || {};
+              if (r && r.error && !d.motivo) throw r.error;
+
+              if (d.ok) {
+                faixa("ok",
+                  "Envio automático funcionando. Os documentos vão para " +
+                  (d.pasta || "a pasta oficial") + "." +
+                  (pendentes ? " Há " + App.fmtNum(pendentes) + (pendentes === 1 ? " documento" : " documentos") + " esperando: use o botão acima." : "")
+                );
+                return;
+              }
+
+              var motivo = String(d.motivo || "");
+              console.warn("envio automático:", d);
+              if (d.configurado === false) {
+                faixa("aviso", "O envio automático ainda não foi concluído. Fale com a Gestão de TI para finalizar a configuração.");
+              } else if (/403|accessDenied|Access denied|unauthorized/i.test(motivo)) {
+                faixa("aviso", "Falta liberar a permissão de envio no Azure, com consentimento do administrador. " +
+                  "Enquanto isso, os documentos ficam guardados no sistema e ninguém perde nada.");
+              } else if (/biblioteca|nao encontrada|não encontrada/i.test(motivo)) {
+                faixa("aviso", "A pasta de destino não foi encontrada. Confirme o endereço da pasta com a Gestão de TI.");
+              } else {
+                faixa("aviso", "O envio automático não respondeu agora. Os documentos ficam guardados no sistema.");
+              }
+            }, function (e) {
+              console.warn("envio automático:", e);
+              faixa("aviso", "Não foi possível verificar o envio automático agora.");
+            });
+        }
+
         // só admin e gestor reenviam
         Auth.sessao().then(function (s) {
           if (!s) return null;
@@ -574,7 +635,10 @@
         }).then(function (r) {
           var papel = (r && r.data && r.data.papel) || "";
           if (papel !== "admin" && papel !== "gestor") return;
-          return contar().then(mostrar);
+          return contar().then(function (n) {
+            mostrar(n);
+            return conferirEnvio(n);
+          });
         }).catch(function (e) { console.warn("documentos parados:", e); });
 
         btn.addEventListener("click", function () {
