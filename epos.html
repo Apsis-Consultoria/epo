@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=25">
+  <link rel="stylesheet" href="assets/app.css?v=26">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -123,12 +123,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=25"></script>
-  <script src="assets/app.js?v=25"></script>
-  <script src="assets/geo-br.js?v=25"></script>
-  <script src="assets/supabase-config.js?v=25"></script>
+  <script src="assets/data.js?v=26"></script>
+  <script src="assets/app.js?v=26"></script>
+  <script src="assets/geo-br.js?v=26"></script>
+  <script src="assets/supabase-config.js?v=26"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=25"></script>
+  <script src="assets/auth.js?v=26"></script>
   <script>
     (function () {
       "use strict";
@@ -826,8 +826,11 @@
         return db.from("processos").select("id, nome, icone, ordem, tipo").eq("ativo", true).order("ordem")
           .then(function (r) {
             if (r.error) { console.error("carregarProcessos", r.error); processos = []; return; }
+            // O tipo no banco e 'processo' ou 'itens_obrigatorios'; nao existe
+            // "questionario". O filtro antigo procurava esse valor e por isso
+            // devolvia lista vazia, sem questionario nenhum para pedir.
             processos = (r.data || []).filter(function (p) {
-              return p.tipo === undefined || p.tipo === null || p.tipo === "questionario";
+              return p.tipo !== "arquivado";
             });
           })
           .then(function () {
