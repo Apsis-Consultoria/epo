@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=28">
+  <link rel="stylesheet" href="assets/app.css?v=29">
   <style>
     /* Ajustes locais - tela de auditorias pendentes (escolher EPO e questionário) */
 
@@ -107,6 +107,11 @@
     .pd-acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
     .pd-acoes .btn { text-decoration: none; }
 
+    /* ------ Nova auditoria (fora do que foi pedido) ------ */
+    .pd-modal-intro { font-size: 13px; color: var(--text-2); line-height: 1.5; margin: 0 0 16px; }
+    .pd-modal-nota { font-size: 12px; color: var(--text-muted); line-height: 1.45; margin: 6px 0 0; min-height: 17px; }
+    .pd-vazio-acao { margin-top: 14px; }
+
     @media (max-width: 700px) {
       .pd-grid { grid-template-columns: 1fr; }
       .pd-lados { grid-template-columns: 1fr; }
@@ -125,16 +130,21 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=28"></script>
-  <script src="assets/app.js?v=28"></script>
-  <script src="assets/supabase-config.js?v=28"></script>
+  <script src="assets/data.js?v=29"></script>
+  <script src="assets/app.js?v=29"></script>
+  <script src="assets/supabase-config.js?v=29"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=28"></script>
+  <script src="assets/auth.js?v=29"></script>
   <script>
     (function () {
       "use strict";
 
-      Layout.mount("pendentes", "Auditorias pendentes");
+      var acoesTopo =
+        '<button class="btn btn-primary btn-sm" id="pd-nova" type="button">' +
+          '<i class="ti ti-clipboard-plus" aria-hidden="true"></i>Nova auditoria' +
+        "</button>";
+
+      Layout.mount("pendentes", "Auditorias pendentes", acoesTopo);
 
       var esc = App.escapeHtml;
       var page = document.getElementById("page");
@@ -254,7 +264,41 @@
           "</button>" +
           '<div class="pd-head" id="pd-head"></div>' +
           '<div id="pd-rel"></div>' +
-        "</section>";
+        "</section>" +
+
+        // Auditoria fora do que foi pedido: escolhe a EPO, escolhe o
+        // questionário e segue. Serve para o que aparece em campo e não
+        // estava na lista.
+        '<div class="modal-overlay" id="pd-modal" role="dialog" aria-modal="true" aria-labelledby="pd-modal-t">' +
+          '<div class="modal">' +
+            '<div class="modal-header">' +
+              '<h2 class="modal-title" id="pd-modal-t">Nova auditoria</h2>' +
+              '<button class="modal-close" id="pd-modal-x" type="button" aria-label="Fechar">' +
+                '<i class="ti ti-x" aria-hidden="true"></i>' +
+              "</button>" +
+            "</div>" +
+            '<div class="modal-body">' +
+              '<p class="pd-modal-intro">' +
+                "Para auditar um questionário que não foi pedido na criação da EPO." +
+              "</p>" +
+              '<div class="field">' +
+                '<label for="pd-f-epo">EPO</label>' +
+                '<select class="select" id="pd-f-epo"><option value="">Carregando...</option></select>' +
+              "</div>" +
+              '<div class="field mb-0">' +
+                '<label for="pd-f-proc">Questionário</label>' +
+                '<select class="select" id="pd-f-proc"></select>' +
+                '<p class="pd-modal-nota" id="pd-modal-nota"></p>' +
+              "</div>" +
+            "</div>" +
+            '<div class="modal-footer">' +
+              '<button class="btn btn-ghost" id="pd-modal-cancel" type="button">Cancelar</button>' +
+              '<button class="btn btn-primary" id="pd-modal-ok" type="button">' +
+                '<i class="ti ti-device-mobile" aria-hidden="true"></i>Começar a auditoria' +
+              "</button>" +
+            "</div>" +
+          "</div>" +
+        "</div>";
 
       var elNivel1 = document.getElementById("pd-nivel1");
       var elNivel2 = document.getElementById("pd-nivel2");
@@ -377,8 +421,13 @@
               '<i class="ti ti-clipboard-off" aria-hidden="true"></i>' +
               "<div>Nenhum relatório pedido até agora.</div>" +
               '<div class="text-muted" style="font-size:12.5px;margin-top:6px;">' +
-                "O gestor precisa criar a EPO e escolher quais relatórios serão pedidos, com o responsável de cada um, " +
-                'na tela <a href="alocacoes.html">Alocações</a>.' +
+                "Os relatórios aparecem aqui quando o gestor cria a EPO e escolhe quais serão pedidos, " +
+                "com o responsável de cada um." +
+              "</div>" +
+              '<div class="pd-vazio-acao">' +
+                '<button class="btn btn-primary btn-sm" type="button" data-nova="1">' +
+                  '<i class="ti ti-clipboard-plus" aria-hidden="true"></i>Nova auditoria' +
+                "</button>" +
               "</div>" +
             "</div>";
           return;
@@ -480,7 +529,7 @@
         if (concluido(l)) {
           acoes =
             '<a class="btn btn-primary" href="checagem.html">' +
-              '<i class="ti ti-zoom-check" aria-hidden="true"></i>Ver na dupla checagem' +
+              '<i class="ti ti-zoom-check" aria-hidden="true"></i>Ver nas comprovações' +
             "</a>" +
             '<a class="btn btn-ghost" href="' + esc(linkPreencher(l)) + '">' +
               '<i class="ti ti-refresh" aria-hidden="true"></i>Preencher novamente' +
@@ -577,6 +626,129 @@
         if (epoAberta) renderNivel2();
         else renderNivel1();
       }
+
+      // ------------------------------------------------------------------
+      // Nova auditoria - questionário que não foi pedido na criação da EPO
+      //
+      // O consultor escolhe uma EPO já cadastrada e o questionário que vai
+      // aplicar. A lista de questionários é a do catálogo, e não a dos pedidos:
+      // é justamente o que ficou de fora que interessa aqui.
+      // ------------------------------------------------------------------
+      var eposParaNova = [];    // [{ id, nome, cidade, uf }]
+      var overlayNova = document.getElementById("pd-modal");
+      var selEpoNova = document.getElementById("pd-f-epo");
+      var selProcNova = document.getElementById("pd-f-proc");
+      var notaNova = document.getElementById("pd-modal-nota");
+
+      function catalogoQuestionarios() {
+        var lista = (window.APP.processos || []).map(function (p) {
+          return { id: p.id, nome: p.nome };
+        });
+        var c = window.APP.checklistCarregadores;
+        if (c) lista.push({ id: c.id, nome: c.nome });
+        return lista;
+      }
+
+      function eposDoBanco() {
+        if (DEMO || !db) {
+          return Promise.resolve((window.APP.epos || []).map(function (e) {
+            return { id: e.id, nome: e.nome, cidade: e.cidade, uf: e.uf };
+          }));
+        }
+        return db.from("epos").select("id, nome, cidade, uf").eq("ativo", true).order("nome")
+          .then(function (r) {
+            if (r.error) throw r.error;
+            return r.data || [];
+          });
+      }
+
+      // Já pedido para a EPO escolhida? O consultor precisa saber, para não
+      // abrir uma segunda auditoria do mesmo questionário sem querer.
+      function jaPedido(epoId, slug) {
+        for (var i = 0; i < linhas.length; i++) {
+          if (String(linhas[i].epo_id) === String(epoId) &&
+              String(linhas[i].processo_slug) === String(slug)) return linhas[i];
+        }
+        return null;
+      }
+
+      function pintarProcsNova() {
+        var epoId = selEpoNova.value;
+        selProcNova.innerHTML = catalogoQuestionarios().map(function (p) {
+          var pedido = jaPedido(epoId, p.id);
+          return '<option value="' + esc(p.id) + '">' + esc(p.nome) +
+            (pedido ? " (já pedido)" : "") + "</option>";
+        }).join("");
+        pintarNotaNova();
+      }
+
+      function pintarNotaNova() {
+        var pedido = jaPedido(selEpoNova.value, selProcNova.value);
+        if (!pedido) {
+          notaNova.textContent = "Este questionário não foi pedido para esta EPO.";
+          return;
+        }
+        notaNova.textContent = concluido(pedido)
+          ? "Este questionário já foi preenchido para esta EPO. Continuar abre um preenchimento novo."
+          : "Este questionário já está na lista desta EPO e pode ser preenchido por lá.";
+      }
+
+      function abrirNova() {
+        overlayNova.classList.add("is-open");
+        selEpoNova.innerHTML = '<option value="">Carregando...</option>';
+        selProcNova.innerHTML = "";
+        notaNova.textContent = "";
+        eposDoBanco().then(function (lista) {
+          eposParaNova = lista;
+          if (!lista.length) {
+            selEpoNova.innerHTML = '<option value="">Nenhuma EPO cadastrada</option>';
+            return;
+          }
+          selEpoNova.innerHTML = lista.map(function (e) {
+            var loc = local(e.cidade, e.uf);
+            return '<option value="' + esc(e.id) + '">' + esc(e.nome) +
+              (loc ? " - " + esc(loc) : "") + "</option>";
+          }).join("");
+          if (epoAberta) selEpoNova.value = epoAberta;
+          pintarProcsNova();
+        }, function () {
+          selEpoNova.innerHTML = '<option value="">Não foi possível carregar as EPOs</option>';
+        });
+      }
+
+      function fecharNova() { overlayNova.classList.remove("is-open"); }
+
+      document.getElementById("pd-nova").addEventListener("click", abrirNova);
+      document.getElementById("pd-modal-x").addEventListener("click", fecharNova);
+      document.getElementById("pd-modal-cancel").addEventListener("click", fecharNova);
+      overlayNova.addEventListener("click", function (ev) {
+        if (ev.target === overlayNova) fecharNova();
+      });
+      document.addEventListener("keydown", function (ev) {
+        if (ev.key === "Escape") fecharNova();
+      });
+      selEpoNova.addEventListener("change", pintarProcsNova);
+      selProcNova.addEventListener("change", pintarNotaNova);
+
+      document.getElementById("pd-modal-ok").addEventListener("click", function () {
+        var epoId = selEpoNova.value;
+        var slug = selProcNova.value;
+        if (!epoId) { App.toast("Escolha a EPO da auditoria."); return; }
+        if (!slug) { App.toast("Escolha o questionário da auditoria."); return; }
+
+        // Se o questionário já está pedido e ainda não foi concluído, o caminho
+        // certo é o relatório que já existe: ele carrega os anexos da EPO.
+        var pedido = jaPedido(epoId, slug);
+        if (pedido && !concluido(pedido)) {
+          fecharNova();
+          window.location.href = linkPreencher(pedido);
+          return;
+        }
+
+        fecharNova();
+        window.location.href = "auditoria.html?processo=" + encodeURIComponent(slug) +
+          "&epo=" + encodeURIComponent(epoId);
+      });
 
       // ------------------------------------------------------------------
       // Dados - modo demonstração (mock coerente, nada é gravado)
@@ -763,6 +935,7 @@
       });
 
       elEpos.addEventListener("click", function (ev) {
+        if (ev.target.closest("[data-nova]")) { abrirNova(); return; }
         var btn = ev.target.closest("[data-epo]");
         if (!btn) return;
         mostrarNivel2(btn.getAttribute("data-epo"));

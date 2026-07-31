@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=28">
+  <link rel="stylesheet" href="assets/app.css?v=29">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -335,11 +335,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=28"></script>
-  <script src="assets/app.js?v=28"></script>
-  <script src="assets/supabase-config.js?v=28"></script>
+  <script src="assets/data.js?v=29"></script>
+  <script src="assets/app.js?v=29"></script>
+  <script src="assets/supabase-config.js?v=29"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=28"></script>
+  <script src="assets/auth.js?v=29"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -353,7 +353,7 @@
       // vive aqui, junto do wizard que o consome.
       var CONTAGEM = {
         id: "contagem-reversa",
-        nome: "Contagem Reversa",
+        nome: "Contagem Logística Reversa",
         icone: "ti-clipboard-list",
         descricao: "Recebimento da devolução - contagem de equipamentos e acessórios",
         meta: 75, // % mínimo de retorno de fontes e controles (metaFontes/metaControles)
@@ -1262,6 +1262,9 @@
           { val: "ausente", icon: "ti-x", label: "Ausente" }
         ];
 
+        // A justificativa só faz sentido quando o item não retornou. O campo de
+        // anexo, não: toda pergunta aceita foto ou arquivo, do mesmo jeito que
+        // o responsável da EPO vê do lado dele.
         var blocoAusente = "";
         if (isAusente) {
           blocoAusente =
@@ -1271,8 +1274,7 @@
             '<div class="wiz-field">' +
               '<label for="f-just">Justificativa da ausência (obrigatória)</label>' +
               '<textarea id="f-just" placeholder="Explique por que o item não retornou com o equipamento">' + esc(r.just) + "</textarea>" +
-            "</div>" +
-            anexoHtml(r);
+            "</div>";
         }
 
         return (
@@ -1287,7 +1289,8 @@
               return '<button type="button" class="wiz-opt' + sel + '" data-val="' + o.val + '"><i class="ti ' + o.icon + '" aria-hidden="true"></i>' + o.label + "</button>";
             }).join("") +
           "</div>" +
-          blocoAusente
+          blocoAusente +
+          anexoHtml(r)
         );
       }
 
@@ -1358,7 +1361,7 @@
           "</div>" +
           extra +
           '<p class="hint-static" style="text-align:center;margin-bottom:16px;">' + r.answered + " de " + totalItens + " itens deste processo avaliados. " +
-            "Ao enviar, as respostas e os anexos seguem para a dupla checagem da equipe APSIS." + "</p>" +
+            "Ao enviar, as respostas e os anexos seguem para a conferência da equipe APSIS." + "</p>" +
           '<button type="button" class="wiz-btn wiz-btn-back" style="width:100%;flex:1 1 auto;margin-bottom:8px;" id="btn-rascunho"><i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar rascunho</button>'
         );
       }
@@ -1586,7 +1589,7 @@
             '<div class="wiz-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></div>' +
             '<h1 class="wiz-done-title">Auditoria enviada</h1>' +
             '<p class="wiz-done-sub">Checklist de <b>' + esc(processo.nome) + "</b> concluído com sucesso. " +
-              "Enviada para dupla checagem: a equipe APSIS vai comparar suas respostas e evidências com as do responsável da EPO." + "</p>" +
+              "Enviada para conferência: a equipe APSIS vai comparar suas respostas e evidências com as do responsável da EPO." + "</p>" +
             '<div class="wiz-done-score">' +
               (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : "") +
               '<strong class="tnum">' + fmtScore01(r.score01) + " / 1,00</strong>" +

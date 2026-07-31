@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=28">
+  <link rel="stylesheet" href="assets/app.css?v=29">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -109,6 +109,8 @@
     .nota-modal i { font-size: 15px; margin-top: 1px; color: var(--apsis-green); flex: none; }
 
     .acoes-cel { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    .btn-apagar { color: var(--danger); }
+    .btn-apagar:hover { background: var(--danger-bg); }
 
     .pend-cel { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
     .pend-cel b { color: var(--text); font-variant-numeric: tabular-nums; }
@@ -123,12 +125,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=28"></script>
-  <script src="assets/app.js?v=28"></script>
-  <script src="assets/geo-br.js?v=28"></script>
-  <script src="assets/supabase-config.js?v=28"></script>
+  <script src="assets/data.js?v=29"></script>
+  <script src="assets/app.js?v=29"></script>
+  <script src="assets/geo-br.js?v=29"></script>
+  <script src="assets/supabase-config.js?v=29"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=28"></script>
+  <script src="assets/auth.js?v=29"></script>
   <script>
     (function () {
       "use strict";
@@ -150,6 +152,9 @@
 
       var epos = [];          // cadastro completo
       var processos = [];     // questionários pedíveis
+      // Excluir EPO é da coordenação. Quem não tem esse alcance não vê o botão,
+      // em vez de clicar e nada acontecer.
+      var podeApagar = DEMO;
       var pedidos = [];       // relatórios já pedidos { epoId, procId, email, status }
       var editandoId = null;  // null = criando
       var demoSeq = 0;
@@ -500,6 +505,10 @@
                   : "") +
                 '<button class="btn btn-ghost btn-sm" type="button" data-editar="' + esc(e.id) + '">' +
                 '<i class="ti ti-pencil" aria-hidden="true"></i>Editar</button>' +
+                (podeApagar
+                  ? '<button class="btn btn-ghost btn-sm btn-apagar" type="button" data-apagar="' + esc(e.id) + '" ' +
+                    'title="Excluir a EPO"><i class="ti ti-trash" aria-hidden="true"></i>Excluir</button>'
+                  : "") +
               "</span>" +
             "</td>" +
           "</tr>";
@@ -527,6 +536,13 @@
           return;
         }
 
+        // Excluir a EPO
+        var del = ev.target.closest("[data-apagar]");
+        if (del) {
+          apagarEpo(del.getAttribute("data-apagar"), del);
+          return;
+        }
+
         var b = ev.target.closest("[data-editar]");
         if (!b) return;
         var id = b.getAttribute("data-editar");
@@ -540,6 +556,118 @@
         abrirModal();
         document.getElementById("f-nome").focus();
       });
+
+      // ------------------------------------------------------------------
+      // Excluir
+      //
+      // EPO recém-cadastrada sai da lista de vez. EPO que já tem auditoria
+      // registrada não: a nota dela sustenta ranking, mapa e comparativo, e
+      // apagar isso não tem volta. Nesse caso a saída é desativar, que tira a
+      // EPO da operação sem apagar o que foi auditado.
+      // ------------------------------------------------------------------
+      // O nome cadastrado quase sempre ja comeca com "EPO": sem isso a tela
+      // escreve "EPO EPO Aurora".
+      function rotuloEpo(nome) {
+        var n = String(nome == null ? "" : nome).trim();
+        return /^epo\b/i.test(n) ? n : "EPO " + n;
+      }
+
+      function epoPorId(id) {
+        for (var i = 0; i < epos.length; i++) {
+          if (String(epos[i].id) === String(id)) return epos[i];
+        }
+        return null;
+      }
+
+      function vinculosDaEpo(epoId) {
+        if (DEMO) {
+          var meus = pedidos.filter(function (a) { return String(a.epoId) === String(epoId); });
+          return Promise.resolve({ pedidos: meus.length, auditorias: 0, contagens: 0 });
+        }
+        var db = Auth.cliente;
+        function quantos(tabela) {
+          return db.from(tabela).select("id", { count: "exact", head: true }).eq("epo_id", epoId)
+            .then(function (r) { return r && r.count ? r.count : 0; }, function () { return 0; });
+        }
+        return Promise.all([quantos("alocacoes"), quantos("auditorias"), quantos("contagens_giro")])
+          .then(function (n) { return { pedidos: n[0], auditorias: n[1], contagens: n[2] }; });
+      }
+
+      function desativarEpo(epo, btn) {
+        if (DEMO) {
+          epo.ativo = false;
+          renderLista();
+          App.toast(rotuloEpo(epo.nome) + " desativada.");
+          return Promise.resolve();
+        }
+        return Auth.cliente.from("epos").update({ ativo: false }).eq("id", epo.id)
+          .then(function (r) {
+            if (r.error) throw r.error;
+            App.toast(rotuloEpo(epo.nome) + " desativada.");
+            return carregar();
+          })
+          .catch(function (e) {
+            console.error("desativarEpo", e);
+            App.toast("Não foi possível desativar a EPO agora. Tente novamente.");
+          })
+          .then(function () { if (btn) btn.disabled = false; });
+      }
+
+      function apagarEpo(id, btn) {
+        var epo = epoPorId(id);
+        if (!epo) return;
+        btn.disabled = true;
+
+        vinculosDaEpo(epo.id).then(function (v) {
+          if (v.auditorias || v.contagens) {
+            var trava = "A " + rotuloEpo(epo.nome) + " já tem histórico registrado" +
+              (v.auditorias ? " (" + v.auditorias + (v.auditorias === 1 ? " auditoria" : " auditorias") + ")" : "") +
+              (v.contagens ? (v.auditorias ? " e" : "") + " " + v.contagens + (v.contagens === 1 ? " contagem de estoque" : " contagens de estoque") : "") +
+              ". Excluir apagaria a nota dela do ranking, do mapa e do comparativo, e isso não tem volta.\n\n" +
+              "Deseja desativar a EPO? Ela sai da operação e o histórico continua.";
+            if (!window.confirm(trava)) { btn.disabled = false; return; }
+            return desativarEpo(epo, btn);
+          }
+
+          var aviso = "Excluir a " + rotuloEpo(epo.nome) + "?";
+          if (v.pedidos) {
+            aviso += "\n\n" + v.pedidos + (v.pedidos === 1 ? " questionário pedido" : " questionários pedidos") +
+              " e os documentos anexados nele" + (v.pedidos === 1 ? "" : "s") + " também saem da lista.";
+          }
+          aviso += "\n\nEssa ação não tem volta.";
+          if (!window.confirm(aviso)) { btn.disabled = false; return; }
+
+          if (DEMO) {
+            epos = epos.filter(function (e) { return String(e.id) !== String(epo.id); });
+            pedidos = pedidos.filter(function (a) { return String(a.epoId) !== String(epo.id); });
+            renderLista();
+            App.toast(rotuloEpo(epo.nome) + " excluída.");
+            return;
+          }
+
+          var db = Auth.cliente;
+          // Os pedidos saem primeiro: os anexos vão com eles.
+          return db.from("alocacoes").delete().eq("epo_id", epo.id)
+            .then(function () { return db.from("epos").delete().eq("id", epo.id).select("id"); })
+            .then(function (r) {
+              if (r.error) throw r.error;
+              // Sem linha devolvida, a EPO continua lá: o acesso de quem clicou
+              // não alcança exclusão. Dizer "excluída" aqui seria mentira.
+              if (!r.data || !r.data.length) {
+                btn.disabled = false;
+                App.toast("Seu acesso não permite excluir EPOs. Fale com a coordenação da APSIS.");
+                return carregar();
+              }
+              App.toast(rotuloEpo(epo.nome) + " excluída.");
+              return carregar();
+            })
+            .catch(function (e) {
+              console.error("apagarEpo", e);
+              btn.disabled = false;
+              App.toast("Não foi possível excluir a EPO agora. Tente novamente.");
+            });
+        });
+      }
 
       // ------------------------------------------------------------------
       // Convite do responsável
@@ -734,21 +862,21 @@
             fecharModal();
             terminar();
             var rDemo = resumoPedido(resDemo, dados.email);
-            App.toast("EPO " + dados.nome + (anterior ? " atualizada" : " cadastrada") + (rDemo ? " - " + rDemo : "") + ".");
+            App.toast(rotuloEpo(dados.nome) + (anterior ? " atualizada" : " cadastrada") + (rDemo ? " - " + rDemo : "") + ".");
             return;
           }
 
           function depoisDaEpo(epoId) {
             if (!dados.procIds.length) {
               fecharModal();
-              App.toast("EPO " + dados.nome + (editandoId ? " atualizada." : " cadastrada."));
+              App.toast(rotuloEpo(dados.nome) + (editandoId ? " atualizada." : " cadastrada."));
               return carregar();
             }
             return criarPedidos(epoId, dados.procIds, dados.email, dados.visita, dados.obs)
               .then(function (res) {
                 fecharModal();
                 var resumo = resumoPedido(res, dados.email);
-                App.toast("EPO " + dados.nome + (editandoId ? " atualizada" : " cadastrada") + (resumo ? " - " + resumo : "") + ".");
+                App.toast(rotuloEpo(dados.nome) + (editandoId ? " atualizada" : " cadastrada") + (resumo ? " - " + resumo : "") + ".");
                 return convidarSeNecessario(res, dados.email).then(carregar);
               });
           }
@@ -822,15 +950,27 @@
       function carregar() {
         if (DEMO) return carregarDemo();
 
+        if (window.Auth && Auth.perfil) {
+          Auth.perfil().then(function (p) {
+            var pode = !!p && (p.papel === "admin" || p.papel === "gestor");
+            if (pode !== podeApagar) { podeApagar = pode; renderLista(); }
+          });
+        }
+
         var db = Auth.cliente;
-        return db.from("processos").select("id, nome, icone, ordem, tipo").eq("ativo", true).order("ordem")
+        return db.from("processos").select("id, slug, nome, icone, ordem, tipo").eq("ativo", true).order("ordem")
           .then(function (r) {
             if (r.error) { console.error("carregarProcessos", r.error); processos = []; return; }
             // O tipo no banco e 'processo' ou 'itens_obrigatorios'; nao existe
             // "questionario". O filtro antigo procurava esse valor e por isso
             // devolvia lista vazia, sem questionario nenhum para pedir.
+            //
+            // Só entra na lista o questionário que o auditor consegue abrir de
+            // fato. Versões antigas do catálogo ficaram no banco com o mesmo
+            // nome das atuais; pedir uma delas gerava um relatório que o
+            // consultor da APSIS não conseguia preencher.
             processos = (r.data || []).filter(function (p) {
-              return p.tipo !== "arquivado";
+              return p.tipo !== "arquivado" && !!App.processoById(p.slug);
             });
           })
           .then(function () {

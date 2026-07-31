@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=28">
+  <link rel="stylesheet" href="assets/app.css?v=29">
 
   <style>
     /* Ajustes locais desta tela (componentes não previstos no design system). */
@@ -20,6 +20,23 @@
       background: transparent;
     }
     .num-input { width: 76px; text-align: center; }
+
+    /* Subtópicos de Configurações (telas de bastidor) */
+    .cfg-sub { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .cfg-sub-card {
+      display: flex; align-items: flex-start; gap: 12px;
+      border: 1.5px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); padding: 14px; text-decoration: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .cfg-sub-card:hover { border-color: var(--apsis-green); box-shadow: var(--shadow-md); }
+    .cfg-sub-ico {
+      width: 40px; height: 40px; flex: 0 0 40px; border-radius: 11px;
+      background: var(--primary-tint); color: var(--apsis-green);
+      display: grid; place-items: center; font-size: 21px;
+    }
+    .cfg-sub-card .nm { display: block; font-size: 14.5px; font-weight: 600; color: var(--text); }
+    .cfg-sub-card .ds { display: block; font-size: 12.5px; color: var(--text-2); margin-top: 2px; line-height: 1.45; }
 
     /* Faixa visual dos tiers (0-100) */
     .tier-band {
@@ -88,11 +105,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=28"></script>
-  <script src="assets/app.js?v=28"></script>
-  <script src="assets/supabase-config.js?v=28"></script>
+  <script src="assets/data.js?v=29"></script>
+  <script src="assets/app.js?v=29"></script>
+  <script src="assets/supabase-config.js?v=29"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=28"></script>
+  <script src="assets/auth.js?v=29"></script>
   <script>
     (function () {
       "use strict";
@@ -105,7 +122,7 @@
           '<i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar configuração' +
         '</button>';
 
-      Layout.mount("config", "Configurações de pontuação", actions);
+      Layout.mount("config", "Configurações", actions);
 
       var CHECKLIST = window.APP.checklist || [];
       var EPOS = (window.APP.epos || []).slice().sort(function (a, b) { return b.score - a.score; });
@@ -127,9 +144,40 @@
       // ------------------------------------------------------------- Markup
       var page = document.getElementById("page");
 
+      // Subtópicos: telas de bastidor que ficam guardadas aqui.
+      var SUBTOPICOS = [
+        { href: "alocacoes.html", icone: "ti-user-plus", nome: "Alocações",
+          desc: "Quem responde por cada questionário de cada EPO." },
+        { href: "acessos.html", icone: "ti-lock-access", nome: "Gerenciamento de acessos",
+          desc: "Quem entra no sistema e o que cada pessoa pode ver." },
+        { href: "evidencias.html", icone: "ti-camera", nome: "Evidências",
+          desc: "Fotos e documentos enviados nas auditorias." }
+      ];
+
       page.innerHTML =
         '<p class="page-intro">Defina como as EPOs são pontuadas e classificadas. Ajuste os cortes dos tiers e o ' +
         'peso de cada processo; a prévia recalcula a classificação em tempo real.</p>' +
+
+        // Seção 0 - Subtópicos
+        '<section class="card stack-md" style="margin-bottom:20px">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Gestão do sistema</span>' +
+              '<span class="subtitle">Alocações, acessos e evidências das auditorias.</span>' +
+            "</div>" +
+          "</div>" +
+          '<div class="cfg-sub">' +
+            SUBTOPICOS.map(function (s) {
+              return '<a class="cfg-sub-card" href="' + s.href + '">' +
+                '<span class="cfg-sub-ico"><i class="ti ' + s.icone + '" aria-hidden="true"></i></span>' +
+                "<span>" +
+                  '<span class="nm">' + s.nome + "</span>" +
+                  '<span class="ds">' + s.desc + "</span>" +
+                "</span>" +
+              "</a>";
+            }).join("") +
+          "</div>" +
+        "</section>" +
 
         // Seção 1 - Cortes dos tiers
         '<section class="card stack-lg" style="margin-bottom:20px">' +

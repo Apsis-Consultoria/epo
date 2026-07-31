@@ -22,14 +22,18 @@
     { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },
     { key: "pendentes",   label: "Auditorias pendentes", icon: "ti-clipboard-list", href: "pendentes.html" },
-    { key: "auditoria",   label: "Contagem Reversa", icon: "ti-clipboard-check", href: "auditoria.html?processo=contagem-reversa" },
+    { key: "auditoria",   label: "Contagem Logística Reversa", icon: "ti-clipboard-check", href: "auditoria.html?processo=contagem-reversa" },
     { key: "envio",       label: "Envio de comprovações", icon: "ti-cloud-upload", href: "envio.html" },
-    { key: "checagem",    label: "Dupla checagem",   icon: "ti-zoom-check",       href: "checagem.html" },
-    { key: "alocacoes",   label: "Alocações",        icon: "ti-user-plus",        href: "alocacoes.html" },
+    { key: "checagem",    label: "Comprovações",     icon: "ti-zoom-check",       href: "checagem.html" },
     { key: "giro",        label: "Montagem de estoque", icon: "ti-packages",      href: "contagem-giro.html" },
-    { key: "evidencias",  label: "Evidências",       icon: "ti-camera",           href: "evidencias.html" },
-    { key: "acessos",     label: "Gerenciamento de acessos", icon: "ti-lock-access", href: "acessos.html" },
-    { key: "config",      label: "Configurações",    icon: "ti-settings",         href: "configuracoes.html" }
+    // Alocações, acessos e evidências são bastidores: quem opera o dia a dia
+    // não passa por eles. Ficam como subtópicos de Configurações.
+    { key: "config",      label: "Configurações",    icon: "ti-settings",         href: "configuracoes.html",
+      children: [
+        { key: "alocacoes",  label: "Alocações",                href: "alocacoes.html" },
+        { key: "acessos",    label: "Gerenciamento de acessos", href: "acessos.html" },
+        { key: "evidencias", label: "Evidências",               href: "evidencias.html" }
+      ] }
   ];
 
   // -----------------------------------------------------------------------
@@ -235,25 +239,28 @@
     var items = NAV.map(function (n) {
       var isActive = n.key === activeKey;
 
+      // Seção com subtópicos: o pai continua sendo um link (a tela dele existe)
+      // e os filhos aparecem quando a seção está em uso.
       if (n.children && n.children.length) {
-        var expanded = isActive; // expande quando a seção está ativa
+        var filhoAtivo = false;
         var kids = n.children.map(function (c) {
-          var childActive = processoAtivo === c.key ? " active" : "";
-          var ariaCur = processoAtivo === c.key ? ' aria-current="page"' : "";
+          var cAtivo = c.key === activeKey || (processoAtivo && processoAtivo === c.key);
+          if (cAtivo) filhoAtivo = true;
           return (
-            '<a class="nav-sub-item' + childActive + '" href="' + c.href + '"' + ariaCur + ">" +
+            '<a class="nav-sub-item' + (cAtivo ? " active" : "") + '" href="' + c.href + '"' +
+              (cAtivo ? ' aria-current="page"' : "") + ">" +
             '<span class="nav-sub-label">' + escapeHtml(c.label) + "</span>" +
             "</a>"
           );
         }).join("");
+        var aberto = isActive || filhoAtivo;
         return (
-          '<button class="nav-item nav-parent' + (isActive ? " active" : "") + '" type="button" ' +
-            'data-subnav="' + n.key + '" aria-expanded="' + (expanded ? "true" : "false") + '">' +
+          '<a class="nav-item' + (isActive || filhoAtivo ? " active" : "") + '" href="' + n.href + '"' +
+            (isActive ? ' aria-current="page"' : "") + ">" +
             '<i class="ti ' + n.icon + '" aria-hidden="true"></i>' +
             '<span class="nav-label">' + n.label + "</span>" +
-            '<i class="ti ti-chevron-down nav-caret" aria-hidden="true"></i>' +
-          "</button>" +
-          '<div class="nav-sub' + (expanded ? " is-open" : "") + '" data-subnav-panel="' + n.key + '">' + kids + "</div>"
+          "</a>" +
+          '<div class="nav-sub' + (aberto ? " is-open" : "") + '" data-subnav-panel="' + n.key + '">' + kids + "</div>"
         );
       }
 

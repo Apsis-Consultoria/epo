@@ -43,16 +43,20 @@
     return "login.html";
   }
 
-  // Esconde itens do menu sem permissão para o papel
-  function filtrarNav(perms) {
+  // Esconde itens do menu sem permissão para o papel. `papel` também tira do
+  // menu as telas que o papel alcança por link, mas não navega pelo menu.
+  function filtrarNav(perms, papel) {
     if (!perms) return;
+    var ocultos = ((window.APP && window.APP.menuOculto) || {})[papel] || [];
     Object.keys(MAPA_PAGINAS).forEach(function (arq) {
       var key = MAPA_PAGINAS[arq];
-      if (perms[key] === false) {
+      if (perms[key] === false || ocultos.indexOf(key) >= 0) {
         document.querySelectorAll('.nav a[href="' + arq + '"], .nav a[href^="' + arq + '?"]').forEach(function (el) { el.style.display = "none"; });
-        if (key === "auditoria") {
-          document.querySelectorAll('.nav-parent[data-subnav="auditoria"], .nav-sub[data-subnav-panel="auditoria"]').forEach(function (el) { el.style.display = "none"; });
-        }
+        // Seção com subtópicos (ex.: Configurações): o pai e o painel dos
+        // filhos saem junto com o item.
+        document.querySelectorAll(
+          '.nav-parent[data-subnav="' + key + '"], .nav-sub[data-subnav-panel="' + key + '"]'
+        ).forEach(function (el) { el.style.display = "none"; });
       }
     });
     filtrarBarraInferior(perms);
@@ -344,7 +348,7 @@
         email: "",
         papel: papelT
       });
-      if (permsT) filtrarNav(permsT);
+      if (permsT) filtrarNav(permsT, papelT);
       return Promise.resolve("demo");
     }
     if (!client) {
@@ -382,7 +386,7 @@
           simulado: simulado,
           podeSimular: podeSimular
         });
-        filtrarNav(perms);
+        filtrarNav(perms, simulado || p.papel);
         return simulado ? "ver-como" : "ok";
       });
     });

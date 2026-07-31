@@ -983,9 +983,9 @@
     { key: "comparativo", label: "Comparativo",              icone: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial",         icone: "ti-report-analytics", href: "gerencial.html" },
     { key: "pendentes",   label: "Auditorias pendentes",     icone: "ti-clipboard-list",   href: "pendentes.html" },
-    { key: "auditoria",   label: "Contagem Reversa",      icone: "ti-clipboard-check",  href: "auditoria.html?processo=contagem-reversa" },
+    { key: "auditoria",   label: "Contagem Logística Reversa", icone: "ti-clipboard-check",  href: "auditoria.html?processo=contagem-reversa" },
     { key: "envio",       label: "Envio de comprovações",    icone: "ti-cloud-upload",     href: "envio.html" },
-    { key: "checagem",    label: "Dupla checagem",           icone: "ti-zoom-check",       href: "checagem.html" },
+    { key: "checagem",    label: "Comprovações",             icone: "ti-zoom-check",       href: "checagem.html" },
     { key: "alocacoes",   label: "Alocações",                icone: "ti-user-plus",        href: "alocacoes.html" },
     { key: "giro",        label: "Montagem de estoque",      icone: "ti-packages",         href: "contagem-giro.html" },
     { key: "evidencias",  label: "Evidências",               icone: "ti-camera",           href: "evidencias.html" },
@@ -1002,10 +1002,21 @@
   // que preenche; o responsavel da EPO ve o que envia.
   // O recorte dos DADOS continua sendo por papel no banco: o gerente da Claro
   // enxerga apenas as EPOs do cliente dele, e isso nao depende desta tabela.
+  // Coordenação APSIS e gerência da Claro veem o sistema inteiro.
   var visaoCoordenacao = {
     epos: true,  geral: true,  ranking: true,  comparativo: true,  gerencial: true,
     pendentes: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,
     giro: true,  evidencias: true,  config: true,  acessos: true
+  };
+
+  // Tela que o papel alcança, mas que não aparece no menu dele. Para quem
+  // coordena, a tela de Comprovações já mostra os dois lados (o que a EPO
+  // mandou e o que a APSIS vistoriou); os anexos de um questionário se abrem
+  // a partir de lá, e não por uma segunda entrada no menu.
+  var menuOculto = {
+    admin:   ["envio"],
+    gestor:  ["envio"],
+    cliente: ["envio"]
   };
 
   var papeisPreset = {
@@ -1179,6 +1190,7 @@
     evidencias: evidencias,
     paginas: paginas,
     papeisPreset: papeisPreset,
+    menuOculto: menuOculto,
     usuarios: usuarios,
     anexosRecebidos: anexosRecebidos
   };

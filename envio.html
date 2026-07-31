@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=28">
+  <link rel="stylesheet" href="assets/app.css?v=29">
   <style>
     /* Ajustes locais - tela do responsável da EPO */
 
@@ -174,11 +174,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=28"></script>
-  <script src="assets/app.js?v=28"></script>
-  <script src="assets/supabase-config.js?v=28"></script>
+  <script src="assets/data.js?v=29"></script>
+  <script src="assets/app.js?v=29"></script>
+  <script src="assets/supabase-config.js?v=29"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=28"></script>
+  <script src="assets/auth.js?v=29"></script>
   <script>
     (function () {
       "use strict";
@@ -330,7 +330,22 @@
               });
             }
             renderLista();
+            abrirDoLink();
           });
+      }
+
+      // ?alocacao= abre direto o questionário: vem da tela de comprovações.
+      var alocParam = App.getParam("alocacao");
+      function abrirDoLink() {
+        if (!alocParam) return;
+        for (var i = 0; i < alocacoes.length; i++) {
+          if (String(alocacoes[i].id) === String(alocParam)) {
+            alocParam = null;
+            carregarDetalhe(alocacoes[i]);
+            return;
+          }
+        }
+        alocParam = null;
       }
 
       function carregarDetalhe(aloc) {
@@ -816,7 +831,7 @@
             "<h2>Comprovações enviadas!</h2>" +
             "<p><b>" + esc(proc.nome || "Questionário") + "</b> da " + esc(epo.nome || "EPO") +
               " foi enviado com " + totalAnexos() + (totalAnexos() === 1 ? " anexo" : " anexos") +
-              ". A equipe APSIS vai comparar as comprovações com a vistoria em campo na dupla checagem." +
+              ". A equipe APSIS vai comparar as comprovações com a vistoria feita em campo." +
               " Se aparecer mais algum documento, você pode complementar este envio quando quiser." +
             "</p>" +
             '<div class="row wrap" style="gap:10px;justify-content:center;">' +
