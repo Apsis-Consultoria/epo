@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=37">
+  <link rel="stylesheet" href="assets/app.css?v=38">
   <style>
     /* Ajustes locais - tela de auditorias pendentes (escolher EPO e questionário) */
 
@@ -128,11 +128,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=37"></script>
-  <script src="assets/app.js?v=37"></script>
-  <script src="assets/supabase-config.js?v=37"></script>
+  <script src="assets/data.js?v=38"></script>
+  <script src="assets/app.js?v=38"></script>
+  <script src="assets/supabase-config.js?v=38"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=37"></script>
+  <script src="assets/auth.js?v=38"></script>
   <script>
     (function () {
       "use strict";
@@ -603,9 +603,11 @@
       // para a edicao da EPO em vez de abrir um caminho paralelo aqui.
       // ------------------------------------------------------------------
       function irParaCadastroDaEpo() {
-        window.location.href = epoAberta
-          ? "epos.html?editar=" + encodeURIComponent(epoAberta)
-          : "epos.html";
+        // Abre a edicao da EPO no modo "nova auditoria": a unidade vem de lista
+        // suspensa e os questionarios sao marcados ali mesmo.
+        var url = "epos.html?auditoria=1";
+        if (epoAberta) url += "&epo=" + encodeURIComponent(epoAberta);
+        window.location.href = url;
       }
 
       document.getElementById("pd-nova").addEventListener("click", irParaCadastroDaEpo);

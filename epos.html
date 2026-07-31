@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=37">
+  <link rel="stylesheet" href="assets/app.css?v=38">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -108,6 +108,7 @@
     }
     .nota-modal i { font-size: 15px; margin-top: 1px; color: var(--apsis-green); flex: none; }
 
+    .is-hidden { display: none !important; }
     .acoes-cel { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
     .btn-apagar { color: var(--danger); }
     .btn-apagar:hover { background: var(--danger-bg); }
@@ -125,12 +126,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=37"></script>
-  <script src="assets/app.js?v=37"></script>
-  <script src="assets/geo-br.js?v=37"></script>
-  <script src="assets/supabase-config.js?v=37"></script>
+  <script src="assets/data.js?v=38"></script>
+  <script src="assets/app.js?v=38"></script>
+  <script src="assets/geo-br.js?v=38"></script>
+  <script src="assets/supabase-config.js?v=38"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=37"></script>
+  <script src="assets/auth.js?v=38"></script>
   <script>
     (function () {
       "use strict";
@@ -157,6 +158,9 @@
       var podeApagar = DEMO;
       var pedidos = [];       // relatórios já pedidos { epoId, procId, email, status }
       var editandoId = null;  // null = criando
+      // Aberto por "Nova auditoria": a EPO vem de lista suspensa e o objetivo
+      // e marcar questionario, nao cadastrar unidade.
+      var modoAuditoria = false;
       var demoSeq = 0;
 
       // ------------------------------------------------------------------
@@ -207,6 +211,13 @@
                 // ---------------- coluna 1: cadastro ----------------
                 '<div class="modal-col">' +
                   '<p class="col-titulo"><i class="ti ti-building-warehouse" aria-hidden="true"></i>Dados da EPO</p>' +
+                  // Aberto por "Nova auditoria": a EPO vem de uma lista, e os
+                  // dados dela preenchem o formulário ao escolher.
+                  '<div class="field is-hidden" id="f-escolha-wrap">' +
+                    '<label for="f-escolha">EPO</label>' +
+                    '<select class="select" id="f-escolha"></select>' +
+                    '<span class="hint">Escolha a unidade para ver os dados e marcar os questionários.</span>' +
+                  "</div>" +
                   '<div class="field">' +
                     '<label for="f-nome">Nome da EPO</label>' +
                     '<input class="input" id="f-nome" type="text" placeholder="Ex.: EPO Horizonte" autocomplete="off">' +
@@ -394,7 +405,14 @@
         document.getElementById("f-uf").value = (epo && epo.uf) || "SP";
         document.getElementById("f-cep").value = (epo && epo.cep) || "";
         document.getElementById("f-ativo").value = (epo && epo.ativo === false) ? "0" : "1";
-        document.getElementById("epo-modal-title").textContent = epo ? "Editar unidade" : "Nova unidade";
+        document.getElementById("epo-modal-title").textContent = modoAuditoria
+          ? "Nova auditoria"
+          : (epo ? "Editar unidade" : "Nova unidade");
+        var btnSalvar = document.getElementById("epo-modal-save");
+        if (btnSalvar) {
+          btnSalvar.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>' +
+            (modoAuditoria ? "Pedir questionários" : "Salvar EPO");
+        }
 
         // e-mail já usado nos pedidos desta EPO vem preenchido
         var emailAtual = "";
@@ -413,6 +431,7 @@
 
       document.getElementById("btn-nova-epo").addEventListener("click", function () {
         editandoId = null;
+        mostrarEscolha(false);
         preencherForm(null);
         abrirModal();
         document.getElementById("f-nome").focus();
@@ -515,14 +534,65 @@
         }).join("");
       }
 
-      // ?editar=<id> abre direto a edicao daquela EPO. Vem de "Nova auditoria":
-      // e aqui que se marca o questionario que vira o relatorio pedido.
+      // Dois jeitos de cair na edicao por link:
+      //   ?editar=<id>   -> abre aquela EPO, como se tivesse clicado em Editar
+      //   ?auditoria=1   -> abre no modo "nova auditoria": a EPO vem de uma
+      //                     lista suspensa e o formulario se preenche ao
+      //                     escolher, para marcar os questionarios ali mesmo.
       var editarParam = App.getParam("editar");
+      var auditoriaParam = App.getParam("auditoria") === "1";
+      var epoParam = App.getParam("epo");
+      var escolhaWrap = document.getElementById("f-escolha-wrap");
+      var escolhaSel = document.getElementById("f-escolha");
+
+      function mostrarEscolha(ligado) {
+        modoAuditoria = !!ligado;
+        if (!escolhaWrap) return;
+        if (ligado) escolhaWrap.classList.remove("is-hidden");
+        else escolhaWrap.classList.add("is-hidden");
+      }
+
+      function pintarEscolha(selecionada) {
+        if (!escolhaSel) return;
+        var ativas = epos.filter(function (e) { return e.ativo !== false; });
+        escolhaSel.innerHTML =
+          '<option value="">Selecione a EPO...</option>' +
+          ativas.map(function (e) {
+            var loc = [e.cidade, e.uf].filter(Boolean).join("/");
+            return '<option value="' + esc(e.id) + '"' +
+              (String(e.id) === String(selecionada) ? " selected" : "") + ">" +
+              esc(e.nome) + (loc ? " - " + esc(loc) : "") + "</option>";
+          }).join("");
+      }
+
+      function carregarNoForm(id) {
+        var epo = epoPorId(id);
+        editandoId = epo ? epo.id : null;
+        preencherForm(epo);
+        mostrarEscolha(true);
+        pintarEscolha(editandoId);
+      }
+
+      if (escolhaSel) {
+        escolhaSel.addEventListener("change", function () {
+          carregarNoForm(this.value);
+        });
+      }
+
       function abrirEdicaoDoLink() {
+        if (auditoriaParam) {
+          auditoriaParam = false;
+          modoAuditoria = true;
+          carregarNoForm(epoParam && epoPorId(epoParam) ? epoParam : "");
+          abrirModal();
+          escolhaSel.focus();
+          return;
+        }
         if (!editarParam) return;
         var epo = epoPorId(editarParam);
         editarParam = null;
         if (!epo) return;
+        mostrarEscolha(false);
         editandoId = epo.id;
         preencherForm(epo);
         abrirModal();
@@ -567,6 +637,7 @@
         }
         if (!epo) return;
         editandoId = epo.id;
+        mostrarEscolha(false);
         preencherForm(epo);
         abrirModal();
         document.getElementById("f-nome").focus();
