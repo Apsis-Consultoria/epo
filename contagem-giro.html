@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=24">
+  <link rel="stylesheet" href="assets/app.css?v=25">
   <style>
     /* ==========================================================================
        Montagem de estoque (contagem de giro) - questionario de tela cheia,
@@ -295,6 +295,43 @@
     }
     .nota-soma i { font-size: 15px; color: var(--apsis-green); flex: 0 0 auto; margin-top: 1px; }
 
+    /* Levantamento por planilha: baixar o modelo e subir o preenchido */
+    .plan-box {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface-2); padding: 14px; margin-bottom: 18px;
+    }
+    .plan-titulo {
+      display: flex; align-items: center; gap: 8px;
+      margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--text);
+    }
+    .plan-titulo i { font-size: 18px; color: var(--apsis-green); }
+    .plan-sub { margin: 0 0 12px; font-size: 12.5px; color: var(--text-2); line-height: 1.5; }
+    .plan-acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+    .plan-btn {
+      flex: 1 1 150px; min-height: 46px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      border-radius: var(--radius-sm); border: 1.5px solid var(--border-strong);
+      background: var(--surface); color: var(--text);
+      font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    }
+    .plan-btn i { font-size: 17px; }
+    .plan-btn:active { background: var(--surface-2); }
+    .plan-btn.is-forte { border-color: var(--apsis-green); background: var(--apsis-green); color: #fff; }
+    .plan-btn:disabled { opacity: .6; cursor: default; }
+
+    .plan-resultado { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+    .plan-linha { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--text-2); }
+    .plan-linha b { color: var(--text); }
+    .plan-arquivo { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .plan-arquivo i { font-size: 16px; color: var(--apsis-green); }
+    .plan-erros { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+    .plan-erros li {
+      font-size: 12px; color: var(--warning); background: var(--warning-bg);
+      border-radius: var(--radius-sm); padding: 6px 9px; line-height: 1.4;
+    }
+    .plan-erros li b { color: var(--warning); }
+    .plan-confirma { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+
     /* Dica exibida quando a busca está vazia (tela limpa) */
     .busca-dica {
       display: flex; align-items: center; gap: 8px;
@@ -378,12 +415,13 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=24"></script>
-  <script src="assets/app.js?v=24"></script>
+  <script src="assets/data.js?v=25"></script>
+  <script src="assets/app.js?v=25"></script>
   <script src="assets/catalogo-giro.js"></script>
-  <script src="assets/supabase-config.js?v=24"></script>
+  <script src="assets/estoque-planilha.js?v=25"></script>
+  <script src="assets/supabase-config.js?v=25"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=24"></script>
+  <script src="assets/auth.js?v=25"></script>
   <script>
     (function () {
       "use strict";
@@ -427,6 +465,16 @@
         data: hojeIso(),
         obs: "",
         itens: []            // { cod, tec, tipo, cat, giro, qtd }
+      };
+
+      // Planilha do levantamento: o arquivo fica em memoria ate a pessoa
+      // confirmar o que foi reconhecido, e sobe junto com a contagem.
+      var planilha = {
+        lendo: false,
+        arquivo: null,      // File, guardado para subir com a contagem
+        nome: "",
+        resultado: null,    // { itens, erros, resumo } aguardando confirmacao
+        aplicada: false
       };
 
       var epos = [];           // { id, nome, cidade, uf }
@@ -629,6 +677,7 @@
           '<p class="wiz-eyebrow">Montagem de estoque · Itens</p>' +
           '<p class="wiz-subeyebrow">' + (e ? esc(e.nome) + " · " + esc(e.cidade || "-") + " - " + esc(e.uf || "-") : "EPO não selecionada") + "</p>" +
           '<h1 class="wiz-question">Quais itens chegaram e em qual quantidade?</h1>' +
+          renderPlanilha() +
           '<div class="giro-sticky" id="giro-resumo"></div>' +
           '<div class="busca-wrap">' +
             '<i class="ti ti-search busca-icone" aria-hidden="true"></i>' +
@@ -640,7 +689,7 @@
             "</button>" +
           "</div>" +
           '<div class="busca-meta">' +
-            '<span id="giro-busca-info">Sugestões de alto giro</span>' +
+            '<span id="giro-busca-info"></span>' +
             "<span>" + App.fmtNum(CATALOGO.length) + " itens no catálogo</span>" +
           "</div>" +
           '<div id="giro-selecionado"></div>' +
@@ -648,6 +697,157 @@
           '<h2 class="giro-h2">Itens na contagem</h2>' +
           '<div id="giro-lista"></div>'
         );
+      }
+
+      // ------------------------------------------------ Levantamento por planilha
+      function renderPlanilha() {
+        var r = planilha.resultado;
+        var res = r ? r.resumo : null;
+
+        var corpo = "";
+        if (planilha.lendo) {
+          corpo = '<p class="plan-sub" style="margin:12px 0 0;">Lendo a planilha...</p>';
+        } else if (r) {
+          var erros = r.erros.slice(0, 8).map(function (e) {
+            return "<li>Linha <b>" + e.linha + "</b>" +
+              (e.codigo ? " (código " + esc(e.codigo) + ")" : "") + ": " + esc(e.motivo) + "</li>";
+          }).join("");
+          if (r.erros.length > 8) {
+            erros += "<li>e mais " + (r.erros.length - 8) + " linha(s) com problema</li>";
+          }
+          corpo =
+            '<div class="plan-resultado">' +
+              '<p class="plan-arquivo"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i>' +
+                esc(planilha.nome) + "</p>" +
+              '<p class="plan-linha">' +
+                "<span><b>" + App.fmtNum(res.reconhecidos) + "</b> itens reconhecidos</span>" +
+                "<span><b>" + App.fmtNum(res.total) + "</b> unidades</span>" +
+                "<span><b>" + App.fmtNum(res.alto) + "</b> de alto giro</span>" +
+                (res.repetidosSomados ? "<span>" + res.repetidosSomados + " repetido(s) somado(s)</span>" : "") +
+              "</p>" +
+              (erros ? '<ul class="plan-erros">' + erros + "</ul>" : "") +
+              '<div class="plan-confirma">' +
+                '<button type="button" class="plan-btn is-forte" id="plan-aplicar"' +
+                  (res.reconhecidos ? "" : " disabled") + ">" +
+                  '<i class="ti ti-check" aria-hidden="true"></i>Somar à contagem' +
+                "</button>" +
+                '<button type="button" class="plan-btn" id="plan-descartar">' +
+                  '<i class="ti ti-x" aria-hidden="true"></i>Descartar' +
+                "</button>" +
+              "</div>" +
+            "</div>";
+        } else if (planilha.aplicada) {
+          corpo =
+            '<div class="plan-resultado">' +
+              '<p class="plan-arquivo"><i class="ti ti-circle-check" aria-hidden="true"></i>' +
+                esc(planilha.nome) + "</p>" +
+              '<p class="plan-linha"><span>Planilha aplicada. Ela vai junto com a contagem.</span></p>' +
+            "</div>";
+        }
+
+        return (
+          '<div class="plan-box">' +
+            '<p class="plan-titulo"><i class="ti ti-table-import" aria-hidden="true"></i>' +
+              "Levantamento por planilha</p>" +
+            '<p class="plan-sub">Para contar o estoque inteiro, preencha o modelo e anexe aqui. ' +
+              "Item avulso você continua achando na busca abaixo.</p>" +
+            '<div class="plan-acoes">' +
+              '<button type="button" class="plan-btn" id="plan-modelo">' +
+                '<i class="ti ti-download" aria-hidden="true"></i>Baixar modelo' +
+              "</button>" +
+              '<button type="button" class="plan-btn" id="plan-anexar"' + (planilha.lendo ? " disabled" : "") + ">" +
+                '<i class="ti ti-paperclip" aria-hidden="true"></i>Anexar planilha' +
+              "</button>" +
+            "</div>" +
+            '<input type="file" id="plan-arquivo" accept=".xlsx,.xls,.csv" style="display:none;">' +
+            corpo +
+          "</div>"
+        );
+      }
+
+      function wirePlanilha() {
+        var btnModelo = document.getElementById("plan-modelo");
+        var btnAnexar = document.getElementById("plan-anexar");
+        var input = document.getElementById("plan-arquivo");
+        if (!btnModelo || !btnAnexar || !input) return;
+
+        btnModelo.addEventListener("click", function () {
+          var e = epoAtual();
+          btnModelo.disabled = true;
+          Planilha.baixarModelo(e ? e.nome : "").then(function () {
+            btnModelo.disabled = false;
+            App.toast("Modelo baixado. Preencha e anexe aqui.");
+          }, function (err) {
+            btnModelo.disabled = false;
+            console.error("modelo", err);
+            App.toast("Não foi possível gerar o modelo agora. Tente novamente.");
+          });
+        });
+
+        btnAnexar.addEventListener("click", function () { input.click(); });
+
+        input.addEventListener("change", function () {
+          var arq = input.files && input.files[0];
+          input.value = "";
+          if (!arq) return;
+          planilha.lendo = true;
+          planilha.resultado = null;
+          renderStep();
+
+          Planilha.ler(arq).then(function (r) {
+            planilha.lendo = false;
+            planilha.arquivo = arq;
+            planilha.nome = arq.name;
+            planilha.resultado = r;
+            planilha.aplicada = false;
+            renderStep();
+            if (!r.itens.length) {
+              App.toast("Nenhuma linha reconhecida. Confira as colunas Código SAP e Quantidade.");
+            }
+          }, function (err) {
+            planilha.lendo = false;
+            renderStep();
+            console.error("planilha", err);
+            App.toast((err && err.message) ? err.message : "Não foi possível ler a planilha.");
+          });
+        });
+
+        var aplicar = document.getElementById("plan-aplicar");
+        if (aplicar) {
+          aplicar.addEventListener("click", function () {
+            var r = planilha.resultado;
+            if (!r) return;
+            r.itens.forEach(function (it) { somarItem(it, it.qtd); });
+            planilha.resultado = null;
+            planilha.aplicada = true;
+            renderStep();
+            App.toast(App.fmtNum(r.resumo.total) + " unidades somadas à contagem.");
+          });
+        }
+
+        var descartar = document.getElementById("plan-descartar");
+        if (descartar) {
+          descartar.addEventListener("click", function () {
+            planilha.resultado = null;
+            planilha.arquivo = null;
+            planilha.nome = "";
+            renderStep();
+          });
+        }
+      }
+
+      // Soma no que ja esta na contagem, sem duplicar linha do mesmo codigo
+      function somarItem(item, qtd) {
+        for (var i = 0; i < state.itens.length; i++) {
+          if (String(state.itens[i].cod) === String(item.cod)) {
+            state.itens[i].qtd = limitarQtd(state.itens[i].qtd + qtd);
+            return;
+          }
+        }
+        state.itens.push({
+          cod: item.cod, tec: item.tec, tipo: item.tipo,
+          cat: item.cat, giro: item.giro, qtd: limitarQtd(qtd)
+        });
       }
 
       function renderBarraResumo() {
@@ -1023,6 +1223,7 @@
       }
 
       function wireStep(step) {
+        if (step.type === "itens") wirePlanilha();
         if (step.type === "identificacao") {
           var epoSel = document.getElementById("f-epo");
           epoSel.addEventListener("change", function () {
@@ -1191,18 +1392,60 @@
         });
       }
 
+      // Nome de arquivo aceito pelo armazenamento
+      function nomeSeguro(nome) {
+        return String(nome || "levantamento.xlsx")
+          .normalize("NFD").replace(/[̀-ͯ]/g, "")
+          .replace(/[^a-zA-Z0-9._-]+/g, "-")
+          .replace(/^-+|-+$/g, "") || "levantamento.xlsx";
+      }
+
+      // Sobe a planilha e devolve o caminho. Se falhar, a contagem segue: o
+      // levantamento nao pode ser perdido por causa do anexo.
+      function subirPlanilha(contagemId) {
+        if (!planilha.arquivo) return Promise.resolve(null);
+        var caminho = "contagens/" + contagemId + "/" + Date.now() + "-" + nomeSeguro(planilha.nome);
+        return db.storage.from("evidencias").upload(caminho, planilha.arquivo)
+          .then(function (up) {
+            if (up.error) throw new Error(up.error.message);
+            return db.from("contagens_giro").update({
+              arquivo_path: caminho,
+              arquivo_nome: planilha.nome
+            }).eq("id", contagemId).then(function () { return caminho; });
+          })
+          .catch(function (err) {
+            console.warn("planilha nao anexada:", err);
+            return null;
+          });
+      }
+
+      // Encaminha a planilha para a pasta oficial, em segundo plano
+      function encaminharPlanilha(contagemId) {
+        if (!db.functions) return;
+        db.functions.invoke("sincronizar-sharepoint", { body: { contagem_id: contagemId } })
+          .then(function (r) {
+            if (r && r.error) console.warn("encaminhamento:", r.error.message || r.error);
+          }, function (e) { console.warn("encaminhamento:", e); });
+      }
+
       function enviarReal(sess) {
         mostrarEnvio(true);
         var row = cabecalhoRow("enviada");
         row.usuario_id = sess.user.id;
+        var contagemId = null;
 
         db.from("contagens_giro").insert(row).select("id").single()
           .then(function (r) {
             if (r.error) throw r.error;
-            return db.from("contagem_giro_itens").insert(linhasItens(r.data.id));
+            contagemId = r.data.id;
+            return db.from("contagem_giro_itens").insert(linhasItens(contagemId));
           })
           .then(function (r) {
             if (r && r.error) throw r.error;
+            return subirPlanilha(contagemId);
+          })
+          .then(function (caminho) {
+            if (caminho) encaminharPlanilha(contagemId);
             mostrarEnvio(false);
             showDone(true);
           })

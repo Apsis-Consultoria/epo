@@ -7,10 +7,12 @@
 //
 // Estrutura na pasta de destino:
 //   <pasta configurada> / <nome da EPO> / <nome do questionario> / arquivo
+//   <pasta configurada> / <nome da EPO> / Estoque / planilha.xlsx
 //
 // Chamada pelo proprio app, com o JWT de quem esta logado:
 //   { alocacao_id }   -> comprovacoes enviadas pelo responsavel da EPO
 //   { auditoria_id }  -> evidencias da vistoria da APSIS
+//   { contagem_id }   -> planilha do levantamento de estoque
 //   { tudo: true }    -> reenvia tudo que ficou para tras (admin/gestor)
 //   { teste: true }   -> so confere credenciais e destino, sem subir nada
 // Nos dois primeiros casos quem chama precisa poder ver aquela alocacao ou
@@ -317,7 +319,7 @@ async function enviarArquivo(token: string, driveId: string, pastaId: string, no
 
 // ------------------------------------------------------------------ arquivos
 type Pendente = {
-  tabela: "alocacao_anexos" | "evidencias";
+  tabela: "alocacao_anexos" | "evidencias" | "contagens_giro";
   id: string;
   storage_path: string;
   nome: string;
@@ -399,6 +401,36 @@ async function listarEvidencias(admin: Cliente, auditoriaId: string) {
   return lista;
 }
 
+async function listarPlanilhas(admin: Cliente, contagemId: string) {
+  // A planilha do levantamento de estoque nao pertence a um questionario: vai
+  // para a pasta Estoque da EPO, e cada envio fica guardado la.
+  const base = admin
+    .from("contagens_giro")
+    .select("id, arquivo_path, arquivo_nome, criado_em, epos(nome)")
+    .not("arquivo_path", "is", null)
+    .in("sharepoint_status", PENDENTES);
+  const filtrado = contagemId ? base.eq("id", contagemId) : base;
+
+  const { data, error } = await filtrado.order("criado_em", { ascending: true }).limit(LOTE);
+  if (error) throw new Error("falha ao listar as planilhas: " + error.message);
+
+  const lista: Pendente[] = [];
+  for (const l of (data || []) as Record<string, any>[]) {
+    lista.push({
+      tabela: "contagens_giro",
+      id: l.id,
+      storage_path: l.arquivo_path,
+      nome: l.arquivo_nome || "levantamento.xlsx",
+      tipo: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      criado_em: l.criado_em,
+      epo: (l.epos && l.epos.nome) || "EPO",
+      processo: "Estoque",
+      origem: "Levantamento de estoque"
+    });
+  }
+  return lista;
+}
+
 // ------------------------------------------------------------------ handler
 // Qualquer excecao daqui para baixo virava 502 sem mensagem, o pior cenario
 // para descobrir o que aconteceu. O tratar() abaixo fica dentro de um try.
@@ -430,6 +462,7 @@ async function tratar(req: Request) {
   try { corpo = await req.json(); } catch (_e) { corpo = {}; }
   const alocacaoId = String(corpo.alocacao_id || "").trim();
   const auditoriaId = String(corpo.auditoria_id || "").trim();
+  const contagemId = String(corpo.contagem_id || "").trim();
   const teste = corpo.teste === true;
   const tudo = corpo.tudo === true;
 
@@ -492,30 +525,31 @@ async function tratar(req: Request) {
     }
   }
 
-  if (!alocacaoId && !auditoriaId && !tudo) {
-    return json({ ok: false, motivo: "informe alocacao_id, auditoria_id ou tudo" }, 400);
+  if (!alocacaoId && !auditoriaId && !contagemId && !tudo) {
+    return json({ ok: false, motivo: "informe alocacao_id, auditoria_id, contagem_id ou tudo" }, 400);
   }
 
   // quem chama tem que poder ver o registro (o papel de admin/gestor para
   // 'tudo' ja foi conferido acima)
   if (!tudo) {
-    if (alocacaoId) {
-      const { data } = await comoUsuario.from("alocacoes").select("id").eq("id", alocacaoId).maybeSingle();
-      if (!data) return json({ ok: false, motivo: "sem acesso a este registro" }, 403);
-    } else {
-      const { data } = await comoUsuario.from("auditorias").select("id").eq("id", auditoriaId).maybeSingle();
-      if (!data) return json({ ok: false, motivo: "sem acesso a este registro" }, 403);
-    }
+    const tabela = alocacaoId ? "alocacoes" : (auditoriaId ? "auditorias" : "contagens_giro");
+    const alvo = alocacaoId || auditoriaId || contagemId;
+    const { data } = await comoUsuario.from(tabela).select("id").eq("id", alvo).maybeSingle();
+    if (!data) return json({ ok: false, motivo: "sem acesso a este registro" }, 403);
   }
 
   let pendentes: Pendente[] = [];
   try {
     if (tudo) {
-      pendentes = (await listarAnexos(admin, "")).concat(await listarEvidencias(admin, ""));
+      pendentes = (await listarAnexos(admin, ""))
+        .concat(await listarEvidencias(admin, ""))
+        .concat(await listarPlanilhas(admin, ""));
     } else if (alocacaoId) {
       pendentes = await listarAnexos(admin, alocacaoId);
-    } else {
+    } else if (auditoriaId) {
       pendentes = await listarEvidencias(admin, auditoriaId);
+    } else {
+      pendentes = await listarPlanilhas(admin, contagemId);
     }
   } catch (e) {
     return json({ ok: false, motivo: String((e as Error).message || e) });
