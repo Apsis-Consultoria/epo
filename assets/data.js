@@ -997,11 +997,22 @@
   // Presets de permissão por papel (usados como sugestão na tela de acessos).
   // -----------------------------------------------------------------------
   // "A princípio": responsável só envia comprovações; auditor APSIS só vê os questionários.
+  // Tres visoes, nao cinco. Quem coordena (admin e gestor da APSIS, gerente da
+  // Claro) ve o sistema inteiro e da no mesmo lugar; o consultor em campo ve o
+  // que preenche; o responsavel da EPO ve o que envia.
+  // O recorte dos DADOS continua sendo por papel no banco: o gerente da Claro
+  // enxerga apenas as EPOs do cliente dele, e isso nao depende desta tabela.
+  var visaoCoordenacao = {
+    epos: true,  geral: true,  ranking: true,  comparativo: true,  gerencial: true,
+    pendentes: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,
+    giro: true,  evidencias: true,  config: true,  acessos: true
+  };
+
   var papeisPreset = {
-    admin:       { epos: true,  geral: true,  ranking: true,  comparativo: true,  gerencial: true,  pendentes: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,  giro: true,  evidencias: true,  config: true,  acessos: true  },
-    gestor:      { epos: true,  geral: true,  ranking: true,  comparativo: true,  gerencial: true,  pendentes: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,  giro: true,  evidencias: true,  config: true,  acessos: false },
+    admin:       visaoCoordenacao,
+    gestor:      visaoCoordenacao,
+    cliente:     visaoCoordenacao,
     auditor:     { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: true,  auditoria: true,  envio: false, checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false },
-    cliente:     { epos: true,  geral: true,  ranking: true,  comparativo: true,  gerencial: true,  pendentes: true,  auditoria: false, envio: false, checagem: false, alocacoes: true,  giro: true,  evidencias: false, config: false, acessos: false },
     responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false }
   };
 

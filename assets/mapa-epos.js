@@ -16,7 +16,8 @@
 (function () {
   "use strict";
 
-  var PAPEIS_QUE_VEEM = ["cliente", "admin"];
+  // Mapa e visao de coordenacao: admin e gestor da APSIS e gerente da Claro.
+  var PAPEIS_QUE_VEEM = ["admin", "gestor", "cliente"];
 
   var SELOS = {
     ouro:    { label: "Ouro",         img: "assets/medalhas/ouro.png",   cor: "#C08A2B" },

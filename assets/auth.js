@@ -103,10 +103,12 @@
   // na do consultor, tudo no mesmo banco.
   var PAPEIS_QUE_SIMULAM = ["admin", "gestor"];
 
+  // Coordenacao (admin, gestor da APSIS e gerente da Claro) ve o sistema
+  // inteiro: sao as MESMAS telas. As duas visoes diferentes de verdade sao a do
+  // consultor em campo e a do responsavel da EPO, e sao essas que se simula.
   var ROTULO_PERSPECTIVA = {
-    responsavel: "responsável da EPO",
-    cliente: "gerente da Claro",
-    auditor: "consultor APSIS"
+    auditor: "consultor APSIS",
+    responsavel: "responsável da EPO"
   };
 
   function verComo() {
@@ -281,7 +283,7 @@
     var menu = document.querySelector(".user-menu");
     if (!menu || menu.querySelector(".ver-como")) return;
 
-    var opcoes = ["auditor", "responsavel", "cliente"].map(function (papel) {
+    var opcoes = ["auditor", "responsavel"].map(function (papel) {
       var atual = papel === simulado;
       return '<button type="button" class="user-menu-item ver-como-item' +
         (atual ? " is-atual" : "") + '" data-ver-como="' + papel + '">' +
