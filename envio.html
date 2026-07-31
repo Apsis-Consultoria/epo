@@ -446,8 +446,15 @@
 
       // Encaminha os arquivos recem-enviados para a pasta oficial. Roda em
       // segundo plano: nada na tela depende disso.
+      var ultimoEncaminhamento = 0;
+
       function encaminharArquivos() {
         if (DEMO || !db || !db.functions || !atual) return;
+        // anexar e enviar disparam o encaminhamento; duas chamadas juntas
+        // disputavam o mesmo arquivo no destino
+        var agora = Date.now();
+        if (agora - ultimoEncaminhamento < 15000) return;
+        ultimoEncaminhamento = agora;
         db.functions.invoke("sincronizar-sharepoint", { body: { alocacao_id: atual.id } })
           .then(function (r) {
             if (r && r.error) console.warn("encaminhamento:", r.error.message || r.error);

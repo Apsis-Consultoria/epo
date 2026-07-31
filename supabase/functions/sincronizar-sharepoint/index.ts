@@ -258,8 +258,27 @@ async function enviarArquivo(token: string, driveId: string, pastaId: string, no
       body: bytes
     });
     const j = await r.json();
-    if (!r.ok) throw new Error(comDica("upload: " + ((j.error && j.error.message) || r.status)));
-    return j;
+    if (r.ok) return j;
+
+    const erro = String((j.error && j.error.message) || r.status);
+    // Duas chamadas quase simultaneas disputam o mesmo nome. Em vez de deixar o
+    // arquivo preso em erro para sempre, entra com sufixo.
+    if (/already exists|nameAlreadyExists/i.test(erro)) {
+      const ponto = limpo.lastIndexOf(".");
+      const base = ponto > 0 ? limpo.slice(0, ponto) : limpo;
+      const ext = ponto > 0 ? limpo.slice(ponto) : "";
+      const outro = "/drives/" + driveId + "/items/" + pastaId + ":/" +
+        encodeURIComponent(base + " (" + Date.now().toString().slice(-5) + ")" + ext);
+      const r2 = await fetch(GRAPH + outro + ":/content?@microsoft.graph.conflictBehavior=rename", {
+        method: "PUT",
+        headers: { Authorization: "Bearer " + token, "Content-Type": tipo || "application/octet-stream" },
+        body: bytes
+      });
+      const j2 = await r2.json();
+      if (r2.ok) return j2;
+      throw new Error(comDica("upload: " + ((j2.error && j2.error.message) || r2.status)));
+    }
+    throw new Error(comDica("upload: " + erro));
   }
 
   // foto de celular passa facil de 4 MB: sessao de upload em pedacos
@@ -523,6 +542,11 @@ async function tratar(req: Request) {
     // chamada: nada se perde no meio do caminho
     if (Date.now() - comecou > TEMPO_MAX) { adiados += 1; continue; }
     try {
+      // outra chamada pode ter encaminhado este arquivo enquanto esta rodava
+      const { data: agora } = await admin
+        .from(p.tabela).select("sharepoint_status").eq("id", p.id).maybeSingle();
+      if (agora && (agora as Record<string, string>).sharepoint_status === "enviado") continue;
+
       const baixado = await admin.storage.from(BUCKET).download(p.storage_path);
       if (baixado.error || !baixado.data) throw new Error("arquivo nao encontrado no armazenamento");
       const bytes = new Uint8Array(await baixado.data.arrayBuffer());
