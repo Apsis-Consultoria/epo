@@ -2,8 +2,11 @@
 // (sharepoint_status 'pendente' ou 'erro').
 //
 // Fluxo: token de aplicacao no Azure (client credentials) -> resolve o site e a
-// biblioteca -> garante a arvore de pastas -> sobe o arquivo baixado do Storage
-// privado -> grava url e data na linha correspondente.
+// biblioteca -> garante as pastas -> sobe o arquivo baixado do Storage privado
+// -> grava url e data na linha correspondente.
+//
+// Estrutura na pasta de destino:
+//   <pasta configurada> / <nome da EPO> / <nome do questionario> / arquivo
 //
 // Chamada pelo proprio app, com o JWT de quem esta logado:
 //   { alocacao_id }   -> comprovacoes enviadas pelo responsavel da EPO
@@ -118,12 +121,6 @@ function tipoDe(nome: string, tipo: string) {
   if (tipo && tipo.indexOf("/") > 0) return tipo;
   const ext = String(nome || "").split(".").pop() || "";
   return TIPOS[ext.toLowerCase()] || "application/octet-stream";
-}
-
-function mesDe(iso: string | null) {
-  const d = iso ? new Date(iso) : new Date();
-  const m = d.getUTCMonth() + 1;
-  return d.getUTCFullYear() + "-" + (m < 10 ? "0" + m : String(m));
 }
 
 // Acesso negado quase sempre e falta de consentimento do administrador no app
@@ -488,8 +485,10 @@ Deno.serve(async (req: Request) => {
       if (baixado.error || !baixado.data) throw new Error("arquivo nao encontrado no armazenamento");
       const bytes = new Uint8Array(await baixado.data.arrayBuffer());
 
+      // Estrutura pedida: pasta da EPO, dentro dela a pasta do questionario,
+      // e dentro dela as comprovacoes.
       const pastaId = await garantirPastas(token, destino.driveId, [
-        PASTA_RAIZ, p.epo, mesDe(p.criado_em), p.processo, p.origem
+        PASTA_RAIZ, p.epo, p.processo
       ]);
       const item = await enviarArquivo(
         token, destino.driveId, pastaId, p.nome, bytes, tipoDe(p.nome, p.tipo)
