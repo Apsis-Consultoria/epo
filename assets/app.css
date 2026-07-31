@@ -1040,3 +1040,42 @@ input[type="submit"],
 }
 .leaflet-container a.pop-btn:hover { filter: brightness(1.1); }
 .mapa-fora { font-size: 12.5px; color: var(--text-2); padding: 0 2px 16px; }
+
+/* =========================================================================
+   Ver como: quem administra confere o sistema pelo angulo de outro perfil sem
+   sair da propria sessao. Os dados continuam sendo os de verdade.
+   ========================================================================= */
+.ver-como {
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 6px;
+}
+.ver-como-titulo {
+  margin: 0 0 2px;
+  padding: 4px 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.ver-como-item { width: 100%; text-align: left; background: none; border: 0; font-family: inherit; cursor: pointer; }
+.ver-como-item.is-atual { color: var(--apsis-green); font-weight: 600; }
+
+.ver-como-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 32px; padding: 0 10px;
+  border: 1px solid var(--apsis-orange);
+  border-radius: 999px;
+  background: var(--warning-bg);
+  color: var(--apsis-orange);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.ver-como-chip i { font-size: 15px; }
+.ver-como-chip:hover { background: var(--apsis-orange); color: #fff; }
+
+@media (max-width: 640px) {
+  .ver-como-chip span { display: none; }
+  .ver-como-chip { padding: 0 8px; }
+}

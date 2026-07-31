@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=19">
+  <link rel="stylesheet" href="assets/app.css?v=20">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -123,12 +123,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=19"></script>
-  <script src="assets/app.js?v=19"></script>
-  <script src="assets/geo-br.js?v=19"></script>
-  <script src="assets/supabase-config.js?v=19"></script>
+  <script src="assets/data.js?v=20"></script>
+  <script src="assets/app.js?v=20"></script>
+  <script src="assets/geo-br.js?v=20"></script>
+  <script src="assets/supabase-config.js?v=20"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=19"></script>
+  <script src="assets/auth.js?v=20"></script>
   <script>
     (function () {
       "use strict";
@@ -514,7 +514,7 @@
         if (re) {
           var pedido = pedidoComEmail(re.getAttribute("data-acesso"));
           if (!pedido) return;
-          if (DEMO) { App.toast("No modo de teste o e-mail não é enviado."); return; }
+          if (DEMO) { App.toast("Acesso reenviado para " + pedido.email + "."); return; }
           re.disabled = true;
           var textoRe = re.innerHTML;
           re.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true"></i>Enviando...';

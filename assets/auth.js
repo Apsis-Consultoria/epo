@@ -95,6 +95,33 @@
     auditor: "Consultor APSIS (teste)"
   };
 
+  // -------------------------------------------------------------- Ver como
+  // Quem administra pode olhar o sistema pelo angulo de outro perfil SEM sair
+  // da propria sessao: os dados continuam sendo os de verdade, so o menu e as
+  // telas obedecem as permissoes do papel escolhido. E o que permite criar a
+  // EPO com a conta Microsoft e conferir o resultado na tela do responsavel e
+  // na do consultor, tudo no mesmo banco.
+  var PAPEIS_QUE_SIMULAM = ["admin", "gestor"];
+
+  var ROTULO_PERSPECTIVA = {
+    responsavel: "responsável da EPO",
+    cliente: "gerente da Claro",
+    auditor: "consultor APSIS"
+  };
+
+  function verComo() {
+    try { return sessionStorage.getItem("epoVerComo") || ""; } catch (e) { return ""; }
+  }
+
+  function definirVerComo(papel) {
+    try {
+      if (papel) sessionStorage.setItem("epoVerComo", papel);
+      else sessionStorage.removeItem("epoVerComo");
+    } catch (e) {}
+    var presets = (window.APP && window.APP.papeisPreset) || {};
+    location.href = papel ? primeiraPermitida(presets[papel]) : "index.html";
+  }
+
   function iniciais(nome) {
     return String(nome || "?").trim().split(/\s+/).slice(0, 2)
       .map(function (n) { return n.charAt(0).toUpperCase(); }).join("");
@@ -244,6 +271,58 @@
         sair();
       });
     }
+
+    if (info.podeSimular) montarVerComo(info.simulado);
+    if (info.simulado) montarAvisoVerComo(info.simulado);
+  }
+
+  // Opções de perspectiva dentro do menu da conta
+  function montarVerComo(simulado) {
+    var menu = document.querySelector(".user-menu");
+    if (!menu || menu.querySelector(".ver-como")) return;
+
+    var opcoes = ["auditor", "responsavel", "cliente"].map(function (papel) {
+      var atual = papel === simulado;
+      return '<button type="button" class="user-menu-item ver-como-item' +
+        (atual ? " is-atual" : "") + '" data-ver-como="' + papel + '">' +
+        '<i class="ti ' + (atual ? "ti-eye-check" : "ti-eye") + '" aria-hidden="true"></i>' +
+        "Ver como " + ROTULO_PERSPECTIVA[papel] +
+        "</button>";
+    }).join("");
+
+    var bloco = document.createElement("div");
+    bloco.className = "ver-como";
+    bloco.innerHTML =
+      '<p class="ver-como-titulo">Perspectiva</p>' + opcoes +
+      (simulado
+        ? '<button type="button" class="user-menu-item" data-ver-como="">' +
+            '<i class="ti ti-arrow-back-up" aria-hidden="true"></i>Voltar ao meu acesso</button>'
+        : "");
+
+    var sair = menu.querySelector('a[href="login.html"]');
+    if (sair) menu.insertBefore(bloco, sair);
+    else menu.appendChild(bloco);
+
+    bloco.addEventListener("click", function (ev) {
+      var b = ev.target.closest("[data-ver-como]");
+      if (!b) return;
+      definirVerComo(b.getAttribute("data-ver-como"));
+    });
+  }
+
+  // Faixa na topbar: sem isso, o menu encurtado parece defeito
+  function montarAvisoVerComo(simulado) {
+    var acoes = document.querySelector(".topbar-actions");
+    if (!acoes || document.querySelector(".ver-como-chip")) return;
+    var chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "ver-como-chip";
+    chip.title = "Voltar ao meu acesso";
+    chip.innerHTML = '<i class="ti ti-eye" aria-hidden="true"></i>' +
+      "<span>Vendo como " + ROTULO_PERSPECTIVA[simulado] + "</span>" +
+      '<i class="ti ti-x" aria-hidden="true"></i>';
+    chip.addEventListener("click", function () { definirVerComo(""); });
+    acoes.insertBefore(chip, acoes.firstChild);
   }
 
   // ------------------------------------------------------------------ Guard
@@ -281,14 +360,28 @@
           return "definir-senha";
         }
         var mapa = (window.APP && window.APP.papeisPreset) || {};
-        var perms = mapa[p.papel];
+        var podeSimular = PAPEIS_QUE_SIMULAM.indexOf(p.papel) >= 0;
+        var simulado = verComo();
+        if (simulado && (!podeSimular || !mapa[simulado])) {
+          // papel sem direito a simular, ou perspectiva desconhecida
+          try { sessionStorage.removeItem("epoVerComo"); } catch (e) {}
+          simulado = "";
+        }
+
+        var perms = mapa[simulado || p.papel];
         if (perms && pageKey && perms[pageKey] === false) {
           location.replace(primeiraPermitida(perms));
           return "sem-permissao";
         }
-        atualizarUi({ nome: p.nome, email: s.user.email, papel: p.papel });
+        atualizarUi({
+          nome: p.nome,
+          email: s.user.email,
+          papel: p.papel,
+          simulado: simulado,
+          podeSimular: podeSimular
+        });
         filtrarNav(perms);
-        return "ok";
+        return simulado ? "ver-como" : "ok";
       });
     });
   }
@@ -315,6 +408,8 @@
     entrarComSenha: entrarComSenha,
     pedirLinkDeSenha: pedirLinkDeSenha,
     entrarDemo: entrarDemo,
+    verComo: verComo,
+    definirVerComo: definirVerComo,
     sair: sair,
     modoDemo: modoDemo,
     papelDemo: papelDemo

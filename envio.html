@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=19">
+  <link rel="stylesheet" href="assets/app.css?v=20">
   <style>
     /* Ajustes locais - tela do responsável da EPO */
 
@@ -162,11 +162,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=19"></script>
-  <script src="assets/app.js?v=19"></script>
-  <script src="assets/supabase-config.js?v=19"></script>
+  <script src="assets/data.js?v=20"></script>
+  <script src="assets/app.js?v=20"></script>
+  <script src="assets/supabase-config.js?v=20"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=19"></script>
+  <script src="assets/auth.js?v=20"></script>
   <script>
     (function () {
       "use strict";
@@ -239,16 +239,9 @@
         try { return new Date(iso).toLocaleDateString("pt-BR"); } catch (e) { return ""; }
       }
 
-      // Na entrada de teste por perfil, a tela precisa dizer que o anexo não sai
-      // do navegador. Sem esse aviso, o teste parece ter funcionado e não foi.
+      // A tela nunca comenta o proprio estado: mostra o resultado, nada mais.
       function avisoDemo() {
-        var papelTeste = window.Auth && Auth.papelDemo ? Auth.papelDemo() : "";
-        if (!papelTeste) return "";
-        return '<div class="demo-note">' +
-          '<i class="ti ti-flask" aria-hidden="true"></i>' +
-          "<span>Você está vendo a tela em modo de teste. O que anexar aqui fica " +
-          "apenas neste navegador e não chega para a equipe APSIS.</span>" +
-          "</div>";
+        return "";
       }
 
       // ------------------------------------------------------------------
