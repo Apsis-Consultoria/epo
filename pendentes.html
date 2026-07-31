@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=34">
+  <link rel="stylesheet" href="assets/app.css?v=35">
   <style>
     /* Ajustes locais - tela de auditorias pendentes (escolher EPO e questionário) */
 
@@ -130,11 +130,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=34"></script>
-  <script src="assets/app.js?v=34"></script>
-  <script src="assets/supabase-config.js?v=34"></script>
+  <script src="assets/data.js?v=35"></script>
+  <script src="assets/app.js?v=35"></script>
+  <script src="assets/supabase-config.js?v=35"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=34"></script>
+  <script src="assets/auth.js?v=35"></script>
   <script>
     (function () {
       "use strict";
@@ -635,18 +635,41 @@
       // é justamente o que ficou de fora que interessa aqui.
       // ------------------------------------------------------------------
       var eposParaNova = [];    // [{ id, nome, cidade, uf }]
+      var questionariosParaNova = [];   // [{ id (slug), nome }]
       var overlayNova = document.getElementById("pd-modal");
       var selEpoNova = document.getElementById("pd-f-epo");
       var selProcNova = document.getElementById("pd-f-proc");
       var notaNova = document.getElementById("pd-modal-nota");
 
-      function catalogoQuestionarios() {
-        var lista = (window.APP.processos || []).map(function (p) {
-          return { id: p.id, nome: p.nome };
-        });
-        var c = window.APP.checklistCarregadores;
-        if (c) lista.push({ id: c.id, nome: c.nome });
-        return lista;
+      // A lista sai do cadastro (Configurações > Questionários), e não de uma
+      // relação fixa: tópico criado lá aparece aqui, e o desativado sai.
+      // Só entra o que dá para preencher, ou seja, o que tem pergunta ativa.
+      function questionariosDoCadastro() {
+        if (DEMO || !db) {
+          var lista = (window.APP.processos || []).map(function (p) {
+            return { id: p.id, nome: p.nome };
+          });
+          var c = window.APP.checklistCarregadores;
+          if (c) lista.push({ id: c.id, nome: c.nome });
+          return Promise.resolve(lista);
+        }
+        var candidatos = [];
+        return db.from("processos").select("id, slug, nome, ordem").eq("ativo", true).order("ordem")
+          .then(function (r) {
+            if (r.error) throw r.error;
+            candidatos = r.data || [];
+            return db.from("itens_checklist").select("processo_id, ativo");
+          })
+          .then(function (r) {
+            var comPergunta = {};
+            if (r && !r.error) {
+              (r.data || []).forEach(function (it) {
+                if (it.ativo !== false) comPergunta[it.processo_id] = true;
+              });
+            }
+            return candidatos.filter(function (p) { return comPergunta[p.id]; })
+              .map(function (p) { return { id: p.slug, nome: p.nome }; });
+          });
       }
 
       function eposDoBanco() {
@@ -674,7 +697,12 @@
 
       function pintarProcsNova() {
         var epoId = selEpoNova.value;
-        selProcNova.innerHTML = catalogoQuestionarios().map(function (p) {
+        if (!questionariosParaNova.length) {
+          selProcNova.innerHTML = '<option value="">Nenhum questionário disponível</option>';
+          notaNova.textContent = "";
+          return;
+        }
+        selProcNova.innerHTML = questionariosParaNova.map(function (p) {
           var pedido = jaPedido(epoId, p.id);
           return '<option value="' + esc(p.id) + '">' + esc(p.nome) +
             (pedido ? " (já pedido)" : "") + "</option>";
@@ -696,9 +724,16 @@
       function abrirNova() {
         overlayNova.classList.add("is-open");
         selEpoNova.innerHTML = '<option value="">Carregando...</option>';
-        selProcNova.innerHTML = "";
+        selProcNova.innerHTML = '<option value="">Carregando...</option>';
         notaNova.textContent = "";
-        eposDoBanco().then(function (lista) {
+        questionariosDoCadastro().then(function (qs) {
+          questionariosParaNova = qs;
+        }, function (e) {
+          console.error("questionariosDoCadastro", e);
+          questionariosParaNova = [];
+        }).then(function () {
+          return eposDoBanco();
+        }).then(function (lista) {
           eposParaNova = lista;
           if (!lista.length) {
             selEpoNova.innerHTML = '<option value="">Nenhuma EPO cadastrada</option>';

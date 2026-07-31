@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=34">
+  <link rel="stylesheet" href="assets/app.css?v=35">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -335,11 +335,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=34"></script>
-  <script src="assets/app.js?v=34"></script>
-  <script src="assets/supabase-config.js?v=34"></script>
+  <script src="assets/data.js?v=35"></script>
+  <script src="assets/app.js?v=35"></script>
+  <script src="assets/supabase-config.js?v=35"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=34"></script>
+  <script src="assets/auth.js?v=35"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -388,8 +388,15 @@
       var epoIdInicial = (epoParam && App.epoById(epoParam)) ? epoParam : (epos[0] && epos[0].id);
       var procParam = App.getParam("processo");
       var isContagem = procParam === CONTAGEM.id;
-      var processo = isContagem ? CONTAGEM : (procParam ? App.processoById(procParam) : null);
-      var isCarregadores = !!(processo && carregadores && processo.id === carregadores.id);
+
+      // O questionário de verdade é o que está cadastrado em Configurações >
+      // Questionários. O catálogo local serve de reserva: sustenta a
+      // demonstração sem login e a capa enquanto o cadastro é lido.
+      var processoLocal = isContagem ? CONTAGEM : (procParam ? App.processoById(procParam) : null);
+      var processo = processoLocal || (procParam
+        ? { id: procParam, nome: "Questionário", icone: "ti-clipboard-list", descricao: "", peso: null, itens: [] }
+        : null);
+      var isCarregadores = !!(processoLocal && carregadores && processoLocal.id === carregadores.id);
 
       // Quando a auditoria veio de um relatorio pedido, "voltar" é a lista de
       // relatorios pendentes; senao, é o seletor de processo desta tela.
@@ -444,28 +451,34 @@
       // catálogo do banco (contagem-reversa é operacional/local).
       var envioReal = !isContagem && window.Auth && Auth.pronto && !Auth.modoDemo();
 
+      // Os passos são remontados quando as perguntas chegam do cadastro: a
+      // pergunta incluída, editada ou desativada lá vale aqui na hora seguinte.
       var steps = [];
-      steps.push({ type: "intro" });
-      steps.push({ type: "identificacao" });
-      if (isContagem) {
-        // Contagem da reversa: contagens -> resultado ao vivo -> checagem dos
-        // acessórios -> resumo. Sem tempos e sem assinaturas: a contagem é
-        // operacional, feita no ato do recebimento.
-        CONTAGEM.contagens.forEach(function (def, ii) {
-          steps.push({ type: "contagem", def: def, pos: ii + 1, total: CONTAGEM.contagens.length });
-        });
-        steps.push({ type: "resultado" });
-        CONTAGEM.checagens.forEach(function (item, ii) {
-          steps.push({ type: "checagem", item: item, pos: ii + 1, total: CONTAGEM.checagens.length });
-        });
-      } else {
-        temposDefs.forEach(function (def) { steps.push({ type: "tempo", def: def }); });
-        processo.itens.forEach(function (item, ii) {
-          steps.push({ type: "item", item: item, pos: ii + 1, total: processo.itens.length });
-        });
-        steps.push({ type: "assinaturas" });
+      function montarPassos() {
+        steps = [];
+        steps.push({ type: "intro" });
+        steps.push({ type: "identificacao" });
+        if (isContagem) {
+          // Contagem da reversa: contagens -> resultado ao vivo -> checagem dos
+          // acessórios -> resumo. Sem tempos e sem assinaturas: a contagem é
+          // operacional, feita no ato do recebimento.
+          CONTAGEM.contagens.forEach(function (def, ii) {
+            steps.push({ type: "contagem", def: def, pos: ii + 1, total: CONTAGEM.contagens.length });
+          });
+          steps.push({ type: "resultado" });
+          CONTAGEM.checagens.forEach(function (item, ii) {
+            steps.push({ type: "checagem", item: item, pos: ii + 1, total: CONTAGEM.checagens.length });
+          });
+        } else {
+          temposDefs.forEach(function (def) { steps.push({ type: "tempo", def: def }); });
+          processo.itens.forEach(function (item, ii) {
+            steps.push({ type: "item", item: item, pos: ii + 1, total: processo.itens.length });
+          });
+          steps.push({ type: "assinaturas" });
+        }
+        steps.push({ type: "resumo" });
       }
-      steps.push({ type: "resumo" });
+      montarPassos();
 
       // ---------------------------------------------------------------- Estado
       var state = {
@@ -548,6 +561,74 @@
       function contexto() {
         if (!contextoPromise) contextoPromise = carregarContexto();
         return contextoPromise;
+      }
+
+      /* ====================================================================
+         PERGUNTAS DO CADASTRO (Configurações > Questionários)
+         O que vale em campo é o que está cadastrado: pergunta incluída,
+         texto alterado, evidência ajustada, ordem trocada ou pergunta
+         desativada aparece aqui na abertura seguinte da auditoria. O catálogo
+         local fica como reserva para a demonstração sem login.
+         ==================================================================== */
+      var procDbId = null;          // id do tópico no cadastro
+      var catalogoPromise = null;
+      // Sem banco (demonstração) o catálogo local já vale e nada fica travado.
+      var catalogoPronto = !envioReal;
+
+      function carregarCatalogo() {
+        return Auth.cliente.from("processos")
+          .select("id, nome, descricao, icone, peso")
+          .eq("slug", processo.id).eq("ativo", true).maybeSingle()
+          .then(function (r) {
+            if (r.error) throw r.error;
+            if (!r.data) throw new Error("Este questionário não está mais disponível.");
+            procDbId = r.data.id;
+            processo.nome = r.data.nome || processo.nome;
+            processo.descricao = r.data.descricao || processo.descricao || "";
+            processo.icone = r.data.icone || processo.icone;
+            if (r.data.peso !== null && r.data.peso !== undefined) processo.peso = Number(r.data.peso);
+            return Auth.cliente.from("itens_checklist")
+              .select("id, pergunta, evidencia_esperada, requer_foto, grave, ordem")
+              .eq("processo_id", procDbId).eq("ativo", true).order("ordem");
+          })
+          .then(function (r) {
+            if (r.error) throw r.error;
+            var lista = r.data || [];
+            if (!lista.length) throw new Error("Este questionário ainda não tem pergunta cadastrada.");
+            processo.itens = lista.map(function (it) {
+              return {
+                id: it.id,
+                pergunta: it.pergunta,
+                // o checklist de itens obrigatórios mostra o rótulo por "item"
+                item: it.pergunta,
+                evidencia: it.evidencia_esperada || "",
+                requerFoto: !!it.requer_foto,
+                grave: !!it.grave
+              };
+            });
+            return processo.itens;
+          });
+      }
+
+      function catalogo() {
+        if (!catalogoPromise) catalogoPromise = carregarCatalogo();
+        return catalogoPromise;
+      }
+
+      // Sem as perguntas não existe auditoria: em vez de seguir com um
+      // questionário defasado, a tela explica e volta para a lista.
+      function falhaDoCatalogo(msg) {
+        headerEl.style.display = "none";
+        footer.style.display = "none";
+        main.innerHTML =
+          '<div class="wiz-intro">' +
+            '<div class="wiz-intro-icon"><i class="ti ti-clipboard-off" aria-hidden="true"></i></div>' +
+            '<h1 class="wiz-intro-title">Não foi possível abrir o questionário</h1>' +
+            '<p class="wiz-intro-sub">' + esc(msg) + "</p>" +
+            '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '" style="margin-top:18px;">' +
+              '<i class="ti ti-arrow-left" aria-hidden="true"></i>' + esc(rotuloSeletor()) +
+            "</a>" +
+          "</div>";
       }
 
       // ------------------------------------------------------------- Helpers
@@ -1095,11 +1176,10 @@
 
         Promise.all([comprovIds(), comprovEpoId()]).then(function (rs) {
           var ids = rs[0], epoId = rs[1];
-          if (ids.itens.length !== processo.itens.length) {
-            throw new Error("o checklist do banco tem " + ids.itens.length +
-              " itens e esta tela tem " + processo.itens.length + " - atualize o catálogo");
-          }
-          var itemId = ids.itens[idx];
+          // Com as perguntas vindas do cadastro, o id do passo já é o id do
+          // cadastro. Casar por posição sobra para o catálogo local.
+          var doPasso = step.item && step.item.id;
+          var itemId = (doPasso && ids.set && ids.set[doPasso]) ? doPasso : ids.itens[idx];
           if (!itemId) throw new Error("item sem correspondente no banco");
           if (pedido === comprov.seq) comprov.itemAtual = itemId;
 
@@ -1561,7 +1641,7 @@
         } else {
           nextBtn.innerHTML = 'Próxima<i class="ti ti-chevron-right" aria-hidden="true"></i>';
         }
-        nextBtn.disabled = !stepAnswered(cur);
+        nextBtn.disabled = !stepAnswered(cur) || !catalogoPronto;
       }
 
       function showDone(gravadaNoBanco) {
@@ -1642,7 +1722,14 @@
         mostrarEnvio(true);
         var db = Auth.cliente;
         var epoMock = App.epoById(state.epoId);
-        var procDb = null, itensDb = [], audId = null;
+        var procDb = null, itensDb = [], itensDbPorId = {}, audId = null;
+
+        // Com as perguntas vindas do cadastro, o id da tela E o id do banco.
+        // O casamento por posicao sobra para o catalogo local (demonstracao).
+        function itemDoBanco(it, idx) {
+          if (procDbId) return itensDbPorId[it.id] || null;
+          return itensDb[idx] || null;
+        }
 
         db.from("processos").select("id").eq("slug", processo.id).eq("ativo", true).single()
           .then(function (r) {
@@ -1654,18 +1741,8 @@
           .then(function (r) {
             if (r.error) throw r.error;
             itensDb = r.data || [];
-            // As respostas casam com as perguntas PELA POSIÇÃO. Se o
-            // questionário foi editado depois desta tela abrir, a posição não
-            // vale mais e cada resposta iria para a pergunta errada. Melhor não
-            // gravar e pedir para abrir de novo.
-            if (itensDb.length !== processo.itens.length) {
-              var desalinhado = new Error(
-                "O questionário mudou desde que esta tela foi aberta. " +
-                "Abra a auditoria novamente para enviar com as perguntas atuais."
-              );
-              desalinhado.avisoParaTela = true;
-              throw desalinhado;
-            }
+            itensDbPorId = {};
+            itensDb.forEach(function (x) { itensDbPorId[x.id] = x; });
             return db.from("epos").select("id, nome").eq("ativo", true);
           })
           .then(function (r) {
@@ -1706,12 +1783,16 @@
           .then(function (r) {
             if (r.error) throw r.error;
             audId = r.data.id;
-            // Respostas: item do wizard -> item do banco PELO ÍNDICE (mesma ordem)
+            // Respostas: a pergunta da tela E a pergunta do cadastro, casadas
+            // pelo id. Antes era pela posicao, e uma pergunta incluida ou
+            // removida no meio jogava cada resposta para a pergunta seguinte.
             var rows = [];
+            var faltando = 0;
             processo.itens.forEach(function (it, idx) {
               var resp = state.respostas[it.id];
-              var itemDb = itensDb[idx];
-              if (!resp || !resp.status || !itemDb) return;
+              var itemDb = itemDoBanco(it, idx);
+              if (!resp || !resp.status) return;
+              if (!itemDb) { faltando += 1; return; }
               rows.push({
                 auditoria_id: audId,
                 item_id: itemDb.id,
@@ -1720,6 +1801,14 @@
                 justificativa: (resp.just || "").trim() || null
               });
             });
+            if (faltando) {
+              var mudou = new Error(
+                "O questionário mudou desde que esta tela foi aberta. " +
+                "Abra a auditoria novamente para enviar com as perguntas atuais."
+              );
+              mudou.avisoParaTela = true;
+              throw mudou;
+            }
             if (!rows.length) return { data: [] };
             return db.from("respostas").insert(rows).select("id, item_id");
           })
@@ -1731,7 +1820,7 @@
             var fila = [];
             processo.itens.forEach(function (it, idx) {
               var resp = state.respostas[it.id];
-              var itemDb = itensDb[idx];
+              var itemDb = itemDoBanco(it, idx);
               if (!resp || !itemDb || !temAnexo(resp)) return;
               var respostaId = respIdPorItemDb[itemDb.id];
               if (!respostaId) return;
@@ -1805,6 +1894,21 @@
       });
 
       renderStep();
+
+      // Perguntas do cadastro: enquanto não chegam, a capa fica sem avançar.
+      // Chegando, os passos são remontados com o questionário atual.
+      if (envioReal) {
+        catalogo().then(function () {
+          catalogoPronto = true;
+          montarPassos();
+          if (cur > steps.length - 1) cur = 0;
+          renderStep();
+        }, function (err) {
+          console.error("catálogo do questionário:", err);
+          falhaDoCatalogo((err && err.message) ||
+            "Não foi possível carregar as perguntas agora. Tente novamente em alguns instantes.");
+        });
+      }
 
       // Contexto do banco (EPOs reais + relatorio pedido): a capa e a
       // identificacao sao repintadas quando os dados chegam.
