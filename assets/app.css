@@ -1019,6 +1019,12 @@ input[type="submit"],
 }
 .selo-chip:hover { border-color: var(--border-strong); }
 .selo-chip.is-off { opacity: .42; }
+/* Medalha em foco: o mapa mostra só ela, e o selo fica em evidência */
+.selo-chip.is-foco {
+  border-color: var(--apsis-green);
+  background: var(--primary-tint);
+  color: var(--text);
+}
 .selo-chip b { color: var(--text); font-variant-numeric: tabular-nums; }
 
 /* Pino: a medalha direto no mapa. A sombra é o que a destaca do fundo, sem

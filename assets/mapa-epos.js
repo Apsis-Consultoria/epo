@@ -214,15 +214,35 @@
           htmlSelo(s, 22) + esc(selo(s).label) + " <b>" + conta[s] + "</b></button>";
       }).join("");
 
+      var presentes = ORDEM.filter(function (s) { return conta[s] > 0; });
+
+      // Clicar numa medalha foca nela: o mapa passa a mostrar só aquelas EPOs.
+      // Clicar de novo na mesma volta a mostrar todas. Antes o clique apagava
+      // justamente a medalha escolhida, o contrário do que a legenda sugere.
+      function pintarChips() {
+        var focada = presentes.filter(function (s) { return ligados[s]; });
+        var emFoco = focada.length === 1 && presentes.length > 1 ? focada[0] : null;
+        Array.prototype.forEach.call(cont.querySelectorAll("[data-selo]"), function (b) {
+          var s = b.getAttribute("data-selo");
+          b.classList.toggle("is-off", !ligados[s]);
+          b.classList.toggle("is-foco", s === emFoco);
+          b.setAttribute("aria-pressed", ligados[s] ? "true" : "false");
+        });
+      }
+
       cont.addEventListener("click", function (ev) {
         var b = ev.target.closest("[data-selo]");
         if (!b) return;
         var s = b.getAttribute("data-selo");
-        ligados[s] = !ligados[s];
-        b.classList.toggle("is-off", !ligados[s]);
-        b.setAttribute("aria-pressed", ligados[s] ? "true" : "false");
+        var jaFocada = ligados[s] && presentes.every(function (x) {
+          return ligados[x] === (x === s);
+        });
+        presentes.forEach(function (x) { ligados[x] = jaFocada ? true : (x === s); });
+        pintarChips();
         desenharPinos();
       });
+
+      pintarChips();
     }
 
     // ---------------------------------------------------------------- regiões
