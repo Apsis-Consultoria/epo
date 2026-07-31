@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=36">
+  <link rel="stylesheet" href="assets/app.css?v=37">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -125,12 +125,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=36"></script>
-  <script src="assets/app.js?v=36"></script>
-  <script src="assets/geo-br.js?v=36"></script>
-  <script src="assets/supabase-config.js?v=36"></script>
+  <script src="assets/data.js?v=37"></script>
+  <script src="assets/app.js?v=37"></script>
+  <script src="assets/geo-br.js?v=37"></script>
+  <script src="assets/supabase-config.js?v=37"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=36"></script>
+  <script src="assets/auth.js?v=37"></script>
   <script>
     (function () {
       "use strict";
@@ -513,6 +513,21 @@
             "</td>" +
           "</tr>";
         }).join("");
+      }
+
+      // ?editar=<id> abre direto a edicao daquela EPO. Vem de "Nova auditoria":
+      // e aqui que se marca o questionario que vira o relatorio pedido.
+      var editarParam = App.getParam("editar");
+      function abrirEdicaoDoLink() {
+        if (!editarParam) return;
+        var epo = epoPorId(editarParam);
+        editarParam = null;
+        if (!epo) return;
+        editandoId = epo.id;
+        preencherForm(epo);
+        abrirModal();
+        var campo = document.getElementById("f-email");
+        if (campo) campo.focus();
       }
 
       document.getElementById("epo-filtro").addEventListener("input", renderLista);
@@ -963,6 +978,7 @@
         pedidos = [];
         ordenar();
         renderLista();
+        abrirEdicaoDoLink();
         return Promise.resolve();
       }
 
@@ -1012,6 +1028,7 @@
             if (r.error) throw new Error(r.error.message);
             epos = r.data || [];
             renderLista();
+            abrirEdicaoDoLink();
           })
           .catch(function (e) {
             console.error("carregarEpos", e);

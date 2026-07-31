@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Alocações - Auditoria de EPOs</title>
+  <title>Reenvio de checklist - Auditoria de EPOs</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=36">
+  <link rel="stylesheet" href="assets/app.css?v=37">
   <style>
     /* Ajustes locais da tela de cadastro de EPO e pedido de relatórios */
 
@@ -135,11 +135,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=36"></script>
-  <script src="assets/app.js?v=36"></script>
-  <script src="assets/supabase-config.js?v=36"></script>
+  <script src="assets/data.js?v=37"></script>
+  <script src="assets/app.js?v=37"></script>
+  <script src="assets/supabase-config.js?v=37"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=36"></script>
+  <script src="assets/auth.js?v=37"></script>
   <script>
     (function () {
       "use strict";
@@ -152,7 +152,7 @@
           '<i class="ti ti-file-plus" aria-hidden="true"></i>Pedir relatórios' +
         "</button>";
 
-      Layout.mount("alocacoes", "Alocações", acoes);
+      Layout.mount("alocacoes", "Reenvio de checklist", acoes);
 
       var esc = App.escapeHtml;
       var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
@@ -262,7 +262,7 @@
               blocoPedido("aloc", "Questionários pedidos") +
               '<div class="nota-responsavel">' +
                 '<i class="ti ti-info-circle" aria-hidden="true"></i>' +
-                "<span>Um clique cria um pedido por questionário marcado. O responsável entra com este e-mail e vê apenas o envio de comprovações.</span>" +
+                "<span>Um clique cria um pedido por questionário marcado. O responsável entra com este e-mail e vê apenas o envio de evidências.</span>" +
               "</div>" +
             "</div>" +
             '<div class="modal-footer">' +

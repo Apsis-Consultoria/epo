@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Comprovações - Auditoria de EPOs</title>
+  <title>Evidências recebidas - Auditoria de EPOs</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=36">
+  <link rel="stylesheet" href="assets/app.css?v=37">
   <style>
-    /* Ajustes locais da tela de comprovações (grade + lista) */
+    /* Ajustes locais da tela de evidências recebidas (grade + lista) */
 
     .chk-demo {
       display: inline-flex; align-items: center; gap: 6px;
@@ -41,7 +41,7 @@
     .chk-item-perg { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.45; }
     .chk-item-evid { font-size: 12.5px; color: var(--text-2); margin-top: 3px; }
 
-    .chk-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .chk-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
     .chk-col {
       border: 1px solid var(--border); border-radius: var(--radius-sm);
       background: var(--surface-2); padding: 12px 14px;
@@ -121,7 +121,7 @@
     .chk-cartao-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     .chk-cartao-data { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
-    @media (max-width: 760px) {
+    @media (max-width: 1100px) {
       .chk-cols { grid-template-columns: 1fr; }
       .chk-grade { grid-template-columns: 1fr; }
     }
@@ -136,16 +136,16 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=36"></script>
-  <script src="assets/app.js?v=36"></script>
-  <script src="assets/supabase-config.js?v=36"></script>
+  <script src="assets/data.js?v=37"></script>
+  <script src="assets/app.js?v=37"></script>
+  <script src="assets/supabase-config.js?v=37"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=36"></script>
+  <script src="assets/auth.js?v=37"></script>
   <script>
     (function () {
       "use strict";
 
-      Layout.mount("checagem", "Comprovações");
+      Layout.mount("checagem", "Evidências recebidas");
 
       var esc = App.escapeHtml;
       var page = document.getElementById("page");
@@ -512,13 +512,14 @@
           ? (visaoAtual() === "lista" ? tabela : renderGrade())
           : '<div class="empty">' +
               '<i class="ti ti-zoom-question" aria-hidden="true"></i>' +
-              "<div>Nenhuma comprovação para conferir ainda. Os questionários aparecem aqui quando o auditor envia a vistoria ou o responsável da EPO envia as comprovações.</div>" +
+              "<div>Nenhuma evidência para conferir ainda. Os questionários aparecem aqui quando a Claro, a EPO ou o auditor da APSIS envia o primeiro arquivo.</div>" +
             "</div>";
 
         page.innerHTML =
           avisoDemo() +
-          '<p class="page-intro">As comprovações enviadas pelo responsável da EPO e a vistoria feita em campo pela ' +
-            "equipe APSIS, no mesmo lugar. Abra um questionário para comparar item a item e validar o resultado.</p>" +
+          '<p class="page-intro">Tudo o que chegou de cada questionário, por origem: o que a <b>Claro</b> enviou, ' +
+            "o que a <b>APSIS</b> registrou em campo e o que a <b>EPO</b> anexou. Abra um questionário para comparar " +
+            "item a item e validar o resultado.</p>" +
           '<div class="card mb-0">' +
             '<div class="card-header">' +
               '<div class="section-title">' +
@@ -559,11 +560,14 @@
           '<img src="' + esc(url) + '" alt="' + esc(nome) + '" loading="lazy"></a>';
       }
 
-      function colunaVistoria(item, det) {
+      // Caixa da APSIS: a resposta do auditor em campo mais o que ele anexou.
+      function boxApsis(item, det) {
         var r = det.respostas[item.id];
+        var m = App.origemMeta("consultor");
         var partes = [];
+        var n = 0;
         if (!r) {
-          partes.push('<span class="chk-vazio">sem envio</span>');
+          partes.push('<span class="evid-box-vazia">o auditor ainda não respondeu este item.</span>');
         } else {
           partes.push("<div>" + badgeResposta(r.status) + "</div>");
           if (r.observacao) partes.push('<div class="chk-obs">' + esc(r.observacao) + "</div>");
@@ -572,6 +576,7 @@
               "<span>" + esc(r.justificativa) + "</span></div>");
           }
           var evs = det.evidencias[item.id] || [];
+          n = evs.length;
           if (evs.length) {
             var thumbs = [];
             var arquivos = [];
@@ -589,22 +594,24 @@
             if (thumbs.length) partes.push('<div class="chk-thumbs">' + thumbs.join("") + "</div>");
             if (arquivos.length) partes.push('<div class="chk-files">' + arquivos.join("") + "</div>");
           } else {
-            partes.push('<span class="chk-vazio">sem evidências anexadas</span>');
+            partes.push('<span class="evid-box-vazia">sem arquivo anexado.</span>');
           }
         }
-        return (
-          '<div class="chk-col">' +
-            '<span class="chk-col-title"><i class="ti ti-clipboard-check" aria-hidden="true"></i>Vistoria APSIS</span>' +
-            partes.join("") +
-          "</div>"
-        );
+        return caixaDeEvidencia(m, partes, n);
       }
 
-      function colunaEpo(item, det) {
-        var lista = det.anexos[item.id] || [];
+      // Caixa da Claro e caixa da EPO: os dois enviam pela tela de envio de
+      // evidências, e o que separa um do outro é a origem gravada no anexo.
+      function boxDoEnvio(item, det, origem) {
+        var m = App.origemMeta(origem);
+        var todos = det.anexos[item.id] || [];
+        var lista = todos.filter(function (ax) {
+          var o = ax.origem || "epo";
+          return o === origem;
+        });
         var partes = [];
         if (!lista.length) {
-          partes.push('<span class="chk-vazio">sem envio</span>');
+          partes.push('<span class="evid-box-vazia">nada enviado para este item.</span>');
         } else {
           var thumbs = [];
           var arquivos = [];
@@ -623,9 +630,16 @@
           if (thumbs.length) partes.push('<div class="chk-thumbs">' + thumbs.join("") + "</div>");
           if (arquivos.length) partes.push('<div class="chk-files">' + arquivos.join("") + "</div>");
         }
+        return caixaDeEvidencia(m, partes, lista.length);
+      }
+
+      function caixaDeEvidencia(m, partes, n) {
         return (
-          '<div class="chk-col">' +
-            '<span class="chk-col-title"><i class="ti ti-building-warehouse" aria-hidden="true"></i>Comprovações da EPO</span>' +
+          '<div class="evid-box ' + m.cls + '">' +
+            '<span class="evid-box-titulo">' +
+              '<i class="ti ' + m.icon + '" aria-hidden="true"></i>' + esc(m.label) +
+              (n ? '<span class="conta">' + n + (n === 1 ? " arquivo" : " arquivos") + "</span>" : "") +
+            "</span>" +
             partes.join("") +
           "</div>"
         );
@@ -663,8 +677,8 @@
                     "</div>" +
                   "</div>" +
                   '<div class="chk-cols">' +
-                    colunaVistoria(item, det) +
-                    colunaEpo(item, det) +
+                    boxDoEnvio(item, det, "claro") + boxApsis(item, det) +
+                    boxDoEnvio(item, det, "epo") +
                   "</div>" +
                 "</article>"
               );

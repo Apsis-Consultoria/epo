@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=36">
+  <link rel="stylesheet" href="assets/app.css?v=37">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -60,7 +60,7 @@
     .wiz-evidence .evidence-tag { margin-top: 6px; }
     .evidence-tag.tag-grave { background: var(--danger-bg); color: var(--danger); }
 
-    /* Comprovações enviadas pela EPO (responsável anexa antes da visita).
+    /* Evidências recebidas da Claro e da EPO (anexadas antes ou durante a visita).
        Painel compacto, lista vertical, miniatura 44px, toque >= 44px. */
     .wiz-comprov {
       border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -96,8 +96,10 @@
     .wiz-comprov-nome {
       display: block; font-size: 13px; font-weight: 600; color: var(--text);
       text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      max-width: 100%; text-align: left; background: none; border: 0; padding: 0;
+      font-family: inherit; cursor: pointer;
     }
-    a.wiz-comprov-nome:active, a.wiz-comprov-nome:hover { color: var(--apsis-green); text-decoration: underline; }
+    button.wiz-comprov-nome:active, button.wiz-comprov-nome:hover { color: var(--apsis-green); text-decoration: underline; }
     .wiz-comprov-meta { display: block; font-size: 11.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .wiz-comprov-open {
       width: 44px; height: 44px; flex: 0 0 44px; border-radius: 10px;
@@ -335,11 +337,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=36"></script>
-  <script src="assets/app.js?v=36"></script>
-  <script src="assets/supabase-config.js?v=36"></script>
+  <script src="assets/data.js?v=37"></script>
+  <script src="assets/app.js?v=37"></script>
+  <script src="assets/supabase-config.js?v=37"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=36"></script>
+  <script src="assets/auth.js?v=37"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -790,7 +792,7 @@
         var notaAloc = travado
           ? '<div class="wiz-evidence"><i class="ti ti-clipboard-list" aria-hidden="true"></i><span>' +
               "Relatório pedido para <b>" + esc(aloc.responsavel_email) + "</b>. " +
-              "As comprovações que ele enviar aparecem em cada pergunta." +
+              "O que a Claro e a EPO enviarem aparece em cada pergunta." +
             "</span></div>"
           : "";
         return (
@@ -1090,7 +1092,7 @@
         return (
           '<div class="wiz-comprov-head">' +
             '<i class="ti ti-inbox" aria-hidden="true"></i>' +
-            "<span>Comprovações enviadas pela EPO</span>" +
+            "<span>Evidências já enviadas</span>" +
             (n ? '<span class="wiz-comprov-count tnum">' + n + "</span>" : "") +
           "</div>"
         );
@@ -1104,37 +1106,80 @@
           comprovCabecalho(n) +
           comprov.avisoStep +
           conteudo;
+        ligarAberturaDeEvidencia(el);
       }
 
-      var COMPROV_VAZIO = '<p class="wiz-comprov-msg">A EPO ainda não enviou comprovação para este item.</p>';
+      // Abrir o que a Claro e a EPO enviaram: imagem e PDF em outra aba,
+      // planilha e documento baixando. Um ouvinte no painel cobre tudo o que
+      // for repintado depois.
+      function ligarAberturaDeEvidencia(el) {
+        if (!el || el.getAttribute("data-evid-ligado") === "1") return;
+        el.setAttribute("data-evid-ligado", "1");
+        el.addEventListener("click", function (ev) {
+          var alvo = ev.target.closest("[data-abrir-evid]");
+          if (!alvo) return;
+          ev.preventDefault();
+          App.abrirEvidencia(alvo.getAttribute("data-abrir-evid"), alvo.getAttribute("data-nome-evid"));
+        });
+      }
+
+      var COMPROV_VAZIO = '<p class="wiz-comprov-msg">Ninguém enviou evidência para este item ainda.</p>';
+
+      // A lista sai agrupada por origem: caixa vermelha da Claro, cinza da EPO.
+      // O clique abre a evidencia de verdade - PDF e imagem em outra aba,
+      // planilha e documento baixando no aparelho.
+      function comprovItemHtml(a) {
+        var ct = String(a.content_type || "");
+        var nome = esc(a.nome_arquivo || "arquivo");
+        var visual = (ct.indexOf("image/") === 0 && a.url)
+          ? '<img class="wiz-comprov-thumb" src="' + esc(a.url) + '" alt="' + nome + '" loading="lazy">'
+          : '<i class="ti ' + comprovIcone(a.nome_arquivo, ct) + '" aria-hidden="true"></i>';
+        var partes = [];
+        var tam = comprovTamanho(a.tamanho);
+        if (tam) partes.push(tam);
+        var hora = comprovHora(a.criado_em);
+        if (hora) partes.push("enviado " + hora);
+        if (a.responsavel_email) partes.push(esc(a.responsavel_email));
+        var nomeHtml = a.url
+          ? '<button type="button" class="wiz-comprov-nome" data-abrir-evid="' + esc(a.url) +
+            '" data-nome-evid="' + nome + '">' + nome + "</button>"
+          : '<span class="wiz-comprov-nome">' + nome + "</span>";
+        var abrir = a.url
+          ? '<button type="button" class="wiz-comprov-open" data-abrir-evid="' + esc(a.url) +
+            '" data-nome-evid="' + nome + '" aria-label="Abrir ' + nome + '">' +
+            '<i class="ti ti-external-link" aria-hidden="true"></i></button>'
+          : "";
+        return (
+          '<li class="wiz-comprov-item">' + visual +
+            '<div class="wiz-comprov-info">' + nomeHtml +
+              '<span class="wiz-comprov-meta">' + partes.join(" · ") + "</span>" +
+            "</div>" + abrir +
+          "</li>"
+        );
+      }
 
       function comprovListaHtml(rows) {
-        return '<ul class="wiz-comprov-list">' + rows.map(function (a) {
-          var ct = String(a.content_type || "");
-          var nome = esc(a.nome_arquivo || "arquivo");
-          var visual = (ct.indexOf("image/") === 0 && a.url)
-            ? '<img class="wiz-comprov-thumb" src="' + esc(a.url) + '" alt="' + nome + '" loading="lazy">'
-            : '<i class="ti ' + comprovIcone(a.nome_arquivo, ct) + '" aria-hidden="true"></i>';
-          var partes = [];
-          var tam = comprovTamanho(a.tamanho);
-          if (tam) partes.push(tam);
-          var hora = comprovHora(a.criado_em);
-          if (hora) partes.push("enviado " + hora);
-          if (a.responsavel_email) partes.push(esc(a.responsavel_email));
-          var nomeHtml = a.url
-            ? '<a class="wiz-comprov-nome" href="' + esc(a.url) + '" target="_blank" rel="noopener">' + nome + "</a>"
-            : '<span class="wiz-comprov-nome">' + nome + "</span>";
-          var abrir = a.url
-            ? '<a class="wiz-comprov-open" href="' + esc(a.url) + '" target="_blank" rel="noopener" aria-label="Abrir ' + nome + '"><i class="ti ti-external-link" aria-hidden="true"></i></a>'
-            : "";
-          return (
-            '<li class="wiz-comprov-item">' + visual +
-              '<div class="wiz-comprov-info">' + nomeHtml +
-                '<span class="wiz-comprov-meta">' + partes.join(" · ") + "</span>" +
-              "</div>" + abrir +
-            "</li>"
-          );
-        }).join("") + "</ul>";
+        var porOrigem = { claro: [], epo: [] };
+        rows.forEach(function (a) {
+          var o = (a.origem === "claro") ? "claro" : "epo";
+          porOrigem[o].push(a);
+        });
+
+        var html = "";
+        ["claro", "epo"].forEach(function (chave) {
+          var lista = porOrigem[chave];
+          if (!lista.length) return;
+          var m = App.origemMeta(chave);
+          html +=
+            '<div class="evid-box ' + m.cls + '" style="margin-top:10px;">' +
+              '<span class="evid-box-titulo">' +
+                '<i class="ti ' + m.icon + '" aria-hidden="true"></i>' + esc(m.label) +
+                '<span class="conta">' + lista.length + (lista.length === 1 ? " arquivo" : " arquivos") + "</span>" +
+              "</span>" +
+              '<ul class="wiz-comprov-list">' + lista.map(comprovItemHtml).join("") + "</ul>" +
+            "</div>";
+        });
+        return html;
       }
 
       // Modo demo/offline: 1 anexo fictício no primeiro item, sem rede.
@@ -1172,7 +1217,7 @@
           return;
         }
 
-        if (!silencioso) comprovPintar('<p class="wiz-comprov-msg">Carregando comprovações da EPO…</p>', 0, false);
+        if (!silencioso) comprovPintar('<p class="wiz-comprov-msg">Carregando evidências…</p>', 0, false);
 
         Promise.all([comprovIds(), comprovEpoId()]).then(function (rs) {
           var ids = rs[0], epoId = rs[1];
@@ -1221,8 +1266,8 @@
           });
         }).catch(function (err) {
           if (pedido !== comprov.seq) return;
-          console.warn("Comprovações da EPO indisponíveis:", (err && err.message) || err);
-          comprovPintar('<p class="wiz-comprov-msg">Não foi possível carregar as comprovações da EPO agora.</p>', 0, true);
+          console.warn("Evidências indisponíveis:", (err && err.message) || err);
+          comprovPintar('<p class="wiz-comprov-msg">Não foi possível carregar as evidências agora.</p>', 0, true);
         });
       }
 
@@ -1262,7 +1307,7 @@
         if (!mesmoPasso) {
           comprov.avisoStep = comprov.pendentes > 0
             ? '<p class="wiz-comprov-novo"><i class="ti ti-bell-ringing" aria-hidden="true"></i><span>' +
-                comprov.pendentes + (comprov.pendentes > 1 ? " novas comprovações chegaram" : " nova comprovação chegou") +
+                comprov.pendentes + (comprov.pendentes > 1 ? " novas evidências chegaram" : " nova evidência chegou") +
                 " em outros itens deste questionário.</span></p>"
             : "";
           comprov.pendentes = 0;
@@ -1574,7 +1619,7 @@
           var it = step.item;
           var r = respostaDe(it.id);
 
-          comprovIniciarPasso(step); // painel de comprovações da EPO (tempo real)
+          comprovIniciarPasso(step); // painel de evidências recebidas (tempo real)
 
           Array.prototype.forEach.call(document.querySelectorAll(".wiz-opt"), function (btn) {
             btn.addEventListener("click", function () {

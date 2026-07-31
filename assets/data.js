@@ -984,10 +984,10 @@
     { key: "gerencial",   label: "Painel gerencial",         icone: "ti-report-analytics", href: "gerencial.html" },
     { key: "pendentes",   label: "Auditorias pendentes",     icone: "ti-clipboard-list",   href: "pendentes.html" },
     { key: "auditoria",   label: "Preenchimento de questionário", icone: "ti-clipboard-check", href: "pendentes.html" },
-    { key: "envio",       label: "Envio de comprovações",    icone: "ti-cloud-upload",     href: "envio.html" },
-    { key: "checagem",    label: "Comprovações",             icone: "ti-zoom-check",       href: "checagem.html" },
+    { key: "envio",       label: "Envio de evidências",      icone: "ti-cloud-upload",     href: "envio.html" },
+    { key: "checagem",    label: "Evidências recebidas",     icone: "ti-zoom-check",       href: "checagem.html" },
     { key: "questionarios", label: "Questionários",          icone: "ti-list-details",     href: "questionarios.html" },
-    { key: "alocacoes",   label: "Alocações",                icone: "ti-user-plus",        href: "alocacoes.html" },
+    { key: "alocacoes",   label: "Reenvio de checklist",     icone: "ti-user-plus",        href: "alocacoes.html" },
     { key: "giro",        label: "Contagem Logística Reversa", icone: "ti-packages",        href: "contagem-giro.html" },
     { key: "evidencias",  label: "Evidências",               icone: "ti-camera",           href: "evidencias.html" },
     { key: "config",      label: "Configurações",            icone: "ti-settings",         href: "configuracoes.html" },
@@ -997,7 +997,7 @@
   // -----------------------------------------------------------------------
   // Presets de permissão por papel (usados como sugestão na tela de acessos).
   // -----------------------------------------------------------------------
-  // "A princípio": responsável só envia comprovações; auditor APSIS só vê os questionários.
+  // "A princípio": responsável só envia evidências; auditor APSIS só vê os questionários.
   // Tres visoes, nao cinco. Quem coordena (admin e gestor da APSIS, gerente da
   // Claro) ve o sistema inteiro e da no mesmo lugar; o consultor em campo ve o
   // que preenche; o responsavel da EPO ve o que envia.

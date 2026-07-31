@@ -1012,6 +1012,45 @@ input[type="submit"],
 .mapa-camadas button.is-on { background: var(--primary); color: #fff; }
 .mapa-camadas button + button { border-left: 1px solid var(--border); }
 
+/* ------------------------------------------- Evidência por origem
+   Três lados enviam documento do mesmo questionário. A cor da caixa diz de
+   quem é: Claro em vermelho, APSIS em verde, EPO em cinza. */
+.evid-box {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  min-width: 0;
+}
+.evid-box-titulo {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-muted);
+}
+.evid-box-titulo i { font-size: 15px; }
+.evid-box-titulo .conta {
+  margin-left: auto; text-transform: none; letter-spacing: 0;
+  font-size: 11.5px; font-variant-numeric: tabular-nums;
+}
+.evid-box-vazia { font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+
+.evid-box.origem-claro { border-left-color: var(--danger); background: var(--danger-bg); }
+.evid-box.origem-claro .evid-box-titulo { color: var(--danger); }
+.evid-box.origem-apsis { border-left-color: var(--success); background: var(--success-bg); }
+.evid-box.origem-apsis .evid-box-titulo { color: var(--success); }
+.evid-box.origem-epo   { border-left-color: var(--border-strong); background: var(--surface-2); }
+
+/* Selo de origem, para usar solto ao lado de um arquivo */
+.origem-selo {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  background: var(--surface-2); color: var(--text-2); white-space: nowrap;
+}
+.origem-selo.origem-claro { background: var(--danger-bg); color: var(--danger); }
+.origem-selo.origem-apsis { background: var(--success-bg); color: var(--success); }
+
 /* ------------------------------------------------- Grade / lista
    Alternador de visualização. Vive no cabeçalho do cartão e é o mesmo nas
    telas que mostram muita coisa de uma vez. */

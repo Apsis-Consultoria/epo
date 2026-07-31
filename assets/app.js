@@ -22,15 +22,15 @@
     { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },
     { key: "pendentes",   label: "Auditorias pendentes", icon: "ti-clipboard-list", href: "pendentes.html" },
-    { key: "envio",       label: "Envio de comprovações", icon: "ti-cloud-upload", href: "envio.html" },
-    { key: "checagem",    label: "Comprovações",     icon: "ti-zoom-check",       href: "checagem.html" },
+    { key: "envio",       label: "Envio de evidências", icon: "ti-cloud-upload", href: "envio.html" },
+    { key: "checagem",    label: "Evidências recebidas", icon: "ti-zoom-check",   href: "checagem.html" },
     { key: "giro",        label: "Contagem Logística Reversa", icon: "ti-packages", href: "contagem-giro.html" },
-    // Alocações, acessos e evidências são bastidores: quem opera o dia a dia
+    // Reenvio, acessos e arquivos são bastidores: quem opera o dia a dia
     // não passa por eles. Ficam como subtópicos de Configurações.
     { key: "config",      label: "Configurações",    icon: "ti-settings",         href: "configuracoes.html",
       children: [
         { key: "questionarios", label: "Questionários",          href: "questionarios.html" },
-        { key: "alocacoes",  label: "Alocações",                href: "alocacoes.html" },
+        { key: "alocacoes",  label: "Reenvio de checklist",     href: "alocacoes.html" },
         { key: "acessos",    label: "Gerenciamento de acessos", href: "acessos.html" },
         { key: "evidencias", label: "Evidências",               href: "evidencias.html" }
       ] }
@@ -78,6 +78,44 @@
 
   function tierMeta(tier) {
     return TIER_META[tier] || TIER_META.critico;
+  }
+
+  // -----------------------------------------------------------------------
+  // Origem da evidência. Três lados enviam documento do mesmo questionário:
+  // a Claro, a APSIS em campo e a EPO terceirizada. A cor separa quem mandou
+  // o quê sem precisar ler rótulo.
+  // -----------------------------------------------------------------------
+  var ORIGEM_META = {
+    claro:     { label: "Evidências Claro", curto: "Claro", cls: "origem-claro", icon: "ti-antenna-bars-5" },
+    consultor: { label: "Evidências APSIS", curto: "APSIS", cls: "origem-apsis", icon: "ti-clipboard-check" },
+    epo:       { label: "Evidências EPO",   curto: "EPO",   cls: "origem-epo",   icon: "ti-building-warehouse" }
+  };
+  var ORIGEM_ORDEM = ["claro", "consultor", "epo"];
+
+  function origemMeta(chave) {
+    return ORIGEM_META[chave] || ORIGEM_META.epo;
+  }
+
+  // Abrir a evidência que os outros enviaram: imagem e PDF o navegador mostra
+  // em outra aba; planilha e documento ele baixa. Sem isso o auditor no celular
+  // fica olhando um nome de arquivo sem conseguir ver o conteúdo.
+  function abrirEvidencia(url, nome) {
+    if (!url) return false;
+    var ext = String(nome || url).toLowerCase().split("?")[0].split(".").pop();
+    var noNavegador = /^(pdf|png|jpe?g|gif|webp|bmp|avif|svg|txt)$/.test(ext);
+    if (noNavegador) {
+      window.open(url, "_blank", "noopener");
+      return true;
+    }
+    // Planilha, documento, zip: baixa em vez de abrir uma aba em branco.
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = nome || "";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return true;
   }
 
   // -----------------------------------------------------------------------
@@ -304,6 +342,9 @@
     getParam: getParam,
     toast: toast,
     confirmar: confirmar,
+    ORIGENS: ORIGEM_ORDEM,
+    origemMeta: origemMeta,
+    abrirEvidencia: abrirEvidencia,
     badgeGravidade: badgeGravidade,
     escapeHtml: escapeHtml,
     documentoDe: documentoDe,
@@ -372,7 +413,7 @@
 
   // Barra inferior (só mobile), no padrão do Gmail: dois atalhos fixos.
   // 1) preencher: "Auditorias pendentes" para a equipe APSIS ou
-  //    "Envio de comprovações" para o responsável da EPO (auth.js troca conforme
+  //    "Envio de evidências" para o responsável da EPO (auth.js troca conforme
   //    a permissão do papel, mantendo sempre dois botões).
   // 2) montagem de estoque: contagem dos itens que chegam na EPO.
   var BOTTOM = [

@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Envio de comprovações - Auditoria de EPOs</title>
+  <title>Envio de evidências - Auditoria de EPOs</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=36">
+  <link rel="stylesheet" href="assets/app.css?v=37">
   <style>
     /* Ajustes locais - tela do responsável da EPO */
 
@@ -207,16 +207,16 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=36"></script>
-  <script src="assets/app.js?v=36"></script>
-  <script src="assets/supabase-config.js?v=36"></script>
+  <script src="assets/data.js?v=37"></script>
+  <script src="assets/app.js?v=37"></script>
+  <script src="assets/supabase-config.js?v=37"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=36"></script>
+  <script src="assets/auth.js?v=37"></script>
   <script>
     (function () {
       "use strict";
 
-      Layout.mount("envio", "Envio de comprovações");
+      Layout.mount("envio", "Envio de evidências");
 
       var esc = App.escapeHtml;
       var page = document.getElementById("page");
@@ -230,8 +230,20 @@
       var anexosPorItem = {};   // itemId -> [anexo]
       var enviando = false;
       // Enviar nao e ponto final: o responsavel pode reabrir e mandar mais
-      // comprovacao quantas vezes precisar, antes ou durante a visita.
+      // evidencia quantas vezes precisar, antes ou durante a visita.
       var editando = false;
+
+      // Quem esta enviando define a origem da evidencia: o gerente da Claro
+      // manda como Claro, o responsavel da EPO como EPO. Sao caixas separadas
+      // na tela de quem confere, e o banco nao deixa um assinar pelo outro.
+      var minhaOrigem = "epo";
+      function descobrirOrigem() {
+        if (DEMO || !window.Auth || !Auth.perfil) return Promise.resolve(minhaOrigem);
+        return Auth.perfil().then(function (p) {
+          minhaOrigem = (p && p.papel === "cliente") ? "claro" : "epo";
+          return minhaOrigem;
+        }, function () { return minhaOrigem; });
+      }
 
       var STATUS_META = {
         pendente:     { label: "Pendente",     cls: "badge-media" },
@@ -390,7 +402,7 @@
           });
       }
 
-      // ?alocacao= abre direto o questionário: vem da tela de comprovações.
+      // ?alocacao= abre direto o questionário: vem da tela de evidências recebidas.
       var alocParam = App.getParam("alocacao");
       function abrirDoLink() {
         if (!alocParam) return;
@@ -493,6 +505,7 @@
               return db.from("alocacao_anexos").insert({
                 alocacao_id: atual.id,
                 item_id: itemId,
+                origem: minhaOrigem,
                 storage_path: path,
                 nome_arquivo: f.name,
                 content_type: f.type || null,
@@ -620,7 +633,7 @@
             if (btn) {
               btn.disabled = false;
               btn.innerHTML = '<i class="ti ti-send" aria-hidden="true"></i>' +
-                (atual.enviada_em ? "Enviar de novo" : "Enviar comprovações");
+                (atual.enviada_em ? "Enviar de novo" : "Enviar evidências");
             }
             console.error("enviarComprovacoes", err);
             App.toast("Não foi possível concluir o envio. Tente novamente.");
@@ -854,7 +867,7 @@
         page.innerHTML =
           avisoDemo() +
           '<p class="page-intro">' +
-            "Relatórios pedidos para a sua EPO. Abra cada um, anexe as comprovações de cada pergunta " +
+            "Relatórios pedidos para a sua EPO. Abra cada um, anexe as evidências de cada pergunta " +
             "e finalize com o botão de envio. Você pode fazer isso de duas formas: <b>antes da visita</b> " +
             "(prévia, para adiantar o trabalho) ou <b>durante a visita</b> do colaborador APSIS - neste caso " +
             "cada arquivo aparece na tela dele na hora." +
@@ -953,7 +966,7 @@
             "</span>" +
             '<button class="btn btn-primary" id="btn-enviar" type="button"' + (n < 1 ? " disabled" : "") + ">" +
               '<i class="ti ti-send" aria-hidden="true"></i>' +
-              (jaEnviou ? "Enviar de novo" : "Enviar comprovações") +
+              (jaEnviou ? "Enviar de novo" : "Enviar evidências") +
             "</button>" +
           "</div>";
 
@@ -977,7 +990,7 @@
           (readonly
             ? '<div class="readonly-note">' +
                 '<i class="ti ti-circle-check" aria-hidden="true"></i>' +
-                '<span style="flex:1;">Comprovações enviadas' +
+                '<span style="flex:1;">Evidências enviadas' +
                   (atual.enviada_em ? " em " + esc(dataBr(atual.enviada_em)) : "") +
                 ". Precisa complementar? Você pode adicionar mais a qualquer momento.</span>" +
                 '<button class="btn btn-sm" id="btn-reabrir" type="button" ' +
@@ -1077,10 +1090,10 @@
           avisoDemo() +
           '<div class="card mb-0"><div class="envio-done">' +
             '<span class="envio-done-icon"><i class="ti ti-circle-check" aria-hidden="true"></i></span>' +
-            "<h2>Comprovações enviadas!</h2>" +
+            "<h2>Evidências enviadas!</h2>" +
             "<p><b>" + esc(proc.nome || "Questionário") + "</b> da " + esc(epo.nome || "EPO") +
               " foi enviado com " + totalAnexos() + (totalAnexos() === 1 ? " anexo" : " anexos") +
-              ". A equipe APSIS vai comparar as comprovações com a vistoria feita em campo." +
+              ". A equipe APSIS vai comparar as evidências com a vistoria feita em campo." +
               " Se aparecer mais algum documento, você pode complementar este envio quando quiser." +
             "</p>" +
             '<div class="row wrap" style="gap:10px;justify-content:center;">' +
@@ -1088,7 +1101,7 @@
                 '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar aos meus questionários' +
               "</button>" +
               '<button class="btn btn-ghost" id="btn-complementar" type="button">' +
-                '<i class="ti ti-plus" aria-hidden="true"></i>Adicionar mais comprovações' +
+                '<i class="ti ti-plus" aria-hidden="true"></i>Adicionar mais evidências' +
               "</button>" +
             "</div>" +
           "</div></div>";
@@ -1105,6 +1118,7 @@
       // ------------------------------------------------------------------
       // Início
       // ------------------------------------------------------------------
+      descobrirOrigem();
       carregarAlocacoes();
     })();
   </script>

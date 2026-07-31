@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=36">
+  <link rel="stylesheet" href="assets/app.css?v=37">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -109,11 +109,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=36"></script>
-  <script src="assets/app.js?v=36"></script>
-  <script src="assets/supabase-config.js?v=36"></script>
+  <script src="assets/data.js?v=37"></script>
+  <script src="assets/app.js?v=37"></script>
+  <script src="assets/supabase-config.js?v=37"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=36"></script>
+  <script src="assets/auth.js?v=37"></script>
   <script>
     (function () {
       "use strict";
@@ -225,17 +225,16 @@
       // Estrutura fixa
       // ------------------------------------------------------------------
       page.innerHTML =
-        '<p class="page-intro">' +
-          "Os tópicos e as perguntas de cada auditoria. Altere o texto de uma pergunta, ajuste a evidência " +
-          "sugerida, mude a ordem, inclua o que passou a ser cobrado e desative o que saiu de uso." +
-        "</p>" +
-
         '<section id="qt-nivel1">' +
           '<div class="card mb-0">' +
             '<div class="card-header">' +
               '<div class="section-title">' +
                 '<span class="title">Tópicos</span>' +
-                '<span class="subtitle">Cada tópico é um questionário completo, com o peso dele na nota final</span>' +
+                '<span class="subtitle">' +
+                  "Cada tópico é um questionário completo, com o peso dele na nota final. " +
+                  "Altere o texto de uma pergunta, ajuste a evidência sugerida, mude a ordem, " +
+                  "inclua o que passou a ser cobrado e desative o que saiu de uso." +
+                "</span>" +
               "</div>" +
               '<div class="card-header-action row wrap" style="gap:12px;">' +
                 '<span id="qt-conta-topicos" style="font-size:13px;color:var(--text-2);"></span>' +
