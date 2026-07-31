@@ -440,6 +440,7 @@ img { max-width: 100%; display: block; }
 /* ------------------------------------------------------------- Score bar */
 .score-bar {
   position: relative;
+  display: block;   /* span inline ignora width: sem isto a barra colapsa */
   height: 8px;
   border-radius: 999px;
   background: var(--surface-2);

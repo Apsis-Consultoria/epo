@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=28">
+  <link rel="stylesheet" href="assets/app.css?v=29">
   <style>
     /* Ajustes locais da tela de ranking (linha expansível) */
     .rank-row { cursor: pointer; }
@@ -65,19 +65,30 @@
       margin-bottom: 4px;
     }
     .proc-nome {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
       font-size: 12px;
       color: var(--text-2);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .proc-ponto {
+      flex: 0 0 auto;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .proc-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .proc-pct {
       font-size: 12px;
       font-weight: 600;
       color: var(--text);
       font-variant-numeric: tabular-nums;
     }
-    .proc-cell .score-bar { height: 6px; }
+    .proc-cell .score-bar { height: 8px; }
 
     .rev-list { display: flex; flex-direction: column; gap: 12px; }
     .rev-item { min-width: 0; }
@@ -91,7 +102,7 @@
       color: var(--text-2);
     }
     .rev-val { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
-    .rev-item .score-bar { height: 6px; }
+    .rev-item .score-bar { height: 8px; }
     .rev-note { margin: 4px 0 0; font-size: 11px; color: var(--text-muted); }
   </style>
 </head>
@@ -104,11 +115,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=28"></script>
-  <script src="assets/app.js?v=28"></script>
-  <script src="assets/supabase-config.js?v=28"></script>
+  <script src="assets/data.js?v=29"></script>
+  <script src="assets/app.js?v=29"></script>
+  <script src="assets/supabase-config.js?v=29"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=28"></script>
+  <script src="assets/auth.js?v=29"></script>
   <script>
     (function () {
       "use strict";
@@ -185,8 +196,8 @@
           '<div class="row wrap" style="gap:16px;">' +
             '<span class="muted" style="font-size:12px;">Cortes de classificação:</span>' +
             '<span class="badge badge-ouro"><i class="ti ti-circle-filled" aria-hidden="true"></i>Ouro &ge; 85</span>' +
-            '<span class="badge badge-prata"><i class="ti ti-circle-filled" aria-hidden="true"></i>Prata 70&ndash;84</span>' +
-            '<span class="badge badge-bronze"><i class="ti ti-circle-filled" aria-hidden="true"></i>Bronze 55&ndash;69</span>' +
+            '<span class="badge badge-prata"><i class="ti ti-circle-filled" aria-hidden="true"></i>Prata 70-84</span>' +
+            '<span class="badge badge-bronze"><i class="ti ti-circle-filled" aria-hidden="true"></i>Bronze 55-69</span>' +
             '<span class="badge badge-critico"><i class="ti ti-circle-filled" aria-hidden="true"></i>Crítico &lt; 55</span>' +
           "</div>" +
         "</div>";
@@ -208,13 +219,37 @@
         return lista;
       }
 
-      function barra(pct, metaPct) {
-        var tier = App.tierOf(pct);
+      // Cada processo tem a sua cor fixa. Bate o olho no painel e sabe que
+      // faixa está falando de logística reversa e qual fala de presos em
+      // assinante, sem precisar ler rótulo nenhum.
+      var CORES_PROCESSO = {
+        "reversa":                 ["#15806B", "#3FC2A3"],
+        "baixas":                  ["#2563EB", "#6FA4FA"],
+        "armazenagem":             ["#7C3AED", "#AC8CFB"],
+        "recebimento-expedicao":   ["#65A30D", "#A9E635"],
+        "presos":                  ["#F47920", "#FBB16A"],
+        "treinamento":             ["#DB2777", "#F472B6"],
+        "governanca":              ["#DC2626", "#F87171"],
+        "documentacao":            ["#475569", "#8B9AAD"]
+      };
+      // Processo novo que apareça depois ainda ganha cor própria.
+      var CORES_RESERVA = [
+        ["#0E7490", "#38BDF8"], ["#9333EA", "#C084FC"], ["#CA8A04", "#FACC15"],
+        ["#0F766E", "#2DD4BF"], ["#4F46E5", "#818CF8"], ["#BE185D", "#F9A8D4"]
+      ];
+
+      function gradienteProcesso(id, i) {
+        var par = CORES_PROCESSO[id] || CORES_RESERVA[i % CORES_RESERVA.length];
+        return "linear-gradient(90deg," + par[0] + " 0%," + par[1] + " 100%)";
+      }
+
+      function barra(pct, fundo) {
+        var estilo = "width:" + pct + "%;";
+        var classe = "score-fill";
+        if (fundo) estilo += "background:" + fundo + ";";
+        else classe += " tier-" + App.tierOf(pct);
         return '<span class="score-bar">' +
-          '<span class="score-fill tier-' + tier + '" style="width:' + pct + '%;"></span>' +
-          (metaPct != null
-            ? '<span class="meta-line" style="left:' + metaPct + '%;" title="Meta ' + metaPct + '%"></span>'
-            : "") +
+          '<span class="' + classe + '" style="' + estilo + '"></span>' +
         "</span>";
       }
 
@@ -225,13 +260,17 @@
         var r = e.reversa || {};
 
         var procs = v
-          ? v.secoes.map(function (s) {
+          ? v.secoes.map(function (s, i) {
+              var cor = gradienteProcesso(s.processoId, i);
               return '<div class="proc-cell">' +
                 '<div class="proc-head">' +
-                  '<span class="proc-nome" title="' + esc(s.nome) + '">' + esc(s.nome) + "</span>" +
+                  '<span class="proc-nome" title="' + esc(s.nome) + '">' +
+                    '<span class="proc-ponto" style="background:' + cor + ';"></span>' +
+                    '<span class="proc-txt">' + esc(s.nome) + "</span>" +
+                  "</span>" +
                   '<span class="proc-pct">' + App.fmtPct(s.pct) + "</span>" +
                 "</div>" +
-                barra(s.pct, null) +
+                barra(s.pct, cor) +
               "</div>";
             }).join("")
           : '<p class="muted" style="font-size:12px;">Sem vistoria registrada.</p>';
@@ -247,12 +286,12 @@
             '<div class="rev-item">' +
               '<div class="rev-head"><span>Aderência à calendarização</span>' +
                 '<span class="rev-val">' + App.fmtPct(r.aderenciaCalendario) + "</span></div>" +
-              barra(r.aderenciaCalendario || 0, null) +
+              barra(r.aderenciaCalendario || 0) +
             "</div>" +
             '<div class="rev-item">' +
               '<div class="rev-head"><span>Volume devolvido vs saldo no sistema</span>' +
                 '<span class="rev-val">' + App.fmtNum(r.volumeDevolvido) + " de " + App.fmtNum(r.saldoSistema) + "</span></div>" +
-              barra(pctVolume || 0, null) +
+              barra(pctVolume || 0) +
               (pctVolume != null
                 ? '<p class="rev-note">' + App.fmtPct(pctVolume) + " do saldo devolvido no período</p>"
                 : "") +
@@ -261,13 +300,13 @@
               '<div class="rev-head"><span>Fontes devolvidas</span>' +
                 '<span class="rev-val ' + (r.pctFontes >= metaFontes ? "delta-up" : "delta-down") + '">' +
                   App.fmtPct(r.pctFontes) + " · meta " + metaFontes + "%</span></div>" +
-              barra(r.pctFontes || 0, metaFontes) +
+              barra(r.pctFontes || 0) +
             "</div>" +
             '<div class="rev-item">' +
               '<div class="rev-head"><span>Controles remotos devolvidos</span>' +
                 '<span class="rev-val ' + (r.pctControles >= metaControles ? "delta-up" : "delta-down") + '">' +
                   App.fmtPct(r.pctControles) + " · meta " + metaControles + "%</span></div>" +
-              barra(r.pctControles || 0, metaControles) +
+              barra(r.pctControles || 0) +
             "</div>" +
           "</div>";
 
