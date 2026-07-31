@@ -17,13 +17,21 @@
   "use strict";
 
   // Mapa e visao de coordenacao: admin e gestor da APSIS e gerente da Claro.
+  // Versao dos arquivos, lida do endereco deste proprio script. Serve para a
+  // troca de uma imagem chegar no navegador em vez de ficar presa no cache.
+  var VERSAO = (function () {
+    var tag = document.querySelector('script[src*="mapa-epos.js"]');
+    var achado = tag && String(tag.getAttribute("src") || "").match(/[?&]v=([^&]+)/);
+    return achado ? "?v=" + achado[1] : "";
+  })();
+
   var PAPEIS_QUE_VEEM = ["admin", "gestor", "cliente"];
 
   var SELOS = {
-    ouro:    { label: "Ouro",         img: "assets/medalhas/ouro.png",   cor: "#C08A2B" },
-    prata:   { label: "Prata",        img: "assets/medalhas/prata.png",  cor: "#7E8592" },
-    bronze:  { label: "Bronze",       img: "assets/medalhas/bronze.png", cor: "#B06A3B" },
-    critico: { label: "Atenção",      img: "assets/medalhas/alerta.png", cor: "#EF4444" },
+    ouro:    { label: "Ouro",         img: "assets/medalhas/ouro.png" + VERSAO,   cor: "#C08A2B" },
+    prata:   { label: "Prata",        img: "assets/medalhas/prata.png" + VERSAO,  cor: "#7E8592" },
+    bronze:  { label: "Bronze",       img: "assets/medalhas/bronze.png" + VERSAO, cor: "#B06A3B" },
+    critico: { label: "Atenção",      img: "assets/medalhas/alerta.png" + VERSAO, cor: "#EF4444" },
     nenhum:  { label: "Sem vistoria", img: null,                         cor: "#94A3B8" }
   };
   var ORDEM = ["ouro", "prata", "bronze", "critico", "nenhum"];
