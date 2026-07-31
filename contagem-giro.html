@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Montagem de estoque - Auditoria de EPOs</title>
+  <title>Contagem Logística Reversa - Auditoria de EPOs</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=29">
+  <link rel="stylesheet" href="assets/app.css?v=30">
   <style>
     /* ==========================================================================
-       Montagem de estoque (contagem de giro) - questionario de tela cheia,
+       Contagem Logistica Reversa (contagem de giro) - questionario de tela cheia,
        mesmo padrao visual do assistente de auditoria (auditoria.html).
        Pensado para ser preenchido no navegador do celular, dentro da EPO.
        ========================================================================== */
@@ -404,7 +404,7 @@
 <body class="wiz-body">
   <div class="wiz-shell">
     <header class="wiz-header" id="wiz-header">
-      <a class="wiz-icon-btn" href="index.html" aria-label="Sair da contagem"><i class="ti ti-x" aria-hidden="true"></i></a>
+      <a class="wiz-icon-btn" href="index.html" aria-label="Voltar" title="Voltar"><i class="ti ti-arrow-left" aria-hidden="true"></i></a>
       <div class="wiz-progress-track"><div class="wiz-progress-fill" id="wiz-progress"></div></div>
       <span class="wiz-counter" id="wiz-counter">1/1</span>
     </header>
@@ -415,13 +415,13 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=29"></script>
-  <script src="assets/app.js?v=29"></script>
+  <script src="assets/data.js?v=30"></script>
+  <script src="assets/app.js?v=30"></script>
   <script src="assets/catalogo-giro.js"></script>
-  <script src="assets/estoque-planilha.js?v=29"></script>
-  <script src="assets/supabase-config.js?v=29"></script>
+  <script src="assets/estoque-planilha.js?v=30"></script>
+  <script src="assets/supabase-config.js?v=30"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=29"></script>
+  <script src="assets/auth.js?v=30"></script>
   <script>
     (function () {
       "use strict";
@@ -622,7 +622,7 @@
         return (
           '<div class="wiz-intro">' +
             '<div class="wiz-intro-icon"><i class="ti ti-packages" aria-hidden="true"></i></div>' +
-            '<p class="wiz-eyebrow">Montagem de estoque</p>' +
+            '<p class="wiz-eyebrow">Contagem Logística Reversa</p>' +
             '<h1 class="wiz-intro-title">Contagem do estoque da EPO</h1>' +
             '<p class="wiz-intro-sub">Conte o que chegou na EPO, item por item. A contagem mostra quanto item de alto giro está sendo perdido na devolução do campo.</p>' +
             '<div class="wiz-intro-stats">' +
@@ -649,7 +649,7 @@
         }).join("");
 
         return (
-          '<p class="wiz-eyebrow">Montagem de estoque · Identificação</p>' +
+          '<p class="wiz-eyebrow">Contagem Logística Reversa · Identificação</p>' +
           '<h1 class="wiz-question">Onde e quem está fazendo a contagem?</h1>' +
           '<div class="wiz-evidence"><i class="ti ti-info-circle" aria-hidden="true"></i>' +
             "<span>A contagem é registrada no nome da <b>EPO</b> e de quem contou. " +
@@ -674,7 +674,7 @@
       function renderItens() {
         var e = epoAtual();
         return (
-          '<p class="wiz-eyebrow">Montagem de estoque · Itens</p>' +
+          '<p class="wiz-eyebrow">Contagem Logística Reversa · Itens</p>' +
           '<p class="wiz-subeyebrow">' + (e ? esc(e.nome) + " · " + esc(e.cidade || "-") + " - " + esc(e.uf || "-") : "EPO não selecionada") + "</p>" +
           '<h1 class="wiz-question">Quais itens chegaram e em qual quantidade?</h1>' +
           renderPlanilha() +
@@ -1088,7 +1088,7 @@
         var e = epoAtual();
 
         return (
-          '<p class="wiz-eyebrow">Montagem de estoque · Resumo</p>' +
+          '<p class="wiz-eyebrow">Contagem Logística Reversa · Resumo</p>' +
           '<p class="wiz-subeyebrow">' +
             (e ? esc(e.nome) + " · " + esc(e.cidade || "-") + " - " + esc(e.uf || "-") + " · " : "") +
             esc(state.responsavel || "sem responsável") + " · " + esc(dataBr(state.data || hojeIso())) +
@@ -1319,7 +1319,7 @@
             '<h1 class="wiz-done-title">Contagem enviada</h1>' +
             '<p class="wiz-done-sub">' +
               (gravadaNoBanco
-                ? "Montagem de estoque de <b>" + esc(e ? e.nome : "EPO") + "</b> registrada. Ela entra no indicador de perda de itens de alto giro."
+                ? "Contagem da logística reversa de <b>" + esc(e ? e.nome : "EPO") + "</b> registrada. Ela entra no indicador de perda de itens de alto giro."
                 : "") +
             "</p>" +
             '<div class="wiz-done-score">' +

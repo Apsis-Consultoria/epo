@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=29">
+  <link rel="stylesheet" href="assets/app.css?v=30">
   <style>
     /* Ajustes locais - tela de auditorias pendentes (escolher EPO e questionário) */
 
@@ -130,11 +130,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=29"></script>
-  <script src="assets/app.js?v=29"></script>
-  <script src="assets/supabase-config.js?v=29"></script>
+  <script src="assets/data.js?v=30"></script>
+  <script src="assets/app.js?v=30"></script>
+  <script src="assets/supabase-config.js?v=30"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=29"></script>
+  <script src="assets/auth.js?v=30"></script>
   <script>
     (function () {
       "use strict";
@@ -294,7 +294,7 @@
             '<div class="modal-footer">' +
               '<button class="btn btn-ghost" id="pd-modal-cancel" type="button">Cancelar</button>' +
               '<button class="btn btn-primary" id="pd-modal-ok" type="button">' +
-                '<i class="ti ti-device-mobile" aria-hidden="true"></i>Começar a auditoria' +
+                '<i class="ti ti-clipboard-check" aria-hidden="true"></i>Começar a auditoria' +
               "</button>" +
             "</div>" +
           "</div>" +
@@ -537,7 +537,7 @@
         } else {
           acoes =
             '<a class="btn btn-primary" href="' + esc(linkPreencher(l)) + '">' +
-              '<i class="ti ti-device-mobile" aria-hidden="true"></i>Preencher no celular' +
+              '<i class="ti ti-clipboard-check" aria-hidden="true"></i>Preencher auditoria' +
             "</a>";
         }
 
@@ -853,6 +853,8 @@
         agrupar();
         carregou = true;
         erro = "";
+        // ?nova=1 chega da tela principal: abre direto a nova auditoria
+        if (primeira && App.getParam("nova") === "1") abrirNova();
         // ?epo= abre direto as auditorias daquela EPO (vem do detalhe da EPO)
         if (primeira && epoParam && !epoAberta) {
           for (var i = 0; i < grupos.length; i++) {

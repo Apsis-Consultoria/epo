@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=29">
+  <link rel="stylesheet" href="assets/app.css?v=30">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -125,19 +125,19 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=29"></script>
-  <script src="assets/app.js?v=29"></script>
-  <script src="assets/geo-br.js?v=29"></script>
-  <script src="assets/supabase-config.js?v=29"></script>
+  <script src="assets/data.js?v=30"></script>
+  <script src="assets/app.js?v=30"></script>
+  <script src="assets/geo-br.js?v=30"></script>
+  <script src="assets/supabase-config.js?v=30"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=29"></script>
+  <script src="assets/auth.js?v=30"></script>
   <script>
     (function () {
       "use strict";
 
       var acoes =
         '<button class="btn btn-primary btn-sm" id="btn-nova-epo" type="button">' +
-          '<i class="ti ti-building-plus" aria-hidden="true"></i>Nova EPO' +
+          '<i class="ti ti-building-plus" aria-hidden="true"></i>Nova Unidade' +
         "</button>";
 
       Layout.mount("epos", "EPOs", acoes);
@@ -198,7 +198,7 @@
         '<div class="modal-overlay" id="epo-modal" role="dialog" aria-modal="true" aria-labelledby="epo-modal-title">' +
           '<div class="modal modal-largo">' +
             '<div class="modal-header">' +
-              '<h2 class="modal-title" id="epo-modal-title">Nova EPO</h2>' +
+              '<h2 class="modal-title" id="epo-modal-title">Nova unidade</h2>' +
               '<button class="modal-close" id="epo-modal-close" type="button" aria-label="Fechar"><i class="ti ti-x" aria-hidden="true"></i></button>' +
             "</div>" +
             '<div class="modal-body">' +
@@ -394,7 +394,7 @@
         document.getElementById("f-uf").value = (epo && epo.uf) || "SP";
         document.getElementById("f-cep").value = (epo && epo.cep) || "";
         document.getElementById("f-ativo").value = (epo && epo.ativo === false) ? "0" : "1";
-        document.getElementById("epo-modal-title").textContent = epo ? "Editar EPO" : "Nova EPO";
+        document.getElementById("epo-modal-title").textContent = epo ? "Editar unidade" : "Nova unidade";
 
         // e-mail já usado nos pedidos desta EPO vem preenchido
         var emailAtual = "";
@@ -473,7 +473,7 @@
           tbody.innerHTML =
             '<tr><td colspan="7"><div class="empty">' +
             '<i class="ti ti-building-warehouse" aria-hidden="true"></i>' +
-            "<p>Nenhuma EPO cadastrada ainda. Comece em <b>Nova EPO</b>.</p>" +
+            "<p>Nenhuma EPO cadastrada ainda. Comece em <b>Nova Unidade</b>.</p>" +
             "</div></td></tr>";
           return;
         }
@@ -624,19 +624,38 @@
               (v.auditorias ? " (" + v.auditorias + (v.auditorias === 1 ? " auditoria" : " auditorias") + ")" : "") +
               (v.contagens ? (v.auditorias ? " e" : "") + " " + v.contagens + (v.contagens === 1 ? " contagem de estoque" : " contagens de estoque") : "") +
               ". Excluir apagaria a nota dela do ranking, do mapa e do comparativo, e isso não tem volta.\n\n" +
-              "Deseja desativar a EPO? Ela sai da operação e o histórico continua.";
-            if (!window.confirm(trava)) { btn.disabled = false; return; }
-            return desativarEpo(epo, btn);
+              "Desativar tira a unidade da operação e mantém o histórico.";
+            return App.confirmar({
+              titulo: "Esta unidade tem histórico",
+              texto: trava,
+              confirmar: "Desativar unidade",
+              cancelar: "Deixar como está"
+            }).then(function (ok) {
+              if (!ok) { btn.disabled = false; return; }
+              return desativarEpo(epo, btn);
+            });
           }
 
-          var aviso = "Excluir a " + rotuloEpo(epo.nome) + "?";
+          var aviso = "";
           if (v.pedidos) {
-            aviso += "\n\n" + v.pedidos + (v.pedidos === 1 ? " questionário pedido" : " questionários pedidos") +
-              " e os documentos anexados nele" + (v.pedidos === 1 ? "" : "s") + " também saem da lista.";
+            aviso += v.pedidos + (v.pedidos === 1 ? " questionário pedido" : " questionários pedidos") +
+              " e os documentos anexados nele" + (v.pedidos === 1 ? "" : "s") + " também saem da lista.\n\n";
           }
-          aviso += "\n\nEssa ação não tem volta.";
-          if (!window.confirm(aviso)) { btn.disabled = false; return; }
+          aviso += "Essa ação não tem volta.";
 
+          return App.confirmar({
+            titulo: "Excluir " + rotuloEpo(epo.nome) + "?",
+            texto: aviso,
+            confirmar: "Excluir",
+            cancelar: "Cancelar",
+            perigo: true
+          }).then(function (ok) {
+            if (!ok) { btn.disabled = false; return; }
+            return seguirComExclusao();
+          });
+        });
+
+        function seguirComExclusao() {
           if (DEMO) {
             epos = epos.filter(function (e) { return String(e.id) !== String(epo.id); });
             pedidos = pedidos.filter(function (a) { return String(a.epoId) !== String(epo.id); });
@@ -666,7 +685,7 @@
               btn.disabled = false;
               App.toast("Não foi possível excluir a EPO agora. Tente novamente.");
             });
-        });
+        }
       }
 
       // ------------------------------------------------------------------

@@ -22,10 +22,9 @@
     { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },
     { key: "pendentes",   label: "Auditorias pendentes", icon: "ti-clipboard-list", href: "pendentes.html" },
-    { key: "auditoria",   label: "Contagem Logística Reversa", icon: "ti-clipboard-check", href: "auditoria.html?processo=contagem-reversa" },
     { key: "envio",       label: "Envio de comprovações", icon: "ti-cloud-upload", href: "envio.html" },
     { key: "checagem",    label: "Comprovações",     icon: "ti-zoom-check",       href: "checagem.html" },
-    { key: "giro",        label: "Montagem de estoque", icon: "ti-packages",      href: "contagem-giro.html" },
+    { key: "giro",        label: "Contagem Logística Reversa", icon: "ti-packages", href: "contagem-giro.html" },
     // Alocações, acessos e evidências são bastidores: quem opera o dia a dia
     // não passa por eles. Ficam como subtópicos de Configurações.
     { key: "config",      label: "Configurações",    icon: "ti-settings",         href: "configuracoes.html",
@@ -154,6 +153,85 @@
   }
 
   // -----------------------------------------------------------------------
+  // Confirmação. O aviso do navegador escreve o endereço do site na frente da
+  // pergunta e usa os botões dele; aqui a pergunta é do sistema.
+  //
+  // App.confirmar({ titulo, texto, confirmar, cancelar, perigo }) -> Promise
+  // O texto aceita linha em branco para separar parágrafos.
+  // -----------------------------------------------------------------------
+  function confirmar(opcoes) {
+    var o = opcoes || {};
+
+    var corpo = String(o.texto == null ? "" : o.texto)
+      .split(/\n{2,}/)
+      .map(function (par) {
+        return "<p>" + escapeHtml(par).replace(/\n/g, "<br>") + "</p>";
+      }).join("");
+
+    return new Promise(function (resolve) {
+      var overlay = document.createElement("div");
+      overlay.className = "modal-overlay confirmar-overlay";
+      overlay.innerHTML =
+        '<div class="modal confirmar-modal" role="dialog" aria-modal="true" aria-labelledby="confirmar-titulo">' +
+          '<div class="modal-header">' +
+            '<h2 class="modal-title" id="confirmar-titulo">' + escapeHtml(o.titulo || "Confirmar") + "</h2>" +
+            '<button class="modal-close" type="button" data-resposta="0" aria-label="Fechar">' +
+              '<i class="ti ti-x" aria-hidden="true"></i>' +
+            "</button>" +
+          "</div>" +
+          '<div class="modal-body"><div class="confirmar-texto">' + corpo + "</div></div>" +
+          '<div class="modal-footer">' +
+            '<button class="btn btn-ghost" type="button" data-resposta="0">' +
+              escapeHtml(o.cancelar || "Cancelar") +
+            "</button>" +
+            '<button class="btn ' + (o.perigo ? "btn-danger" : "btn-primary") + '" type="button" data-resposta="1">' +
+              escapeHtml(o.confirmar || "Confirmar") +
+            "</button>" +
+          "</div>" +
+        "</div>";
+      document.body.appendChild(overlay);
+      void overlay.offsetWidth;             // reflow: a entrada precisa animar
+      overlay.classList.add("is-open");
+
+      var focoAnterior = document.activeElement;
+      var botoes = overlay.querySelectorAll("[data-resposta]");
+      var confirmarBtn = botoes[botoes.length - 1];
+      // O overlay entra invisível e só aparece com a transição; focar antes
+      // disso não pega. Um tique depois, pega.
+      setTimeout(function () { confirmarBtn.focus(); }, 60);
+
+      var vivo = true;
+      function fechar(resposta) {
+        if (!vivo) return;
+        vivo = false;
+        document.removeEventListener("keydown", noTeclado, true);
+        overlay.classList.remove("is-open");
+        setTimeout(function () {
+          if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+          if (focoAnterior && focoAnterior.focus) focoAnterior.focus();
+        }, 180);
+        resolve(resposta);
+      }
+
+      // Esc cancela. Enter não precisa de tratamento: o botão em foco já
+      // responde a ele, e a tela por trás não recebe a tecla.
+      function noTeclado(ev) {
+        if (ev.key === "Escape") { ev.stopPropagation(); fechar(false); }
+      }
+
+      Array.prototype.forEach.call(botoes, function (b) {
+        b.addEventListener("click", function () {
+          fechar(b.getAttribute("data-resposta") === "1");
+        });
+      });
+      overlay.addEventListener("click", function (ev) {
+        if (ev.target === overlay) fechar(false);
+      });
+      document.addEventListener("keydown", noTeclado, true);
+    });
+  }
+
+  // -----------------------------------------------------------------------
   // Documento aberto quando o anexo não tem arquivo baixável associado.
   // Monta uma página com o nome do arquivo e abre por blob, para o clique
   // nunca terminar em erro ou em aviso.
@@ -224,6 +302,7 @@
     processoById: processoById,
     getParam: getParam,
     toast: toast,
+    confirmar: confirmar,
     badgeGravidade: badgeGravidade,
     escapeHtml: escapeHtml,
     documentoDe: documentoDe,
@@ -253,14 +332,15 @@
             "</a>"
           );
         }).join("");
-        var aberto = isActive || filhoAtivo;
+        // O painel dos filhos fica sempre aberto: subtópico que só aparece
+        // quando a seção está em uso dá a impressão de que a tela sumiu.
         return (
           '<a class="nav-item' + (isActive || filhoAtivo ? " active" : "") + '" href="' + n.href + '"' +
             (isActive ? ' aria-current="page"' : "") + ">" +
             '<i class="ti ' + n.icon + '" aria-hidden="true"></i>' +
             '<span class="nav-label">' + n.label + "</span>" +
           "</a>" +
-          '<div class="nav-sub' + (aberto ? " is-open" : "") + '" data-subnav-panel="' + n.key + '">' + kids + "</div>"
+          '<div class="nav-sub is-open" data-subnav-panel="' + n.key + '">' + kids + "</div>"
         );
       }
 
@@ -297,7 +377,7 @@
   var BOTTOM = [
     { key: "pendentes", label: "Auditorias", icon: "ti-clipboard-list",  href: "pendentes.html" },
     { key: "envio",     label: "Enviar",     icon: "ti-cloud-upload",    href: "envio.html", oculto: true },
-    { key: "giro",      label: "Estoque",    icon: "ti-packages",        href: "contagem-giro.html" }
+    { key: "giro",      label: "Contagem",   icon: "ti-packages",        href: "contagem-giro.html" }
   ];
 
   function buildBottombar(activeKey) {

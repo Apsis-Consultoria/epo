@@ -813,6 +813,18 @@ img { max-width: 100%; display: block; }
   gap: 10px;
 }
 
+/* Confirmação do próprio sistema (App.confirmar) */
+.confirmar-overlay { z-index: 120; }
+.confirmar-modal { max-width: 470px; }
+.confirmar-texto { font-size: 13.5px; color: var(--text-2); line-height: 1.55; }
+.confirmar-texto p { margin: 0 0 10px; }
+.confirmar-texto p:last-child { margin-bottom: 0; }
+.confirmar-texto strong { color: var(--text); font-weight: 600; }
+@media (max-width: 600px) {
+  .modal-footer { flex-wrap: wrap; }
+  .confirmar-modal .modal-footer .btn { flex: 1 1 auto; justify-content: center; min-height: 44px; }
+}
+
 /* ---------------------------------------------------------- Empty state */
 .empty {
   text-align: center;

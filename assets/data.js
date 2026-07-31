@@ -983,11 +983,11 @@
     { key: "comparativo", label: "Comparativo",              icone: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial",         icone: "ti-report-analytics", href: "gerencial.html" },
     { key: "pendentes",   label: "Auditorias pendentes",     icone: "ti-clipboard-list",   href: "pendentes.html" },
-    { key: "auditoria",   label: "Contagem Logística Reversa", icone: "ti-clipboard-check",  href: "auditoria.html?processo=contagem-reversa" },
+    { key: "auditoria",   label: "Preenchimento de questionário", icone: "ti-clipboard-check", href: "pendentes.html" },
     { key: "envio",       label: "Envio de comprovações",    icone: "ti-cloud-upload",     href: "envio.html" },
     { key: "checagem",    label: "Comprovações",             icone: "ti-zoom-check",       href: "checagem.html" },
     { key: "alocacoes",   label: "Alocações",                icone: "ti-user-plus",        href: "alocacoes.html" },
-    { key: "giro",        label: "Montagem de estoque",      icone: "ti-packages",         href: "contagem-giro.html" },
+    { key: "giro",        label: "Contagem Logística Reversa", icone: "ti-packages",        href: "contagem-giro.html" },
     { key: "evidencias",  label: "Evidências",               icone: "ti-camera",           href: "evidencias.html" },
     { key: "config",      label: "Configurações",            icone: "ti-settings",         href: "configuracoes.html" },
     { key: "acessos",     label: "Gerenciamento de acessos", icone: "ti-lock-access",      href: "acessos.html" }
@@ -1007,16 +1007,6 @@
     epos: true,  geral: true,  ranking: true,  comparativo: true,  gerencial: true,
     pendentes: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,
     giro: true,  evidencias: true,  config: true,  acessos: true
-  };
-
-  // Tela que o papel alcança, mas que não aparece no menu dele. Para quem
-  // coordena, a tela de Comprovações já mostra os dois lados (o que a EPO
-  // mandou e o que a APSIS vistoriou); os anexos de um questionário se abrem
-  // a partir de lá, e não por uma segunda entrada no menu.
-  var menuOculto = {
-    admin:   ["envio"],
-    gestor:  ["envio"],
-    cliente: ["envio"]
   };
 
   var papeisPreset = {
@@ -1190,7 +1180,6 @@
     evidencias: evidencias,
     paginas: paginas,
     papeisPreset: papeisPreset,
-    menuOculto: menuOculto,
     usuarios: usuarios,
     anexosRecebidos: anexosRecebidos
   };

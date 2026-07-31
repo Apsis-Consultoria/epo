@@ -43,14 +43,14 @@
     return "login.html";
   }
 
-  // Esconde itens do menu sem permissão para o papel. `papel` também tira do
-  // menu as telas que o papel alcança por link, mas não navega pelo menu.
-  function filtrarNav(perms, papel) {
+  // Esconde do menu apenas o que o papel nao alcança. Fora disso o menu
+  // mostra o sistema inteiro: tela que desaparece sem motivo passa a
+  // impressao de que o sistema perdeu funcao.
+  function filtrarNav(perms) {
     if (!perms) return;
-    var ocultos = ((window.APP && window.APP.menuOculto) || {})[papel] || [];
     Object.keys(MAPA_PAGINAS).forEach(function (arq) {
       var key = MAPA_PAGINAS[arq];
-      if (perms[key] === false || ocultos.indexOf(key) >= 0) {
+      if (perms[key] === false) {
         document.querySelectorAll('.nav a[href="' + arq + '"], .nav a[href^="' + arq + '?"]').forEach(function (el) { el.style.display = "none"; });
         // Seção com subtópicos (ex.: Configurações): o pai e o painel dos
         // filhos saem junto com o item.
@@ -348,7 +348,7 @@
         email: "",
         papel: papelT
       });
-      if (permsT) filtrarNav(permsT, papelT);
+      if (permsT) filtrarNav(permsT);
       return Promise.resolve("demo");
     }
     if (!client) {
@@ -386,7 +386,7 @@
           simulado: simulado,
           podeSimular: podeSimular
         });
-        filtrarNav(perms, simulado || p.papel);
+        filtrarNav(perms);
         return simulado ? "ver-como" : "ok";
       });
     });

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=29">
+  <link rel="stylesheet" href="assets/app.css?v=30">
   <style>
     /* Ajustes locais da tela de cadastro de EPO e pedido de relatórios */
 
@@ -135,11 +135,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=29"></script>
-  <script src="assets/app.js?v=29"></script>
-  <script src="assets/supabase-config.js?v=29"></script>
+  <script src="assets/data.js?v=30"></script>
+  <script src="assets/app.js?v=30"></script>
+  <script src="assets/supabase-config.js?v=30"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=29"></script>
+  <script src="assets/auth.js?v=30"></script>
   <script>
     (function () {
       "use strict";
@@ -950,26 +950,37 @@
         if (!btnExcluir) return;
         var id = btnExcluir.getAttribute("data-excluir");
         var alvo = acharLinha(id);
-        var quem = alvo ? alvo.procNome + " de " + alvo.email + " (" + alvo.epoNome + ")" : "este pedido";
-        if (!window.confirm("Excluir o pedido de " + quem + "? Os anexos enviados deixarão de aparecer.")) return;
+        var quem = alvo
+          ? alvo.procNome + "\n" + alvo.email + " · " + alvo.epoNome
+          : "Este pedido";
 
-        if (DEMO) {
-          alocacoes = alocacoes.filter(function (a) { return String(a.id) !== String(id); });
-          renderLista();
-          App.toast("Pedido de relatório excluído.");
-          return;
-        }
+        App.confirmar({
+          titulo: "Excluir o pedido?",
+          texto: quem + "\n\nOs anexos enviados deixarão de aparecer.",
+          confirmar: "Excluir",
+          cancelar: "Cancelar",
+          perigo: true
+        }).then(function (ok) {
+          if (!ok) return;
 
-        Auth.cliente.from("alocacoes").delete().eq("id", id)
-          .then(function (r) {
-            if (r.error) throw r.error;
-            App.toast("Pedido excluído.");
-            return recarregar();
-          })
-          .catch(function (e) {
-            console.error("excluirAlocacao", e);
-            App.toast("Não foi possível excluir. Tente novamente.");
-          });
+          if (DEMO) {
+            alocacoes = alocacoes.filter(function (a) { return String(a.id) !== String(id); });
+            renderLista();
+            App.toast("Pedido de relatório excluído.");
+            return;
+          }
+
+          Auth.cliente.from("alocacoes").delete().eq("id", id)
+            .then(function (r) {
+              if (r.error) throw r.error;
+              App.toast("Pedido excluído.");
+              return recarregar();
+            })
+            .catch(function (e) {
+              console.error("excluirAlocacao", e);
+              App.toast("Não foi possível excluir. Tente novamente.");
+            });
+        });
       });
     })();
   </script>
