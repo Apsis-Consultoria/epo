@@ -18,6 +18,8 @@
 //
 // SEGREDOS (Edge Functions > Secrets), os tres unicos obrigatorios:
 //   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
+// Atencao no CLIENT_SECRET: e o VALOR do segredo, nao o ID dele (o portal do
+// Azure mostra as duas colunas e o valor aparece uma unica vez).
 // Tambem sao aceitos os nomes antigos GRAPH_TENANT_ID / GRAPH_CLIENT_ID /
 // GRAPH_CLIENT_SECRET, para nao depender de como o segredo foi cadastrado.
 // O destino ja vem no codigo com a pasta de teste. Para trocar de pasta sem
@@ -28,7 +30,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
 const ANON = Deno.env.get("SUPABASE_ANON_KEY") || "";
-const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+// Projeto com o formato novo de chave pode nao injetar o nome antigo. Criar o
+// cliente com chave vazia lanca excecao, e a plataforma devolve 502 sem log:
+// foi o que derrubou toda chamada autenticada. Agora aceita os dois nomes e,
+// sem nenhum deles, responde dizendo o que falta.
+const NOMES_SERVICE = [
+  "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY",
+  "SB_SECRET_KEY", "SERVICE_ROLE_KEY"
+];
 
 // Le o primeiro nome que existir e devolve tambem qual foi, para o modo teste
 // poder dizer o que encontrou sem nunca mostrar o valor.
@@ -44,6 +53,9 @@ function segredo(nomes: string[]) {
 const NOMES_TENANT = ["AZURE_TENANT_ID", "GRAPH_TENANT_ID", "SHAREPOINT_TENANT_ID"];
 const NOMES_CLIENT = ["AZURE_CLIENT_ID", "GRAPH_CLIENT_ID", "SHAREPOINT_CLIENT_ID"];
 const NOMES_SEGREDO = ["AZURE_CLIENT_SECRET", "GRAPH_CLIENT_SECRET", "SHAREPOINT_CLIENT_SECRET"];
+
+const cService = segredo(NOMES_SERVICE);
+const SERVICE = cService.valor;
 
 const cTenant = segredo(NOMES_TENANT);
 const cClient = segredo(NOMES_CLIENT);
@@ -126,6 +138,12 @@ function tipoDe(nome: string, tipo: string) {
 // Acesso negado quase sempre e falta de consentimento do administrador no app
 // do Azure. Dizer isso junto do erro economiza uma rodada de investigacao.
 function comDica(msg: string) {
+  if (/AADSTS7000215/i.test(msg)) {
+    return msg + " | o segredo cadastrado parece ser o ID do segredo, e nao o " +
+      "VALOR dele: no portal do Azure, App registrations > o app > Certificates " +
+      "and secrets, copie a coluna Value (ela aparece uma unica vez; se estiver " +
+      "oculta, crie um segredo novo)";
+  }
   if (/403|accessDenied|Access denied|unauthorized/i.test(msg)) {
     return msg + " | confira se o app do Azure tem permissao DE APLICACAO do " +
       "Microsoft Graph com consentimento do administrador (Sites.Selected " +
@@ -149,7 +167,7 @@ async function tokenAzure() {
   });
   const j = await r.json();
   if (!r.ok || !j.access_token) {
-    throw new Error("credenciais recusadas pela Microsoft: " + (j.error_description || j.error || r.status));
+    throw new Error(comDica("credenciais recusadas pela Microsoft: " + (j.error_description || j.error || r.status)));
   }
   return j.access_token as string;
 }
@@ -363,7 +381,19 @@ async function listarEvidencias(admin: Cliente, auditoriaId: string) {
 }
 
 // ------------------------------------------------------------------ handler
+// Qualquer excecao daqui para baixo virava 502 sem mensagem, o pior cenario
+// para descobrir o que aconteceu. O tratar() abaixo fica dentro de um try.
 Deno.serve(async (req: Request) => {
+  try {
+    return await tratar(req);
+  } catch (e) {
+    const msg = String((e as Error).message || e);
+    console.error("falha nao tratada:", msg);
+    return json({ ok: false, motivo: "falha inesperada: " + msg }, 500);
+  }
+});
+
+async function tratar(req: Request) {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, motivo: "metodo nao suportado" }, 405);
 
@@ -397,6 +427,15 @@ Deno.serve(async (req: Request) => {
     }, 200);
   }
 
+  if (!SERVICE) {
+    return json({
+      ok: false,
+      configurado: false,
+      motivo: "chave de servico do projeto ausente nesta funcao",
+      faltando: [NOMES_SERVICE.join(" ou ")]
+    }, 200);
+  }
+
   const admin = createClient(PROJETO_URL, SERVICE, { auth: { persistSession: false } });
 
   // Conferencia de credenciais e destino, sem subir nada. So a equipe que
@@ -424,10 +463,13 @@ Deno.serve(async (req: Request) => {
         pasta_id: pastaId,
         pasta_url: pasta.webUrl || null,
         // so os NOMES dos segredos encontrados, nunca o valor
-        segredos: { tenant: cTenant.nome, client_id: cClient.nome, secret: cSegredo.nome }
+        segredos: {
+          tenant: cTenant.nome, client_id: cClient.nome, secret: cSegredo.nome,
+          servico: cService.nome
+        }
       });
     } catch (e) {
-      return json({ ok: false, motivo: String((e as Error).message || e) }, 502);
+      return json({ ok: false, motivo: String((e as Error).message || e) });
     }
   }
 
@@ -457,7 +499,7 @@ Deno.serve(async (req: Request) => {
       pendentes = await listarEvidencias(admin, auditoriaId);
     }
   } catch (e) {
-    return json({ ok: false, motivo: String((e as Error).message || e) }, 500);
+    return json({ ok: false, motivo: String((e as Error).message || e) });
   }
 
   if (!pendentes.length) return json({ ok: true, enviados: 0, motivo: "nada pendente" });
@@ -468,7 +510,7 @@ Deno.serve(async (req: Request) => {
     token = await tokenAzure();
     destino = await resolverDestino(token);
   } catch (e) {
-    return json({ ok: false, motivo: String((e as Error).message || e) }, 502);
+    return json({ ok: false, motivo: String((e as Error).message || e) });
   }
 
   const comecou = Date.now();
@@ -523,4 +565,4 @@ Deno.serve(async (req: Request) => {
     lote_cheio: pendentes.length >= LOTE || adiados > 0,
     falhas: falhas
   });
-});
+}
