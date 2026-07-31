@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=35">
+  <link rel="stylesheet" href="assets/app.css?v=36">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -109,11 +109,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=35"></script>
-  <script src="assets/app.js?v=35"></script>
-  <script src="assets/supabase-config.js?v=35"></script>
+  <script src="assets/data.js?v=36"></script>
+  <script src="assets/app.js?v=36"></script>
+  <script src="assets/supabase-config.js?v=36"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=35"></script>
+  <script src="assets/auth.js?v=36"></script>
   <script>
     (function () {
       "use strict";
@@ -139,6 +139,10 @@
       var podeEditar = DEMO;    // só a coordenação edita o catálogo
       var carregou = false;
       var erro = "";
+      // A tela abre com o catalogo em uso. O que foi desativado fica atras de um
+      // interruptor: ninguem quer ver versao antiga no dia a dia, mas tambem
+      // nao se pode perder o caminho para reativar.
+      var mostrarInativos = false;
       var editandoTopico = null;   // id ou null (novo)
       var editandoPergunta = null; // id ou null (nova)
       var seqDemo = 0;
@@ -233,7 +237,13 @@
                 '<span class="title">Tópicos</span>' +
                 '<span class="subtitle">Cada tópico é um questionário completo, com o peso dele na nota final</span>' +
               "</div>" +
-              '<span id="qt-conta-topicos" style="font-size:13px;color:var(--text-2);"></span>' +
+              '<div class="card-header-action row wrap" style="gap:12px;">' +
+                '<span id="qt-conta-topicos" style="font-size:13px;color:var(--text-2);"></span>' +
+                '<label class="checkbox" for="qt-ver-inativos" style="font-size:12.5px;">' +
+                  '<input type="checkbox" id="qt-ver-inativos">' +
+                  "<span>Mostrar desativados</span>" +
+                "</label>" +
+              "</div>" +
             "</div>" +
             '<div class="table-wrap">' +
               '<table class="table">' +
@@ -262,7 +272,11 @@
                 '<span class="title">Perguntas</span>' +
                 '<span class="subtitle">A ordem aqui é a ordem em que aparecem para quem preenche</span>' +
               "</div>" +
-              '<div class="card-header-action">' +
+              '<div class="card-header-action row wrap" style="gap:12px;">' +
+                '<label class="checkbox" for="qt-ver-inativos-2" style="font-size:12.5px;">' +
+                  '<input type="checkbox" id="qt-ver-inativos-2">' +
+                  "<span>Mostrar desativadas</span>" +
+                "</label>" +
                 '<button class="btn btn-primary btn-sm" id="btn-nova-pergunta" type="button">' +
                   '<i class="ti ti-plus" aria-hidden="true"></i>Nova pergunta' +
                 "</button>" +
@@ -467,10 +481,15 @@
           elCorpo.innerHTML = '<tr><td class="qt-carregando" colspan="5">Carregando tópicos...</td></tr>';
           return;
         }
+        var visiveis = topicos.filter(function (t) { return mostrarInativos || t.ativo !== false; });
+        var inativos = topicos.length - topicos.filter(function (t) { return t.ativo !== false; }).length;
         document.getElementById("qt-conta-topicos").textContent =
-          topicos.length ? topicos.length + (topicos.length === 1 ? " tópico" : " tópicos") : "";
+          (visiveis.length ? visiveis.length + (visiveis.length === 1 ? " tópico" : " tópicos") : "") +
+          (!mostrarInativos && inativos
+            ? " · " + inativos + (inativos === 1 ? " desativado" : " desativados") + " fora da lista"
+            : "");
 
-        if (!topicos.length) {
+        if (!visiveis.length) {
           elCorpo.innerHTML =
             '<tr><td colspan="5"><div class="empty">' +
               '<i class="ti ti-folder-off" aria-hidden="true"></i>' +
@@ -484,18 +503,18 @@
           return;
         }
 
-        elCorpo.innerHTML = topicos.map(linhaTopico).join("");
+        elCorpo.innerHTML = visiveis.map(linhaTopico).join("");
         renderSoma();
       }
 
       // ------------------------------------------------------------------
       // Nível 2 - perguntas do tópico
       // ------------------------------------------------------------------
-      function linhaPergunta(p, i, total) {
+      function linhaPergunta(p, i, total, numero) {
         return (
           '<tr' + (p.ativo === false ? ' class="qt-inativo"' : "") + ">" +
             '<td style="width:38px;">' +
-              (p.ativo === false ? "" : '<span class="qt-num">' + (i + 1) + "</span>") +
+              (p.ativo === false ? "" : '<span class="qt-num">' + numero + "</span>") +
             "</td>" +
             '<td><span class="qt-pergunta">' + esc(p.pergunta) + "</span>" +
               (p.requer_foto || p.grave
@@ -553,11 +572,13 @@
             badgeSituacao(t.ativo) +
           "</div>";
 
-        if (!perguntas.length) {
+        var visiveis = perguntas.filter(function (p) { return mostrarInativos || p.ativo !== false; });
+        if (!visiveis.length) {
           elPerguntas.innerHTML =
             '<div class="empty">' +
               '<i class="ti ti-help-off" aria-hidden="true"></i>' +
-              "<div>Este tópico ainda não tem perguntas.</div>" +
+              "<div>Este tópico ainda não tem perguntas" +
+                (!mostrarInativos && perguntas.length ? " ativas" : "") + ".</div>" +
               (podeEditar
                 ? '<div class="qt-vazio-acao"><button class="btn btn-primary btn-sm" type="button" data-nova-pergunta="1">' +
                     '<i class="ti ti-plus" aria-hidden="true"></i>Nova pergunta</button></div>'
@@ -566,13 +587,18 @@
           return;
         }
 
-        var total = perguntas.length;
+        // A numeração conta só as ativas: é essa a ordem que quem preenche vê.
+        var seq = 0;
+        var total = visiveis.length;
         elPerguntas.innerHTML =
           '<div class="table-wrap"><table class="table">' +
             "<thead><tr>" +
               "<th></th><th>Pergunta</th><th>Evidência esperada</th><th>Situação</th><th></th>" +
             "</tr></thead>" +
-            "<tbody>" + perguntas.map(function (p, i) { return linhaPergunta(p, i, total); }).join("") + "</tbody>" +
+            "<tbody>" + visiveis.map(function (p, i) {
+              if (p.ativo !== false) seq += 1;
+              return linhaPergunta(p, i, total, seq);
+            }).join("") + "</tbody>" +
           "</table></div>";
       }
 
@@ -912,25 +938,29 @@
       // Ordem das perguntas (troca com a vizinha)
       // ------------------------------------------------------------------
       function mover(id, direcao) {
+        // A ordem que importa é a das perguntas ativas: é a sequência que quem
+        // preenche vê. A desativada fica onde está.
+        var ativas = perguntas.filter(function (p) { return p.ativo !== false; });
         var i = -1;
-        for (var k = 0; k < perguntas.length; k++) {
-          if (String(perguntas[k].id) === String(id)) { i = k; break; }
+        for (var k = 0; k < ativas.length; k++) {
+          if (String(ativas[k].id) === String(id)) { i = k; break; }
         }
         var j = i + direcao;
-        if (i < 0 || j < 0 || j >= perguntas.length) return;
+        if (i < 0 || j < 0 || j >= ativas.length) return;
 
-        var a = perguntas[i], b = perguntas[j];
+        var a = ativas[i], b = ativas[j];
         // A ordem pode estar repetida ou zerada no banco; renumerar tudo evita
         // que a troca não tenha efeito nenhum.
-        perguntas[i] = b;
-        perguntas[j] = a;
-        perguntas.forEach(function (p, idx) { p.ordem = idx + 1; });
+        ativas[i] = b;
+        ativas[j] = a;
+        ativas.forEach(function (p, idx) { p.ordem = idx + 1; });
+        ordenarPerguntas();
         renderNivel2();
 
         if (DEMO) return;
 
         var cadeia = Promise.resolve();
-        perguntas.forEach(function (p) {
+        ativas.forEach(function (p) {
           cadeia = cadeia.then(function () {
             return db.from("itens_checklist").update({ ordem: p.ordem }).eq("id", p.id);
           });
@@ -1178,6 +1208,16 @@
       });
 
       document.getElementById("qt-voltar").addEventListener("click", mostrarNivel1);
+
+      // Um interruptor por nível, com o mesmo estado dos dois lados.
+      ["qt-ver-inativos", "qt-ver-inativos-2"].forEach(function (id) {
+        document.getElementById(id).addEventListener("change", function () {
+          mostrarInativos = this.checked;
+          document.getElementById("qt-ver-inativos").checked = mostrarInativos;
+          document.getElementById("qt-ver-inativos-2").checked = mostrarInativos;
+          if (topicoAberto) renderNivel2(); else renderNivel1();
+        });
+      });
 
       ["mt-fechar", "mt-cancelar"].forEach(function (id) {
         document.getElementById(id).addEventListener("click", fecharTopico);
