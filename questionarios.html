@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Questionários - Auditoria de EPOs</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/app.css?v=34">
+  <style>
+    /* Ajustes locais - edição dos tópicos e das perguntas */
+
+    .is-hidden { display: none; }
+
+    /* ------ Nível 1: tópicos ------ */
+    .qt-topico-cel { display: flex; align-items: flex-start; gap: 11px; min-width: 0; }
+    .qt-ico {
+      width: 36px; height: 36px; flex: 0 0 36px; border-radius: 10px;
+      background: var(--primary-tint); color: var(--apsis-green);
+      display: grid; place-items: center; font-size: 19px;
+    }
+    .qt-topico-cel .nm { display: block; font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.35; }
+    .qt-topico-cel .ds { display: block; font-size: 12px; color: var(--text-2); margin-top: 1px; }
+    .qt-conta { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
+    .qt-conta i { font-size: 15px; color: var(--text-muted); }
+    .qt-conta b { color: var(--text); font-variant-numeric: tabular-nums; }
+    .qt-peso { font-variant-numeric: tabular-nums; }
+
+    .qt-acoes { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    .btn-apagar { color: var(--danger); }
+    .btn-apagar:hover { background: var(--danger-bg); }
+
+    .qt-soma {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      font-size: 12.5px; color: var(--text-2); line-height: 1.5;
+      border-top: 1px solid var(--border); margin-top: 14px; padding-top: 12px;
+    }
+    .qt-soma i { font-size: 16px; flex: 0 0 auto; }
+    .qt-soma.is-ok i { color: var(--success); }
+    .qt-soma.is-fora i { color: var(--warning); }
+    .qt-soma b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+    /* ------ Nível 2: perguntas ------ */
+    .qt-head {
+      display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+    }
+    .qt-head-info { flex: 1; min-width: 200px; }
+    .qt-head-info h2 { font-size: 17px; font-weight: 600; color: var(--text); margin: 0; }
+    .qt-head-info p { font-size: 13px; color: var(--text-2); margin: 3px 0 0; line-height: 1.5; }
+    .qt-head-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+    .qt-num {
+      display: inline-grid; place-items: center;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--primary-tint); color: var(--apsis-green);
+      font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+    }
+    .qt-pergunta { font-weight: 500; color: var(--text); line-height: 1.45; }
+    .qt-evid { font-size: 12.5px; color: var(--text-2); line-height: 1.45; }
+    .qt-evid.is-vazia { color: var(--text-muted); font-style: italic; }
+    .qt-marcas { display: flex; flex-wrap: wrap; gap: 5px; }
+    .qt-mover { display: inline-flex; flex-direction: column; gap: 2px; }
+    .qt-mover button {
+      width: 24px; height: 20px; border: 1px solid var(--border); background: var(--surface);
+      color: var(--text-2); border-radius: 5px; cursor: pointer; display: grid; place-items: center; padding: 0;
+    }
+    .qt-mover button:hover:not(:disabled) { background: var(--primary-tint); color: var(--apsis-green); border-color: var(--apsis-green); }
+    .qt-mover button:disabled { opacity: .35; cursor: default; }
+    .qt-mover i { font-size: 13px; }
+
+    .qt-inativo { opacity: .55; }
+
+    .qt-vazio-acao { margin-top: 14px; }
+    .qt-carregando { padding: 30px 14px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
+
+    /* ------ Modais ------ */
+    .modal.modal-largo { max-width: 720px; }
+    .campo-linha { display: flex; gap: 12px; }
+    .campo-linha .field { flex: 1 1 0; min-width: 0; }
+    .campo-linha .field.curto { flex: 0 0 120px; }
+    @media (max-width: 620px) {
+      .campo-linha { flex-wrap: wrap; }
+      .campo-linha .field.curto { flex: 1 1 auto; }
+    }
+    .nota-campo {
+      display: flex; gap: 8px; align-items: flex-start;
+      font-size: 12.5px; color: var(--text-2); line-height: 1.5;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 9px 11px; margin-top: 4px;
+    }
+    .nota-campo i { font-size: 15px; margin-top: 1px; color: var(--apsis-green); flex: none; }
+
+    .marcas-box { display: flex; flex-direction: column; gap: 10px; }
+
+    @media (max-width: 760px) {
+      .qt-acoes .btn { flex: 1 1 auto; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=34"></script>
+  <script src="assets/app.js?v=34"></script>
+  <script src="assets/supabase-config.js?v=34"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/auth.js?v=34"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var acoesTopo =
+        '<button class="btn btn-primary btn-sm" id="btn-novo-topico" type="button">' +
+          '<i class="ti ti-folder-plus" aria-hidden="true"></i>Novo tópico' +
+        "</button>";
+
+      Layout.mount("questionarios", "Questionários", acoesTopo);
+
+      var esc = App.escapeHtml;
+      var page = document.getElementById("page");
+      var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
+      var db = window.Auth ? Auth.cliente : null;
+
+      // ------------------------------------------------------------------
+      // Estado
+      // ------------------------------------------------------------------
+      var topicos = [];         // [{ id, slug, nome, descricao, icone, peso, ordem, tipo, ativo, nPerguntas }]
+      var perguntas = [];       // perguntas do tópico aberto
+      var topicoAberto = null;  // id do tópico no nível 2
+      var podeEditar = DEMO;    // só a coordenação edita o catálogo
+      var carregou = false;
+      var erro = "";
+      var editandoTopico = null;   // id ou null (novo)
+      var editandoPergunta = null; // id ou null (nova)
+      var seqDemo = 0;
+
+      var ICONES = [
+        { v: "ti-arrow-back-up",      n: "Devolução" },
+        { v: "ti-scan",               n: "Baixas e leitura" },
+        { v: "ti-building-warehouse", n: "Armazém" },
+        { v: "ti-truck-loading",      n: "Recebimento e expedição" },
+        { v: "ti-home-exclamation",   n: "Assinante" },
+        { v: "ti-school",             n: "Treinamento" },
+        { v: "ti-shield-check",       n: "Governança" },
+        { v: "ti-files",              n: "Documentação" },
+        { v: "ti-plug",               n: "Itens obrigatórios" },
+        { v: "ti-packages",           n: "Estoque" },
+        { v: "ti-clipboard-list",     n: "Genérico" }
+      ];
+
+      // ------------------------------------------------------------------
+      // Helpers
+      // ------------------------------------------------------------------
+      function topicoPorId(id) {
+        for (var i = 0; i < topicos.length; i++) {
+          if (String(topicos[i].id) === String(id)) return topicos[i];
+        }
+        return null;
+      }
+
+      function perguntaPorId(id) {
+        for (var i = 0; i < perguntas.length; i++) {
+          if (String(perguntas[i].id) === String(id)) return perguntas[i];
+        }
+        return null;
+      }
+
+      function nomeDoIcone(v) {
+        for (var i = 0; i < ICONES.length; i++) {
+          if (ICONES[i].v === v) return ICONES[i].n;
+        }
+        return v || "ti-clipboard-list";
+      }
+
+      function slugDe(nome) {
+        return String(nome || "")
+          .normalize("NFD").replace(/[̀-ͯ]/g, "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 40) || "topico";
+      }
+
+      function slugLivre(base, ignorarId) {
+        var usados = {};
+        topicos.forEach(function (t) {
+          if (String(t.id) !== String(ignorarId)) usados[t.slug] = true;
+        });
+        if (!usados[base]) return base;
+        for (var i = 2; i < 99; i++) {
+          if (!usados[base + "-" + i]) return base + "-" + i;
+        }
+        return base + "-" + Date.now();
+      }
+
+      function numero(v, padrao) {
+        var n = parseFloat(String(v == null ? "" : v).replace(",", "."));
+        return isFinite(n) ? n : padrao;
+      }
+
+      function badgeSituacao(ativo) {
+        return ativo === false
+          ? '<span class="badge badge-baixa">Inativo</span>'
+          : '<span class="badge badge-success">Ativo</span>';
+      }
+
+      function ehItensObrigatorios(t) {
+        return t && t.tipo === "itens_obrigatorios";
+      }
+
+      // ------------------------------------------------------------------
+      // Estrutura fixa
+      // ------------------------------------------------------------------
+      page.innerHTML =
+        '<p class="page-intro">' +
+          "Os tópicos e as perguntas de cada auditoria. Altere o texto de uma pergunta, ajuste a evidência " +
+          "sugerida, mude a ordem, inclua o que passou a ser cobrado e desative o que saiu de uso." +
+        "</p>" +
+
+        '<section id="qt-nivel1">' +
+          '<div class="card mb-0">' +
+            '<div class="card-header">' +
+              '<div class="section-title">' +
+                '<span class="title">Tópicos</span>' +
+                '<span class="subtitle">Cada tópico é um questionário completo, com o peso dele na nota final</span>' +
+              "</div>" +
+              '<span id="qt-conta-topicos" style="font-size:13px;color:var(--text-2);"></span>' +
+            "</div>" +
+            '<div class="table-wrap">' +
+              '<table class="table">' +
+                "<thead><tr>" +
+                  "<th>Tópico</th>" +
+                  "<th>Perguntas</th>" +
+                  "<th>Peso na nota</th>" +
+                  "<th>Situação</th>" +
+                  '<th class="num"></th>' +
+                "</tr></thead>" +
+                '<tbody id="qt-corpo"><tr><td class="qt-carregando" colspan="5">Carregando tópicos...</td></tr></tbody>' +
+              "</table>" +
+            "</div>" +
+            '<div id="qt-soma"></div>' +
+          "</div>" +
+        "</section>" +
+
+        '<section id="qt-nivel2" class="is-hidden">' +
+          '<button class="btn btn-ghost btn-sm" id="qt-voltar" type="button" style="margin-bottom:14px;">' +
+            '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar aos tópicos' +
+          "</button>" +
+          '<div class="qt-head" id="qt-head"></div>' +
+          '<div class="card mb-0">' +
+            '<div class="card-header">' +
+              '<div class="section-title">' +
+                '<span class="title">Perguntas</span>' +
+                '<span class="subtitle">A ordem aqui é a ordem em que aparecem para quem preenche</span>' +
+              "</div>" +
+              '<div class="card-header-action">' +
+                '<button class="btn btn-primary btn-sm" id="btn-nova-pergunta" type="button">' +
+                  '<i class="ti ti-plus" aria-hidden="true"></i>Nova pergunta' +
+                "</button>" +
+              "</div>" +
+            "</div>" +
+            '<div id="qt-perguntas"></div>' +
+          "</div>" +
+        "</section>" +
+
+        // ---------------------------------------------------------- modal tópico
+        '<div class="modal-overlay" id="modal-topico" role="dialog" aria-modal="true" aria-labelledby="mt-titulo">' +
+          '<div class="modal modal-largo">' +
+            '<div class="modal-header">' +
+              '<h2 class="modal-title" id="mt-titulo">Novo tópico</h2>' +
+              '<button class="modal-close" id="mt-fechar" type="button" aria-label="Fechar">' +
+                '<i class="ti ti-x" aria-hidden="true"></i>' +
+              "</button>" +
+            "</div>" +
+            '<div class="modal-body">' +
+              '<div class="field">' +
+                '<label for="mt-nome">Nome do tópico</label>' +
+                '<input class="input" id="mt-nome" type="text" autocomplete="off" placeholder="Ex.: Logística Reversa">' +
+              "</div>" +
+              '<div class="field">' +
+                '<label for="mt-desc">Descrição</label>' +
+                '<input class="input" id="mt-desc" type="text" autocomplete="off" ' +
+                  'placeholder="Uma linha explicando o que o tópico cobra">' +
+              "</div>" +
+              '<div class="campo-linha">' +
+                '<div class="field">' +
+                  '<label for="mt-icone">Ícone</label>' +
+                  '<select class="select" id="mt-icone"></select>' +
+                "</div>" +
+                '<div class="field curto">' +
+                  '<label for="mt-peso">Peso na nota</label>' +
+                  '<input class="input" id="mt-peso" type="number" min="0" max="100" step="1" inputmode="numeric">' +
+                "</div>" +
+                '<div class="field curto">' +
+                  '<label for="mt-ordem">Ordem</label>' +
+                  '<input class="input" id="mt-ordem" type="number" min="0" step="1" inputmode="numeric">' +
+                "</div>" +
+              "</div>" +
+              '<div class="field mb-0">' +
+                '<label for="mt-ativo">Situação</label>' +
+                '<select class="select" id="mt-ativo">' +
+                  '<option value="1">Ativo</option>' +
+                  '<option value="0">Inativo</option>' +
+                "</select>" +
+                '<div class="nota-campo">' +
+                  '<i class="ti ti-info-circle" aria-hidden="true"></i>' +
+                  "<span>Tópico inativo deixa de ser oferecido em auditorias novas. O que já foi " +
+                  "auditado nele continua guardado.</span>" +
+                "</div>" +
+              "</div>" +
+            "</div>" +
+            '<div class="modal-footer">' +
+              '<button class="btn btn-ghost" id="mt-cancelar" type="button">Cancelar</button>' +
+              '<button class="btn btn-primary" id="mt-salvar" type="button">' +
+                '<i class="ti ti-check" aria-hidden="true"></i>Salvar tópico' +
+              "</button>" +
+            "</div>" +
+          "</div>" +
+        "</div>" +
+
+        // -------------------------------------------------------- modal pergunta
+        '<div class="modal-overlay" id="modal-pergunta" role="dialog" aria-modal="true" aria-labelledby="mp-titulo">' +
+          '<div class="modal modal-largo">' +
+            '<div class="modal-header">' +
+              '<h2 class="modal-title" id="mp-titulo">Nova pergunta</h2>' +
+              '<button class="modal-close" id="mp-fechar" type="button" aria-label="Fechar">' +
+                '<i class="ti ti-x" aria-hidden="true"></i>' +
+              "</button>" +
+            "</div>" +
+            '<div class="modal-body">' +
+              '<div class="field">' +
+                '<label for="mp-pergunta">Pergunta</label>' +
+                '<textarea class="textarea" id="mp-pergunta" rows="3" ' +
+                  'placeholder="O que o auditor precisa verificar em campo"></textarea>' +
+              "</div>" +
+              '<div class="field">' +
+                '<label for="mp-evid">Evidência esperada</label>' +
+                '<input class="input" id="mp-evid" type="text" autocomplete="off" ' +
+                  'placeholder="Ex.: NF-e; relatório do Qualitor; fotos da doca">' +
+                '<span class="hint">Aparece como sugestão para quem preenche e para quem envia os documentos.</span>' +
+              "</div>" +
+              '<div class="campo-linha">' +
+                '<div class="field curto">' +
+                  '<label for="mp-ordem">Ordem</label>' +
+                  '<input class="input" id="mp-ordem" type="number" min="0" step="1" inputmode="numeric">' +
+                "</div>" +
+                '<div class="field">' +
+                  '<label for="mp-ativo">Situação</label>' +
+                  '<select class="select" id="mp-ativo">' +
+                    '<option value="1">Ativa</option>' +
+                    '<option value="0">Inativa</option>' +
+                  "</select>" +
+                "</div>" +
+              "</div>" +
+              '<div class="field mb-0">' +
+                '<div class="marcas-box">' +
+                  '<label class="checkbox" for="mp-foto">' +
+                    '<input type="checkbox" id="mp-foto">' +
+                    "<span>Exige foto como evidência</span>" +
+                  "</label>" +
+                  '<label class="checkbox" for="mp-grave">' +
+                    '<input type="checkbox" id="mp-grave">' +
+                    "<span>Não conformidade grave</span>" +
+                  "</label>" +
+                "</div>" +
+              "</div>" +
+            "</div>" +
+            '<div class="modal-footer">' +
+              '<button class="btn btn-ghost" id="mp-cancelar" type="button">Cancelar</button>' +
+              '<button class="btn btn-primary" id="mp-salvar" type="button">' +
+                '<i class="ti ti-check" aria-hidden="true"></i>Salvar pergunta' +
+              "</button>" +
+            "</div>" +
+          "</div>" +
+        "</div>";
+
+      var elNivel1 = document.getElementById("qt-nivel1");
+      var elNivel2 = document.getElementById("qt-nivel2");
+      var elCorpo = document.getElementById("qt-corpo");
+      var elSoma = document.getElementById("qt-soma");
+      var elHead = document.getElementById("qt-head");
+      var elPerguntas = document.getElementById("qt-perguntas");
+
+      document.getElementById("mt-icone").innerHTML = ICONES.map(function (i) {
+        return '<option value="' + i.v + '">' + esc(i.n) + "</option>";
+      }).join("");
+
+      // ------------------------------------------------------------------
+      // Nível 1 - tópicos
+      // ------------------------------------------------------------------
+      function linhaTopico(t) {
+        var n = t.nPerguntas || 0;
+        return (
+          '<tr' + (t.ativo === false ? ' class="qt-inativo"' : "") + ">" +
+            "<td>" +
+              '<span class="qt-topico-cel">' +
+                '<span class="qt-ico"><i class="ti ' + esc(t.icone || "ti-clipboard-list") + '" aria-hidden="true"></i></span>' +
+                "<span>" +
+                  '<span class="nm">' + esc(t.nome) + "</span>" +
+                  (t.descricao ? '<span class="ds">' + esc(t.descricao) + "</span>" : "") +
+                "</span>" +
+              "</span>" +
+            "</td>" +
+            "<td>" +
+              '<span class="qt-conta"><i class="ti ti-help-circle" aria-hidden="true"></i>' +
+                "<b>" + n + "</b> " + (n === 1 ? "pergunta" : "perguntas") +
+              "</span>" +
+            "</td>" +
+            '<td class="qt-peso">' + (ehItensObrigatorios(t) ? "-" : App.fmtPct(t.peso)) + "</td>" +
+            "<td>" + badgeSituacao(t.ativo) + "</td>" +
+            '<td class="num">' +
+              '<span class="qt-acoes">' +
+                '<button class="btn btn-ghost btn-sm" type="button" data-abrir="' + esc(t.id) + '">' +
+                  '<i class="ti ti-list-details" aria-hidden="true"></i>Perguntas' +
+                "</button>" +
+                (podeEditar
+                  ? '<button class="btn btn-ghost btn-sm" type="button" data-editar-topico="' + esc(t.id) + '">' +
+                      '<i class="ti ti-pencil" aria-hidden="true"></i>Editar' +
+                    "</button>" +
+                    '<button class="btn btn-ghost btn-sm btn-apagar" type="button" data-apagar-topico="' + esc(t.id) + '">' +
+                      '<i class="ti ti-trash" aria-hidden="true"></i>Excluir' +
+                    "</button>"
+                  : "") +
+              "</span>" +
+            "</td>" +
+          "</tr>"
+        );
+      }
+
+      function renderSoma() {
+        var soma = 0;
+        topicos.forEach(function (t) {
+          if (t.ativo !== false && !ehItensObrigatorios(t)) soma += numero(t.peso, 0);
+        });
+        var ok = Math.round(soma) === 100;
+        elSoma.innerHTML =
+          '<div class="qt-soma ' + (ok ? "is-ok" : "is-fora") + '">' +
+            '<i class="ti ' + (ok ? "ti-circle-check" : "ti-alert-triangle") + '" aria-hidden="true"></i>' +
+            "<span>Soma dos pesos dos tópicos ativos: <b>" + App.fmtPct(soma) + "</b>. " +
+            (ok
+              ? "É o esperado para a nota fechar em 100."
+              : "A nota final é calculada sobre esses pesos; o esperado é que somem 100%.") +
+            "</span>" +
+          "</div>";
+      }
+
+      function renderNivel1() {
+        if (erro) {
+          elCorpo.innerHTML =
+            '<tr><td colspan="5"><div class="empty">' +
+              '<i class="ti ti-alert-triangle" aria-hidden="true"></i>' +
+              "<div>" + esc(erro) + "</div>" +
+            "</div></td></tr>";
+          elSoma.innerHTML = "";
+          return;
+        }
+        if (!carregou) {
+          elCorpo.innerHTML = '<tr><td class="qt-carregando" colspan="5">Carregando tópicos...</td></tr>';
+          return;
+        }
+        document.getElementById("qt-conta-topicos").textContent =
+          topicos.length ? topicos.length + (topicos.length === 1 ? " tópico" : " tópicos") : "";
+
+        if (!topicos.length) {
+          elCorpo.innerHTML =
+            '<tr><td colspan="5"><div class="empty">' +
+              '<i class="ti ti-folder-off" aria-hidden="true"></i>' +
+              "<div>Nenhum tópico cadastrado ainda.</div>" +
+              (podeEditar
+                ? '<div class="qt-vazio-acao"><button class="btn btn-primary btn-sm" type="button" data-novo-topico="1">' +
+                    '<i class="ti ti-folder-plus" aria-hidden="true"></i>Novo tópico</button></div>'
+                : "") +
+            "</div></td></tr>";
+          elSoma.innerHTML = "";
+          return;
+        }
+
+        elCorpo.innerHTML = topicos.map(linhaTopico).join("");
+        renderSoma();
+      }
+
+      // ------------------------------------------------------------------
+      // Nível 2 - perguntas do tópico
+      // ------------------------------------------------------------------
+      function linhaPergunta(p, i, total) {
+        return (
+          '<tr' + (p.ativo === false ? ' class="qt-inativo"' : "") + ">" +
+            '<td style="width:38px;">' +
+              (p.ativo === false ? "" : '<span class="qt-num">' + (i + 1) + "</span>") +
+            "</td>" +
+            '<td><span class="qt-pergunta">' + esc(p.pergunta) + "</span>" +
+              (p.requer_foto || p.grave
+                ? '<span class="qt-marcas" style="margin-top:6px;">' +
+                    (p.requer_foto ? '<span class="badge"><i class="ti ti-camera" aria-hidden="true"></i>Exige foto</span>' : "") +
+                    (p.grave ? '<span class="badge badge-danger"><i class="ti ti-alert-triangle" aria-hidden="true"></i>NC grave</span>' : "") +
+                  "</span>"
+                : "") +
+            "</td>" +
+            "<td>" +
+              (p.evidencia_esperada
+                ? '<span class="qt-evid">' + esc(p.evidencia_esperada) + "</span>"
+                : '<span class="qt-evid is-vazia">sem sugestão</span>') +
+            "</td>" +
+            "<td>" + badgeSituacao(p.ativo) + "</td>" +
+            '<td class="num">' +
+              '<span class="qt-acoes">' +
+                (podeEditar
+                  ? '<span class="qt-mover">' +
+                      '<button type="button" data-subir="' + esc(p.id) + '"' + (i === 0 ? " disabled" : "") +
+                        ' aria-label="Subir"><i class="ti ti-chevron-up" aria-hidden="true"></i></button>' +
+                      '<button type="button" data-descer="' + esc(p.id) + '"' + (i === total - 1 ? " disabled" : "") +
+                        ' aria-label="Descer"><i class="ti ti-chevron-down" aria-hidden="true"></i></button>' +
+                    "</span>" +
+                    '<button class="btn btn-ghost btn-sm" type="button" data-editar-pergunta="' + esc(p.id) + '">' +
+                      '<i class="ti ti-pencil" aria-hidden="true"></i>Editar' +
+                    "</button>" +
+                    '<button class="btn btn-ghost btn-sm btn-apagar" type="button" data-apagar-pergunta="' + esc(p.id) + '">' +
+                      '<i class="ti ti-trash" aria-hidden="true"></i>Excluir' +
+                    "</button>"
+                  : "") +
+              "</span>" +
+            "</td>" +
+          "</tr>"
+        );
+      }
+
+      function renderNivel2() {
+        var t = topicoPorId(topicoAberto);
+        if (!t) { mostrarNivel1(); return; }
+
+        var ativas = perguntas.filter(function (p) { return p.ativo !== false; }).length;
+        elHead.innerHTML =
+          '<span class="qt-ico"><i class="ti ' + esc(t.icone || "ti-clipboard-list") + '" aria-hidden="true"></i></span>' +
+          '<div class="qt-head-info">' +
+            "<h2>" + esc(t.nome) + "</h2>" +
+            (t.descricao ? "<p>" + esc(t.descricao) + "</p>" : "") +
+          "</div>" +
+          '<div class="qt-head-tags">' +
+            '<span class="badge"><i class="ti ti-help-circle" aria-hidden="true"></i>' +
+              ativas + (ativas === 1 ? " pergunta ativa" : " perguntas ativas") + "</span>" +
+            (ehItensObrigatorios(t)
+              ? ""
+              : '<span class="badge"><i class="ti ti-percentage" aria-hidden="true"></i>peso ' + App.fmtPct(t.peso) + "</span>") +
+            badgeSituacao(t.ativo) +
+          "</div>";
+
+        if (!perguntas.length) {
+          elPerguntas.innerHTML =
+            '<div class="empty">' +
+              '<i class="ti ti-help-off" aria-hidden="true"></i>' +
+              "<div>Este tópico ainda não tem perguntas.</div>" +
+              (podeEditar
+                ? '<div class="qt-vazio-acao"><button class="btn btn-primary btn-sm" type="button" data-nova-pergunta="1">' +
+                    '<i class="ti ti-plus" aria-hidden="true"></i>Nova pergunta</button></div>'
+                : "") +
+            "</div>";
+          return;
+        }
+
+        var total = perguntas.length;
+        elPerguntas.innerHTML =
+          '<div class="table-wrap"><table class="table">' +
+            "<thead><tr>" +
+              "<th></th><th>Pergunta</th><th>Evidência esperada</th><th>Situação</th><th></th>" +
+            "</tr></thead>" +
+            "<tbody>" + perguntas.map(function (p, i) { return linhaPergunta(p, i, total); }).join("") + "</tbody>" +
+          "</table></div>";
+      }
+
+      function mostrarNivel1() {
+        topicoAberto = null;
+        elNivel2.classList.add("is-hidden");
+        elNivel1.classList.remove("is-hidden");
+        renderNivel1();
+        window.scrollTo(0, 0);
+      }
+
+      function mostrarNivel2(id) {
+        topicoAberto = id;
+        elNivel1.classList.add("is-hidden");
+        elNivel2.classList.remove("is-hidden");
+        elPerguntas.innerHTML = '<div class="qt-carregando">Carregando perguntas...</div>';
+        window.scrollTo(0, 0);
+        carregarPerguntas(id).then(renderNivel2);
+      }
+
+      // ------------------------------------------------------------------
+      // Carga
+      // ------------------------------------------------------------------
+      function ordenarTopicos() {
+        topicos.sort(function (a, b) {
+          var oa = numero(a.ordem, 0), ob = numero(b.ordem, 0);
+          if (oa !== ob) return oa - ob;
+          return String(a.nome).localeCompare(String(b.nome), "pt-BR");
+        });
+      }
+
+      function ordenarPerguntas() {
+        perguntas.sort(function (a, b) {
+          var oa = numero(a.ordem, 0), ob = numero(b.ordem, 0);
+          if (oa !== ob) return oa - ob;
+          return String(a.pergunta).localeCompare(String(b.pergunta), "pt-BR");
+        });
+      }
+
+      function carregarDemo() {
+        var base = (window.APP.processos || []).map(function (p, i) {
+          return {
+            id: p.id, slug: p.id, nome: p.nome, descricao: p.descricao || "",
+            icone: p.icone, peso: p.peso, ordem: i + 1, tipo: "processo", ativo: true,
+            nPerguntas: (p.itens || []).length,
+            _itens: (p.itens || []).map(function (it, j) {
+              return {
+                id: it.id, processo_id: p.id, pergunta: it.pergunta,
+                evidencia_esperada: it.evidencia || "", requer_foto: !!it.requerFoto,
+                grave: !!it.grave, ordem: j + 1, ativo: true
+              };
+            })
+          };
+        });
+        var c = window.APP.checklistCarregadores;
+        if (c) {
+          base.push({
+            id: c.id, slug: c.id, nome: c.nome, descricao: c.descricao || "",
+            icone: c.icone, peso: 0, ordem: base.length + 1, tipo: "itens_obrigatorios", ativo: true,
+            nPerguntas: (c.itens || []).length,
+            _itens: (c.itens || []).map(function (it, j) {
+              return {
+                id: it.id, processo_id: c.id, pergunta: it.item,
+                evidencia_esperada: "", requer_foto: false, grave: false, ordem: j + 1, ativo: true
+              };
+            })
+          });
+        }
+        topicos = base;
+        ordenarTopicos();
+        carregou = true;
+        return Promise.resolve();
+      }
+
+      function carregar() {
+        if (DEMO) {
+          return carregarDemo().then(function () { renderNivel1(); });
+        }
+        if (!db) {
+          erro = "Sessão indisponível. Entre novamente para editar os questionários.";
+          carregou = true;
+          renderNivel1();
+          return Promise.resolve();
+        }
+
+        if (Auth.perfil) {
+          Auth.perfil().then(function (p) {
+            var pode = !!p && (p.papel === "admin" || p.papel === "gestor");
+            if (pode !== podeEditar) {
+              podeEditar = pode;
+              if (topicoAberto) renderNivel2(); else renderNivel1();
+            }
+          });
+        }
+
+        return db.from("processos").select("id, slug, nome, descricao, icone, peso, ordem, tipo, ativo")
+          .then(function (r) {
+            if (r.error) throw r.error;
+            topicos = (r.data || []).map(function (t) { t.nPerguntas = 0; return t; });
+            // contagem de perguntas ativas por tópico, numa consulta só
+            return db.from("itens_checklist").select("processo_id, ativo");
+          })
+          .then(function (r) {
+            if (!r.error) {
+              var conta = {};
+              (r.data || []).forEach(function (it) {
+                if (it.ativo === false) return;
+                conta[it.processo_id] = (conta[it.processo_id] || 0) + 1;
+              });
+              topicos.forEach(function (t) { t.nPerguntas = conta[t.id] || 0; });
+            }
+            ordenarTopicos();
+            carregou = true;
+            erro = "";
+            renderNivel1();
+          })
+          .catch(function (e) {
+            console.error("carregarTopicos", e);
+            carregou = true;
+            erro = "Não foi possível carregar os questionários agora. Atualize a página em alguns instantes.";
+            renderNivel1();
+          });
+      }
+
+      function carregarPerguntas(topicoId) {
+        var t = topicoPorId(topicoId);
+        if (DEMO) {
+          perguntas = ((t && t._itens) || []).slice();
+          ordenarPerguntas();
+          return Promise.resolve();
+        }
+        return db.from("itens_checklist")
+          .select("id, processo_id, pergunta, evidencia_esperada, requer_foto, grave, ordem, ativo")
+          .eq("processo_id", topicoId)
+          .then(function (r) {
+            if (r.error) throw r.error;
+            perguntas = r.data || [];
+            ordenarPerguntas();
+          })
+          .catch(function (e) {
+            console.error("carregarPerguntas", e);
+            perguntas = [];
+            App.toast("Não foi possível carregar as perguntas. Tente novamente.");
+          });
+      }
+
+      function recarregarTopico(topicoId) {
+        var t = topicoPorId(topicoId);
+        return carregarPerguntas(topicoId).then(function () {
+          if (t) t.nPerguntas = perguntas.filter(function (p) { return p.ativo !== false; }).length;
+          renderNivel2();
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // Modal do tópico
+      // ------------------------------------------------------------------
+      var ovTopico = document.getElementById("modal-topico");
+
+      function abrirTopico(t) {
+        editandoTopico = t ? t.id : null;
+        document.getElementById("mt-titulo").textContent = t ? "Editar tópico" : "Novo tópico";
+        document.getElementById("mt-nome").value = (t && t.nome) || "";
+        document.getElementById("mt-desc").value = (t && t.descricao) || "";
+        document.getElementById("mt-icone").value = (t && t.icone) || "ti-clipboard-list";
+        document.getElementById("mt-peso").value = t ? numero(t.peso, 0) : 0;
+        document.getElementById("mt-ordem").value = t ? numero(t.ordem, 0) : (topicos.length + 1);
+        document.getElementById("mt-ativo").value = (t && t.ativo === false) ? "0" : "1";
+        ovTopico.classList.add("is-open");
+        document.getElementById("mt-nome").focus();
+      }
+
+      function fecharTopico() { ovTopico.classList.remove("is-open"); }
+
+      function salvarTopico() {
+        var nome = document.getElementById("mt-nome").value.trim();
+        if (!nome) { App.toast("Informe o nome do tópico."); return; }
+
+        var peso = numero(document.getElementById("mt-peso").value, 0);
+        if (peso < 0 || peso > 100) { App.toast("O peso vai de 0 a 100."); return; }
+
+        var anterior = editandoTopico ? topicoPorId(editandoTopico) : null;
+        var linha = {
+          nome: nome,
+          descricao: document.getElementById("mt-desc").value.trim() || null,
+          icone: document.getElementById("mt-icone").value,
+          peso: peso,
+          ordem: Math.max(0, Math.round(numero(document.getElementById("mt-ordem").value, 0))),
+          ativo: document.getElementById("mt-ativo").value === "1"
+        };
+
+        var btn = document.getElementById("mt-salvar");
+        var textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true"></i>Salvando...';
+        function terminar() { btn.disabled = false; btn.innerHTML = textoOriginal; }
+
+        if (DEMO) {
+          if (anterior) {
+            Object.keys(linha).forEach(function (k) { anterior[k] = linha[k]; });
+          } else {
+            seqDemo += 1;
+            var novo = JSON.parse(JSON.stringify(linha));
+            novo.id = "novo-topico-" + seqDemo;
+            novo.slug = slugLivre(slugDe(nome), null);
+            novo.tipo = "processo";
+            novo.nPerguntas = 0;
+            novo._itens = [];
+            topicos.push(novo);
+          }
+          ordenarTopicos();
+          fecharTopico();
+          terminar();
+          renderNivel1();
+          App.toast("Tópico " + nome + (anterior ? " atualizado." : " criado."));
+          return;
+        }
+
+        var acao;
+        if (anterior) {
+          acao = db.from("processos").update(linha).eq("id", anterior.id).select("id");
+        } else {
+          linha.slug = slugLivre(slugDe(nome), null);
+          linha.tipo = "processo";
+          acao = db.from("clientes").select("id").limit(1).then(function (r) {
+            if (r.error || !r.data || !r.data.length) {
+              throw new Error((r.error && r.error.message) || "Cliente não encontrado.");
+            }
+            linha.cliente_id = r.data[0].id;
+            return db.from("processos").insert(linha).select("id");
+          });
+        }
+
+        Promise.resolve(acao).then(function (r) {
+          if (r.error) throw r.error;
+          if (!r.data || !r.data.length) {
+            App.toast("Seu acesso não permite alterar os questionários. Fale com a coordenação da APSIS.");
+            terminar();
+            return;
+          }
+          fecharTopico();
+          terminar();
+          App.toast("Tópico " + nome + (anterior ? " atualizado." : " criado."));
+          return carregar();
+        }).catch(function (e) {
+          console.error("salvarTopico", e);
+          terminar();
+          App.toast("Não foi possível salvar o tópico. Confira os dados e tente novamente.");
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // Modal da pergunta
+      // ------------------------------------------------------------------
+      var ovPergunta = document.getElementById("modal-pergunta");
+
+      function abrirPergunta(p) {
+        editandoPergunta = p ? p.id : null;
+        document.getElementById("mp-titulo").textContent = p ? "Editar pergunta" : "Nova pergunta";
+        document.getElementById("mp-pergunta").value = (p && p.pergunta) || "";
+        document.getElementById("mp-evid").value = (p && p.evidencia_esperada) || "";
+        document.getElementById("mp-ordem").value = p ? numero(p.ordem, 0) : (perguntas.length + 1);
+        document.getElementById("mp-ativo").value = (p && p.ativo === false) ? "0" : "1";
+        document.getElementById("mp-foto").checked = !!(p && p.requer_foto);
+        document.getElementById("mp-grave").checked = !!(p && p.grave);
+        ovPergunta.classList.add("is-open");
+        document.getElementById("mp-pergunta").focus();
+      }
+
+      function fecharPergunta() { ovPergunta.classList.remove("is-open"); }
+
+      function salvarPergunta() {
+        var texto = document.getElementById("mp-pergunta").value.trim();
+        if (!texto) { App.toast("Escreva a pergunta."); return; }
+        if (!topicoAberto) return;
+
+        var anterior = editandoPergunta ? perguntaPorId(editandoPergunta) : null;
+        var linha = {
+          processo_id: topicoAberto,
+          pergunta: texto,
+          evidencia_esperada: document.getElementById("mp-evid").value.trim() || null,
+          requer_foto: document.getElementById("mp-foto").checked,
+          grave: document.getElementById("mp-grave").checked,
+          ordem: Math.max(0, Math.round(numero(document.getElementById("mp-ordem").value, 0))),
+          ativo: document.getElementById("mp-ativo").value === "1"
+        };
+
+        var btn = document.getElementById("mp-salvar");
+        var textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true"></i>Salvando...';
+        function terminar() { btn.disabled = false; btn.innerHTML = textoOriginal; }
+
+        if (DEMO) {
+          var t = topicoPorId(topicoAberto);
+          if (anterior) {
+            Object.keys(linha).forEach(function (k) { anterior[k] = linha[k]; });
+          } else {
+            seqDemo += 1;
+            var nova = JSON.parse(JSON.stringify(linha));
+            nova.id = "nova-pergunta-" + seqDemo;
+            perguntas.push(nova);
+            if (t) t._itens = perguntas;
+          }
+          ordenarPerguntas();
+          if (t) t.nPerguntas = perguntas.filter(function (p) { return p.ativo !== false; }).length;
+          fecharPergunta();
+          terminar();
+          renderNivel2();
+          App.toast(anterior ? "Pergunta atualizada." : "Pergunta incluída.");
+          return;
+        }
+
+        var acao = anterior
+          ? db.from("itens_checklist").update(linha).eq("id", anterior.id).select("id")
+          : db.from("itens_checklist").insert(linha).select("id");
+
+        acao.then(function (r) {
+          if (r.error) throw r.error;
+          if (!r.data || !r.data.length) {
+            App.toast("Seu acesso não permite alterar os questionários. Fale com a coordenação da APSIS.");
+            terminar();
+            return;
+          }
+          fecharPergunta();
+          terminar();
+          App.toast(anterior ? "Pergunta atualizada." : "Pergunta incluída.");
+          return recarregarTopico(topicoAberto);
+        }).catch(function (e) {
+          console.error("salvarPergunta", e);
+          terminar();
+          App.toast("Não foi possível salvar a pergunta. Tente novamente.");
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // Ordem das perguntas (troca com a vizinha)
+      // ------------------------------------------------------------------
+      function mover(id, direcao) {
+        var i = -1;
+        for (var k = 0; k < perguntas.length; k++) {
+          if (String(perguntas[k].id) === String(id)) { i = k; break; }
+        }
+        var j = i + direcao;
+        if (i < 0 || j < 0 || j >= perguntas.length) return;
+
+        var a = perguntas[i], b = perguntas[j];
+        // A ordem pode estar repetida ou zerada no banco; renumerar tudo evita
+        // que a troca não tenha efeito nenhum.
+        perguntas[i] = b;
+        perguntas[j] = a;
+        perguntas.forEach(function (p, idx) { p.ordem = idx + 1; });
+        renderNivel2();
+
+        if (DEMO) return;
+
+        var cadeia = Promise.resolve();
+        perguntas.forEach(function (p) {
+          cadeia = cadeia.then(function () {
+            return db.from("itens_checklist").update({ ordem: p.ordem }).eq("id", p.id);
+          });
+        });
+        cadeia.catch(function (e) {
+          console.error("ordemPerguntas", e);
+          App.toast("Não foi possível salvar a nova ordem. Tente novamente.");
+          recarregarTopico(topicoAberto);
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // Excluir
+      //
+      // O que já foi usado em auditoria ou em envio de documento não pode ser
+      // apagado sem levar o histórico junto. Nesse caso a saída é desativar:
+      // a pergunta sai das auditorias novas e o que já foi respondido fica.
+      // ------------------------------------------------------------------
+      function usoDaPergunta(id) {
+        if (DEMO) return Promise.resolve({ respostas: 0, anexos: 0 });
+        function quantos(tabela) {
+          return db.from(tabela).select("id", { count: "exact", head: true }).eq("item_id", id)
+            .then(function (r) { return (r && r.count) || 0; }, function () { return 0; });
+        }
+        return Promise.all([quantos("respostas"), quantos("alocacao_anexos")])
+          .then(function (n) { return { respostas: n[0], anexos: n[1] }; });
+      }
+
+      function desativarPergunta(p) {
+        if (DEMO) {
+          p.ativo = false;
+          var t = topicoPorId(topicoAberto);
+          if (t) t.nPerguntas = perguntas.filter(function (x) { return x.ativo !== false; }).length;
+          renderNivel2();
+          App.toast("Pergunta desativada.");
+          return Promise.resolve();
+        }
+        return db.from("itens_checklist").update({ ativo: false }).eq("id", p.id)
+          .then(function (r) {
+            if (r.error) throw r.error;
+            App.toast("Pergunta desativada.");
+            return recarregarTopico(topicoAberto);
+          })
+          .catch(function (e) {
+            console.error("desativarPergunta", e);
+            App.toast("Não foi possível desativar a pergunta. Tente novamente.");
+          });
+      }
+
+      function apagarPergunta(id) {
+        var p = perguntaPorId(id);
+        if (!p) return;
+
+        usoDaPergunta(id).then(function (uso) {
+          if (uso.respostas || uso.anexos) {
+            var partes = [];
+            if (uso.respostas) partes.push(uso.respostas + (uso.respostas === 1 ? " resposta de auditoria" : " respostas de auditoria"));
+            if (uso.anexos) partes.push(uso.anexos + (uso.anexos === 1 ? " documento enviado" : " documentos enviados"));
+            return App.confirmar({
+              titulo: "Esta pergunta já foi usada",
+              texto: "Ela tem " + partes.join(" e ") + " no histórico.\n\n" +
+                "Desativar tira a pergunta das auditorias novas e mantém o que já foi respondido.",
+              confirmar: "Desativar pergunta",
+              cancelar: "Deixar como está"
+            }).then(function (ok) {
+              if (ok) return desativarPergunta(p);
+            });
+          }
+
+          return App.confirmar({
+            titulo: "Excluir a pergunta?",
+            texto: p.pergunta + "\n\nEssa ação não tem volta.",
+            confirmar: "Excluir",
+            cancelar: "Cancelar",
+            perigo: true
+          }).then(function (ok) {
+            if (!ok) return;
+            if (DEMO) {
+              perguntas = perguntas.filter(function (x) { return String(x.id) !== String(id); });
+              var t = topicoPorId(topicoAberto);
+              if (t) { t._itens = perguntas; t.nPerguntas = perguntas.filter(function (x) { return x.ativo !== false; }).length; }
+              renderNivel2();
+              App.toast("Pergunta excluída.");
+              return;
+            }
+            return db.from("itens_checklist").delete().eq("id", id).select("id")
+              .then(function (r) {
+                if (r.error) throw r.error;
+                if (!r.data || !r.data.length) {
+                  App.toast("Seu acesso não permite excluir perguntas. Fale com a coordenação da APSIS.");
+                  return;
+                }
+                App.toast("Pergunta excluída.");
+                return recarregarTopico(topicoAberto);
+              })
+              .catch(function (e) {
+                console.error("apagarPergunta", e);
+                App.toast("Não foi possível excluir a pergunta. Tente novamente.");
+              });
+          });
+        });
+      }
+
+      function usoDoTopico(id) {
+        if (DEMO) {
+          var t = topicoPorId(id);
+          return Promise.resolve({ perguntas: (t && t.nPerguntas) || 0, pedidos: 0, auditorias: 0 });
+        }
+        function quantos(tabela, coluna) {
+          return db.from(tabela).select("id", { count: "exact", head: true }).eq(coluna, id)
+            .then(function (r) { return (r && r.count) || 0; }, function () { return 0; });
+        }
+        return Promise.all([
+          quantos("itens_checklist", "processo_id"),
+          quantos("alocacoes", "processo_id"),
+          quantos("auditorias", "processo_id")
+        ]).then(function (n) {
+          return { perguntas: n[0], pedidos: n[1], auditorias: n[2] };
+        });
+      }
+
+      function desativarTopico(t) {
+        if (DEMO) {
+          t.ativo = false;
+          renderNivel1();
+          App.toast("Tópico " + t.nome + " desativado.");
+          return Promise.resolve();
+        }
+        return db.from("processos").update({ ativo: false }).eq("id", t.id)
+          .then(function (r) {
+            if (r.error) throw r.error;
+            App.toast("Tópico " + t.nome + " desativado.");
+            return carregar();
+          })
+          .catch(function (e) {
+            console.error("desativarTopico", e);
+            App.toast("Não foi possível desativar o tópico. Tente novamente.");
+          });
+      }
+
+      function apagarTopico(id) {
+        var t = topicoPorId(id);
+        if (!t) return;
+
+        usoDoTopico(id).then(function (uso) {
+          if (uso.pedidos || uso.auditorias) {
+            var partes = [];
+            if (uso.auditorias) partes.push(uso.auditorias + (uso.auditorias === 1 ? " auditoria" : " auditorias"));
+            if (uso.pedidos) partes.push(uso.pedidos + (uso.pedidos === 1 ? " relatório pedido" : " relatórios pedidos"));
+            return App.confirmar({
+              titulo: "Este tópico está em uso",
+              texto: "O tópico " + t.nome + " tem " + partes.join(" e ") + ".\n\n" +
+                "Desativar tira ele das auditorias novas e mantém o histórico.",
+              confirmar: "Desativar tópico",
+              cancelar: "Deixar como está"
+            }).then(function (ok) {
+              if (ok) return desativarTopico(t);
+            });
+          }
+
+          var aviso = "";
+          if (uso.perguntas) {
+            aviso += uso.perguntas + (uso.perguntas === 1 ? " pergunta" : " perguntas") + " deste tópico também sai" +
+              (uso.perguntas === 1 ? "" : "em") + ".\n\n";
+          }
+          aviso += "Essa ação não tem volta.";
+
+          return App.confirmar({
+            titulo: "Excluir o tópico " + t.nome + "?",
+            texto: aviso,
+            confirmar: "Excluir",
+            cancelar: "Cancelar",
+            perigo: true
+          }).then(function (ok) {
+            if (!ok) return;
+            if (DEMO) {
+              topicos = topicos.filter(function (x) { return String(x.id) !== String(id); });
+              renderNivel1();
+              App.toast("Tópico " + t.nome + " excluído.");
+              return;
+            }
+            // As perguntas saem primeiro: o banco não deixa apagar o tópico
+            // enquanto elas existirem.
+            return db.from("itens_checklist").delete().eq("processo_id", id)
+              .then(function () { return db.from("processos").delete().eq("id", id).select("id"); })
+              .then(function (r) {
+                if (r.error) throw r.error;
+                if (!r.data || !r.data.length) {
+                  App.toast("Seu acesso não permite excluir tópicos. Fale com a coordenação da APSIS.");
+                  return carregar();
+                }
+                App.toast("Tópico " + t.nome + " excluído.");
+                return carregar();
+              })
+              .catch(function (e) {
+                console.error("apagarTopico", e);
+                App.toast("Não foi possível excluir o tópico. Tente novamente.");
+              });
+          });
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // Eventos
+      // ------------------------------------------------------------------
+      document.getElementById("btn-novo-topico").addEventListener("click", function () {
+        if (!podeEditar) { App.toast("Seu acesso não permite alterar os questionários."); return; }
+        abrirTopico(null);
+      });
+
+      elCorpo.addEventListener("click", function (ev) {
+        var novo = ev.target.closest("[data-novo-topico]");
+        if (novo) { abrirTopico(null); return; }
+
+        var abrir = ev.target.closest("[data-abrir]");
+        if (abrir) { mostrarNivel2(abrir.getAttribute("data-abrir")); return; }
+
+        var editar = ev.target.closest("[data-editar-topico]");
+        if (editar) { abrirTopico(topicoPorId(editar.getAttribute("data-editar-topico"))); return; }
+
+        var apagar = ev.target.closest("[data-apagar-topico]");
+        if (apagar) { apagarTopico(apagar.getAttribute("data-apagar-topico")); return; }
+      });
+
+      elPerguntas.addEventListener("click", function (ev) {
+        var nova = ev.target.closest("[data-nova-pergunta]");
+        if (nova) { abrirPergunta(null); return; }
+
+        var sobe = ev.target.closest("[data-subir]");
+        if (sobe) { mover(sobe.getAttribute("data-subir"), -1); return; }
+
+        var desce = ev.target.closest("[data-descer]");
+        if (desce) { mover(desce.getAttribute("data-descer"), 1); return; }
+
+        var editar = ev.target.closest("[data-editar-pergunta]");
+        if (editar) { abrirPergunta(perguntaPorId(editar.getAttribute("data-editar-pergunta"))); return; }
+
+        var apagar = ev.target.closest("[data-apagar-pergunta]");
+        if (apagar) { apagarPergunta(apagar.getAttribute("data-apagar-pergunta")); return; }
+      });
+
+      document.getElementById("btn-nova-pergunta").addEventListener("click", function () {
+        if (!podeEditar) { App.toast("Seu acesso não permite alterar os questionários."); return; }
+        abrirPergunta(null);
+      });
+
+      document.getElementById("qt-voltar").addEventListener("click", mostrarNivel1);
+
+      ["mt-fechar", "mt-cancelar"].forEach(function (id) {
+        document.getElementById(id).addEventListener("click", fecharTopico);
+      });
+      ["mp-fechar", "mp-cancelar"].forEach(function (id) {
+        document.getElementById(id).addEventListener("click", fecharPergunta);
+      });
+      document.getElementById("mt-salvar").addEventListener("click", salvarTopico);
+      document.getElementById("mp-salvar").addEventListener("click", salvarPergunta);
+
+      ovTopico.addEventListener("click", function (ev) { if (ev.target === ovTopico) fecharTopico(); });
+      ovPergunta.addEventListener("click", function (ev) { if (ev.target === ovPergunta) fecharPergunta(); });
+      document.addEventListener("keydown", function (ev) {
+        if (ev.key !== "Escape") return;
+        fecharTopico();
+        fecharPergunta();
+      });
+
+      // ------------------------------------------------------------------
+      // Início
+      // ------------------------------------------------------------------
+      carregar();
+    })();
+  </script>
+</body>
+</html>

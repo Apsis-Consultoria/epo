@@ -986,6 +986,7 @@
     { key: "auditoria",   label: "Preenchimento de questionário", icone: "ti-clipboard-check", href: "pendentes.html" },
     { key: "envio",       label: "Envio de comprovações",    icone: "ti-cloud-upload",     href: "envio.html" },
     { key: "checagem",    label: "Comprovações",             icone: "ti-zoom-check",       href: "checagem.html" },
+    { key: "questionarios", label: "Questionários",          icone: "ti-list-details",     href: "questionarios.html" },
     { key: "alocacoes",   label: "Alocações",                icone: "ti-user-plus",        href: "alocacoes.html" },
     { key: "giro",        label: "Contagem Logística Reversa", icone: "ti-packages",        href: "contagem-giro.html" },
     { key: "evidencias",  label: "Evidências",               icone: "ti-camera",           href: "evidencias.html" },
@@ -1006,15 +1007,15 @@
   var visaoCoordenacao = {
     epos: true,  geral: true,  ranking: true,  comparativo: true,  gerencial: true,
     pendentes: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,
-    giro: true,  evidencias: true,  config: true,  acessos: true
+    giro: true,  evidencias: true,  config: true,  acessos: true,  questionarios: true
   };
 
   var papeisPreset = {
     admin:       visaoCoordenacao,
     gestor:      visaoCoordenacao,
     cliente:     visaoCoordenacao,
-    auditor:     { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: true,  auditoria: true,  envio: false, checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false },
-    responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false }
+    auditor:     { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: true,  auditoria: true,  envio: false, checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false, questionarios: false },
+    responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false, questionarios: false }
   };
 
   function copiaPreset(papel) {

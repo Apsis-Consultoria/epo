@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=33">
+  <link rel="stylesheet" href="assets/app.css?v=34">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -335,11 +335,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=33"></script>
-  <script src="assets/app.js?v=33"></script>
-  <script src="assets/supabase-config.js?v=33"></script>
+  <script src="assets/data.js?v=34"></script>
+  <script src="assets/app.js?v=34"></script>
+  <script src="assets/supabase-config.js?v=34"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=33"></script>
+  <script src="assets/auth.js?v=34"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -1654,6 +1654,18 @@
           .then(function (r) {
             if (r.error) throw r.error;
             itensDb = r.data || [];
+            // As respostas casam com as perguntas PELA POSIÇÃO. Se o
+            // questionário foi editado depois desta tela abrir, a posição não
+            // vale mais e cada resposta iria para a pergunta errada. Melhor não
+            // gravar e pedir para abrir de novo.
+            if (itensDb.length !== processo.itens.length) {
+              var desalinhado = new Error(
+                "O questionário mudou desde que esta tela foi aberta. " +
+                "Abra a auditoria novamente para enviar com as perguntas atuais."
+              );
+              desalinhado.avisoParaTela = true;
+              throw desalinhado;
+            }
             return db.from("epos").select("id, nome").eq("ativo", true);
           })
           .then(function (r) {
@@ -1758,7 +1770,9 @@
           .catch(function (err) {
             mostrarEnvio(false);
             console.error("Falha ao enviar auditoria:", err);
-            App.toast("Não foi possível enviar a auditoria. Confira a conexão e tente novamente.");
+            App.toast(err && err.avisoParaTela
+              ? err.message
+              : "Não foi possível enviar a auditoria. Confira a conexão e tente novamente.");
             updateChrome(); // reabilita o botão conforme o passo atual
           });
       }

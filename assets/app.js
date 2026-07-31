@@ -29,6 +29,7 @@
     // não passa por eles. Ficam como subtópicos de Configurações.
     { key: "config",      label: "Configurações",    icon: "ti-settings",         href: "configuracoes.html",
       children: [
+        { key: "questionarios", label: "Questionários",          href: "questionarios.html" },
         { key: "alocacoes",  label: "Alocações",                href: "alocacoes.html" },
         { key: "acessos",    label: "Gerenciamento de acessos", href: "acessos.html" },
         { key: "evidencias", label: "Evidências",               href: "evidencias.html" }

@@ -25,6 +25,7 @@
     "auditoria.html": "auditoria",
     "envio.html": "envio",
     "checagem.html": "checagem",
+    "questionarios.html": "questionarios",
     "alocacoes.html": "alocacoes",
     "contagem-giro.html": "giro",
     "evidencias.html": "evidencias",
@@ -34,7 +35,7 @@
 
   // Primeira página permitida do papel (destino padrão pós-login/negado)
   function primeiraPermitida(perms) {
-    var ordem = ["geral", "epos", "pendentes", "auditoria", "envio", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "config", "acessos"];
+    var ordem = ["geral", "epos", "pendentes", "auditoria", "envio", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "config", "questionarios", "acessos"];
     var mapaInverso = {};
     Object.keys(MAPA_PAGINAS).forEach(function (arq) { mapaInverso[MAPA_PAGINAS[arq]] = arq; });
     for (var i = 0; i < ordem.length; i++) {
