@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=38">
+  <link rel="stylesheet" href="assets/app.css?v=39">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -126,12 +126,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=38"></script>
-  <script src="assets/app.js?v=38"></script>
-  <script src="assets/geo-br.js?v=38"></script>
-  <script src="assets/supabase-config.js?v=38"></script>
+  <script src="assets/data.js?v=39"></script>
+  <script src="assets/app.js?v=39"></script>
+  <script src="assets/geo-br.js?v=39"></script>
+  <script src="assets/supabase-config.js?v=39"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=38"></script>
+  <script src="assets/auth.js?v=39"></script>
   <script>
     (function () {
       "use strict";
@@ -414,18 +414,23 @@
             (modoAuditoria ? "Pedir questionários" : "Salvar EPO");
         }
 
-        // e-mail já usado nos pedidos desta EPO vem preenchido
+        // O que ja foi pedido para esta EPO volta preenchido: e-mail do
+        // responsavel, visita prevista e observacao. Antes so o endereco vinha,
+        // e quem abria para incluir um questionario tinha que redigitar o resto.
         var emailAtual = "";
+        var visitaAtual = "";
+        var obsAtual = "";
         if (epo) {
-          for (var i = 0; i < pedidos.length; i++) {
-            if (String(pedidos[i].epoId) === String(epo.id) && pedidos[i].email) {
-              emailAtual = pedidos[i].email; break;
-            }
-          }
+          pedidos.forEach(function (a) {
+            if (String(a.epoId) !== String(epo.id)) return;
+            if (!emailAtual && a.email) emailAtual = a.email;
+            if (!visitaAtual && a.visita) visitaAtual = String(a.visita).slice(0, 10);
+            if (!obsAtual && a.obs) obsAtual = a.obs;
+          });
         }
         document.getElementById("f-email").value = emailAtual;
-        document.getElementById("f-visita").value = "";
-        document.getElementById("f-obs").value = "";
+        document.getElementById("f-visita").value = visitaAtual;
+        document.getElementById("f-obs").value = obsAtual;
         renderProcs(epo ? epo.id : null);
       }
 
@@ -1046,11 +1051,42 @@
         processos = (window.APP.processos || []).map(function (p) {
           return { id: p.id, nome: p.nome, icone: p.icone, ordem: p.peso || 0 };
         });
+        // Sem nenhum pedido a tela nao mostra o que acontece quando a EPO ja
+        // tem questionario pedido - e era justamente isso que ficava sem teste.
+        var e1 = epos[0], e2 = epos[1];
         pedidos = [];
+        if (e1 && processos[0]) {
+          pedidos.push({
+            id: "demo-aloc-1", epoId: e1.id, procId: processos[0].id,
+            email: "responsavel@" + slugSimples(e1.nome) + ".com.br", status: "pendente",
+            visita: "2026-08-12", obs: "Priorizar as notas dos ultimos 30 dias."
+          });
+        }
+        if (e1 && processos[1]) {
+          pedidos.push({
+            id: "demo-aloc-2", epoId: e1.id, procId: processos[1].id,
+            email: "responsavel@" + slugSimples(e1.nome) + ".com.br", status: "enviada",
+            visita: "2026-08-12", obs: ""
+          });
+        }
+        if (e2 && processos[0]) {
+          pedidos.push({
+            id: "demo-aloc-3", epoId: e2.id, procId: processos[0].id,
+            email: "responsavel@" + slugSimples(e2.nome) + ".com.br", status: "em_andamento",
+            visita: "", obs: ""
+          });
+        }
         ordenar();
         renderLista();
         abrirEdicaoDoLink();
         return Promise.resolve();
+      }
+
+      function slugSimples(nome) {
+        return String(nome || "epo").toLowerCase()
+          .normalize("NFD").replace(/[̀-ͯ]/g, "")
+          .replace(/[^a-z0-9]+/g, "")
+          .slice(0, 14) || "epo";
       }
 
       function carregar() {
@@ -1087,11 +1123,17 @@
             processos = candidatos.filter(function (p) { return comPergunta[p.id]; });
           })
           .then(function () {
-            return db.from("alocacoes").select("id, epo_id, processo_id, responsavel_email, status");
+            return db.from("alocacoes")
+              .select("id, epo_id, processo_id, responsavel_email, status, visita_prevista, observacao, criado_em")
+              .order("criado_em", { ascending: false });
           })
           .then(function (r) {
             pedidos = ((r && r.data) || []).map(function (a) {
-              return { id: a.id, epoId: a.epo_id, procId: a.processo_id, email: a.responsavel_email, status: a.status };
+              return {
+                id: a.id, epoId: a.epo_id, procId: a.processo_id,
+                email: a.responsavel_email, status: a.status,
+                visita: a.visita_prevista || "", obs: a.observacao || ""
+              };
             });
             return db.from("epos").select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo").order("nome");
           })
