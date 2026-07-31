@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=31">
+  <link rel="stylesheet" href="assets/app.css?v=32">
   <style>
     /* Ajustes locais - tela do responsável da EPO */
 
@@ -42,6 +42,39 @@
     .aloc-card-info b { display: block; font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; }
     .aloc-card-info span { font-size: 12.5px; color: var(--text-2); }
     .aloc-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .env-abrir {
+      display: inline-flex; align-items: center; gap: 2px;
+      font-size: 12.5px; font-weight: 600; color: var(--apsis-green); white-space: nowrap;
+    }
+    .env-abrir i { font-size: 16px; }
+
+    /* Barra acima da lista: resumo + grade/lista */
+    .env-barra {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .env-resumo { font-size: 12.5px; color: var(--text-muted); }
+
+    /* Visão em lista: a unidade é a linha principal, os questionários vêm abaixo */
+    .env-tabela tbody tr.env-linha-unidade > td { background: var(--surface-2); padding: 10px 14px; }
+    .env-unidade-linha {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .env-unidade-nome {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 600; color: var(--text);
+    }
+    .env-unidade-nome > i { font-size: 17px; color: var(--apsis-green); }
+    .env-unidade-loc { font-size: 12.5px; font-weight: 400; color: var(--text-2); }
+    .env-tabela tbody tr.env-linha-q { cursor: pointer; }
+    .env-tabela tbody tr.env-linha-q:hover { background: var(--primary-tint); }
+    .env-q-nome { display: flex; align-items: center; gap: 9px; font-weight: 500; color: var(--text); padding-left: 26px; }
+    .env-q-nome > i { font-size: 17px; color: var(--text-2); flex: 0 0 auto; }
+    @media (max-width: 640px) {
+      .env-tabela thead { display: none; }
+      .env-q-nome { padding-left: 14px; }
+    }
     .aloc-card-anexos { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--text-2); }
     .aloc-card-anexos i { font-size: 15px; }
 
@@ -174,11 +207,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=31"></script>
-  <script src="assets/app.js?v=31"></script>
-  <script src="assets/supabase-config.js?v=31"></script>
+  <script src="assets/data.js?v=32"></script>
+  <script src="assets/app.js?v=32"></script>
+  <script src="assets/supabase-config.js?v=32"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=31"></script>
+  <script src="assets/auth.js?v=32"></script>
   <script>
     (function () {
       "use strict";
@@ -295,12 +328,35 @@
             status: "em_andamento",
             enviada_em: null,
             processo_id: "reversa",
-            epos: { nome: e2.nome, cidade: e2.cidade, uf: e2.uf },
+            epos: { nome: e1.nome, cidade: e1.cidade, uf: e1.uf },
             processos: { nome: "Logística Reversa", slug: "reversa", icone: "ti-arrow-back-up" },
             nAnexos: 1,
             _anexos: {
               "rev-04": [{ id: "demo-ax-0", nome_arquivo: "foto-embalagem-reversa.jpg", tamanho: 482133, content_type: "image/jpeg", storage_path: null }]
             }
+          },
+          {
+            id: "demo-aloc-3",
+            status: "enviada",
+            enviada_em: "2026-07-24",
+            processo_id: "armazenagem",
+            epos: { nome: e1.nome, cidade: e1.cidade, uf: e1.uf },
+            processos: { nome: "Armazenagem & Facilities", slug: "armazenagem", icone: "ti-building-warehouse" },
+            nAnexos: 2,
+            _anexos: {
+              "arm-01": [{ id: "demo-ax-1", nome_arquivo: "layout-do-estoque.pdf", tamanho: 210544, content_type: "application/pdf", storage_path: null }],
+              "arm-02": [{ id: "demo-ax-2", nome_arquivo: "area-de-reversa.jpg", tamanho: 331902, content_type: "image/jpeg", storage_path: null }]
+            }
+          },
+          {
+            id: "demo-aloc-4",
+            status: "pendente",
+            enviada_em: null,
+            processo_id: "governanca",
+            epos: { nome: e2.nome, cidade: e2.cidade, uf: e2.uf },
+            processos: { nome: "Governança & RNCs", slug: "governanca", icone: "ti-shield-check" },
+            nAnexos: 0,
+            _anexos: {}
           }
         ];
       }
@@ -580,11 +636,211 @@
           '<div class="empty"><i class="ti ti-loader-2" aria-hidden="true"></i>' + esc(msg) + "</div>";
       }
 
+      // ------------------------------------------------------------------
+      // Lista de questionários
+      //
+      // Um cartão por questionário virava um monte de cartão solto repetindo o
+      // nome da unidade. Agora a unidade é o título e os questionários dela
+      // vêm abaixo - tanto em grade quanto em lista.
+      // ------------------------------------------------------------------
+      var VISAO_CHAVE = "epoEnvioVisao";
+
+      function visaoAtual() {
+        try {
+          return localStorage.getItem(VISAO_CHAVE) === "lista" ? "lista" : "grade";
+        } catch (e) { return "grade"; }
+      }
+
+      function definirVisao(v) {
+        try { localStorage.setItem(VISAO_CHAVE, v); } catch (e) {}
+        renderLista();
+      }
+
+      function local(epo) {
+        return (epo.cidade || "") + (epo.uf ? "/" + epo.uf : "");
+      }
+
+      function pendente(a) { return a.status !== "enviada"; }
+
+      // Agrupa por unidade. Dentro de cada uma, o que falta enviar vem primeiro.
+      function porUnidade() {
+        var mapa = {};
+        var lista = [];
+        alocacoes.forEach(function (a) {
+          var epo = a.epos || {};
+          var chave = String(a.epo_id || epo.nome || "sem-epo");
+          var g = mapa[chave];
+          if (!g) {
+            g = mapa[chave] = {
+              nome: epo.nome || "EPO",
+              local: local(epo),
+              itens: [],
+              pendentes: 0,
+              enviados: 0,
+              anexos: 0
+            };
+            lista.push(g);
+          }
+          g.itens.push(a);
+          g.anexos += a.nAnexos || 0;
+          if (pendente(a)) g.pendentes += 1;
+          else g.enviados += 1;
+        });
+
+        lista.forEach(function (g) {
+          g.itens.sort(function (x, y) {
+            if (pendente(x) !== pendente(y)) return pendente(x) ? -1 : 1;
+            var nx = (x.processos && x.processos.nome) || "";
+            var ny = (y.processos && y.processos.nome) || "";
+            return nx.localeCompare(ny, "pt-BR");
+          });
+        });
+        lista.sort(function (a, b) {
+          if (b.pendentes !== a.pendentes) return b.pendentes - a.pendentes;
+          return a.nome.localeCompare(b.nome, "pt-BR");
+        });
+        return lista;
+      }
+
+      function textoAnexos(n) {
+        return n ? n + (n === 1 ? " anexo" : " anexos") : "sem anexos";
+      }
+
+      function tagsDaUnidade(g) {
+        var t = "";
+        if (g.pendentes) {
+          t += '<span class="badge badge-media"><i class="ti ti-clipboard-list" aria-hidden="true"></i>' +
+            g.pendentes + " a enviar</span>";
+        }
+        if (g.enviados) {
+          t += '<span class="badge badge-success"><i class="ti ti-check" aria-hidden="true"></i>' +
+            g.enviados + (g.enviados === 1 ? " enviado" : " enviados") + "</span>";
+        }
+        t += '<span class="aloc-card-anexos"><i class="ti ti-paperclip" aria-hidden="true"></i>' +
+          esc(textoAnexos(g.anexos)) + "</span>";
+        return t;
+      }
+
+      function cabecalhoDaUnidade(g) {
+        return (
+          '<div class="grupo-unidade-head">' +
+            '<span class="grupo-unidade-ico"><i class="ti ti-building-warehouse" aria-hidden="true"></i></span>' +
+            '<span class="grupo-unidade-info">' +
+              '<span class="nm">' + esc(g.nome) + "</span>" +
+              (g.local ? '<span class="loc">' + esc(g.local) + "</span>" : "") +
+            "</span>" +
+            '<span class="grupo-unidade-tags">' + tagsDaUnidade(g) + "</span>" +
+          "</div>"
+        );
+      }
+
+      // Em grade o cartão não repete o nome da unidade: ele já está no título
+      // do grupo. Sobra espaço para o que interessa, o questionário.
+      function cartaoQuestionario(a) {
+        var proc = a.processos || {};
+        var n = a.nAnexos || 0;
+        return (
+          '<button class="aloc-card" type="button" data-aloc="' + esc(a.id) + '">' +
+            '<div class="aloc-card-top">' +
+              '<span class="aloc-card-icon"><i class="ti ' + esc(proc.icone || "ti-clipboard-list") + '" aria-hidden="true"></i></span>' +
+              '<div class="aloc-card-info">' +
+                "<b>" + esc(proc.nome || "Questionário") + "</b>" +
+                "<span>" + esc(textoAnexos(n)) + "</span>" +
+              "</div>" +
+            "</div>" +
+            '<div class="aloc-card-foot">' +
+              statusBadge(a.status) +
+              '<span class="env-abrir">' +
+                (pendente(a) ? "Anexar" : "Ver anexos") +
+                '<i class="ti ti-chevron-right" aria-hidden="true"></i>' +
+              "</span>" +
+            "</div>" +
+          "</button>"
+        );
+      }
+
+      function renderGrade(grupos) {
+        return grupos.map(function (g) {
+          return '<section class="grupo-unidade">' +
+            cabecalhoDaUnidade(g) +
+            '<div class="aloc-grid">' + g.itens.map(cartaoQuestionario).join("") + "</div>" +
+          "</section>";
+        }).join("");
+      }
+
+      function renderTabela(grupos) {
+        var linhas = grupos.map(function (g) {
+          var cabecalho =
+            '<tr class="env-linha-unidade">' +
+              '<td colspan="4">' +
+                '<div class="env-unidade-linha">' +
+                  '<span class="env-unidade-nome">' +
+                    '<i class="ti ti-building-warehouse" aria-hidden="true"></i>' + esc(g.nome) +
+                    (g.local ? '<span class="env-unidade-loc">' + esc(g.local) + "</span>" : "") +
+                  "</span>" +
+                  '<span class="grupo-unidade-tags">' + tagsDaUnidade(g) + "</span>" +
+                "</div>" +
+              "</td>" +
+            "</tr>";
+
+          var itens = g.itens.map(function (a) {
+            var proc = a.processos || {};
+            var n = a.nAnexos || 0;
+            return (
+              '<tr class="env-linha-q" data-aloc="' + esc(a.id) + '">' +
+                '<td class="env-q-nome">' +
+                  '<i class="ti ' + esc(proc.icone || "ti-clipboard-list") + '" aria-hidden="true"></i>' +
+                  esc(proc.nome || "Questionário") +
+                "</td>" +
+                "<td>" + statusBadge(a.status) + "</td>" +
+                '<td class="tnum">' +
+                  '<span class="aloc-card-anexos"><i class="ti ti-paperclip" aria-hidden="true"></i>' + n + "</span>" +
+                "</td>" +
+                '<td class="num">' +
+                  '<span class="env-abrir">' +
+                    (pendente(a) ? "Anexar" : "Ver anexos") +
+                    '<i class="ti ti-chevron-right" aria-hidden="true"></i>' +
+                  "</span>" +
+                "</td>" +
+              "</tr>"
+            );
+          }).join("");
+
+          return cabecalho + itens;
+        }).join("");
+
+        return (
+          '<div class="table-wrap"><table class="table env-tabela">' +
+            "<thead><tr>" +
+              "<th>Questionário</th><th>Situação</th><th>Anexos</th><th></th>" +
+            "</tr></thead>" +
+            "<tbody>" + linhas + "</tbody>" +
+          "</table></div>"
+        );
+      }
+
+      function htmlAlternador() {
+        var atualV = visaoAtual();
+        return (
+          '<div class="visao-switch" role="group" aria-label="Forma de visualização">' +
+            '<button type="button" data-visao="grade"' + (atualV === "grade" ? ' class="is-on"' : "") + ">" +
+              '<i class="ti ti-layout-grid" aria-hidden="true"></i>Grade' +
+            "</button>" +
+            '<button type="button" data-visao="lista"' + (atualV === "lista" ? ' class="is-on"' : "") + ">" +
+              '<i class="ti ti-list" aria-hidden="true"></i>Lista' +
+            "</button>" +
+          "</div>"
+        );
+      }
+
       function renderLista() {
         atual = null;
 
+        var grupos = porUnidade();
+        var nQ = alocacoes.length;
+
         var corpo;
-        if (!alocacoes.length) {
+        if (!nQ) {
           corpo =
             '<div class="empty">' +
               '<i class="ti ti-inbox" aria-hidden="true"></i>' +
@@ -592,32 +848,7 @@
               '<span class="text-muted" style="font-size:12.5px;">Quando o gestor alocar um questionário para o seu e-mail, ele aparece aqui.</span>' +
             "</div>";
         } else {
-          corpo =
-            '<div class="aloc-grid">' +
-            alocacoes.map(function (a) {
-              var epo = a.epos || {};
-              var proc = a.processos || {};
-              var n = a.nAnexos || 0;
-              return (
-                '<button class="aloc-card" type="button" data-aloc="' + esc(a.id) + '">' +
-                  '<div class="aloc-card-top">' +
-                    '<span class="aloc-card-icon"><i class="ti ' + esc(proc.icone || "ti-clipboard-list") + '" aria-hidden="true"></i></span>' +
-                    '<div class="aloc-card-info">' +
-                      "<b>" + esc(epo.nome || "EPO") + "</b>" +
-                      "<span>" + esc((epo.cidade || "") + (epo.uf ? "/" + epo.uf : "")) + "</span>" +
-                      '<span style="display:block;margin-top:4px;font-weight:500;color:var(--text);">' + esc(proc.nome || "Questionário") + "</span>" +
-                    "</div>" +
-                  "</div>" +
-                  '<div class="aloc-card-foot">' +
-                    statusBadge(a.status) +
-                    '<span class="aloc-card-anexos"><i class="ti ti-paperclip" aria-hidden="true"></i>' +
-                      n + (n === 1 ? " anexo" : " anexos") +
-                    "</span>" +
-                  "</div>" +
-                "</button>"
-              );
-            }).join("") +
-            "</div>";
+          corpo = visaoAtual() === "lista" ? renderTabela(grupos) : renderGrade(grupos);
         }
 
         page.innerHTML =
@@ -628,14 +859,32 @@
             "(prévia, para adiantar o trabalho) ou <b>durante a visita</b> do colaborador APSIS - neste caso " +
             "cada arquivo aparece na tela dele na hora." +
           "</p>" +
+          (nQ
+            ? '<div class="env-barra">' +
+                '<span class="env-resumo">' +
+                  grupos.length + (grupos.length === 1 ? " unidade" : " unidades") + " · " +
+                  nQ + (nQ === 1 ? " questionário" : " questionários") +
+                "</span>" +
+                htmlAlternador() +
+              "</div>"
+            : "") +
           corpo;
 
-        page.querySelectorAll(".aloc-card").forEach(function (card) {
-          card.addEventListener("click", function () {
-            var id = card.getAttribute("data-aloc");
-            for (var i = 0; i < alocacoes.length; i++) {
-              if (String(alocacoes[i].id) === String(id)) { carregarDetalhe(alocacoes[i]); return; }
-            }
+        function abrir(id) {
+          for (var i = 0; i < alocacoes.length; i++) {
+            if (String(alocacoes[i].id) === String(id)) { carregarDetalhe(alocacoes[i]); return; }
+          }
+        }
+
+        page.querySelectorAll("[data-aloc]").forEach(function (el) {
+          el.addEventListener("click", function () {
+            abrir(el.getAttribute("data-aloc"));
+          });
+        });
+
+        page.querySelectorAll("[data-visao]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            definirVisao(b.getAttribute("data-visao"));
           });
         });
       }

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=31">
+  <link rel="stylesheet" href="assets/app.css?v=32">
   <style>
     /* Ajustes locais da tela de comprovações (grade + lista) */
 
@@ -96,17 +96,6 @@
     }
     .chk-nota i { font-size: 15px; flex: 0 0 auto; }
 
-    /* Alternância grade / lista */
-    .chk-visao { display: inline-flex; gap: 4px; background: var(--surface-2); border-radius: 999px; padding: 3px; }
-    .chk-visao button {
-      display: inline-flex; align-items: center; gap: 6px;
-      border: 0; background: transparent; cursor: pointer; font-family: inherit;
-      font-size: 12.5px; font-weight: 500; color: var(--text-2);
-      border-radius: 999px; padding: 6px 12px;
-    }
-    .chk-visao button i { font-size: 16px; }
-    .chk-visao button.is-on { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
-
     /* Grade */
     .chk-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
     .chk-cartao {
@@ -147,11 +136,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=31"></script>
-  <script src="assets/app.js?v=31"></script>
-  <script src="assets/supabase-config.js?v=31"></script>
+  <script src="assets/data.js?v=32"></script>
+  <script src="assets/app.js?v=32"></script>
+  <script src="assets/supabase-config.js?v=32"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=31"></script>
+  <script src="assets/auth.js?v=32"></script>
   <script>
     (function () {
       "use strict";
@@ -454,7 +443,7 @@
       function htmlAlternador() {
         var atual = visaoAtual();
         return (
-          '<div class="chk-visao" role="group" aria-label="Forma de visualização">' +
+          '<div class="visao-switch" role="group" aria-label="Forma de visualização">' +
             '<button type="button" data-visao="grade"' + (atual === "grade" ? ' class="is-on"' : "") + '>' +
               '<i class="ti ti-layout-grid" aria-hidden="true"></i>Grade' +
             "</button>" +
