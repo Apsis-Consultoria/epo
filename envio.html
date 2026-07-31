@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=20">
+  <link rel="stylesheet" href="assets/app.css?v=21">
   <style>
     /* Ajustes locais - tela do responsável da EPO */
 
@@ -72,7 +72,15 @@
     }
     .readonly-note i { font-size: 17px; flex: 0 0 auto; }
 
-    .perg-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+    /* Perguntas em duas colunas: com uma coluna a tela ficava comprida demais
+       e a leitura se perdia. No celular volta para uma, que e o que cabe. */
+    .perg-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      align-items: start;
+    }
+    .perg-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
     .perg-num { font-size: 11.5px; font-weight: 600; letter-spacing: .04em; color: var(--text-muted); text-transform: uppercase; }
     .perg-texto { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.45; margin: 4px 0 6px; }
     .perg-evid { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; color: var(--text-2); margin-bottom: 12px; }
@@ -145,6 +153,10 @@
     .envio-done h2 { font-size: 26px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
     .envio-done p { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 380px; margin: 0 0 26px; }
 
+    @media (max-width: 900px) {
+      .perg-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+
     @media (max-width: 640px) {
       .aloc-grid { grid-template-columns: 1fr; }
       .send-bar { flex-direction: column; align-items: stretch; text-align: center; margin-left: -8px; margin-right: -8px; }
@@ -162,11 +174,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=20"></script>
-  <script src="assets/app.js?v=20"></script>
-  <script src="assets/supabase-config.js?v=20"></script>
+  <script src="assets/data.js?v=21"></script>
+  <script src="assets/app.js?v=21"></script>
+  <script src="assets/supabase-config.js?v=21"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=20"></script>
+  <script src="assets/auth.js?v=21"></script>
   <script>
     (function () {
       "use strict";
@@ -714,7 +726,7 @@
                 "<span>Você está complementando um envio já feito. Ao terminar, use <b>Enviar de novo</b> " +
                 "para avisar a equipe APSIS.</span></div>"
               : "")) +
-          htmlPerguntas +
+          '<div class="perg-grid">' + htmlPerguntas + "</div>" +
           htmlBarra;
 
         wireDetalhe(readonly);
