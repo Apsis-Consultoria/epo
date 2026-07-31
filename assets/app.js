@@ -22,7 +22,7 @@
     { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },
     { key: "pendentes",   label: "Auditorias pendentes", icon: "ti-clipboard-list", href: "pendentes.html" },
-    { key: "auditoria",   label: "Contagem da reversa", icon: "ti-clipboard-check", href: "auditoria.html?processo=contagem-reversa" },
+    { key: "auditoria",   label: "Contagem Reversa", icon: "ti-clipboard-check", href: "auditoria.html?processo=contagem-reversa" },
     { key: "envio",       label: "Envio de comprovações", icon: "ti-cloud-upload", href: "envio.html" },
     { key: "checagem",    label: "Dupla checagem",   icon: "ti-zoom-check",       href: "checagem.html" },
     { key: "alocacoes",   label: "Alocações",        icon: "ti-user-plus",        href: "alocacoes.html" },
