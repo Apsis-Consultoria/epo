@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=27">
+  <link rel="stylesheet" href="assets/app.css?v=28">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
@@ -90,7 +90,7 @@
     .epo-sub { display: block; font-size: 12px; margin-top: 4px; }
     .epo-chevron { color: var(--text-muted); font-size: 18px; flex: 0 0 auto; }
 
-    /* Qualidade da reversa (fontes e controles remotos x meta 75%) */
+    /* Indicadores da Logística Reversa (fontes e controles x meta 75%) */
     .reversa-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
     .reversa-item { display: flex; flex-direction: column; gap: 10px; }
     .reversa-label { font-weight: 500; color: var(--text); }
@@ -112,13 +112,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=27"></script>
-  <script src="assets/app.js?v=27"></script>
-  <script src="assets/geo-br.js?v=27"></script>
-  <script src="assets/mapa-epos.js?v=27"></script>
-  <script src="assets/supabase-config.js?v=27"></script>
+  <script src="assets/data.js?v=28"></script>
+  <script src="assets/app.js?v=28"></script>
+  <script src="assets/geo-br.js?v=28"></script>
+  <script src="assets/mapa-epos.js?v=28"></script>
+  <script src="assets/supabase-config.js?v=28"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=27"></script>
+  <script src="assets/auth.js?v=28"></script>
   <script>
     (function () {
       "use strict";
@@ -252,11 +252,11 @@
           // admin da APSIS: preenchido quando o papel de quem entrou é conhecido.
           '<section class="card" id="card-mapa" hidden></section>' +
 
-          // (3) Qualidade da reversa
+          // (3) Indicadores da Logística Reversa
           '<section class="card">' +
             '<div class="card-header">' +
               '<div class="section-title">' +
-                '<h2 class="title">Qualidade da reversa</h2>' +
+                '<h2 class="title">Indicadores da Logística Reversa</h2>' +
                 '<span class="subtitle">Fontes e controles remotos devolvidos junto aos equipamentos · média da carteira · meta 75%</span>' +
               '</div>' +
             '</div>' +
