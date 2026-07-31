@@ -954,7 +954,11 @@ input[type="submit"],
   display: grid; grid-template-columns: 1fr 296px;
   border-top: 1px solid var(--border);
 }
-.mapa-caixa { position: relative; min-width: 0; }
+/* A biblioteca do mapa empilha as camadas dela em 400, 800 e 1000. Sem um
+   contexto de empilhamento próprio, esses valores disputam com o resto da
+   tela e o mapa passa por cima de popup, topo e menu. Aqui a disputa fica
+   contida dentro da caixa do mapa, que inteira vale zero lá fora. */
+.mapa-caixa { position: relative; min-width: 0; z-index: 0; isolation: isolate; }
 .mapa-tela {
   height: min(56vh, 520px); min-height: 340px; width: 100%;
   background: var(--surface-2);
