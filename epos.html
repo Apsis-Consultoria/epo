@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=42">
+  <link rel="stylesheet" href="assets/app.css?v=43">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -126,12 +126,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=42"></script>
-  <script src="assets/app.js?v=42"></script>
-  <script src="assets/geo-br.js?v=42"></script>
-  <script src="assets/supabase-config.js?v=42"></script>
+  <script src="assets/data.js?v=43"></script>
+  <script src="assets/app.js?v=43"></script>
+  <script src="assets/geo-br.js?v=43"></script>
+  <script src="assets/supabase-config.js?v=43"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=42"></script>
+  <script src="assets/auth.js?v=43"></script>
   <script>
     (function () {
       "use strict";
@@ -1031,13 +1031,47 @@
             return;
           }
 
+          // Os campos voltam preenchidos e sao editaveis, mas nada os gravava:
+          // corrigir o e-mail do responsavel ou remarcar a visita de um pedido
+          // que ja existe nao tinha efeito nenhum.
+          function atualizarPedidosExistentes(epoId) {
+            if (!editandoId) return Promise.resolve(null);
+            var mudanca = {};
+            if (dados.email) mudanca.responsavel_email = dados.email;
+            if (dados.visita) mudanca.visita_prevista = dados.visita;
+            if (dados.obs) mudanca.observacao = dados.obs;
+            if (!Object.keys(mudanca).length) return Promise.resolve(null);
+            var jaTem = pedidos.some(function (a) {
+              return String(a.epoId) === String(epoId);
+            });
+            if (!jaTem) return Promise.resolve(null);
+            return Auth.cliente.from("alocacoes").update(mudanca).eq("epo_id", epoId).select("id")
+              .then(function (r) {
+                if (r.error) throw r.error;
+                return r.data || [];
+              });
+          }
+
           function depoisDaEpo(epoId) {
             if (!dados.procIds.length) {
-              fecharModal();
-              App.toast(rotuloEpo(dados.nome) + (editandoId ? " atualizada." : " cadastrada."));
-              return carregar();
+              return atualizarPedidosExistentes(epoId).then(function (mudados) {
+                fecharModal();
+                var quantos = mudados && mudados.length;
+                App.toast(rotuloEpo(dados.nome) + (editandoId ? " atualizada" : " cadastrada") +
+                  (quantos ? " - " + quantos + (quantos === 1 ? " questionário atualizado" : " questionários atualizados") : "") + ".");
+                return carregar();
+              }, function (e) {
+                console.error("atualizarPedidos", e);
+                fecharModal();
+                App.toast("A unidade foi salva, mas não foi possível atualizar os questionários já pedidos.");
+                return carregar();
+              });
             }
-            return criarPedidos(epoId, dados.procIds, dados.email, dados.visita, dados.obs)
+            return atualizarPedidosExistentes(epoId)
+              .catch(function (e) { console.error("atualizarPedidos", e); return null; })
+              .then(function () {
+                return criarPedidos(epoId, dados.procIds, dados.email, dados.visita, dados.obs);
+              })
               .then(function (res) {
                 fecharModal();
                 var resumo = resumoPedido(res, dados.email);

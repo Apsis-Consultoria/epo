@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=42">
+  <link rel="stylesheet" href="assets/app.css?v=43">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -109,11 +109,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=42"></script>
-  <script src="assets/app.js?v=42"></script>
-  <script src="assets/supabase-config.js?v=42"></script>
+  <script src="assets/data.js?v=43"></script>
+  <script src="assets/app.js?v=43"></script>
+  <script src="assets/supabase-config.js?v=43"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=42"></script>
+  <script src="assets/auth.js?v=43"></script>
   <script>
     (function () {
       "use strict";
@@ -509,7 +509,10 @@
       // ------------------------------------------------------------------
       // Nível 2 - perguntas do tópico
       // ------------------------------------------------------------------
-      function linhaPergunta(p, i, total, numero) {
+      // As setas so fazem sentido para pergunta ativa, e a posicao que importa
+      // e a dela entre as ativas: pelo indice da linha visivel, a seta aparecia
+      // habilitada e o clique nao fazia nada.
+      function linhaPergunta(p, i, total, numero, posAtiva, totalAtivas) {
         return (
           '<tr' + (p.ativo === false ? ' class="qt-inativo"' : "") + ">" +
             '<td style="width:38px;">' +
@@ -532,12 +535,14 @@
             '<td class="num">' +
               '<span class="qt-acoes">' +
                 (podeEditar
-                  ? '<span class="qt-mover">' +
-                      '<button type="button" data-subir="' + esc(p.id) + '"' + (i === 0 ? " disabled" : "") +
-                        ' aria-label="Subir"><i class="ti ti-chevron-up" aria-hidden="true"></i></button>' +
-                      '<button type="button" data-descer="' + esc(p.id) + '"' + (i === total - 1 ? " disabled" : "") +
-                        ' aria-label="Descer"><i class="ti ti-chevron-down" aria-hidden="true"></i></button>' +
-                    "</span>" +
+                  ? (p.ativo === false
+                      ? ""
+                      : '<span class="qt-mover">' +
+                          '<button type="button" data-subir="' + esc(p.id) + '"' + (posAtiva === 0 ? " disabled" : "") +
+                            ' aria-label="Subir"><i class="ti ti-chevron-up" aria-hidden="true"></i></button>' +
+                          '<button type="button" data-descer="' + esc(p.id) + '"' + (posAtiva === totalAtivas - 1 ? " disabled" : "") +
+                            ' aria-label="Descer"><i class="ti ti-chevron-down" aria-hidden="true"></i></button>' +
+                        "</span>") +
                     '<button class="btn btn-ghost btn-sm" type="button" data-editar-pergunta="' + esc(p.id) + '">' +
                       '<i class="ti ti-pencil" aria-hidden="true"></i>Editar' +
                     "</button>" +
@@ -589,6 +594,7 @@
         // A numeração conta só as ativas: é essa a ordem que quem preenche vê.
         var seq = 0;
         var total = visiveis.length;
+        var totalAtivas = perguntas.filter(function (p) { return p.ativo !== false; }).length;
         elPerguntas.innerHTML =
           '<div class="table-wrap"><table class="table">' +
             "<thead><tr>" +
@@ -596,7 +602,7 @@
             "</tr></thead>" +
             "<tbody>" + visiveis.map(function (p, i) {
               if (p.ativo !== false) seq += 1;
-              return linhaPergunta(p, i, total, seq);
+              return linhaPergunta(p, i, total, seq, seq - 1, totalAtivas);
             }).join("") + "</tbody>" +
           "</table></div>";
       }

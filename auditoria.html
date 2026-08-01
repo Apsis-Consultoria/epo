@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=42">
+  <link rel="stylesheet" href="assets/app.css?v=43">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -337,11 +337,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=42"></script>
-  <script src="assets/app.js?v=42"></script>
-  <script src="assets/supabase-config.js?v=42"></script>
+  <script src="assets/data.js?v=43"></script>
+  <script src="assets/app.js?v=43"></script>
+  <script src="assets/supabase-config.js?v=43"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=42"></script>
+  <script src="assets/auth.js?v=43"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -485,7 +485,7 @@
       // ---------------------------------------------------------------- Estado
       var state = {
         epoId: epoIdInicial,
-        cidade: "", uf: "", data: "", auditor: "Ana Ribeiro",
+        cidade: "", uf: "", data: "", auditor: "",
         tempos: { chegada: null, armazenagem: null, distribuicao: null, retornoCampo: null, devolucao: null },
         contagens: { equipamentos: null, fontes: null, controles: null, equipControle: null },
         respostas: {}, // id -> { status, obs, just, arquivos: File[] }
@@ -819,7 +819,10 @@
             '<p class="hint-static" id="f-epo-local">' + esc(state.cidade) + " · " + esc(state.uf) + "</p>" +
           "</div>" +
           '<div class="wiz-field"><label for="f-data">Data da visita</label><input class="input" id="f-data" type="date" value="' + esc(state.data) + '"></div>' +
-          '<div class="wiz-field"><label for="f-auditor">Auditor</label><input class="input" id="f-auditor" value="' + esc(state.auditor) + '"></div>'
+          '<div class="wiz-field"><label for="f-auditor">Auditor</label>' +
+            '<input class="input" id="f-auditor" value="' + esc(state.auditor) + '" readonly>' +
+            '<span class="hint">Quem está preenchendo, pela conta usada para entrar.</span>' +
+          "</div>"
         );
       }
 
@@ -1331,6 +1334,10 @@
         if (mesmoPasso) {
           // re-render do mesmo item (troca de resposta, anexo): repinta do cache
           comprov.cacheIdx = idx;
+          // O item continua sendo o mesmo. Sem reafirmar isto, uma evidencia
+          // que chegasse agora seria contada como "de outro item" e viraria
+          // aviso, em vez de aparecer no painel aberto.
+          if (step.item && step.item.id) comprov.itemAtual = step.item.id;
           comprovPintar(comprov.cache.conteudo, comprov.cache.n, false);
         } else {
           comprovCarregar(step);
@@ -1531,7 +1538,10 @@
         var r = state.respostas[it.id];
         if (!r || !r.status) return false;
         if (isCarregadores) {
-          if (r.status === "ausente") return justOk(r);
+          // A tela diz "justificativa e evidencia sao obrigatorias" no item
+          // ausente, mas so a justificativa era exigida. Ou cobra as duas, ou
+          // o texto e falso; item ausente e o que mais precisa de prova.
+          if (r.status === "ausente") return justOk(r) && temAnexo(r);
           return true;
         }
         return evidenciaOk(it, r);
@@ -1579,7 +1589,6 @@
             comprov.cache = null;
           });
           document.getElementById("f-data").addEventListener("input", function (ev) { state.data = ev.target.value; });
-          document.getElementById("f-auditor").addEventListener("input", function (ev) { state.auditor = ev.target.value; });
         } else if (step.type === "tempo") {
           var input = document.getElementById("f-tempo");
           var setVal = function (v) {
@@ -1991,6 +2000,17 @@
           falhaDoCatalogo((err && err.message) ||
             "Não foi possível carregar as perguntas agora. Tente novamente em alguns instantes.");
         });
+      }
+
+      // O campo Auditor mostra quem entrou. Antes vinha com um nome ficticio
+      // do catalogo local e o valor digitado nao ia para lugar nenhum.
+      if (window.Auth && Auth.perfil) {
+        Auth.perfil().then(function (perf) {
+          if (!perf || !perf.nome) return;
+          state.auditor = perf.nome;
+          var campo = document.getElementById("f-auditor");
+          if (campo) campo.value = perf.nome;
+        }, function () {});
       }
 
       // Contexto do banco (EPOs reais + relatorio pedido): a capa e a

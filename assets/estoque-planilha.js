@@ -134,10 +134,13 @@
       var livro = XLSX.utils.book_new();
 
       // Aba de preenchimento: duas colunas obrigatórias e uma opcional.
+      // O modelo vinha com codigos SAP reais no exemplo: quem preenchesse sem
+      // apagar as linhas registrava unidades que nunca foram contadas. O
+      // exemplo agora e visivelmente um exemplo, e nao casa com o catalogo.
       var preencher = [
         ["Código SAP", "Quantidade", "Observação"],
-        ["41001094", 12, ""],
-        ["22026293", 4, "fonte avulsa"],
+        ["EXEMPLO - apague esta linha", "", "Cole abaixo os códigos da aba Itens disponíveis"],
+        ["", "", ""],
         ["", "", ""]
       ];
       var abaPreencher = XLSX.utils.aoa_to_sheet(preencher);

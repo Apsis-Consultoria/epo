@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=42">
+  <link rel="stylesheet" href="assets/app.css?v=43">
   <style>
     /* Ajustes locais - tela do responsável da EPO */
 
@@ -207,11 +207,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=42"></script>
-  <script src="assets/app.js?v=42"></script>
-  <script src="assets/supabase-config.js?v=42"></script>
+  <script src="assets/data.js?v=43"></script>
+  <script src="assets/app.js?v=43"></script>
+  <script src="assets/supabase-config.js?v=43"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=42"></script>
+  <script src="assets/auth.js?v=43"></script>
   <script>
     (function () {
       "use strict";
@@ -461,8 +461,11 @@
           }
           itens = rItens.data || [];
           itens.forEach(function (it) { anexosPorItem[it.id] = []; });
+          // A pergunta pode ter sido desativada depois do envio. O arquivo dela
+          // continua no historico, mas nao existe mais campo na tela para
+          // mostrar: sem esta guarda ele entrava na contagem e nunca aparecia.
           (rAnexos.data || []).forEach(function (ax) {
-            if (!anexosPorItem[ax.item_id]) anexosPorItem[ax.item_id] = [];
+            if (!anexosPorItem[ax.item_id]) return;
             anexosPorItem[ax.item_id].push(ax);
           });
           renderDetalhe();
@@ -474,11 +477,17 @@
       // ------------------------------------------------------------------
       // Anexo novo (primeiro ou complementar) devolve o questionario para
       // "em andamento": e o que a equipe APSIS ve como movimento na EPO.
-      function marcarEmAndamento() {
-        if (!atual || atual.status === "em_andamento") return Promise.resolve();
-        atual.status = "em_andamento";
+      // Recebe o id porque o upload pode terminar depois de a tela ter voltado
+      // para a lista: o estado do questionario tem que mudar do mesmo jeito.
+      function marcarEmAndamento(alocId) {
+        var id = alocId || (atual && atual.id);
+        if (!id) return Promise.resolve();
+        if (atual && String(atual.id) === String(id)) {
+          if (atual.status === "em_andamento") return Promise.resolve();
+          atual.status = "em_andamento";
+        }
         if (DEMO) return Promise.resolve();
-        return db.from("alocacoes").update({ status: "em_andamento" }).eq("id", atual.id)
+        return db.from("alocacoes").update({ status: "em_andamento" }).eq("id", id)
           .then(function () {}, function () {});
       }
 
@@ -511,17 +520,20 @@
         }
 
         var enviados = 0;
+        // O id do questionario e capturado agora. Voltando para a lista no meio
+        // do envio, "atual" vira null e a cadeia quebrava no arquivo seguinte.
+        var alocId = atual.id;
         // A origem precisa estar resolvida antes do primeiro arquivo: se o
         // papel ainda nao chegou, o gerente da Claro enviaria como EPO e o
         // banco recusaria um a um.
         var cadeia = descobrirOrigem();
         lista.forEach(function (f) {
           cadeia = cadeia.then(function () {
-            var path = "alocacoes/" + atual.id + "/" + itemId + "/" + Date.now() + "-" + sanitizarNome(f.name);
+            var path = "alocacoes/" + alocId + "/" + itemId + "/" + Date.now() + "-" + sanitizarNome(f.name);
             return db.storage.from("evidencias").upload(path, f).then(function (up) {
               if (up.error) throw new Error(up.error.message);
               return db.from("alocacao_anexos").insert({
-                alocacao_id: atual.id,
+                alocacao_id: alocId,
                 item_id: itemId,
                 origem: minhaOrigem,
                 storage_path: path,
@@ -531,7 +543,11 @@
               }).select().single();
             }).then(function (ins) {
               if (ins.error) throw new Error(ins.error.message);
-              anexosPorItem[itemId].push(ins.data);
+              // Se a tela ja saiu deste questionario, o arquivo esta gravado,
+              // mas nao ha mais lista na tela para atualizar.
+              if (atual && String(atual.id) === String(alocId) && anexosPorItem[itemId]) {
+                anexosPorItem[itemId].push(ins.data);
+              }
               enviados += 1;
             }).catch(function (err) {
               console.error("upload", f.name, err);
@@ -542,12 +558,14 @@
 
         cadeia.then(function () {
           if (enviados > 0) {
-            atual.nAnexos = (atual.nAnexos || 0) + enviados;
-            return marcarEmAndamento();
+            if (atual && String(atual.id) === String(alocId)) {
+              atual.nAnexos = (atual.nAnexos || 0) + enviados;
+            }
+            return marcarEmAndamento(alocId);
           }
         }).then(function () {
           renderDetalhe();
-          if (enviados > 0) encaminharArquivos();
+          if (enviados > 0) encaminharArquivos(alocId);
         });
       }
 
@@ -555,14 +573,30 @@
       // segundo plano: nada na tela depende disso.
       var ultimoEncaminhamento = 0;
 
-      function encaminharArquivos() {
-        if (DEMO || !db || !db.functions || !atual) return;
-        // anexar e enviar disparam o encaminhamento; duas chamadas juntas
-        // disputavam o mesmo arquivo no destino
+      var encaminhamentoAgendado = null;
+
+      // Anexar e enviar disparam o encaminhamento, e duas chamadas juntas
+      // disputavam o mesmo arquivo no destino. O intervalo continua, mas quem
+      // chega dentro dele agora e REAGENDADO: antes era descartado, e o ultimo
+      // arquivo anexado podia nunca ser encaminhado.
+      function encaminharArquivos(alocId) {
+        if (DEMO || !db || !db.functions) return;
+        var id = alocId || (atual && atual.id);
+        if (!id) return;
+
         var agora = Date.now();
-        if (agora - ultimoEncaminhamento < 15000) return;
+        var espera = 15000 - (agora - ultimoEncaminhamento);
+        if (espera > 0) {
+          if (encaminhamentoAgendado) clearTimeout(encaminhamentoAgendado);
+          encaminhamentoAgendado = setTimeout(function () {
+            encaminhamentoAgendado = null;
+            encaminharArquivos(id);
+          }, espera + 200);
+          return;
+        }
+
         ultimoEncaminhamento = agora;
-        db.functions.invoke("sincronizar-sharepoint", { body: { alocacao_id: atual.id } })
+        db.functions.invoke("sincronizar-sharepoint", { body: { alocacao_id: id } })
           .then(function (r) {
             if (r && r.error) console.warn("encaminhamento:", r.error.message || r.error);
             else if (r && r.data && r.data.falhas && r.data.falhas.length) console.warn("encaminhamento:", r.data.falhas);
@@ -648,9 +682,15 @@
 
         if (DEMO) { concluir(); return; }
 
-        db.from("alocacoes").update({ status: "enviada", enviada_em: agora }).eq("id", atual.id)
+        // .select() para saber se a linha existe e mudou: sem ele, um
+        // questionario apagado ou refeito pelo gestor devolvia sucesso vazio e
+        // a tela dizia "enviado" com o banco intacto.
+        db.from("alocacoes").update({ status: "enviada", enviada_em: agora }).eq("id", atual.id).select("id")
           .then(function (r) {
             if (r.error) throw new Error(r.error.message);
+            if (!r.data || !r.data.length) {
+              throw new Error("este questionário não está mais disponível para envio");
+            }
             concluir();
           })
           .catch(function (err) {
@@ -661,7 +701,9 @@
                 (atual.enviada_em ? "Enviar de novo" : "Enviar evidências");
             }
             console.error("enviarComprovacoes", err);
-            App.toast("Não foi possível concluir o envio. Tente novamente.");
+            App.toast(err && /não está mais disponível/.test(err.message)
+              ? "Este questionário não está mais disponível para envio. Atualize a lista."
+              : "Não foi possível concluir o envio. Tente novamente.");
           });
       }
 

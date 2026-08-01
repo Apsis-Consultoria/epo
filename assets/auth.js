@@ -14,6 +14,26 @@
   var PRONTO = window.supabase && window.SUPABASE_URL && window.SUPABASE_KEY;
   var client = PRONTO ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY) : null;
 
+  // A biblioteca externa pode nao carregar (rede da EPO bloqueando o CDN, por
+  // exemplo). Sem ela, toda tela cai no catalogo local, cujos nomes de EPO sao
+  // quase iguais aos reais: alguem poderia trabalhar horas achando que esta
+  // vendo o cadastro. O aviso aparece uma vez, e so quando nao foi o usuario
+  // que escolheu a demonstracao.
+  function avisarSemConexao() {
+    if (document.getElementById("aviso-sem-conexao")) return;
+    var barra = document.createElement("div");
+    barra.id = "aviso-sem-conexao";
+    barra.setAttribute("role", "status");
+    barra.style.cssText =
+      "position:fixed;left:0;right:0;top:0;z-index:200;padding:9px 16px;" +
+      "background:#8A2B06;color:#fff;font:500 13px Inter,sans-serif;text-align:center;";
+    barra.textContent =
+      "Sem conexão com os dados agora. Os números desta tela são de demonstração; " +
+      "atualize a página quando a conexão voltar.";
+    if (document.body) document.body.appendChild(barra);
+    else document.addEventListener("DOMContentLoaded", function () { document.body.appendChild(barra); });
+  }
+
   // Página -> chave de permissão (mesmas chaves de APP.papeisPreset)
   var MAPA_PAGINAS = {
     "epos.html": "epos",
@@ -354,7 +374,9 @@
       return Promise.resolve("demo");
     }
     if (!client) {
-      // Sem Supabase carregado (ex.: offline): mantém protótipo utilizável
+      // Sem a biblioteca de dados (ex.: offline): a tela continua navegavel com
+      // o catalogo local, mas isso precisa ficar visivel.
+      avisarSemConexao();
       return Promise.resolve("offline");
     }
     return sessao().then(function (s) {

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=42">
+  <link rel="stylesheet" href="assets/app.css?v=43">
   <style>
     /* ==========================================================================
        Contagem Logistica Reversa (contagem de giro) - questionario de tela cheia,
@@ -415,13 +415,13 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=42"></script>
-  <script src="assets/app.js?v=42"></script>
-  <script src="assets/catalogo-giro.js?v=42"></script>
-  <script src="assets/estoque-planilha.js?v=42"></script>
-  <script src="assets/supabase-config.js?v=42"></script>
+  <script src="assets/data.js?v=43"></script>
+  <script src="assets/app.js?v=43"></script>
+  <script src="assets/catalogo-giro.js?v=43"></script>
+  <script src="assets/estoque-planilha.js?v=43"></script>
+  <script src="assets/supabase-config.js?v=43"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=42"></script>
+  <script src="assets/auth.js?v=43"></script>
   <script>
     (function () {
       "use strict";
@@ -474,7 +474,8 @@
         arquivo: null,      // File, guardado para subir com a contagem
         nome: "",
         resultado: null,    // { itens, erros, resumo } aguardando confirmacao
-        aplicada: false
+        aplicada: false,
+        anterior: null      // planilha ja aplicada, guardada enquanto outra e conferida
       };
 
       var epos = [];           // { id, nome, cidade, uf }
@@ -799,6 +800,14 @@
 
           Planilha.ler(arq).then(function (r) {
             planilha.lendo = false;
+            // A planilha ja aplicada fica guardada. Antes, anexar uma segunda
+            // trocava o arquivo na hora, e descartar essa segunda nao devolvia
+            // a primeira: subia junto com a contagem um arquivo nunca conferido.
+            if (planilha.aplicada) {
+              planilha.anterior = {
+                arquivo: planilha.arquivo, nome: planilha.nome, aplicada: true
+              };
+            }
             planilha.arquivo = arq;
             planilha.nome = arq.name;
             planilha.resultado = r;
@@ -820,6 +829,7 @@
           aplicar.addEventListener("click", function () {
             var r = planilha.resultado;
             if (!r) return;
+            planilha.anterior = null;   // a nova substitui de vez
             r.itens.forEach(function (it) { somarItem(it, it.qtd); });
             planilha.resultado = null;
             planilha.aplicada = true;
@@ -832,8 +842,17 @@
         if (descartar) {
           descartar.addEventListener("click", function () {
             planilha.resultado = null;
-            planilha.arquivo = null;
-            planilha.nome = "";
+            // Havia uma planilha ja aplicada antes desta: descartar a nova
+            // devolve aquela, que e a que corresponde aos itens contados.
+            if (planilha.anterior) {
+              planilha.arquivo = planilha.anterior.arquivo;
+              planilha.nome = planilha.anterior.nome;
+              planilha.aplicada = true;
+              planilha.anterior = null;
+            } else {
+              planilha.arquivo = null;
+              planilha.nome = "";
+            }
             renderStep();
           });
         }
@@ -1351,6 +1370,7 @@
           planilha.nome = "";
           planilha.resultado = null;
           planilha.aplicada = false;
+          planilha.anterior = null;
           headerEl.style.display = "";
           footer.style.display = "";
           cur = 0;
