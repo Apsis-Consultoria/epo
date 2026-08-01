@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=41">
+  <link rel="stylesheet" href="assets/app.css?v=42">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -126,12 +126,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=41"></script>
-  <script src="assets/app.js?v=41"></script>
-  <script src="assets/geo-br.js?v=41"></script>
-  <script src="assets/supabase-config.js?v=41"></script>
+  <script src="assets/data.js?v=42"></script>
+  <script src="assets/app.js?v=42"></script>
+  <script src="assets/geo-br.js?v=42"></script>
+  <script src="assets/supabase-config.js?v=42"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=41"></script>
+  <script src="assets/auth.js?v=42"></script>
   <script>
     (function () {
       "use strict";
@@ -417,16 +417,29 @@
         // O que ja foi pedido para esta EPO volta preenchido: e-mail do
         // responsavel, visita prevista e observacao. Antes so o endereco vinha,
         // e quem abria para incluir um questionario tinha que redigitar o resto.
+        // Campo a campo, os valores vinham de pedidos diferentes: dava para
+        // ver o e-mail de um com a visita de outro. Agora o pedido mais recente
+        // manda, e os anteriores so preenchem o que ele deixou vazio.
         var emailAtual = "";
         var visitaAtual = "";
         var obsAtual = "";
         if (epo) {
-          pedidos.forEach(function (a) {
-            if (String(a.epoId) !== String(epo.id)) return;
-            if (!emailAtual && a.email) emailAtual = a.email;
-            if (!visitaAtual && a.visita) visitaAtual = String(a.visita).slice(0, 10);
-            if (!obsAtual && a.obs) obsAtual = a.obs;
+          var meus = pedidos.filter(function (a) {
+            return String(a.epoId) === String(epo.id);
+          }).sort(function (x, y) {
+            return String(y.criadoEm || "").localeCompare(String(x.criadoEm || ""));
           });
+          if (meus.length) {
+            var recente = meus[0];
+            emailAtual = recente.email || "";
+            visitaAtual = recente.visita ? String(recente.visita).slice(0, 10) : "";
+            obsAtual = recente.obs || "";
+            meus.forEach(function (a) {
+              if (!emailAtual && a.email) emailAtual = a.email;
+              if (!visitaAtual && a.visita) visitaAtual = String(a.visita).slice(0, 10);
+              if (!obsAtual && a.obs) obsAtual = a.obs;
+            });
+          }
         }
         document.getElementById("f-email").value = emailAtual;
         document.getElementById("f-visita").value = visitaAtual;
@@ -559,14 +572,20 @@
 
       function pintarEscolha(selecionada) {
         if (!escolhaSel) return;
-        var ativas = epos.filter(function (e) { return e.ativo !== false; });
+        // A EPO escolhida entra na lista mesmo inativa: senao o seletor mostra
+        // "Selecione a EPO..." enquanto o formulario ja esta preenchido com ela,
+        // e o pedido acaba indo para uma unidade que a tela nem exibe.
+        var ativas = epos.filter(function (e) {
+          return e.ativo !== false || String(e.id) === String(selecionada);
+        });
         escolhaSel.innerHTML =
           '<option value="">Selecione a EPO...</option>' +
           ativas.map(function (e) {
             var loc = [e.cidade, e.uf].filter(Boolean).join("/");
             return '<option value="' + esc(e.id) + '"' +
               (String(e.id) === String(selecionada) ? " selected" : "") + ">" +
-              esc(e.nome) + (loc ? " - " + esc(loc) : "") + "</option>";
+              esc(e.nome) + (loc ? " - " + esc(loc) : "") +
+              (e.ativo === false ? " (inativa)" : "") + "</option>";
           }).join("");
       }
 
@@ -673,15 +692,29 @@
       function vinculosDaEpo(epoId) {
         if (DEMO) {
           var meus = pedidos.filter(function (a) { return String(a.epoId) === String(epoId); });
-          return Promise.resolve({ pedidos: meus.length, auditorias: 0, contagens: 0 });
+          return Promise.resolve({ pedidos: meus.length, auditorias: 0, contagens: 0, incerto: false });
         }
         var db = Auth.cliente;
+        // Erro de contagem virando zero e o pior caso possivel aqui: a tela
+        // concluiria que a EPO nao tem historico e ofereceria exclusao
+        // definitiva. Em duvida, para.
         function quantos(tabela) {
           return db.from(tabela).select("id", { count: "exact", head: true }).eq("epo_id", epoId)
-            .then(function (r) { return r && r.count ? r.count : 0; }, function () { return 0; });
+            .then(function (r) {
+              if (r && r.error) return { erro: true, n: 0 };
+              return { erro: false, n: (r && r.count) || 0 };
+            }, function () { return { erro: true, n: 0 }; });
         }
-        return Promise.all([quantos("alocacoes"), quantos("auditorias"), quantos("contagens_giro")])
-          .then(function (n) { return { pedidos: n[0], auditorias: n[1], contagens: n[2] }; });
+        return Promise.all([
+          quantos("alocacoes"), quantos("auditorias"),
+          quantos("contagens_giro"), quantos("indicadores_reversa")
+        ]).then(function (n) {
+          return {
+            pedidos: n[0].n, auditorias: n[1].n,
+            contagens: n[2].n + n[3].n,
+            incerto: n[0].erro || n[1].erro || n[2].erro || n[3].erro
+          };
+        });
       }
 
       function desativarEpo(epo, btn) {
@@ -710,6 +743,11 @@
         btn.disabled = true;
 
         vinculosDaEpo(epo.id).then(function (v) {
+          if (v.incerto) {
+            btn.disabled = false;
+            App.toast("Não foi possível conferir o histórico desta unidade agora. Tente de novo em alguns instantes.");
+            return;
+          }
           if (v.auditorias || v.contagens) {
             var trava = "A " + rotuloEpo(epo.nome) + " já tem histórico registrado" +
               (v.auditorias ? " (" + v.auditorias + (v.auditorias === 1 ? " auditoria" : " auditorias") + ")" : "") +
@@ -756,10 +794,27 @@
           }
 
           var db = Auth.cliente;
-          // Os pedidos saem primeiro: os anexos vão com eles.
-          return db.from("alocacoes").delete().eq("epo_id", epo.id)
-            .then(function () { return db.from("epos").delete().eq("id", epo.id).select("id"); })
+          // O banco nao deixa apagar a EPO enquanto houver pedido apontando
+          // para ela, entao os pedidos tem que sair antes. So que apagar os
+          // pedidos e descobrir depois que a EPO nao pode ser apagada destroi
+          // o historico de envio sem volta. Por isso, primeiro uma escrita
+          // inofensiva na propria EPO prova que o acesso alcanca alterar ela.
+          return db.from("epos").update({ nome: epo.nome }).eq("id", epo.id).select("id")
+            .then(function (rr) {
+              if (rr.error) throw rr.error;
+              if (!rr.data || !rr.data.length) {
+                btn.disabled = false;
+                App.toast("Seu acesso não permite excluir EPOs. Fale com a coordenação da APSIS.");
+                return null;
+              }
+              return db.from("alocacoes").delete().eq("epo_id", epo.id).select("id")
+                .then(function (ra) {
+                  if (ra.error) throw ra.error;
+                  return db.from("epos").delete().eq("id", epo.id).select("id");
+                });
+            })
             .then(function (r) {
+              if (!r) return null;   // ja avisado: sem alcance para excluir
               if (r.error) throw r.error;
               // Sem linha devolvida, a EPO continua lá: o acesso de quem clicou
               // não alcança exclusão. Dizer "excluída" aqui seria mentira.
@@ -1004,7 +1059,9 @@
               });
           }
 
-          return Auth.cliente.from("clientes").select("id").limit(1)
+          // Sem ordem, o "primeiro cliente" e o que o banco devolver: no dia em
+          // que existir um segundo, a EPO nasce sob o cliente errado.
+          return Auth.cliente.from("clientes").select("id").order("id").limit(1)
             .then(function (r) {
               if (r.error || !r.data || !r.data.length) {
                 throw new Error((r.error && r.error.message) || "Cliente não encontrado.");
@@ -1114,12 +1171,15 @@
           })
           .then(function (r) {
             if (!candidatos.length) return;
-            var comPergunta = {};
-            if (r && !r.error) {
-              (r.data || []).forEach(function (it) {
-                if (it.ativo !== false) comPergunta[it.processo_id] = true;
-              });
+            // Falhar aqui zerava a lista inteira de questionarios, inclusive os
+            // ja pedidos, que sumiam sem tique e sem explicacao.
+            if (r && r.error) {
+              throw new Error(r.error.message || "falha ao ler as perguntas dos questionários");
             }
+            var comPergunta = {};
+            (r && r.data ? r.data : []).forEach(function (it) {
+              if (it.ativo !== false) comPergunta[it.processo_id] = true;
+            });
             processos = candidatos.filter(function (p) { return comPergunta[p.id]; });
           })
           .then(function () {
@@ -1128,11 +1188,18 @@
               .order("criado_em", { ascending: false });
           })
           .then(function (r) {
-            pedidos = ((r && r.data) || []).map(function (a) {
+            // Sem os pedidos, a tela mente: a EPO aparece sem questionario
+            // nenhum, o formulario volta em branco e quem abrir vai pedir tudo
+            // de novo. Falhar aqui tem que parar e avisar.
+            if (!r || r.error) {
+              throw new Error((r && r.error && r.error.message) || "falha ao ler os questionários já pedidos");
+            }
+            pedidos = (r.data || []).map(function (a) {
               return {
                 id: a.id, epoId: a.epo_id, procId: a.processo_id,
                 email: a.responsavel_email, status: a.status,
-                visita: a.visita_prevista || "", obs: a.observacao || ""
+                visita: a.visita_prevista || "", obs: a.observacao || "",
+                criadoEm: a.criado_em || ""
               };
             });
             return db.from("epos").select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo").order("nome");
