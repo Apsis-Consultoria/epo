@@ -496,7 +496,10 @@
         }
 
         var enviados = 0;
-        var cadeia = Promise.resolve();
+        // A origem precisa estar resolvida antes do primeiro arquivo: se o
+        // papel ainda nao chegou, o gerente da Claro enviaria como EPO e o
+        // banco recusaria um a um.
+        var cadeia = descobrirOrigem();
         lista.forEach(function (f) {
           cadeia = cadeia.then(function () {
             var path = "alocacoes/" + atual.id + "/" + itemId + "/" + Date.now() + "-" + sanitizarNome(f.name);
@@ -572,12 +575,19 @@
           return;
         }
 
-        db.storage.from("evidencias").remove([ax.storage_path]).then(function () {
-          return db.from("alocacao_anexos").delete().eq("id", ax.id);
-        }).then(function (r) {
+        // A linha do banco sai primeiro, com prova de que saiu. Na ordem
+        // inversa, uma exclusao negada pelo banco deixava o registro vivo
+        // apontando para um arquivo ja apagado.
+        db.from("alocacao_anexos").delete().eq("id", ax.id).select("id").then(function (r) {
           if (r && r.error) throw new Error(r.error.message);
-          tirarDoEstado();
-          App.toast("Anexo removido.");
+          if (!r || !r.data || !r.data.length) {
+            App.toast("Este anexo não é seu para remover.");
+            return null;
+          }
+          return db.storage.from("evidencias").remove([ax.storage_path]).then(function () {
+            tirarDoEstado();
+            App.toast("Anexo removido.");
+          });
         }).catch(function (err) {
           console.error("removerAnexo", err);
           App.toast("Não foi possível remover o anexo. Tente novamente.");
@@ -908,6 +918,15 @@
         return (
           '<ul class="anexo-list">' +
           lista.map(function (ax) {
+            // Cada lado so remove o proprio anexo. O anexo do outro lado
+            // aparece com o selo de quem enviou e sem o botao de apagar -
+            // o banco negaria de qualquer jeito, e um botao que nao pode
+            // funcionar so engana.
+            var origemDele = ax.origem || "epo";
+            var meu = origemDele === minhaOrigem;
+            var selo = meu ? "" :
+              '<span class="origem-selo ' + App.origemMeta(origemDele).cls + '">' +
+                esc(App.origemMeta(origemDele).curto) + "</span>";
             return (
               '<li class="anexo-item">' +
                 '<i class="ti ' + iconePorTipo(ax.nome_arquivo, ax.content_type) + '" aria-hidden="true"></i>' +
@@ -915,7 +934,8 @@
                   '<button class="anexo-nome" type="button" data-abrir="' + esc(ax.id) + '" data-item="' + esc(itemId) + '" title="Abrir anexo">' + esc(ax.nome_arquivo) + "</button>" +
                   '<span class="anexo-tam">' + tamanhoHumano(ax.tamanho) + "</span>" +
                 "</div>" +
-                (readonly ? "" :
+                selo +
+                (readonly || !meu ? "" :
                   '<button class="anexo-del" type="button" data-remover="' + esc(ax.id) + '" data-item="' + esc(itemId) + '" aria-label="Remover anexo ' + esc(ax.nome_arquivo) + '">' +
                     '<i class="ti ti-trash" aria-hidden="true"></i>' +
                   "</button>") +

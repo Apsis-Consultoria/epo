@@ -576,6 +576,10 @@
       var catalogoPromise = null;
       // Sem banco (demonstração) o catálogo local já vale e nada fica travado.
       var catalogoPronto = !envioReal;
+      // Quando o catalogo falha, a tela vira um aviso. Sem esta marca, o
+      // contexto do banco chegava depois e repintava a capa por cima do aviso,
+      // deixando o auditor numa capa sem barra e sem botao de iniciar.
+      var catalogoFalhou = false;
 
       function carregarCatalogo() {
         return Auth.cliente.from("processos")
@@ -620,6 +624,7 @@
       // Sem as perguntas não existe auditoria: em vez de seguir com um
       // questionário defasado, a tela explica e volta para a lista.
       function falhaDoCatalogo(msg) {
+        catalogoFalhou = true;
         headerEl.style.display = "none";
         footer.style.display = "none";
         main.innerHTML =
@@ -1232,7 +1237,7 @@
           // alocação: é o caminho mais direto e não depende de casar a EPO.
           if (aloc) {
             return Auth.cliente.from("alocacao_anexos")
-              .select("id, storage_path, nome_arquivo, content_type, tamanho, criado_em")
+              .select("id, origem, storage_path, nome_arquivo, content_type, tamanho, criado_em")
               .eq("alocacao_id", aloc.id).eq("item_id", itemId)
               .order("criado_em")
               .then(function (r) {
@@ -1925,8 +1930,18 @@
           if (envioReal) {
             nextBtn.disabled = true; // evita duplo envio enquanto busca a sessão
             Auth.sessao().then(function (s) {
-              if (s) enviarReal(s);
-              else showDone(false); // sem sessão (ex.: expirada): não grava
+              if (s) { enviarReal(s); return; }
+              // Sem sessão nada foi gravado. Mostrar a tela de conclusão aqui
+              // faria o auditor ir embora achando que enviou, e a auditoria
+              // inteira sumiria com a aba. O checklist fica na tela.
+              nextBtn.disabled = false;
+              App.toast("Sua sessão expirou. Entre novamente nesta aba para enviar sem perder o que foi preenchido.");
+            }, function (err) {
+              // A promessa rejeitou (rede caindo): reabilitar, senão o botão
+              // fica travado e não existe mais caminho para enviar.
+              console.error("sessão para envio:", err);
+              nextBtn.disabled = false;
+              App.toast("Não foi possível confirmar o seu acesso agora. Tente enviar de novo.");
             });
           } else {
             showDone(false);
@@ -1958,6 +1973,7 @@
       // Contexto do banco (EPOs reais + relatorio pedido): a capa e a
       // identificacao sao repintadas quando os dados chegam.
       contexto().then(function () {
+        if (catalogoFalhou) return;
         var s0 = steps[cur];
         if (s0 && (s0.type === "intro" || s0.type === "identificacao")) renderStep();
       });
