@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=40">
+  <link rel="stylesheet" href="assets/app.css?v=41">
   <style>
     /* ==========================================================================
        Contagem Logistica Reversa (contagem de giro) - questionario de tela cheia,
@@ -415,13 +415,13 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=40"></script>
-  <script src="assets/app.js?v=40"></script>
-  <script src="assets/catalogo-giro.js?v=40"></script>
-  <script src="assets/estoque-planilha.js?v=40"></script>
-  <script src="assets/supabase-config.js?v=40"></script>
+  <script src="assets/data.js?v=41"></script>
+  <script src="assets/app.js?v=41"></script>
+  <script src="assets/catalogo-giro.js?v=41"></script>
+  <script src="assets/estoque-planilha.js?v=41"></script>
+  <script src="assets/supabase-config.js?v=41"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=40"></script>
+  <script src="assets/auth.js?v=41"></script>
   <script>
     (function () {
       "use strict";
@@ -485,6 +485,7 @@
       var timerBusca = null;
       var salvandoRascunho = false;
       var rascunhoSalvo = false;
+      var rascunhoId = null;    // rascunho ja gravado, para substituir em vez de duplicar
 
       // ------------------------------------------------------------- Helpers
       function hojeIso() {
@@ -1342,6 +1343,7 @@
           qtdSel = 1;
           termo = "";
           rascunhoSalvo = false;
+          rascunhoId = null;
           // A planilha tambem e da contagem anterior: sem zerar, o mesmo
           // arquivo subia de novo junto com a contagem seguinte.
           planilha.lendo = false;
@@ -1420,7 +1422,13 @@
             return db.from("contagens_giro").update({
               arquivo_path: caminho,
               arquivo_nome: planilha.nome
-            }).eq("id", contagemId).then(function () { return caminho; });
+            }).eq("id", contagemId).select("id").then(function (r) {
+              if (r.error) throw new Error(r.error.message);
+              // Sem o vinculo gravado, o arquivo fica solto no armazenamento e
+              // o encaminhamento nao acha planilha nenhuma para levar.
+              if (!r.data || !r.data.length) throw new Error("planilha nao vinculada a contagem");
+              return caminho;
+            });
           })
           .catch(function (err) {
             console.warn("planilha nao anexada:", err);
@@ -1450,7 +1458,14 @@
             return db.from("contagem_giro_itens").insert(linhasItens(contagemId));
           })
           .then(function (r) {
-            if (r && r.error) throw r.error;
+            if (r && r.error) {
+              // Cabecalho gravado e itens nao: ficaria uma contagem enviada e
+              // vazia, e tentar de novo criaria um segundo cabecalho. Desfaz.
+              var falhaItens = r.error;
+              return db.from("contagens_giro").delete().eq("id", contagemId)
+                .then(function () { contagemId = null; throw falhaItens; },
+                      function () { throw falhaItens; });
+            }
             return subirPlanilha(contagemId);
           })
           .then(function (caminho) {
@@ -1470,16 +1485,23 @@
         if (salvandoRascunho) return;
         if (!temItemValido()) { App.toast("Adicione pelo menos 1 item antes de salvar."); return; }
         if (DEMO) { App.toast("Rascunho salvo."); return; }
-        if (rascunhoSalvo) { App.toast("Rascunho já salvo. Use Enviar contagem para concluir."); return; }
+        // Antes, salvo uma vez, qualquer alteracao seguinte era recusada e
+        // ficava so na tela. Agora o rascunho anterior sai e entra o atual.
 
         salvandoRascunho = true;
         Auth.sessao().then(function (s) {
           if (!s) throw new Error("sessão expirada, entre novamente");
-          var row = cabecalhoRow("rascunho");
-          row.usuario_id = s.user.id;
-          return db.from("contagens_giro").insert(row).select("id").single();
+          var antes = rascunhoId
+            ? db.from("contagens_giro").delete().eq("id", rascunhoId)
+            : Promise.resolve(null);
+          return antes.then(function () {
+            var row = cabecalhoRow("rascunho");
+            row.usuario_id = s.user.id;
+            return db.from("contagens_giro").insert(row).select("id").single();
+          });
         }).then(function (r) {
           if (r.error) throw r.error;
+          rascunhoId = r.data.id;
           return db.from("contagem_giro_itens").insert(linhasItens(r.data.id));
         }).then(function (r) {
           if (r && r.error) throw r.error;

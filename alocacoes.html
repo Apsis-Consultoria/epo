@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=40">
+  <link rel="stylesheet" href="assets/app.css?v=41">
   <style>
     /* Ajustes locais da tela de cadastro de EPO e pedido de relatórios */
 
@@ -135,11 +135,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=40"></script>
-  <script src="assets/app.js?v=40"></script>
-  <script src="assets/supabase-config.js?v=40"></script>
+  <script src="assets/data.js?v=41"></script>
+  <script src="assets/app.js?v=41"></script>
+  <script src="assets/supabase-config.js?v=41"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=40"></script>
+  <script src="assets/auth.js?v=41"></script>
   <script>
     (function () {
       "use strict";
@@ -779,6 +779,14 @@
             return Auth.cliente.from("alocacao_anexos")
               .select("alocacao_id")
               .then(function (ra) {
+                // Falhando a contagem, toda linha mostraria "0 anexos" e o
+                // gestor concluiria que ninguem enviou nada. Melhor dizer que
+                // o numero nao pode ser conferido agora.
+                var contouOk = !(ra && ra.error);
+                if (!contouOk) {
+                  console.error("contagemAnexos", ra && ra.error);
+                  App.toast("Não foi possível conferir a quantidade de anexos agora.");
+                }
                 var contagem = {};
                 (ra.data || []).forEach(function (x) {
                   contagem[x.alocacao_id] = (contagem[x.alocacao_id] || 0) + 1;
@@ -801,7 +809,7 @@
                     visitaPrevista: a.visita_prevista,
                     conviteEnviadoEm: a.convite_enviado_em,
                     observacao: a.observacao,
-                    anexos: contagem[a.id] || 0
+                    anexos: contouOk ? (contagem[a.id] || 0) : null
                   };
                 });
               });
@@ -931,7 +939,7 @@
           if (DEMO) {
             if (linhaConvite) linhaConvite.conviteEnviadoEm = new Date().toISOString();
             renderLista();
-            App.toast("Convite reenviado para " + (alvo ? alvo.email : "o responsável") + ".");
+            App.toast("Convite reenviado para " + (linhaConvite && linhaConvite.email ? linhaConvite.email : "o responsável") + ".");
             return;
           }
           btnConvite.disabled = true;

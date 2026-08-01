@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=40">
+  <link rel="stylesheet" href="assets/app.css?v=41">
   <style>
     /* Ajustes locais da tela de evidências recebidas (grade + lista) */
 
@@ -136,11 +136,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=40"></script>
-  <script src="assets/app.js?v=40"></script>
-  <script src="assets/supabase-config.js?v=40"></script>
+  <script src="assets/data.js?v=41"></script>
+  <script src="assets/app.js?v=41"></script>
+  <script src="assets/supabase-config.js?v=41"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=40"></script>
+  <script src="assets/auth.js?v=41"></script>
   <script>
     (function () {
       "use strict";
@@ -297,9 +297,13 @@
           .in("status", ["enviada", "validada"])
           .order("data_visita", { ascending: false });
 
+        // Nao filtrar por "enviada": anexar mais um arquivo devolve a alocacao
+        // para "em andamento", e o par perdia a alocacao inteira - todos os
+        // arquivos ja enviados sumiam desta tela. O que importa aqui e existir
+        // arquivo para conferir, e nao o estado do envio.
         var qAloc = Auth.cliente.from("alocacoes")
-          .select("*, epos(nome,cidade,uf), processos(nome,slug,icone)")
-          .eq("status", "enviada");
+          .select("*, epos(nome,cidade,uf), processos(nome,slug,icone), alocacao_anexos(count)")
+          .order("criado_em", { ascending: false });
 
         return Promise.all([qAud, qAloc]).then(function (rs) {
           if (rs[0].error) throw rs[0].error;
@@ -331,9 +335,15 @@
           });
 
           (rs[1].data || []).forEach(function (al) {
+            var n = (al.alocacao_anexos && al.alocacao_anexos[0] && al.alocacao_anexos[0].count) || 0;
+            if (!n && al.status !== "enviada") return;   // nada enviado e nada anexado
             var p = par(al.epo_id, al.processo_id, al.epos, al.processos);
+            // Podem existir varias alocacoes para o mesmo par; guardamos todas
+            // para ler os anexos de cada uma, senao os arquivos da segunda
+            // nunca apareceriam na conferencia.
+            p.alocacoes = (p.alocacoes || []).concat([al]);
             if (!p.alocacao) p.alocacao = al;
-            if (!p.data) p.data = al.enviada_em;
+            if (!p.data) p.data = al.enviada_em || al.criado_em;
           });
 
           var pares = Object.keys(mapa).map(function (k) { return mapa[k]; });
@@ -368,8 +378,10 @@
             var qResp = p.auditoria
               ? Auth.cliente.from("respostas").select("*").eq("auditoria_id", p.auditoria.id)
               : Promise.resolve({ data: [] });
-            var qAnexos = p.alocacao
-              ? Auth.cliente.from("alocacao_anexos").select("*").eq("alocacao_id", p.alocacao.id)
+            var idsAloc = (p.alocacoes || (p.alocacao ? [p.alocacao] : []))
+              .map(function (a) { return a.id; });
+            var qAnexos = idsAloc.length
+              ? Auth.cliente.from("alocacao_anexos").select("*").in("alocacao_id", idsAloc)
               : Promise.resolve({ data: [] });
 
             return Promise.all([qResp, qAnexos]).then(function (rs) {

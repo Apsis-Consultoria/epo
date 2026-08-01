@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=40">
+  <link rel="stylesheet" href="assets/app.css?v=41">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -337,11 +337,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=40"></script>
-  <script src="assets/app.js?v=40"></script>
-  <script src="assets/supabase-config.js?v=40"></script>
+  <script src="assets/data.js?v=41"></script>
+  <script src="assets/app.js?v=41"></script>
+  <script src="assets/supabase-config.js?v=41"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=40"></script>
+  <script src="assets/auth.js?v=41"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -507,6 +507,7 @@
          ==================================================================== */
       var eposDb = null;   // [{ id, nome, cidade, uf }] do banco
       var aloc = null;     // linha de alocacoes (relatorio pedido)
+      var alocFalhou = false;   // pedido informado na URL que nao pode ser lido
       var contextoPromise = null;
 
       function eposDisponiveis() { return eposDb || epos; }
@@ -542,7 +543,10 @@
               .eq("id", alocParam).maybeSingle()
               .then(function (ra) {
                 if (ra.error || !ra.data) {
+                  // Seguir sem o pedido grava a auditoria solta: a pendencia
+                  // continua aberta na lista e ninguem entende por que.
                   console.warn("Relatorio pedido nao encontrado:", alocParam);
+                  alocFalhou = true;
                   return null;
                 }
                 aloc = ra.data;
@@ -765,9 +769,14 @@
             '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Ao final, veja o resumo das ausências</li>';
         } else {
           var nFotos = processo.itens.filter(function (it) { return it.requerFoto; }).length;
+          // Questionario criado no cadastro pode nao ter peso definido; sem a
+          // checagem a capa escrevia "null%".
+          var temPeso = processo.peso !== null && processo.peso !== undefined && processo.peso !== "";
           stats =
             '<div class="wiz-intro-stat"><b>' + nItens + "</b><span>itens</span></div>" +
-            '<div class="wiz-intro-stat"><b>' + processo.peso + "%</b><span>peso no selo</span></div>" +
+            (temPeso
+              ? '<div class="wiz-intro-stat"><b>' + App.fmtPct(processo.peso) + "</b><span>peso no selo</span></div>"
+              : "") +
             '<div class="wiz-intro-stat"><b>' + nFotos + "</b><span>exigem foto</span></div>";
           bullets =
             '<li><i class="ti ti-circle-check" aria-hidden="true"></i>Responda cada item como Conforme, Não conforme ou N.A.</li>' +
@@ -1769,6 +1778,14 @@
       var MAPA_STATUS_DB = { conforme: "conforme", nao: "nao_conforme", na: "na", presente: "presente", ausente: "ausente" };
 
       function enviarReal(sess) {
+        // O pedido veio na URL e nao pode ser lido: gravar assim deixaria a
+        // auditoria sem vinculo e a pendencia aberta para sempre.
+        if (alocParam && alocFalhou) {
+          mostrarEnvio(false);
+          App.toast("Não foi possível confirmar o relatório pedido. Abra a auditoria de novo pela lista de pendentes.");
+          updateChrome();
+          return;
+        }
         mostrarEnvio(true);
         var db = Auth.cliente;
         var epoMock = App.epoById(state.epoId);

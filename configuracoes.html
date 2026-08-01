@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Configurações de pontuação - Auditoria de EPOs</title>
+  <title>Configurações - Auditoria de EPOs</title>
 
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=40">
+  <link rel="stylesheet" href="assets/app.css?v=41">
 
   <style>
     /* Ajustes locais desta tela (componentes não previstos no design system). */
@@ -105,11 +105,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=40"></script>
-  <script src="assets/app.js?v=40"></script>
-  <script src="assets/supabase-config.js?v=40"></script>
+  <script src="assets/data.js?v=41"></script>
+  <script src="assets/app.js?v=41"></script>
+  <script src="assets/supabase-config.js?v=41"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=40"></script>
+  <script src="assets/auth.js?v=41"></script>
   <script>
     (function () {
       "use strict";
@@ -146,7 +146,9 @@
 
       // Subtópicos: telas de bastidor que ficam guardadas aqui.
       var SUBTOPICOS = [
-        { href: "alocacoes.html", icone: "ti-user-plus", nome: "Alocações",
+        { href: "questionarios.html", icone: "ti-list-details", nome: "Questionários",
+          desc: "Os tópicos e as perguntas de cada auditoria." },
+        { href: "alocacoes.html", icone: "ti-user-plus", nome: "Reenvio de checklist",
           desc: "Quem responde por cada questionário de cada EPO." },
         { href: "acessos.html", icone: "ti-lock-access", nome: "Gerenciamento de acessos",
           desc: "Quem entra no sistema e o que cada pessoa pode ver." },
@@ -156,14 +158,14 @@
 
       page.innerHTML =
         '<p class="page-intro">Defina como as EPOs são pontuadas e classificadas. Ajuste os cortes dos tiers e o ' +
-        'peso de cada processo; a prévia recalcula a classificação em tempo real.</p>' +
+        'peso de cada processo e veja a classificação se refazer na hora. Para valer na nota, o peso é definido em cada tópico, na tela de Questionários.</p>' +
 
         // Seção 0 - Subtópicos
         '<section class="card stack-md" style="margin-bottom:20px">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
               '<span class="title">Gestão do sistema</span>' +
-              '<span class="subtitle">Alocações, acessos e evidências das auditorias.</span>' +
+              '<span class="subtitle">Questionários, reenvio de checklist, acessos e arquivos das auditorias.</span>' +
             "</div>" +
           "</div>" +
           '<div class="cfg-sub">' +
@@ -419,12 +421,25 @@
         setTiers("bronze");
       });
 
+      // Esta tela simula: mexer nos cortes e nos pesos recalcula a previa na
+      // hora, para decidir o numero. O peso que vale na nota e o do topico, em
+      // Configuracoes > Questionarios. Confirmar "salvo" aqui era mentira: nada
+      // era gravado e tudo voltava ao recarregar.
       btnSave.addEventListener("click", function () {
         if (somaPesos() !== 100) {
-          App.toast("Ajuste os pesos para somar 100 antes de salvar.");
+          App.toast("Ajuste os pesos para somar 100 antes de comparar.");
           return;
         }
-        App.toast("Configuração de pontuação salva.");
+        App.confirmar({
+          titulo: "Aplicar estes pesos",
+          texto: "Os números desta tela servem para simular o efeito na classificação." + "\n\n" +
+            "Para valer na nota, o peso é definido em cada tópico, na tela de Questionários. " +
+            "Quer abrir essa tela agora?",
+          confirmar: "Abrir Questionários",
+          cancelar: "Continuar simulando"
+        }).then(function (ok) {
+          if (ok) window.location.href = "questionarios.html";
+        });
       });
 
       btnReset.addEventListener("click", function () {

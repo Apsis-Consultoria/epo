@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=40">
+  <link rel="stylesheet" href="assets/app.css?v=41">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -109,11 +109,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=40"></script>
-  <script src="assets/app.js?v=40"></script>
-  <script src="assets/supabase-config.js?v=40"></script>
+  <script src="assets/data.js?v=41"></script>
+  <script src="assets/app.js?v=41"></script>
+  <script src="assets/supabase-config.js?v=41"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=40"></script>
+  <script src="assets/auth.js?v=41"></script>
   <script>
     (function () {
       "use strict";
@@ -615,7 +615,13 @@
         elNivel2.classList.remove("is-hidden");
         elPerguntas.innerHTML = '<div class="qt-carregando">Carregando perguntas...</div>';
         window.scrollTo(0, 0);
-        carregarPerguntas(id).then(renderNivel2);
+        // Abrir um topico e trocar por outro antes da resposta chegar deixava
+        // o cabecalho de um com as perguntas do outro. So a ultima abertura
+        // tem direito de pintar a tela.
+        carregarPerguntas(id).then(function () {
+          if (String(topicoAberto) !== String(id)) return;
+          renderNivel2();
+        });
       }
 
       // ------------------------------------------------------------------
@@ -952,7 +958,14 @@
         // que a troca não tenha efeito nenhum.
         ativas[i] = b;
         ativas[j] = a;
-        ativas.forEach(function (p, idx) { p.ordem = idx + 1; });
+        // Renumerar so as ativas fazia a ordem colidir com a das desativadas,
+        // e a desativada mudava de lugar sozinha ao reabrir a tela. A
+        // renumeracao cobre a lista inteira: as ativas na sequencia nova, as
+        // desativadas depois, mantendo a ordem relativa entre elas.
+        var novaOrdem = ativas.concat(
+          perguntas.filter(function (p) { return p.ativo === false; })
+        );
+        novaOrdem.forEach(function (p, idx) { p.ordem = idx + 1; });
         ordenarPerguntas();
         renderNivel2();
 
@@ -962,7 +975,7 @@
         // r.error, a tela mostrava a nova ordem e o banco ficava com a antiga,
         // voltando tudo ao recarregar.
         var cadeia = Promise.resolve();
-        ativas.forEach(function (p) {
+        novaOrdem.forEach(function (p) {
           cadeia = cadeia.then(function () {
             return db.from("itens_checklist").update({ ordem: p.ordem }).eq("id", p.id).select("id")
               .then(function (r) {
@@ -985,14 +998,25 @@
       // apagado sem levar o histórico junto. Nesse caso a saída é desativar:
       // a pergunta sai das auditorias novas e o que já foi respondido fica.
       // ------------------------------------------------------------------
+      // Falha de contagem nao pode virar "nunca foi usada": a tela ofereceria
+      // exclusao definitiva de pergunta com historico. Em duvida, trata como
+      // usada, que leva ao caminho seguro (desativar).
       function usoDaPergunta(id) {
-        if (DEMO) return Promise.resolve({ respostas: 0, anexos: 0 });
+        if (DEMO) return Promise.resolve({ respostas: 0, anexos: 0, incerto: false });
         function quantos(tabela) {
           return db.from(tabela).select("id", { count: "exact", head: true }).eq("item_id", id)
-            .then(function (r) { return (r && r.count) || 0; }, function () { return 0; });
+            .then(function (r) {
+              if (r && r.error) return { erro: true, n: 0 };
+              return { erro: false, n: (r && r.count) || 0 };
+            }, function () { return { erro: true, n: 0 }; });
         }
         return Promise.all([quantos("respostas"), quantos("alocacao_anexos")])
-          .then(function (n) { return { respostas: n[0], anexos: n[1] }; });
+          .then(function (n) {
+            return {
+              respostas: n[0].n, anexos: n[1].n,
+              incerto: n[0].erro || n[1].erro
+            };
+          });
       }
 
       function desativarPergunta(p) {
@@ -1021,6 +1045,10 @@
         if (!p) return;
 
         usoDaPergunta(id).then(function (uso) {
+          if (uso.incerto) {
+            App.toast("Não foi possível conferir o histórico desta pergunta agora. Tente de novo em alguns instantes.");
+            return;
+          }
           if (uso.respostas || uso.anexos) {
             var partes = [];
             if (uso.respostas) partes.push(uso.respostas + (uso.respostas === 1 ? " resposta de auditoria" : " respostas de auditoria"));
@@ -1073,18 +1101,24 @@
       function usoDoTopico(id) {
         if (DEMO) {
           var t = topicoPorId(id);
-          return Promise.resolve({ perguntas: (t && t.nPerguntas) || 0, pedidos: 0, auditorias: 0 });
+          return Promise.resolve({ perguntas: (t && t.nPerguntas) || 0, pedidos: 0, auditorias: 0, incerto: false });
         }
         function quantos(tabela, coluna) {
           return db.from(tabela).select("id", { count: "exact", head: true }).eq(coluna, id)
-            .then(function (r) { return (r && r.count) || 0; }, function () { return 0; });
+            .then(function (r) {
+              if (r && r.error) return { erro: true, n: 0 };
+              return { erro: false, n: (r && r.count) || 0 };
+            }, function () { return { erro: true, n: 0 }; });
         }
         return Promise.all([
           quantos("itens_checklist", "processo_id"),
           quantos("alocacoes", "processo_id"),
           quantos("auditorias", "processo_id")
         ]).then(function (n) {
-          return { perguntas: n[0], pedidos: n[1], auditorias: n[2] };
+          return {
+            perguntas: n[0].n, pedidos: n[1].n, auditorias: n[2].n,
+            incerto: n[0].erro || n[1].erro || n[2].erro
+          };
         });
       }
 
@@ -1112,6 +1146,10 @@
         if (!t) return;
 
         usoDoTopico(id).then(function (uso) {
+          if (uso.incerto) {
+            App.toast("Não foi possível conferir o histórico deste tópico agora. Tente de novo em alguns instantes.");
+            return;
+          }
           if (uso.pedidos || uso.auditorias) {
             var partes = [];
             if (uso.auditorias) partes.push(uso.auditorias + (uso.auditorias === 1 ? " auditoria" : " auditorias"));
