@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=39">
+  <link rel="stylesheet" href="assets/app.css?v=40">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -337,11 +337,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=39"></script>
-  <script src="assets/app.js?v=39"></script>
-  <script src="assets/supabase-config.js?v=39"></script>
+  <script src="assets/data.js?v=40"></script>
+  <script src="assets/app.js?v=40"></script>
+  <script src="assets/supabase-config.js?v=40"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=39"></script>
+  <script src="assets/auth.js?v=40"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -1810,11 +1810,17 @@
                 if (epoMock && lista[i].nome === epoMock.nome) { epoDb = lista[i]; break; }
               }
             }
+            // Sem casar id nem nome, a auditoria seria gravada na primeira EPO
+            // da lista: nota, evidencia e historico iriam para a unidade errada,
+            // com um aviso no console como unico sinal. Melhor recusar o envio.
             if (!epoDb) {
-              epoDb = lista[0];
-              console.warn("EPO \"" + (epoMock ? epoMock.nome : state.epoId) + "\" não encontrada no banco; usando a primeira EPO cadastrada.");
+              var semEpo = new Error(
+                "Não foi possível confirmar em qual unidade esta auditoria deve ser registrada. " +
+                "Volte ao passo de identificação, escolha a EPO na lista e envie de novo."
+              );
+              semEpo.avisoParaTela = true;
+              throw semEpo;
             }
-            if (!epoDb) throw new Error("Nenhuma EPO cadastrada no banco.");
             var sc = computeScore();
             return db.from("auditorias").insert({
               epo_id: epoDb.id,

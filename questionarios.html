@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=39">
+  <link rel="stylesheet" href="assets/app.css?v=40">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -109,11 +109,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=39"></script>
-  <script src="assets/app.js?v=39"></script>
-  <script src="assets/supabase-config.js?v=39"></script>
+  <script src="assets/data.js?v=40"></script>
+  <script src="assets/app.js?v=40"></script>
+  <script src="assets/supabase-config.js?v=40"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=39"></script>
+  <script src="assets/auth.js?v=40"></script>
   <script>
     (function () {
       "use strict";
@@ -958,10 +958,17 @@
 
         if (DEMO) return;
 
+        // A consulta resolve com { error } em vez de rejeitar: sem olhar o
+        // r.error, a tela mostrava a nova ordem e o banco ficava com a antiga,
+        // voltando tudo ao recarregar.
         var cadeia = Promise.resolve();
         ativas.forEach(function (p) {
           cadeia = cadeia.then(function () {
-            return db.from("itens_checklist").update({ ordem: p.ordem }).eq("id", p.id);
+            return db.from("itens_checklist").update({ ordem: p.ordem }).eq("id", p.id).select("id")
+              .then(function (r) {
+                if (r.error) throw r.error;
+                if (!r.data || !r.data.length) throw new Error("ordem não salva");
+              });
           });
         });
         cadeia.catch(function (e) {
@@ -1143,8 +1150,14 @@
             }
             // As perguntas saem primeiro: o banco não deixa apagar o tópico
             // enquanto elas existirem.
+            // Se as perguntas saem e o topico fica, o resultado e um topico
+            // vazio - que some das listas de pedido e de auditoria, e as
+            // perguntas nao voltam. Por isso o primeiro passo tambem e checado.
             return db.from("itens_checklist").delete().eq("processo_id", id)
-              .then(function () { return db.from("processos").delete().eq("id", id).select("id"); })
+              .then(function (r) {
+                if (r && r.error) throw r.error;
+                return db.from("processos").delete().eq("id", id).select("id");
+              })
               .then(function (r) {
                 if (r.error) throw r.error;
                 if (!r.data || !r.data.length) {

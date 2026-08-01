@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=39">
+  <link rel="stylesheet" href="assets/app.css?v=40">
   <style>
     /* ==========================================================================
        Contagem Logistica Reversa (contagem de giro) - questionario de tela cheia,
@@ -415,13 +415,13 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=39"></script>
-  <script src="assets/app.js?v=39"></script>
-  <script src="assets/catalogo-giro.js"></script>
-  <script src="assets/estoque-planilha.js?v=39"></script>
-  <script src="assets/supabase-config.js?v=39"></script>
+  <script src="assets/data.js?v=40"></script>
+  <script src="assets/app.js?v=40"></script>
+  <script src="assets/catalogo-giro.js?v=40"></script>
+  <script src="assets/estoque-planilha.js?v=40"></script>
+  <script src="assets/supabase-config.js?v=40"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=39"></script>
+  <script src="assets/auth.js?v=40"></script>
   <script>
     (function () {
       "use strict";
@@ -572,10 +572,12 @@
           .toLowerCase();
       }
 
+      // O codigo entra normalizado igual a busca: guardado em maiuscula, um
+      // item como PBL41001293 nunca era encontrado por quem digitava minusculo.
       var INDICE = CATALOGO.map(function (it) {
         return {
           it: it,
-          cod: String(it.cod || ""),
+          cod: normalizar(String(it.cod || "")),
           texto: normalizar((it.tec || "") + " " + (it.cat || "") + " " + (it.tipo || ""))
         };
       });
@@ -1340,6 +1342,13 @@
           qtdSel = 1;
           termo = "";
           rascunhoSalvo = false;
+          // A planilha tambem e da contagem anterior: sem zerar, o mesmo
+          // arquivo subia de novo junto com a contagem seguinte.
+          planilha.lendo = false;
+          planilha.arquivo = null;
+          planilha.nome = "";
+          planilha.resultado = null;
+          planilha.aplicada = false;
           headerEl.style.display = "";
           footer.style.display = "";
           cur = 0;

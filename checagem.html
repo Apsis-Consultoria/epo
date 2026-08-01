@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=39">
+  <link rel="stylesheet" href="assets/app.css?v=40">
   <style>
     /* Ajustes locais da tela de evidências recebidas (grade + lista) */
 
@@ -136,11 +136,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=39"></script>
-  <script src="assets/app.js?v=39"></script>
-  <script src="assets/supabase-config.js?v=39"></script>
+  <script src="assets/data.js?v=40"></script>
+  <script src="assets/app.js?v=40"></script>
+  <script src="assets/supabase-config.js?v=40"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=39"></script>
+  <script src="assets/auth.js?v=40"></script>
   <script>
     (function () {
       "use strict";
@@ -548,7 +548,16 @@
       // ------------------------------------------------------------ render detalhe
       function arquivoHtml(nome, url, imagem, hora) {
         var hr = hora ? '<span class="hr" title="Enviado às ' + esc(hora) + '">' + esc(hora) + "</span>" : "";
-        if (!url) url = App.documentoDe(nome);
+        // Na demonstracao um documento de exemplo faz sentido. Com dado real,
+        // nao: abrir um arquivo inventado no lugar da evidencia que nao carregou
+        // faria o conferente validar a auditoria olhando uma pagina de mentira.
+        if (!url && DEMO) url = App.documentoDe(nome);
+        if (!url) {
+          return '<span class="chk-file is-off" title="Não foi possível abrir este arquivo agora">' +
+            '<i class="ti ' + (imagem ? "ti-photo" : "ti-file") + '" aria-hidden="true"></i>' +
+            '<span class="nm">' + esc(nome) + "</span>" + hr +
+            '<i class="ti ti-alert-triangle" aria-hidden="true" style="margin-left:auto;"></i></span>';
+        }
         return '<a class="chk-file" href="' + esc(url) + '" target="_blank" rel="noopener">' +
           '<i class="ti ' + (imagem ? "ti-photo" : "ti-file") + '" aria-hidden="true"></i>' +
           '<span class="nm">' + esc(nome) + "</span>" + hr +
@@ -770,13 +779,22 @@
 
             if (DEMO) { aplicar(); return; }
 
+            // .select() para saber se alguma linha mudou de fato: sem ele, um
+            // acesso sem alcance de validacao recebe sucesso vazio e a tela
+            // trocaria o selo para "Validada" com o banco intacto.
             Auth.cliente.from("auditorias")
               .update({ status: "validada" })
               .eq("id", aud.id)
+              .select("id")
               .then(function (r) {
                 if (r.error) {
                   btnValidar.disabled = false;
                   App.toast("Não foi possível validar a auditoria. Tente novamente.");
+                  return;
+                }
+                if (!r.data || !r.data.length) {
+                  btnValidar.disabled = false;
+                  App.toast("Seu acesso não permite validar auditorias. Fale com a coordenação da APSIS.");
                   return;
                 }
                 aplicar();

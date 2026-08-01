@@ -26,6 +26,7 @@
     "envio.html": "envio",
     "checagem.html": "checagem",
     "questionarios.html": "questionarios",
+    "epo-detalhe.html": "ranking",
     "alocacoes.html": "alocacoes",
     "contagem-giro.html": "giro",
     "evidencias.html": "evidencias",

@@ -71,15 +71,43 @@
     return window.CATALOGO_GIRO || [];
   }
 
-  // Índice por código, para casar a planilha com o catálogo da Claro
+  // Codigo do jeito que ele e, sem espaco nem pontuacao e em maiuscula.
+  // "pbl 41001293" e "PBL41001293" viram a mesma coisa; "41001293" nao.
+  function codigoLimpo(v) {
+    return String(v == null ? "" : v).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+
+  // Índice por código, para casar a planilha com o catálogo da Claro.
+  //
+  // O catálogo tem pares como PBL41001293 e 41001293: são itens diferentes.
+  // Indexar só pelos dígitos fazia um apagar o outro, e a planilha registrava
+  // o item errado. Agora o código inteiro é a chave; a versão só com dígitos
+  // entra como atalho, e apenas quando não disputa com ninguém.
   var porCodigo = null;
   function indice() {
     if (porCodigo) return porCodigo;
     porCodigo = {};
-    catalogo().forEach(function (it) {
-      porCodigo[soDigitos(it.cod)] = it;
+    var lista = catalogo();
+    var disputa = {};
+    lista.forEach(function (it) {
+      var d = soDigitos(it.cod);
+      if (!d) return;
+      disputa[d] = (disputa[d] || 0) + 1;
+    });
+    lista.forEach(function (it) {
+      porCodigo[codigoLimpo(it.cod)] = it;
+    });
+    lista.forEach(function (it) {
+      var d = soDigitos(it.cod);
+      if (!d || disputa[d] > 1) return;      // ambiguo: exige o codigo completo
+      if (!porCodigo[d]) porCodigo[d] = it;
     });
     return porCodigo;
+  }
+
+  // Procura pelo código inteiro e, se não achar, pelos dígitos.
+  function acharItem(mapa, bruto) {
+    return mapa[codigoLimpo(bruto)] || mapa[soDigitos(bruto)] || null;
   }
 
   function qualColuna(cabecalho, aceitos) {
@@ -192,23 +220,27 @@
 
     for (var r = iCab + 1; r < linhas.length && lidas < LIMITE_LINHAS; r++) {
       var linha = linhas[r] || [];
-      var cod = soDigitos(linha[cCod]);
+      var digitado = String(linha[cCod] == null ? "" : linha[cCod]).trim();
       var bruto = linha[cQtd];
 
-      if (!cod && !String(bruto || "").trim()) continue;   // linha em branco
+      if (!digitado && !String(bruto || "").trim()) continue;   // linha em branco
       lidas += 1;
 
-      if (!cod) {
+      if (!digitado) {
         erros.push({ linha: r + 1, motivo: "sem código SAP" });
         continue;
       }
-      if (!mapa[cod]) {
-        erros.push({ linha: r + 1, codigo: cod, motivo: "código fora do catálogo" });
+      var achado = acharItem(mapa, digitado);
+      if (!achado) {
+        erros.push({ linha: r + 1, codigo: digitado, motivo: "código fora do catálogo" });
         continue;
       }
+      // A chave e o codigo do catalogo, para PBL41001293 e 41001293 nao se
+      // somarem na mesma linha do resumo.
+      var cod = codigoLimpo(achado.cod);
       var qtd = inteiro(bruto);
       if (!qtd) {
-        erros.push({ linha: r + 1, codigo: cod, motivo: "quantidade inválida ou zerada" });
+        erros.push({ linha: r + 1, codigo: digitado, motivo: "quantidade inválida ou zerada" });
         continue;
       }
       if (achados[cod]) ignoradas += 1;   // código repetido: soma
@@ -216,7 +248,7 @@
     }
 
     var itens = Object.keys(achados).map(function (cod) {
-      var it = mapa[cod];
+      var it = mapa[cod] || acharItem(mapa, cod);
       return {
         cod: it.cod, tec: it.tec, tipo: it.tipo, cat: it.cat, giro: it.giro,
         qtd: achados[cod]

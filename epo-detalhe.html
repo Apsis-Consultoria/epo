@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="assets/app.css?v=39">
+  <link rel="stylesheet" href="assets/app.css?v=40">
   <style>
     /* Ajustes locais desta tela (pequenos; reutiliza o design system) */
     .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-weight: 500; margin-bottom: 16px; transition: color .15s ease; }
@@ -77,11 +77,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=39"></script>
-  <script src="assets/app.js?v=39"></script>
-  <script src="assets/supabase-config.js?v=39"></script>
+  <script src="assets/data.js?v=40"></script>
+  <script src="assets/app.js?v=40"></script>
+  <script src="assets/supabase-config.js?v=40"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=39"></script>
+  <script src="assets/auth.js?v=40"></script>
   <script>
     (function () {
       "use strict";
@@ -90,8 +90,28 @@
       var esc = App.escapeHtml;
 
       // -------------------------------------------------- Resolve a EPO
+      // O mapa e a visao geral montam o link com o id do cadastro (uuid), que
+      // nao existe no catalogo local. Cair na primeira EPO da lista abriria
+      // outra unidade com outro nome e outra nota, sem ninguem perceber.
       var id = App.getParam("id");
-      var epo = App.epoById(id) || (APP.epos && APP.epos[0]);
+      var epo = App.epoById(id);
+
+      if (!epo && id) {
+        Layout.mount("ranking", "Detalhe da EPO");
+        document.getElementById("page").innerHTML =
+          '<a class="back-link" href="ranking.html">' +
+            '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar ao ranking' +
+          "</a>" +
+          '<div class="card"><div class="empty">' +
+            '<i class="ti ti-chart-histogram" aria-hidden="true"></i>' +
+            "<div>Esta unidade ainda não tem histórico de auditoria para detalhar.</div>" +
+            '<div class="text-muted" style="font-size:12.5px;margin-top:6px;">' +
+              "O detalhamento aparece depois da primeira vistoria enviada e validada." +
+            "</div>" +
+          "</div></div>";
+        return;
+      }
+      if (!epo) epo = APP.epos && APP.epos[0];
 
       if (!epo) {
         Layout.mount("ranking", "Detalhe da EPO");
