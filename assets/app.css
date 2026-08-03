@@ -1188,7 +1188,10 @@ input[type="submit"],
 .gan.esc-mes { --gan-sem: 14px; }
 
 .gan-scroll {
-  overflow-x: auto;
+  overflow: auto;
+  /* Sem teto, 25 unidades empurram a tabela mais de mil pixels para baixo e
+     ninguem chega nela. O roadmap rola por dentro. */
+  max-height: min(58vh, 520px);
   overscroll-behavior-x: contain;
   border-top: 1px solid var(--border);
 }
@@ -1310,10 +1313,13 @@ input[type="submit"],
    A data escrita ao lado da barra e o que torna a linha legivel. */
 .gan-rotulo {
   position: absolute; top: 12px;
-  margin-left: 8px;
   font-size: 11.5px; color: var(--text-2);
   white-space: nowrap; pointer-events: none;
 }
+.gan-rotulo.depois { margin-left: 8px; }
+/* Barra perto do fim do periodo: a data vai antes dela, senao o texto sai
+   da faixa e passa a esticar a rolagem horizontal sozinho. */
+.gan-rotulo.antes  { margin-right: 8px; text-align: right; }
 .gan-linha:hover .gan-rotulo { color: var(--text); }
 
 /* ------------------------------------------------------------- legenda */
@@ -1429,24 +1435,34 @@ input[type="submit"],
 .cron-tabela .epo-nome-cel b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); }
 .cron-tabela .epo-nome-cel span { font-size: 11.5px; color: var(--text-muted); }
 
-.cel-data { display: flex; gap: 6px; flex-wrap: wrap; }
+.cel-data { display: flex; flex-direction: column; gap: 4px; }
+.cel-data small { font-size: 10.5px; color: var(--text-muted); }
 .input-data {
-  width: 138px; min-width: 0;
-  height: 34px; padding: 0 8px;
-  font-size: 12.5px;
+  width: 128px; min-width: 0;
+  height: 32px; padding: 0 7px;
+  font-size: 12px;
 }
-.cel-data .input-data:last-child { opacity: .85; }
-.cel-data .input-data:last-child:focus { opacity: 1; }
+/* O botao do historico e so o icone: com 25 linhas, a palavra repetida
+   vinte e cinco vezes rouba a largura das colunas que importam. */
+.cel-acoes .btn-icon { width: 32px; padding: 0; }
+.cel-data .input-data:last-of-type { color: var(--text-2); }
+.cel-data .input-data:last-of-type:focus { color: var(--text); }
 
 .cel-sugerida {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  max-width: 168px;
   margin-top: 5px;
   font-size: 12.5px; color: var(--accent-600);
 }
 .cel-sugerida i { font-size: 15px; }
 .cel-sugerida b { color: var(--text); }
 
-.cel-acoes { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+/* Com teto de largura os botoes quebram em duas linhas em vez de esticar a
+   coluna: numa tela estreita, a coluna de acoes empurrava o resto para fora. */
+.cel-acoes {
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
+  max-width: 178px; margin-left: auto;
+}
 
 .cel-form {
   display: flex; flex-direction: column; gap: 7px;

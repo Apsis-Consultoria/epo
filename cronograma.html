@@ -605,12 +605,13 @@
       // desenho mostra QUANDO, e o rotulo diz o dia exato sem depender do
       // tamanho da barra.
       function htmlBarras(d, it) {
-        var h = "", fim, tarde, fora, ultimoFim = null;
+        var h = "", fim, tarde, fora, ultimoFim = null, primeiroIni = null;
 
         if (it.prevIni != null) {
           fim = it.prevFim != null ? it.prevFim : it.prevIni;
           tarde = atrasada(it);
           ultimoFim = fim;
+          primeiroIni = it.prevIni;
           h += '<button type="button" class="gan-barra gan-prev s-' + esc(it.situacao) +
                (tarde ? " is-atrasada" : "") + '" data-item="' + esc(it.id) + '"' +
                ' style="left:' + pctEsq(d, it.prevIni).toFixed(4) +
@@ -624,6 +625,7 @@
         if (it.situacao === "aguardando_apsis" && it.propIni != null) {
           fim = it.propFim != null ? it.propFim : it.propIni;
           if (ultimoFim === null || fim > ultimoFim) ultimoFim = fim;
+          if (primeiroIni === null || it.propIni < primeiroIni) primeiroIni = it.propIni;
           h += '<button type="button" class="gan-barra gan-prop" data-item="' + esc(it.id) + '"' +
                ' style="left:' + pctEsq(d, it.propIni).toFixed(4) +
                "%;width:" + pctLarg(d, it.propIni, fim).toFixed(4) + '%"' +
@@ -634,6 +636,7 @@
         if (it.realIni != null) {
           fim = it.realFim != null ? it.realFim : it.realIni;
           if (ultimoFim === null || fim > ultimoFim) ultimoFim = fim;
+          if (primeiroIni === null || it.realIni < primeiroIni) primeiroIni = it.realIni;
           fora = it.prevIni != null &&
             (it.realIni < it.prevIni ||
              it.realIni > (it.prevFim != null ? it.prevFim : it.prevIni));
@@ -647,8 +650,18 @@
         }
 
         if (h) {
-          h += '<span class="gan-rotulo" style="left:' +
-               pctEsq(d, ultimoFim + 1).toFixed(4) + '%">' + esc(rotuloDaLinha(it)) + "</span>";
+          // Barra perto do fim do periodo desenhado: a data vai ANTES dela.
+          // Escrita depois, o texto sairia da faixa e esticaria a rolagem
+          // horizontal sem que exista dia nenhum ali.
+          var depois = pctEsq(d, ultimoFim + 1);
+          var antes = pctEsq(d, primeiroIni);
+          if (depois > 55 && antes >= 25) {
+            h += '<span class="gan-rotulo antes" style="right:' +
+                 (100 - antes).toFixed(4) + '%">' + esc(rotuloDaLinha(it)) + "</span>";
+          } else {
+            h += '<span class="gan-rotulo depois" style="left:' + depois.toFixed(4) + '%">' +
+                 esc(rotuloDaLinha(it)) + "</span>";
+          }
         } else {
           h = '<span class="gan-semdata">' +
               esc(it.semana ? it.semana + ", data a combinar" : "data a combinar") + "</span>";
@@ -839,6 +852,7 @@
           '<input class="input input-data" type="date" data-campo="fim" data-id="' + esc(it.id) + '"' +
             ' value="' + esc(it.prevFimIso) + '" min="2020-01-01" max="2035-12-31"' +
             ' aria-label="Data final prevista de ' + esc(it.nome) + '" title="Ate (opcional)">' +
+          "<small>ate (opcional)</small>" +
           "</div>" +
           (atrasada(it) ? '<span class="tag" style="color:var(--danger);">fora do prazo</span>' : "") +
           (it.semana && it.prevIni == null
@@ -887,9 +901,13 @@
         return '<span class="muted">-</span>';
       }
 
-      function botao(acao, id, rotulo, classe, icone) {
+      function botao(acao, id, rotulo, classe, icone, titulo) {
+        // Botao so com icone precisa de nome mesmo assim: quem usa leitor de
+        // tela ouviria "botao" e nada mais.
+        var nome = rotulo || titulo || "";
         return '<button class="btn btn-sm ' + classe + '" type="button" data-acao="' + acao +
-          '" data-id="' + esc(id) + '">' +
+          '" data-id="' + esc(id) + '"' +
+          (rotulo ? "" : ' aria-label="' + esc(nome) + '" title="' + esc(nome) + '"') + ">" +
           (icone ? '<i class="ti ' + icone + '" aria-hidden="true"></i>' : "") +
           esc(rotulo) + "</button>";
       }
@@ -912,14 +930,14 @@
         // ---- coordenacao APSIS
         if (podeMontar) {
           if (it.situacao === "sem_data" && it.prevIni != null) {
-            b.push(botao("enviar1", it.id, "Enviar para a Claro", "btn-primary", "ti-send"));
+            b.push(botao("enviar1", it.id, "Enviar", "btn-primary", "ti-send"));
           }
           if (it.situacao === "aguardando_apsis") {
-            b.push(botao("aceitar", it.id, "Aceitar sugerida", "btn-primary", "ti-check"));
-            b.push(botao("reenviar", it.id, "Manter a minha", "btn-ghost", "ti-send"));
+            b.push(botao("aceitar", it.id, "Aceitar", "btn-primary", "ti-check"));
+            b.push(botao("reenviar", it.id, "Manter a data", "btn-ghost", "ti-send"));
           }
           if (it.situacao === "aguardando_claro") {
-            b.push(botao("aprovar", it.id, "Aprovar pela Claro", "btn-ghost", "ti-check"));
+            b.push(botao("aprovar", it.id, "Aprovar", "btn-ghost", "ti-check"));
           }
         }
 
@@ -928,11 +946,11 @@
             (it.situacao === "confirmada" || it.situacao === "realizada" ||
              it.situacao === "nao_realizada")) {
           b.push(botao("registrar", it.id,
-            it.situacao === "confirmada" ? "Registrar visita" : "Corrigir registro",
+            it.situacao === "confirmada" ? "Registrar" : "Corrigir",
             it.situacao === "confirmada" ? "btn-primary" : "btn-ghost", "ti-clipboard-check"));
         }
 
-        b.push(botao("detalhe", it.id, "Historico", "btn-ghost", "ti-history"));
+        b.push(botao("detalhe", it.id, "", "btn-ghost btn-icon", "ti-history", "Ver o historico desta unidade"));
         return '<span class="cel-acoes">' + b.join("") + "</span>";
       }
 
