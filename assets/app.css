@@ -1304,8 +1304,17 @@ input[type="submit"],
 .gan-real.fora-da-data { background: var(--apsis-orange); border-color: var(--accent-600); }
 .gan-real i { color: #fff; }
 
-.gan-nao { position: absolute; top: 21px; font-size: 11.5px; color: var(--danger); white-space: nowrap; }
 .gan-semdata { position: absolute; left: 6px; top: 12px; font-size: 11.5px; color: var(--text-muted); }
+
+/* Uma visita de um dia, num ciclo de meses, e um risco de poucos pixels.
+   A data escrita ao lado da barra e o que torna a linha legivel. */
+.gan-rotulo {
+  position: absolute; top: 12px;
+  margin-left: 8px;
+  font-size: 11.5px; color: var(--text-2);
+  white-space: nowrap; pointer-events: none;
+}
+.gan-linha:hover .gan-rotulo { color: var(--text); }
 
 /* ------------------------------------------------------------- legenda */
 .gan-legenda {
@@ -1415,7 +1424,48 @@ input[type="submit"],
 .cron-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .cron-rodape { padding: 11px 18px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--text-2); }
 
+/* ------------------------------------------------- tabela de datas */
+.cron-tabela td { vertical-align: top; }
+.cron-tabela .epo-nome-cel b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); }
+.cron-tabela .epo-nome-cel span { font-size: 11.5px; color: var(--text-muted); }
+
+.cel-data { display: flex; gap: 6px; flex-wrap: wrap; }
+.input-data {
+  width: 138px; min-width: 0;
+  height: 34px; padding: 0 8px;
+  font-size: 12.5px;
+}
+.cel-data .input-data:last-child { opacity: .85; }
+.cel-data .input-data:last-child:focus { opacity: 1; }
+
+.cel-sugerida {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 5px;
+  font-size: 12.5px; color: var(--accent-600);
+}
+.cel-sugerida i { font-size: 15px; }
+.cel-sugerida b { color: var(--text); }
+
+.cel-acoes { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+.cel-form {
+  display: flex; flex-direction: column; gap: 7px;
+  align-items: stretch;
+  min-width: 210px;
+  padding: 10px;
+  border: 1px solid var(--apsis-orange);
+  border-radius: var(--radius-sm);
+  background: var(--warning-bg);
+  text-align: left;
+}
+.cel-form > label { font-size: 12px; font-weight: 600; color: var(--text); }
+.cel-form .input { height: 34px; font-size: 12.5px; }
+.cel-form .radio-group { margin: 0; }
+.cel-form-btn { display: flex; gap: 7px; justify-content: flex-end; }
+
 @media (max-width: 900px) {
+  .cron-tabela { min-width: 780px; }
+  .input-data { width: 124px; }
   .gan { --gan-rot: 128px; --gan-sem: 13px; --gan-h: 46px; }
   .gan-sem-cel { display: none; }
   .gan-rot { padding: 5px 8px; }

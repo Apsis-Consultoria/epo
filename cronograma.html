@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=46">
+  <link rel="stylesheet" href="assets/app.css?v=47">
 </head>
 <body>
   <div class="app-shell">
@@ -20,12 +20,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=46"></script>
-  <script src="assets/app.js?v=46"></script>
-  <script src="assets/supabase-config.js?v=46"></script>
+  <script src="assets/data.js?v=47"></script>
+  <script src="assets/app.js?v=47"></script>
+  <script src="assets/supabase-config.js?v=47"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=46"></script>
-  <script src="assets/cronograma-planilha.js?v=46"></script>
+  <script src="assets/auth.js?v=47"></script>
+  <script src="assets/cronograma-planilha.js?v=47"></script>
   <script>
     (function () {
       "use strict";
@@ -34,26 +34,14 @@
       var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
       var CICLO = "2026";
 
-      // ------------------------------------------------------------------
-      // Vocabulario da tela. A situacao diz de quem e a vez.
-      // ------------------------------------------------------------------
       var ROTULO = {
         sem_data:         "Sem data definida",
         aguardando_claro: "Aguardando a Claro",
         aguardando_apsis: "Nova data sugerida",
-        confirmada:       "Data confirmada",
+        confirmada:       "Data aprovada",
         realizada:        "Realizada",
         nao_realizada:    "Nao aconteceu",
         cancelada:        "Fora deste ciclo"
-      };
-      var BADGE = {
-        sem_data:         "badge-baixa",
-        aguardando_claro: "badge-media",
-        aguardando_apsis: "badge-alta",
-        confirmada:       "badge-success",
-        realizada:        "badge-ouro",
-        nao_realizada:    "badge-danger",
-        cancelada:        "badge-baixa"
       };
       var ACAO_TEXTO = {
         incluida:                 "entrou no cronograma",
@@ -61,7 +49,7 @@
         data_definida:            "definiu a data",
         data_enviada:             "enviou a data para aprovacao",
         aprovada:                 "aprovou a data",
-        nova_data_proposta:       "sugeriu outra data",
+        nova_data_proposta:       "nao aprovou e sugeriu outra data",
         proposta_aceita:          "aceitou a data sugerida",
         realizada:                "registrou que a auditoria aconteceu",
         nao_realizada:            "registrou que a auditoria nao aconteceu",
@@ -89,6 +77,7 @@
         var t = Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
         return isNaN(t) ? null : Math.floor(t / MS);
       }
+      function pad(n) { return (n < 10 ? "0" : "") + n; }
       function hojeN() {
         var h = new Date();
         return Math.floor(Date.UTC(h.getFullYear(), h.getMonth(), h.getDate()) / MS);
@@ -98,7 +87,6 @@
         var d = new Date(n * MS);
         return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate());
       }
-      function pad(n) { return (n < 10 ? "0" : "") + n; }
       // 1970-01-01 caiu numa quinta: por isso o mais quatro.
       function segunda(n) { var dow = (n + 4) % 7; return n - ((dow + 6) % 7); }
 
@@ -129,23 +117,24 @@
       // Estado
       // ------------------------------------------------------------------
       var itens = [];
-      var papel = DEMO ? "admin" : "";
-      var podeMontar = DEMO;          // admin e gestor: datas, planilha, envio
-      var podeAprovar = DEMO;         // gerente da Claro (e a coordenacao)
-      var podeRegistrar = DEMO;       // quem marca o que aconteceu
-      var visao = "grafico";
+      var papel = "";
+      var podeMontar = false;         // admin e gestor: datas, planilha, envio
+      var podeAprovar = false;        // gerente da Claro
+      var podeRegistrar = false;      // quem marca o que aconteceu
       var escala = "semana";
       var filtro = { busca: "", regional: "", situacao: "" };
       var grupoFechado = {};
+      var editando = null;            // { id: "...", modo: "sugerir" | "registrar" }
       var itemAberto = null;
-      var modoForcado = "";        // "remarcar" troca o formulario do ticket
-      var previa = null;              // resultado da leitura da planilha
+      var previa = null;
       var ultimaImportacao = null;
       var carregando = true;
       var falha = "";
 
       // ------------------------------------------------------------------
-      // Estrutura fixa
+      // Estrutura: o roadmap em cima e a tabela de trabalho logo abaixo, na
+      // mesma tela. O grafico mostra o desenho do ciclo; e na tabela que a
+      // data e combinada, aprovada e corrigida.
       // ------------------------------------------------------------------
       var acoes =
         '<button class="btn btn-ghost btn-sm is-hidden" id="btn-modelo" type="button">' +
@@ -153,7 +142,7 @@
         '<button class="btn btn-ghost btn-sm is-hidden" id="btn-planilha" type="button">' +
           '<i class="ti ti-table-import" aria-hidden="true"></i>Enviar planilha</button>' +
         '<button class="btn btn-primary btn-sm is-hidden" id="btn-enviar" type="button">' +
-          '<i class="ti ti-send" aria-hidden="true"></i><span id="btn-enviar-txt">Enviar datas para aprovacao</span></button>';
+          '<i class="ti ti-send" aria-hidden="true"></i><span id="btn-enviar-txt">Enviar datas</span></button>';
 
       Layout.mount("cronograma", "Cronograma", acoes);
 
@@ -162,17 +151,27 @@
           ', com a data combinada com a Claro e o que aconteceu de fato.</p>' +
         '<div id="aviso"></div>' +
         '<div class="kpi-grid" id="kpis"></div>' +
+
+        '<div class="card">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Roadmap do ciclo</span>' +
+              '<span class="subtitle">A barra de cima e a data planejada. A de baixo aparece quando a visita acontece.</span>' +
+            "</div>" +
+            '<span id="chips-escala">' +
+              '<button type="button" class="chip is-active" data-escala="semana">Semana</button> ' +
+              '<button type="button" class="chip" data-escala="mes">Mes</button>' +
+            "</span>" +
+          "</div>" +
+          '<div id="roadmap"></div>' +
+          '<div class="gan-legenda" id="legenda"></div>' +
+        "</div>" +
+
         '<div class="card mb-0">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
-              '<span class="title">Cronograma de auditorias</span>' +
-              '<span class="subtitle">A barra de cima e a data planejada. A de baixo e o que aconteceu.</span>' +
-            "</div>" +
-            '<div class="visao-switch" role="group" aria-label="Forma de ver o cronograma">' +
-              '<button type="button" data-visao="grafico" class="is-on">' +
-                '<i class="ti ti-timeline" aria-hidden="true"></i>Roadmap</button>' +
-              '<button type="button" data-visao="lista">' +
-                '<i class="ti ti-list" aria-hidden="true"></i>Lista</button>' +
+              '<span class="title">Datas por unidade</span>' +
+              '<span class="subtitle" id="sub-tabela"></span>' +
             "</div>" +
           "</div>" +
           '<div class="cron-toolbar">' +
@@ -183,25 +182,21 @@
                 ' aria-label="Filtrar por unidade, codigo ou cidade">' +
             "</div>" +
             '<select class="select" id="f-regional" aria-label="Regional" style="max-width:200px;"></select>' +
-            '<select class="select" id="f-situacao" aria-label="Situacao" style="max-width:220px;">' +
+            '<select class="select" id="f-situacao" aria-label="Situacao" style="max-width:240px;">' +
               '<option value="">Todas as situacoes</option>' +
-              '<option value="pendente">Esperando resposta</option>' +
               '<option value="sem_data">Sem data definida</option>' +
-              '<option value="confirmada">Data confirmada</option>' +
+              '<option value="aguardando_claro">Aguardando a Claro</option>' +
+              '<option value="aguardando_apsis">Nao aprovadas pela Claro</option>' +
+              '<option value="confirmada">Data aprovada</option>' +
               '<option value="realizada">Realizadas</option>' +
               '<option value="nao_realizada">Nao aconteceram</option>' +
               '<option value="cancelada">Fora deste ciclo</option>' +
             "</select>" +
-            '<span class="grow"></span>' +
-            '<span id="chips-escala">' +
-              '<button type="button" class="chip is-active" data-escala="semana">Semana</button> ' +
-              '<button type="button" class="chip" data-escala="mes">Mes</button>' +
-            "</span>" +
           "</div>" +
-          '<div id="conteudo"></div>' +
-          '<div class="gan-legenda" id="legenda"></div>' +
+          '<div id="tabela"></div>' +
           '<div class="cron-rodape" id="rodape"></div>' +
         "</div>" +
+
         '<div class="modal-overlay" id="tk-modal" role="dialog" aria-modal="true" aria-labelledby="tk-titulo">' +
           '<div class="modal modal-largo">' +
             '<div class="modal-header">' +
@@ -213,6 +208,7 @@
             '<div class="modal-footer" id="tk-rodape"></div>' +
           "</div>" +
         "</div>" +
+
         '<div class="modal-overlay" id="imp-modal" role="dialog" aria-modal="true" aria-labelledby="imp-titulo">' +
           '<div class="modal modal-largo">' +
             '<div class="modal-header">' +
@@ -229,10 +225,11 @@
       var $ = function (id) { return document.getElementById(id); };
 
       // ------------------------------------------------------------------
-      // Catalogo de demonstracao. Nomes inventados de proposito: o cadastro
-      // real vive no sistema, e esta pagina e publicada.
+      // Sem conexao, a tela abre com um cadastro curto e inventado, so para
+      // nao ficar em branco. Nenhuma unidade nasce com resposta da Claro:
+      // mostrar uma sugestao que ninguem fez faz a tela mentir.
       // ------------------------------------------------------------------
-      function catalogoDemo() {
+      function catalogoSemConexao() {
         var h = hojeN();
         function iso(delta) { return paraIso(h + delta); }
         return [
@@ -241,14 +238,12 @@
             prevIniIso: iso(9), prevFimIso: iso(10), confirmadaEm: new Date().toISOString() },
           { id: "d2", situacao: "aguardando_claro", nome: "Unidade Bravo", cod: "900102",
             cidade: "Campinas", uf: "SP", regional: "SP",
-            prevIniIso: iso(17), prevFimIso: iso(17) },
-          { id: "d3", situacao: "aguardando_apsis", nome: "Unidade Charlie", cod: "900103",
-            cidade: "Belo Horizonte", uf: "MG", regional: "MG",
-            prevIniIso: iso(4), prevFimIso: iso(4),
-            propIniIso: iso(24), propFimIso: iso(25) },
+            prevIniIso: iso(17), prevFimIso: iso(18) },
+          { id: "d3", situacao: "sem_data", nome: "Unidade Charlie", cod: "900103",
+            cidade: "Belo Horizonte", uf: "MG", regional: "MG" },
           { id: "d4", situacao: "realizada", nome: "Unidade Delta", cod: "900104",
             cidade: "Porto Alegre", uf: "RS", regional: "RS",
-            prevIniIso: iso(-21), prevFimIso: iso(-20),
+            prevIniIso: iso(-21), prevFimIso: iso(-19),
             realIniIso: iso(-21), realFimIso: iso(-20) },
           { id: "d5", situacao: "confirmada", nome: "Unidade Echo", cod: "900105",
             cidade: "Rio de Janeiro", uf: "RJ", regional: "RJ",
@@ -296,8 +291,14 @@
         return f != null && f < hojeN();
       }
 
+      function porId(id) {
+        var achado = null;
+        itens.forEach(function (x) { if (x.id === id) achado = x; });
+        return achado;
+      }
+
       // ------------------------------------------------------------------
-      // Leitura
+      // Papel e leitura
       // ------------------------------------------------------------------
       function aplicarPapel(p) {
         papel = p || "";
@@ -315,10 +316,8 @@
         return Auth.perfil().then(function (p) {
           var real = (p && p.papel) || "";
           // "Ver como" existe para a coordenacao conferir a tela pelo angulo
-          // de outro perfil. Aqui isso muda os botoes tambem, nao so o menu:
-          // um botao que aparece na conferencia e some no uso real nao serve
-          // de conferencia. Os dados continuam sendo os de verdade, porque
-          // quem manda neles e o cadastro, nao esta tela.
+          // de outro perfil. Aqui isso muda os botoes tambem: botao que
+          // aparece na conferencia e some no uso real nao serve de nada.
           var comoSe = (Auth.verComo && Auth.verComo()) || "";
           var podeSimular = real === "admin" || real === "gestor";
           aplicarPapel(comoSe && podeSimular ? comoSe : real);
@@ -328,7 +327,7 @@
       function carregar() {
         carregando = true; falha = "";
         if (DEMO) {
-          itens = catalogoDemo();
+          itens = catalogoSemConexao();
           carregando = false;
           return Promise.resolve();
         }
@@ -345,17 +344,21 @@
                               "nao foi possivel ler o cronograma");
             }
             itens = (r.data || []).map(normalizar);
-            itens.sort(function (a, b) {
-              if (a.regional !== b.regional) return a.regional < b.regional ? -1 : 1;
-              if (a.prevIni != null && b.prevIni != null && a.prevIni !== b.prevIni) {
-                return a.prevIni - b.prevIni;
-              }
-              if (a.prevIni == null && b.prevIni != null) return 1;
-              if (a.prevIni != null && b.prevIni == null) return -1;
-              return a.nome.localeCompare(b.nome, "pt-BR");
-            });
+            ordenar();
             carregando = false;
           });
+      }
+
+      function ordenar() {
+        itens.sort(function (a, b) {
+          if (a.regional !== b.regional) return a.regional < b.regional ? -1 : 1;
+          if (a.prevIni != null && b.prevIni != null && a.prevIni !== b.prevIni) {
+            return a.prevIni - b.prevIni;
+          }
+          if (a.prevIni == null && b.prevIni != null) return 1;
+          if (a.prevIni != null && b.prevIni == null) return -1;
+          return a.nome.localeCompare(b.nome, "pt-BR");
+        });
       }
 
       function carregarUltimaImportacao() {
@@ -365,7 +368,7 @@
           .order("criado_em", { ascending: false })
           .limit(1)
           .then(function (r) {
-            if (!r || r.error) return;      // e so um rodape: nao vale derrubar a tela
+            if (!r || r.error) return;      // e so um rodape: nao derruba a tela
             ultimaImportacao = (r.data && r.data[0]) || null;
           })
           .catch(function () {});
@@ -378,11 +381,7 @@
         var busca = filtro.busca.toLowerCase();
         return itens.filter(function (it) {
           if (filtro.regional && it.regional !== filtro.regional) return false;
-          if (filtro.situacao === "pendente") {
-            if (!ehPendencia(it)) return false;
-          } else if (filtro.situacao && it.situacao !== filtro.situacao) {
-            return false;
-          }
+          if (filtro.situacao && it.situacao !== filtro.situacao) return false;
           if (!busca) return true;
           return (it.nome + " " + it.cod + " " + it.cidade + " " + it.uf)
             .toLowerCase().indexOf(busca) >= 0;
@@ -411,9 +410,10 @@
       function render() {
         renderAviso();
         renderKpis();
-        renderFiltros();
-        renderConteudo();
+        renderFiltrosSelect();
+        renderRoadmap();
         renderLegenda();
+        renderTabela();
         renderRodape();
         renderBotoes();
       }
@@ -426,19 +426,20 @@
 
         var titulo, texto;
         if (papel === "cliente") {
-          titulo = n === 1 ? "1 data esperando sua resposta"
-                           : n + " datas esperando sua resposta";
+          titulo = n === 1 ? "1 data esperando sua aprovacao"
+                           : n + " datas esperando sua aprovacao";
           texto = n === 1
-            ? "A APSIS propos uma data. Voce pode aprovar ou sugerir outra."
-            : "A APSIS propos data para estas unidades. Em cada uma voce pode " +
-              "aprovar ou sugerir outra data.";
+            ? "A APSIS propos uma data. Na tabela abaixo voce aprova ou sugere outra."
+            : "A APSIS propos data para estas unidades. Na tabela abaixo voce aprova " +
+              "ou sugere outra em cada uma.";
         } else if (papel === "auditor") {
           titulo = n === 1 ? "1 visita para registrar" : n + " visitas para registrar";
           texto = "A data ja passou e ainda nao ha registro do que aconteceu.";
         } else {
-          titulo = n === 1 ? "A Claro sugeriu outra data para 1 unidade"
-                           : "A Claro sugeriu outra data para " + n + " unidades";
-          texto = "Abra cada uma para aceitar a data sugerida ou responder com outra.";
+          titulo = n === 1 ? "A Claro nao aprovou 1 data"
+                           : "A Claro nao aprovou " + n + " datas";
+          texto = "A sugestao dela aparece na coluna Aprovacao Claro. Voce pode aceitar " +
+                  "a data sugerida ou manter a sua e reenviar.";
         }
 
         alvo.innerHTML =
@@ -452,11 +453,12 @@
           "</div>";
 
         $("aviso-ir").addEventListener("click", function () {
-          filtro.situacao = "pendente";
-          $("f-situacao").value = "pendente";
-          render();
-          var card = document.querySelector(".card.mb-0");
-          if (card && card.scrollIntoView) card.scrollIntoView({ behavior: "smooth", block: "start" });
+          filtro.situacao = papel === "cliente" ? "aguardando_claro"
+                          : papel === "auditor" ? "confirmada" : "aguardando_apsis";
+          $("f-situacao").value = filtro.situacao;
+          renderTabela();
+          var t = $("tabela");
+          if (t && t.scrollIntoView) t.scrollIntoView({ behavior: "smooth", block: "center" });
         });
       }
 
@@ -475,12 +477,12 @@
 
         var cartoes = [
           { f: "", ico: "ti-building-warehouse", rot: "Unidades no ciclo", v: c.total, extra: "" },
-          { f: "confirmada", ico: "ti-calendar-check", rot: "Datas confirmadas", v: c.confirmada,
+          { f: "confirmada", ico: "ti-calendar-check", rot: "Datas aprovadas", v: c.confirmada,
             extra: c.atraso ? '<span class="kpi-delta delta-down">' +
               '<i class="ti ti-alert-triangle" aria-hidden="true"></i>' +
-              c.atraso + (c.atraso === 1 ? " fora do prazo" : " fora do prazo") + "</span>" : "" },
+              c.atraso + " fora do prazo</span>" : "" },
           { f: "aguardando_claro", ico: "ti-clock-hour-4", rot: "Aguardando a Claro", v: c.claro, extra: "" },
-          { f: "aguardando_apsis", ico: "ti-arrow-back-up", rot: "Aguardando a APSIS", v: c.apsis, extra: "" },
+          { f: "aguardando_apsis", ico: "ti-arrow-back-up", rot: "Nao aprovadas", v: c.apsis, extra: "" },
           { f: "realizada", ico: "ti-circle-check", rot: "Realizadas", v: c.realizada, extra: "" }
         ];
 
@@ -499,60 +501,25 @@
           b.addEventListener("click", function () {
             filtro.situacao = b.getAttribute("data-filtro");
             $("f-situacao").value = filtro.situacao;
-            render();
+            renderTabela();
           });
         });
       }
 
-      function renderFiltros() {
+      function renderFiltrosSelect() {
         var sel = $("f-regional");
-        if (sel.getAttribute("data-pronto") !== "1") {
-          var conta = {};
-          itens.forEach(function (it) {
-            var r = it.regional || "sem regional";
-            conta[r] = (conta[r] || 0) + 1;
-          });
-          var chaves = Object.keys(conta).sort();
-          sel.innerHTML = '<option value="">Todas as regionais</option>' +
-            chaves.map(function (r) {
-              return '<option value="' + esc(r) + '">' + esc(r) + " (" + conta[r] + ")</option>";
-            }).join("");
-          sel.setAttribute("data-pronto", "1");
-        }
-        $("chips-escala").style.display = visao === "grafico" ? "" : "none";
-      }
-
-      function renderConteudo() {
-        var alvo = $("conteudo");
-
-        if (carregando) {
-          alvo.innerHTML = '<div class="empty"><p>Carregando o cronograma...</p></div>';
-          return;
-        }
-        if (falha) {
-          alvo.innerHTML = '<div class="empty">' +
-            '<i class="ti ti-alert-circle" aria-hidden="true"></i>' +
-            "<p>" + esc(falha) + "</p></div>";
-          return;
-        }
-        if (!itens.length) {
-          alvo.innerHTML = '<div class="empty">' +
-            '<i class="ti ti-calendar-off" aria-hidden="true"></i>' +
-            "<p>Nenhuma unidade no cronograma ainda." +
-            (podeMontar ? " Baixe o modelo, preencha e envie a planilha." : "") + "</p></div>";
-          return;
-        }
-
-        var lista = visiveis();
-        if (!lista.length) {
-          alvo.innerHTML = '<div class="empty">' +
-            '<i class="ti ti-filter-off" aria-hidden="true"></i>' +
-            "<p>Nenhuma unidade com esses filtros.</p></div>";
-          return;
-        }
-
-        if (visao === "lista") desenharLista(alvo, lista);
-        else desenharGantt(alvo, lista);
+        if (sel.getAttribute("data-pronto") === "1") return;
+        var conta = {};
+        itens.forEach(function (it) {
+          var r = it.regional || "Sem regional";
+          conta[r] = (conta[r] || 0) + 1;
+        });
+        var chaves = Object.keys(conta).sort();
+        sel.innerHTML = '<option value="">Todas as regionais</option>' +
+          chaves.map(function (r) {
+            return '<option value="' + esc(r) + '">' + esc(r) + " (" + conta[r] + ")</option>";
+          }).join("");
+        sel.setAttribute("data-pronto", "1");
       }
 
       function agruparPorRegional(lista) {
@@ -567,10 +534,12 @@
         return ordem.map(function (r) { return mapa[r]; });
       }
 
-      // ----------------------------------------------------------- roadmap
-      // O intervalo desenhado cobre todas as datas visiveis, sempre inclui
-      // hoje, comeca numa segunda e termina num domingo. Assim o total de
-      // dias e multiplo de sete e a grade de semanas fecha sem sobra.
+      // ================================================================
+      // ROADMAP
+      // ================================================================
+      // O intervalo cobre todas as datas, sempre inclui hoje, comeca numa
+      // segunda e termina num domingo: o total de dias e multiplo de sete e
+      // a grade de semanas fecha sem sobra.
       function dominio(lista) {
         var campos = ["prevIni", "prevFim", "propIni", "propFim", "realIni", "realFim"];
         var min = null, max = null, i, k, v;
@@ -589,7 +558,6 @@
         var ini = segunda(min) - 7;
         var fim = segunda(max) + 13;
         var semanas = Math.round((fim - ini + 1) / 7);
-        // Com duas datas coladas, uma barra sozinha ocuparia a tela inteira.
         if (semanas < 8) { semanas = 8; fim = ini + semanas * 7 - 1; }
         return { ini: ini, fim: fim, dias: fim - ini + 1, semanas: semanas };
       }
@@ -632,12 +600,17 @@
                "</div>";
       }
 
+      // Uma visita de um ou dois dias, num ciclo de meses, ocupa menos que a
+      // largura de um dedo. Por isso a data vai escrita ao lado da barra: o
+      // desenho mostra QUANDO, e o rotulo diz o dia exato sem depender do
+      // tamanho da barra.
       function htmlBarras(d, it) {
-        var h = "", fim, tarde, fora;
+        var h = "", fim, tarde, fora, ultimoFim = null;
 
         if (it.prevIni != null) {
           fim = it.prevFim != null ? it.prevFim : it.prevIni;
           tarde = atrasada(it);
+          ultimoFim = fim;
           h += '<button type="button" class="gan-barra gan-prev s-' + esc(it.situacao) +
                (tarde ? " is-atrasada" : "") + '" data-item="' + esc(it.id) + '"' +
                ' style="left:' + pctEsq(d, it.prevIni).toFixed(4) +
@@ -650,6 +623,7 @@
 
         if (it.situacao === "aguardando_apsis" && it.propIni != null) {
           fim = it.propFim != null ? it.propFim : it.propIni;
+          if (ultimoFim === null || fim > ultimoFim) ultimoFim = fim;
           h += '<button type="button" class="gan-barra gan-prop" data-item="' + esc(it.id) + '"' +
                ' style="left:' + pctEsq(d, it.propIni).toFixed(4) +
                "%;width:" + pctLarg(d, it.propIni, fim).toFixed(4) + '%"' +
@@ -659,6 +633,7 @@
 
         if (it.realIni != null) {
           fim = it.realFim != null ? it.realFim : it.realIni;
+          if (ultimoFim === null || fim > ultimoFim) ultimoFim = fim;
           fora = it.prevIni != null &&
             (it.realIni < it.prevIni ||
              it.realIni > (it.prevFim != null ? it.prevFim : it.prevIni));
@@ -669,17 +644,30 @@
                ' aria-label="' + esc("Realizada em " + periodo(it.realIni, fim) +
                  (fora ? ", fora da data combinada" : "")) + '">' +
                '<i class="ti ti-check" aria-hidden="true"></i></button>';
-        } else if (it.situacao === "nao_realizada") {
-          h += '<span class="gan-nao" style="left:' +
-               (it.prevIni != null ? pctEsq(d, it.prevIni).toFixed(4) : "0") + '%">' +
-               '<i class="ti ti-x" aria-hidden="true"></i> nao aconteceu</span>';
         }
 
-        if (!h) {
+        if (h) {
+          h += '<span class="gan-rotulo" style="left:' +
+               pctEsq(d, ultimoFim + 1).toFixed(4) + '%">' + esc(rotuloDaLinha(it)) + "</span>";
+        } else {
           h = '<span class="gan-semdata">' +
               esc(it.semana ? it.semana + ", data a combinar" : "data a combinar") + "</span>";
         }
         return h;
+      }
+
+      function rotuloDaLinha(it) {
+        if (it.realIni != null) {
+          return "feita " + periodo(it.realIni, it.realFim != null ? it.realFim : it.realIni);
+        }
+        if (it.situacao === "nao_realizada") return "nao aconteceu";
+        var base = periodo(it.prevIni, it.prevFim != null ? it.prevFim : it.prevIni);
+        if (it.situacao === "aguardando_apsis" && it.propIni != null) {
+          return base + ", Claro sugeriu " +
+            periodo(it.propIni, it.propFim != null ? it.propFim : it.propIni);
+        }
+        if (it.situacao === "aguardando_claro") return base + ", aguardando a Claro";
+        return base;
       }
 
       function htmlLinha(d, it) {
@@ -694,10 +682,30 @@
         "</div>";
       }
 
-      function desenharGantt(alvo, lista) {
-        // O intervalo e calculado uma vez sobre todas as linhas filtradas e
-        // vale para todos os grupos: senao agosto de SP ficaria em posicao
-        // diferente de agosto de MG e a comparacao visual mentiria.
+      function renderRoadmap() {
+        var alvo = $("roadmap");
+
+        if (carregando) {
+          alvo.innerHTML = '<div class="empty"><p>Carregando o cronograma...</p></div>';
+          return;
+        }
+        if (falha) {
+          alvo.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-alert-circle" aria-hidden="true"></i>' +
+            "<p>" + esc(falha) + "</p></div>";
+          return;
+        }
+        if (!itens.length) {
+          alvo.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-calendar-off" aria-hidden="true"></i>' +
+            "<p>Nenhuma unidade no cronograma ainda." +
+            (podeMontar ? " Baixe o modelo, preencha e envie a planilha." : "") + "</p></div>";
+          return;
+        }
+
+        // O roadmap mostra o ciclo inteiro, sem o filtro da tabela: e o
+        // desenho geral. Quem quer recortar usa a tabela logo abaixo.
+        var lista = itens.filter(function (it) { return it.situacao !== "cancelada"; });
         var d = dominio(lista);
         var corpo = "";
 
@@ -720,7 +728,7 @@
         alvo.innerHTML =
           '<div class="gan ' + (escala === "mes" ? "esc-mes" : "esc-semana") + '" id="gan">' +
             '<div class="gan-scroll" id="gan-scroll" tabindex="0" role="region"' +
-              ' aria-label="Cronograma de auditorias, planejado e realizado">' +
+              ' aria-label="Roadmap do ciclo, planejado e realizado">' +
               '<div class="gan-canvas" style="--gan-sems:' + d.semanas + '">' +
                 htmlCabecalho(d) +
                 '<div class="gan-corpo">' + htmlGrade(d) + corpo + "</div>" +
@@ -728,7 +736,6 @@
             "</div>" +
           "</div>";
 
-        // Primeira abertura: rola ate perto de hoje, nao ate o inicio do ciclo.
         var sc = $("gan-scroll");
         var rot = sc.querySelector(".gan-rot");
         var largRot = rot ? rot.offsetWidth : 236;
@@ -736,78 +743,250 @@
         sc.scrollLeft = alvoX > 0 ? alvoX : 0;
       }
 
-      // ------------------------------------------------------------- lista
-      function desenharLista(alvo, lista) {
-        var linhas = lista.map(function (it) {
-          return "<tr>" +
-            '<td><div class="epo-nome-cel"><b>' + esc(it.nome) + "</b>" +
-              (it.cod ? "<span>Cod. " + esc(it.cod) +
-                (it.base ? " / " + esc(it.base) : "") + "</span>" : "") + "</div></td>" +
-            "<td>" + esc(it.cidade) + (it.uf ? " / " + esc(it.uf) : "") + "</td>" +
-            "<td>" + esc(it.regional) + "</td>" +
-            "<td>" + celulaData(it) + "</td>" +
-            '<td><span class="badge ' + BADGE[it.situacao] + '">' +
-              esc(ROTULO[it.situacao]) + "</span>" +
-              (atrasada(it) ? ' <span class="tag" style="color:var(--danger);">fora do prazo</span>' : "") +
-            "</td>" +
-            "<td>" + celulaRealizacao(it) + "</td>" +
-            '<td class="num">' +
-              '<button class="btn btn-ghost btn-sm" type="button" data-item="' + esc(it.id) + '">' +
-                "Abrir</button></td>" +
-          "</tr>";
-        }).join("");
-
-        alvo.innerHTML =
-          '<div class="table-wrap"><table class="table">' +
-            "<thead><tr>" +
-              "<th>Unidade</th><th>Cidade / UF</th><th>Regional</th>" +
-              "<th>Data planejada</th><th>Situacao</th><th>O que aconteceu</th>" +
-              '<th class="num"></th>' +
-            "</tr></thead><tbody>" + linhas + "</tbody></table></div>";
-      }
-
-      function celulaData(it) {
-        if (it.prevIni == null) {
-          return '<span class="muted"><i class="ti ti-calendar-question" aria-hidden="true"></i> ' +
-                 esc(it.semana ? it.semana : "a combinar") + "</span>";
-        }
-        var txt = periodo(it.prevIni, it.prevFim != null ? it.prevFim : it.prevIni);
-        if (it.situacao === "aguardando_apsis" && it.propIni != null) {
-          txt += '<br><span class="muted" style="font-size:11.5px;">Claro sugeriu ' +
-                 esc(periodo(it.propIni, it.propFim != null ? it.propFim : it.propIni)) + "</span>";
-        }
-        return txt;
-      }
-
-      function celulaRealizacao(it) {
-        if (it.realIni != null) {
-          var t = periodo(it.realIni, it.realFim != null ? it.realFim : it.realIni);
-          return '<span style="color:var(--success);font-weight:600;">' + esc(t) + "</span>";
-        }
-        if (it.situacao === "nao_realizada") {
-          return '<span style="color:var(--danger);" title="' + esc(it.motivo || "") +
-                 '">nao aconteceu</span>';
-        }
-        return '<span class="muted">-</span>';
-      }
-
-      // ----------------------------------------------------------- legenda
       function renderLegenda() {
         if (carregando || falha || !itens.length) { $("legenda").innerHTML = ""; return; }
-        var itensLegenda = [
+        var lista = [
           { c: "aguardando", t: "Aguardando a Claro" },
           { c: "sugerida",   t: "Data sugerida pela Claro" },
-          { c: "confirmada", t: "Data confirmada" },
+          { c: "confirmada", t: "Data aprovada" },
           { c: "realizada",  t: "Realizada" },
           { c: "fora",       t: "Realizada fora da data" },
           { c: "atrasada",   t: "Fora do prazo" }
         ];
-        $("legenda").innerHTML = itensLegenda.map(function (l) {
-          return "<span><i class=\"gan-amostra " + l.c + "\" aria-hidden=\"true\"></i>" +
+        $("legenda").innerHTML = lista.map(function (l) {
+          return '<span><i class="gan-amostra ' + l.c + '" aria-hidden="true"></i>' +
                  esc(l.t) + "</span>";
         }).join("") +
         '<span><i class="ti ti-line-dashed" aria-hidden="true" style="color:var(--apsis-orange);"></i>' +
         "A linha laranja marca hoje</span>";
+      }
+
+      // ================================================================
+      // TABELA: e aqui que a data e combinada, aprovada e corrigida
+      // ================================================================
+      function renderTabela() {
+        var alvo = $("tabela");
+
+        if (carregando) {
+          alvo.innerHTML = '<div class="empty"><p>Carregando...</p></div>';
+          $("sub-tabela").textContent = "";
+          return;
+        }
+        if (falha || !itens.length) { alvo.innerHTML = ""; return; }
+
+        $("sub-tabela").textContent = podeMontar
+          ? "Ajuste a data direto na linha. A Claro aprova ou sugere outra por aqui."
+          : (papel === "cliente"
+              ? "Aprove a data ou sugira outra em cada unidade."
+              : "Datas combinadas com a Claro e o que ja foi registrado.");
+
+        var lista = visiveis();
+        if (!lista.length) {
+          alvo.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-filter-off" aria-hidden="true"></i>' +
+            "<p>Nenhuma unidade com esses filtros.</p></div>";
+          return;
+        }
+
+        alvo.innerHTML =
+          '<div class="table-wrap"><table class="table cron-tabela">' +
+            "<thead><tr>" +
+              "<th>Unidade</th>" +
+              "<th>Cidade / UF</th>" +
+              "<th>Data prevista</th>" +
+              "<th>Aprovacao Claro</th>" +
+              "<th>Realizado</th>" +
+              '<th class="num">Acoes</th>' +
+            "</tr></thead><tbody>" +
+            lista.map(linhaTabela).join("") +
+          "</tbody></table></div>";
+
+        if (editando && editando.modo === "registrar") ligarRadioRegistro();
+      }
+
+      function linhaTabela(it) {
+        return '<tr data-linha="' + esc(it.id) + '">' +
+          '<td><div class="epo-nome-cel"><b>' + esc(it.nome) + "</b>" +
+            (it.cod ? "<span>Cod. " + esc(it.cod) +
+              (it.base ? " / " + esc(it.base) : "") + "</span>" : "") + "</div></td>" +
+          "<td>" + esc(it.cidade) + (it.uf ? " / " + esc(it.uf) : "") +
+            (it.regional && it.regional !== it.uf
+              ? '<br><span class="muted" style="font-size:11.5px;">regional ' +
+                esc(it.regional) + "</span>" : "") + "</td>" +
+          "<td>" + celulaPrevista(it) + "</td>" +
+          "<td>" + celulaAprovacao(it) + "</td>" +
+          "<td>" + celulaRealizado(it) + "</td>" +
+          '<td class="num">' + celulaAcoes(it) + "</td>" +
+        "</tr>";
+      }
+
+      // A coordenacao muda a data direto na linha: e o movimento mais comum
+      // do ciclo e nao vale abrir modal para cada ajuste.
+      function celulaPrevista(it) {
+        var editavel = podeMontar && it.situacao !== "realizada" &&
+                       it.situacao !== "nao_realizada" && it.situacao !== "cancelada";
+        if (!editavel) {
+          if (it.prevIni == null) {
+            return '<span class="muted">' + esc(it.semana || "a combinar") + "</span>";
+          }
+          return esc(periodo(it.prevIni, it.prevFim != null ? it.prevFim : it.prevIni)) +
+            (atrasada(it) ? '<br><span class="tag" style="color:var(--danger);">fora do prazo</span>' : "");
+        }
+        return '<div class="cel-data">' +
+          '<input class="input input-data" type="date" data-campo="ini" data-id="' + esc(it.id) + '"' +
+            ' value="' + esc(it.prevIniIso) + '" min="2020-01-01" max="2035-12-31"' +
+            ' aria-label="Data prevista de ' + esc(it.nome) + '">' +
+          '<input class="input input-data" type="date" data-campo="fim" data-id="' + esc(it.id) + '"' +
+            ' value="' + esc(it.prevFimIso) + '" min="2020-01-01" max="2035-12-31"' +
+            ' aria-label="Data final prevista de ' + esc(it.nome) + '" title="Ate (opcional)">' +
+          "</div>" +
+          (atrasada(it) ? '<span class="tag" style="color:var(--danger);">fora do prazo</span>' : "") +
+          (it.semana && it.prevIni == null
+            ? '<span class="muted" style="font-size:11.5px;">' + esc(it.semana) + "</span>" : "");
+      }
+
+      // A coluna que o gerente da Claro olha primeiro. Quando ele nao aprova,
+      // a data que ele sugeriu fica escrita aqui, e todo mundo ve a mesma.
+      function celulaAprovacao(it) {
+        if (it.situacao === "cancelada") {
+          return '<span class="badge badge-baixa">Fora deste ciclo</span>';
+        }
+        if (it.prevIni == null) return '<span class="muted">sem data para aprovar</span>';
+
+        if (it.situacao === "aguardando_claro") {
+          return '<span class="badge badge-media">Aguardando</span>';
+        }
+        if (it.situacao === "aguardando_apsis") {
+          return '<span class="badge badge-alta">Nao aprovada</span>' +
+            '<div class="cel-sugerida"><i class="ti ti-calendar-repeat" aria-hidden="true"></i>' +
+            "Claro sugeriu <b>" +
+            esc(periodo(it.propIni, it.propFim != null ? it.propFim : it.propIni)) +
+            "</b></div>" +
+            (it.observacao ? '<span class="muted" style="font-size:11.5px;">' +
+              esc(it.observacao) + "</span>" : "");
+        }
+        if (it.situacao === "confirmada" || it.situacao === "realizada" ||
+            it.situacao === "nao_realizada") {
+          return '<span class="badge badge-success">Aprovada</span>' +
+            (it.confirmadaEm ? '<span class="muted" style="font-size:11.5px;display:block;">' +
+              esc(fmtDataHora(it.confirmadaEm)) + "</span>" : "");
+        }
+        return '<span class="muted">nao enviada</span>';
+      }
+
+      function celulaRealizado(it) {
+        if (it.realIni != null) {
+          return '<span style="color:var(--success);font-weight:600;">' +
+            esc(periodo(it.realIni, it.realFim != null ? it.realFim : it.realIni)) + "</span>";
+        }
+        if (it.situacao === "nao_realizada") {
+          return '<span style="color:var(--danger);">nao aconteceu</span>' +
+                 (it.motivo ? '<span class="muted" style="font-size:11.5px;display:block;">' +
+                   esc(it.motivo) + "</span>" : "");
+        }
+        return '<span class="muted">-</span>';
+      }
+
+      function botao(acao, id, rotulo, classe, icone) {
+        return '<button class="btn btn-sm ' + classe + '" type="button" data-acao="' + acao +
+          '" data-id="' + esc(id) + '">' +
+          (icone ? '<i class="ti ' + icone + '" aria-hidden="true"></i>' : "") +
+          esc(rotulo) + "</button>";
+      }
+
+      function celulaAcoes(it) {
+        if (editando && editando.id === it.id) return formularioNaLinha(it);
+
+        var b = [];
+
+        // ---- gerente da Claro: aprova ou nao aprova, na propria linha
+        if (papel === "cliente") {
+          if (it.situacao === "aguardando_claro") {
+            b.push(botao("aprovar", it.id, "Aprovar", "btn-primary", "ti-check"));
+            b.push(botao("sugerir", it.id, "Desaprovar", "btn-ghost", "ti-calendar-x"));
+          } else if (it.situacao === "confirmada") {
+            b.push(botao("sugerir", it.id, "Pedir outra data", "btn-ghost", "ti-calendar-repeat"));
+          }
+        }
+
+        // ---- coordenacao APSIS
+        if (podeMontar) {
+          if (it.situacao === "sem_data" && it.prevIni != null) {
+            b.push(botao("enviar1", it.id, "Enviar para a Claro", "btn-primary", "ti-send"));
+          }
+          if (it.situacao === "aguardando_apsis") {
+            b.push(botao("aceitar", it.id, "Aceitar sugerida", "btn-primary", "ti-check"));
+            b.push(botao("reenviar", it.id, "Manter a minha", "btn-ghost", "ti-send"));
+          }
+          if (it.situacao === "aguardando_claro") {
+            b.push(botao("aprovar", it.id, "Aprovar pela Claro", "btn-ghost", "ti-check"));
+          }
+        }
+
+        // ---- registro do que aconteceu
+        if (podeRegistrar &&
+            (it.situacao === "confirmada" || it.situacao === "realizada" ||
+             it.situacao === "nao_realizada")) {
+          b.push(botao("registrar", it.id,
+            it.situacao === "confirmada" ? "Registrar visita" : "Corrigir registro",
+            it.situacao === "confirmada" ? "btn-primary" : "btn-ghost", "ti-clipboard-check"));
+        }
+
+        b.push(botao("detalhe", it.id, "Historico", "btn-ghost", "ti-history"));
+        return '<span class="cel-acoes">' + b.join("") + "</span>";
+      }
+
+      // Desaprovar pede a data nova ali mesmo: mandar o gerente para um modal
+      // so para digitar um dia atrapalha quem tem 25 linhas para responder.
+      function formularioNaLinha(it) {
+        var hoje = paraIso(hojeN());
+        if (editando.modo === "sugerir") {
+          return '<div class="cel-form">' +
+            "<label>Que data serve melhor?</label>" +
+            '<input class="input input-data" type="date" id="ed-ini" value="' +
+              esc(it.prevIniIso) + '" min="' + hoje + '" max="2035-12-31">' +
+            '<input class="input input-data" type="date" id="ed-fim" value=""' +
+              ' min="' + hoje + '" max="2035-12-31" title="Ate (opcional)">' +
+            '<input class="input" id="ed-msg" type="text" placeholder="Motivo (opcional)">' +
+            '<div class="cel-form-btn">' +
+              '<button class="btn btn-sm btn-ghost" type="button" data-acao="cancelar-edicao"' +
+                ' data-id="' + esc(it.id) + '">Cancelar</button>' +
+              '<button class="btn btn-sm btn-primary" type="button" data-acao="confirmar-sugestao"' +
+                ' data-id="' + esc(it.id) + '">Enviar sugestao</button>' +
+            "</div>" +
+          "</div>";
+        }
+        if (editando.modo === "registrar") {
+          return '<div class="cel-form">' +
+            '<div class="radio-group" role="radiogroup" aria-label="O que aconteceu">' +
+              '<input type="radio" name="ed-oq" id="ed-sim" value="sim"' +
+                (it.situacao !== "nao_realizada" ? " checked" : "") + ">" +
+              '<label for="ed-sim">Aconteceu</label>' +
+              '<input type="radio" name="ed-oq" id="ed-nao" value="nao"' +
+                (it.situacao === "nao_realizada" ? " checked" : "") + ">" +
+              '<label for="ed-nao">Nao aconteceu</label>' +
+            "</div>" +
+            '<div id="ed-bloco-sim">' +
+              '<input class="input input-data" type="date" id="ed-rini" value="' +
+                esc(it.realIniIso || it.prevIniIso) + '" min="2020-01-01" max="' + hoje +
+                '" aria-label="Data em que aconteceu">' +
+              '<input class="input input-data" type="date" id="ed-rfim" value="' +
+                esc(it.realFimIso) + '" min="2020-01-01" max="' + hoje +
+                '" title="Ate (opcional)">' +
+            "</div>" +
+            '<div id="ed-bloco-nao" style="display:none;">' +
+              '<input class="input" id="ed-motivo" type="text" placeholder="Por que nao aconteceu"' +
+                ' value="' + esc(it.motivo || "") + '">' +
+            "</div>" +
+            '<div class="cel-form-btn">' +
+              '<button class="btn btn-sm btn-ghost" type="button" data-acao="cancelar-edicao"' +
+                ' data-id="' + esc(it.id) + '">Cancelar</button>' +
+              '<button class="btn btn-sm btn-primary" type="button" data-acao="confirmar-registro"' +
+                ' data-id="' + esc(it.id) + '">Salvar</button>' +
+            "</div>" +
+          "</div>";
+        }
+        return "";
       }
 
       function renderRodape() {
@@ -850,412 +1029,40 @@
         }
       }
 
-      // ------------------------------------------------------------------
-      // Modal do ticket
-      // ------------------------------------------------------------------
-      function abrirTicket(id) {
-        var it = null;
-        itens.forEach(function (x) { if (x.id === id) it = x; });
-        if (!it) return;
-        itemAberto = it;
-        modoForcado = "";
-
-        $("tk-titulo").textContent = it.nome;
-        $("tk-corpo").innerHTML =
-          '<div class="cron-cols">' +
-            '<div id="tk-esq"></div>' +
-            '<div><p class="col-titulo"><i class="ti ti-history" aria-hidden="true"></i>' +
-              "O que ja aconteceu</p><div id=\"tk-fio\">Carregando...</div></div>" +
-          "</div>";
-        montarLadoEsquerdo(it);
-        montarRodapeTicket(it);
-        $("tk-modal").classList.add("is-open");
-        carregarFio(it);
-      }
-
-      function fecharTicket() {
-        $("tk-modal").classList.remove("is-open");
-        itemAberto = null;
-        modoForcado = "";
-      }
-
-      function montarLadoEsquerdo(it) {
-        var prevTxt = it.prevIni != null
-          ? periodo(it.prevIni, it.prevFim != null ? it.prevFim : it.prevIni)
-          : (it.semana ? it.semana : "ainda sem data");
-
-        var estado;
-        if (it.situacao === "aguardando_claro") {
-          estado = "Enviada para a Claro. Aguardando a resposta.";
-        } else if (it.situacao === "aguardando_apsis") {
-          estado = "A Claro sugeriu " +
-            periodo(it.propIni, it.propFim != null ? it.propFim : it.propIni) + ".";
-        } else if (it.situacao === "confirmada") {
-          estado = "Data combinada com a Claro" +
-            (it.confirmadaEm ? " em " + fmtDataHora(it.confirmadaEm) : "") + ".";
-        } else if (it.situacao === "realizada") {
-          estado = "Auditoria realizada em " +
-            periodo(it.realIni, it.realFim != null ? it.realFim : it.realIni) + ".";
-        } else if (it.situacao === "nao_realizada") {
-          estado = "Nao aconteceu: " + (it.motivo || "sem motivo registrado") + ".";
-        } else if (it.situacao === "cancelada") {
-          estado = "Esta unidade esta fora do ciclo " + CICLO + ".";
-        } else {
-          estado = "Ainda nao foi combinada nenhuma data.";
-        }
-
-        var html =
-          '<p class="col-titulo"><i class="ti ti-calendar-event" aria-hidden="true"></i>' +
-            "Data em questao</p>" +
-          '<div class="tk-destaque"><b>' + esc(prevTxt) + "</b>" +
-            "<span>" + esc(estado) + "</span></div>" +
-          '<p class="muted" style="margin:10px 0 14px;font-size:12.5px;">' +
-            (it.cod ? "Cod. " + esc(it.cod) + ", " : "") + esc(it.cidade) +
-            (it.uf ? "/" + esc(it.uf) : "") +
-            (it.regional && it.regional !== it.uf ? ", regional " + esc(it.regional) : "") +
-          "</p>" +
-          '<div id="tk-form"></div>' +
-          '<p class="muted" style="margin-top:14px;font-size:12px;">' +
-            "A Claro ve esta mesma tela e responde por aqui.</p>";
-
-        $("tk-esq").innerHTML = html;
-        montarFormulario(it);
-      }
-
-      function campoData(id, rot, valor, dica) {
-        return '<div class="field"><label for="' + id + '">' + esc(rot) + "</label>" +
-          '<input class="input" id="' + id + '" type="date" value="' + esc(valor || "") +
-          '" min="2020-01-01" max="2035-12-31">' +
-          (dica ? '<span class="hint">' + esc(dica) + "</span>" : "") + "</div>";
-      }
-
-      function campoMensagem(id, rot) {
-        return '<div class="field"><label for="' + id + '">' + esc(rot) + "</label>" +
-          '<textarea class="textarea" id="' + id + '" rows="2"></textarea></div>';
-      }
-
-      // O formulario segue a situacao e o papel. Nenhum botao aparece para
-      // quem o servidor recusaria: a regra e a mesma dos dois lados.
-      function montarFormulario(it) {
-        var alvo = $("tk-form");
-        var modo = modoDoTicket(it);
-        var html = "";
-
-        if (modo === "definir") {
-          html = (it.situacao === "confirmada"
-            ? '<div class="tk-aviso" style="margin-bottom:14px;">' +
-                '<i class="ti ti-alert-triangle tk-ico" aria-hidden="true"></i>' +
-                '<div class="tk-aviso-corpo"><b>Esta data ja foi aprovada pela Claro</b>' +
-                "<p>Trocar a data desfaz a aprovacao: a unidade volta a esperar " +
-                "resposta e precisa ser aprovada de novo.</p></div></div>"
-            : "") +
-            campoData("tk-ini", "Data da visita", it.prevIniIso,
-                   "A Claro precisa aprovar antes de valer.") +
-                 campoData("tk-fim", "Ate (opcional)", it.prevFimIso,
-                   "Deixe em branco para visita de um dia so.") +
-                 campoMensagem("tk-msg", "Mensagem para a Claro (opcional)");
-        } else if (modo === "propor") {
-          html = campoData("tk-ini", "Data que voce sugere", it.prevIniIso) +
-                 campoData("tk-fim", "Ate (opcional)", "") +
-                 campoMensagem("tk-msg", "Por que essa data nao serve (opcional)");
-        } else if (modo === "responder") {
-          html = campoData("tk-ini", "Se preferir outra data, informe aqui", it.propIniIso) +
-                 campoData("tk-fim", "Ate (opcional)", it.propFimIso) +
-                 campoMensagem("tk-msg", "Mensagem (opcional)");
-        } else if (modo === "registrar") {
-          html = htmlFormRealizacao(it);
-        }
-
-        alvo.innerHTML = html;
-        if (modo === "registrar") ligarFormRealizacao();
-      }
-
-      function modoDoTicket(it) {
-        if (modoForcado === "remarcar" && podeMontar) return "definir";
-        if (podeMontar && (it.situacao === "sem_data" || it.situacao === "aguardando_claro")) {
-          return "definir";
-        }
-        if (podeMontar && it.situacao === "aguardando_apsis") return "responder";
-        if (papel === "cliente" && (it.situacao === "aguardando_claro" ||
-                                    it.situacao === "confirmada")) {
-          return "propor";
-        }
-        if (podeRegistrar && it.situacao === "confirmada") return "registrar";
-        if (podeRegistrar && (it.situacao === "realizada" || it.situacao === "nao_realizada")) {
-          return "registrar";
-        }
-        return "";
-      }
-
-      function htmlFormRealizacao(it) {
-        var padrao = it.realIniIso || it.prevIniIso || "";
-        var hoje = paraIso(hojeN());
-        return '<div class="radio-group" role="radiogroup" aria-label="O que aconteceu">' +
-            '<input type="radio" name="tk-oq" id="tk-oq-sim" value="sim"' +
-              (it.situacao !== "nao_realizada" ? " checked" : "") + ">" +
-            '<label for="tk-oq-sim">A auditoria aconteceu</label>' +
-            '<input type="radio" name="tk-oq" id="tk-oq-nao" value="nao"' +
-              (it.situacao === "nao_realizada" ? " checked" : "") + ">" +
-            '<label for="tk-oq-nao">Nao aconteceu</label>' +
-          "</div>" +
-          '<div id="tk-sim">' +
-            '<div class="field"><label for="tk-rini">Data em que aconteceu</label>' +
-              '<input class="input" id="tk-rini" type="date" value="' + esc(padrao) +
-              '" min="2020-01-01" max="' + hoje + '"></div>' +
-            '<div class="field"><label for="tk-rfim">Ate (opcional)</label>' +
-              '<input class="input" id="tk-rfim" type="date" value="' + esc(it.realFimIso || "") +
-              '" min="2020-01-01" max="' + hoje + '"></div>' +
-            '<div class="field"><label for="tk-aud">Vincular ao relatorio preenchido (opcional)</label>' +
-              '<select class="select" id="tk-aud"><option value="">Nao vincular agora</option></select></div>' +
-          "</div>" +
-          '<div id="tk-nao" style="display:none;">' +
-            '<div class="field"><label for="tk-motivo">Por que nao aconteceu</label>' +
-              '<textarea class="textarea" id="tk-motivo" rows="3">' +
-              esc(it.motivo || "") + "</textarea></div>" +
-          "</div>";
-      }
-
-      function ligarFormRealizacao() {
-        function trocar() {
-          var sim = $("tk-oq-sim").checked;
-          $("tk-sim").style.display = sim ? "" : "none";
-          $("tk-nao").style.display = sim ? "none" : "";
-        }
-        $("tk-oq-sim").addEventListener("change", trocar);
-        $("tk-oq-nao").addEventListener("change", trocar);
-        trocar();
-        carregarAuditorias(itemAberto);
-      }
-
-      function carregarAuditorias(it) {
-        if (DEMO || !it) return;
-        Auth.cliente.from("auditorias")
-          .select("id, data_visita, criado_em, processos(nome)")
-          .eq("epo_id", it.epoId)
-          .order("criado_em", { ascending: false })
-          .limit(20)
-          .then(function (r) {
-            if (!r || r.error) return;      // campo opcional: nao derruba o modal
-            var sel = $("tk-aud");
-            if (!sel) return;
-            (r.data || []).forEach(function (a) {
-              var op = document.createElement("option");
-              op.value = a.id;
-              op.textContent = ((a.processos && a.processos.nome) || "Relatorio") +
-                (a.data_visita ? " - " + periodo(dn(a.data_visita), null) : "");
-              if (it.auditoriaId === a.id) op.selected = true;
-              sel.appendChild(op);
-            });
-          })
-          .catch(function () {});
-      }
-
-      function montarRodapeTicket(it) {
-        var modo = modoDoTicket(it);
-        var botoes = '<button class="btn btn-ghost" type="button" id="tk-cancelar">Fechar</button>';
-
-        if (modo === "definir") {
-          botoes +=
-            '<button class="btn btn-ghost" type="button" data-acao="salvar">Salvar sem enviar</button>' +
-            '<button class="btn btn-primary" type="button" data-acao="enviar">' +
-              (it.situacao === "sem_data" ? "Enviar para a Claro"
-                                          : "Trocar a data e reenviar") + "</button>";
-        } else if (modo === "propor") {
-          if (it.situacao === "aguardando_claro") {
-            botoes += '<button class="btn btn-ghost" type="button" data-acao="propor">' +
-                        "Sugerir outra data</button>" +
-                      '<button class="btn btn-primary" type="button" data-acao="aprovar">' +
-                        "Aprovar esta data</button>";
-          } else {
-            botoes += '<button class="btn btn-primary" type="button" data-acao="propor">' +
-                        "Pedir outra data</button>";
-          }
-        } else if (modo === "responder") {
-          botoes += '<button class="btn btn-ghost" type="button" data-acao="enviar">' +
-                      "Responder com outra data</button>" +
-                    '<button class="btn btn-primary" type="button" data-acao="aceitar">' +
-                      "Aceitar a data sugerida</button>";
-        } else if (modo === "registrar") {
-          botoes += '<button class="btn btn-primary" type="button" data-acao="registrar">' +
-                      "Salvar o registro</button>";
-        }
-
-        // Data combinada muda: obra, feriado, equipe indisponivel. Sem este
-        // caminho a coordenacao teria de tirar a unidade do ciclo e recomecar.
-        if (podeMontar && it.situacao === "confirmada" && modoForcado !== "remarcar") {
-          botoes = botoes.replace('id="tk-cancelar">Fechar</button>',
-            'id="tk-cancelar">Fechar</button>' +
-            '<button class="btn btn-ghost" type="button" data-acao="remarcar">Remarcar</button>');
-        }
-
-        if (podeMontar && it.situacao !== "cancelada" && it.situacao !== "realizada") {
-          botoes = '<button class="btn btn-ghost" type="button" data-acao="cancelar"' +
-                   ' style="margin-right:auto;">Tirar do ciclo</button>' + botoes;
-        } else if (podeMontar && it.situacao === "cancelada") {
-          botoes = '<button class="btn btn-ghost" type="button" data-acao="reabrir"' +
-                   ' style="margin-right:auto;">Trazer de volta</button>' + botoes;
-        }
-
-        $("tk-rodape").innerHTML = botoes;
-        $("tk-cancelar").addEventListener("click", fecharTicket);
-        Array.prototype.forEach.call($("tk-rodape").querySelectorAll("[data-acao]"),
-          function (b) {
-            b.addEventListener("click", function () { executar(b.getAttribute("data-acao"), b); });
-          });
-      }
-
-      function carregarFio(it) {
-        if (DEMO) {
-          $("tk-fio").innerHTML =
-            '<p class="muted">O historico aparece aqui conforme as datas vao sendo combinadas.</p>';
-          return;
-        }
-        Auth.cliente.from("cronograma_eventos")
-          .select("acao, de_situacao, para_situacao, data_inicio, data_fim, comentario, " +
-                  "autor_nome, autor_papel, criado_em, ordem")
-          .eq("item_id", it.id)
-          .order("criado_em", { ascending: false })
-          .order("ordem", { ascending: false })
-          .then(function (r) {
-            var alvo = $("tk-fio");
-            if (!alvo) return;
-            if (!r || r.error) {
-              alvo.innerHTML = '<p class="muted">Nao foi possivel carregar o historico agora.</p>';
-              return;
-            }
-            var evs = r.data || [];
-            if (!evs.length) {
-              alvo.innerHTML = '<p class="muted">Nada registrado ainda.</p>';
-              return;
-            }
-            alvo.innerHTML = '<ul class="tk-hist">' + evs.map(function (e, i) {
-              var quem = (e.autor_nome || "Alguem") +
-                (e.autor_papel ? " (" + (PAPEL_TEXTO[e.autor_papel] || e.autor_papel) + ")" : "");
-              var quando = fmtDataHora(e.criado_em);
-              var oque = ACAO_TEXTO[e.acao] || e.acao;
-              var datas = e.data_inicio
-                ? " para " + periodo(dn(e.data_inicio), e.data_fim ? dn(e.data_fim) : null)
-                : "";
-              return "<li" + (i === 0 ? ' class="is-ultimo"' : "") + ">" +
-                "<b>" + esc(quem) + "</b>" +
-                "<span>" + esc(quando + " - " + oque + datas) + "</span>" +
-                (e.comentario ? "<q>" + esc(e.comentario) + "</q>" : "") +
-              "</li>";
-            }).join("") + "</ul>";
-          })
-          .catch(function () {
-            var alvo = $("tk-fio");
-            if (alvo) alvo.innerHTML = '<p class="muted">Nao foi possivel carregar o historico agora.</p>';
-          });
-      }
-
-      // ------------------------------------------------------------------
-      // Acoes. Toda escrita passa por funcao no servidor: a tabela nao aceita
-      // gravacao direta, e uma tentativa voltaria vazia sem erro nenhum.
-      // ------------------------------------------------------------------
-      function valorData(id) {
-        var el = $(id);
-        return el && el.value ? el.value : null;
-      }
-      function valorTexto(id) {
-        var el = $(id);
-        return el && el.value.trim() ? el.value.trim() : null;
-      }
-
-      function executar(acao, botao) {
-        var it = itemAberto;
-        if (!it) return;
-
-        if (acao === "remarcar") {
-          modoForcado = "remarcar";
-          montarFormulario(it);
-          montarRodapeTicket(it);
-          return;
-        }
-
-        var chamada = null;
-
-        if (acao === "salvar" || acao === "enviar") {
-          var ini = valorData("tk-ini");
-          if (!ini) { App.toast("Informe a data da visita."); return; }
-          var fim = valorData("tk-fim");
-          if (fim && fim < ini) { App.toast("A data final nao pode ser anterior a inicial."); return; }
-          chamada = ["cronograma_definir_data", {
-            p_item: it.id, p_inicio: ini, p_fim: fim, p_semana: null,
-            p_observacao: valorTexto("tk-msg"), p_enviar: acao === "enviar"
-          }];
-        } else if (acao === "aprovar") {
-          chamada = ["cronograma_aprovar", { p_item: it.id, p_mensagem: valorTexto("tk-msg") }];
-        } else if (acao === "propor") {
-          var pi = valorData("tk-ini");
-          if (!pi) { App.toast("Informe a data que voce sugere."); return; }
-          chamada = ["cronograma_propor_data", {
-            p_item: it.id, p_inicio: pi, p_fim: valorData("tk-fim"),
-            p_motivo: valorTexto("tk-msg")
-          }];
-        } else if (acao === "aceitar") {
-          chamada = ["cronograma_aceitar_proposta", { p_item: it.id, p_mensagem: valorTexto("tk-msg") }];
-        } else if (acao === "registrar") {
-          var aconteceu = $("tk-oq-sim").checked;
-          if (aconteceu) {
-            var ri = valorData("tk-rini");
-            if (!ri) { App.toast("Informe a data em que a auditoria aconteceu."); return; }
-            chamada = ["cronograma_registrar_realizacao", {
-              p_item: it.id, p_aconteceu: true, p_inicio: ri, p_fim: valorData("tk-rfim"),
-              p_motivo: null, p_auditoria: valorTexto("tk-aud")
-            }];
-          } else {
-            var mot = valorTexto("tk-motivo");
-            if (!mot) { App.toast("Descreva por que a auditoria nao aconteceu."); return; }
-            chamada = ["cronograma_registrar_realizacao", {
-              p_item: it.id, p_aconteceu: false, p_inicio: null, p_fim: null,
-              p_motivo: mot, p_auditoria: null
-            }];
-          }
-        } else if (acao === "cancelar") {
-          App.confirmar({
-            titulo: "Tirar do ciclo",
-            texto: "A unidade " + it.nome + " sai do cronograma de " + CICLO +
-                   ".\n\nO historico fica guardado e ela pode ser trazida de volta depois.",
-            confirmar: "Tirar do ciclo", cancelar: "Voltar", perigo: true
-          }).then(function (ok) {
-            if (ok) rodar("cronograma_cancelar", { p_item: it.id, p_motivo: null }, botao);
-          });
-          return;
-        } else if (acao === "reabrir") {
-          chamada = ["cronograma_reabrir", { p_item: it.id, p_mensagem: null }];
-        }
-
-        if (chamada) rodar(chamada[0], chamada[1], botao);
-      }
-
-      function rodar(funcao, args, botao) {
+      // ================================================================
+      // Acoes. Toda escrita passa por funcao no servidor: a tela nao tem
+      // permissao de gravar direto, e uma tentativa voltaria vazia sem erro.
+      // ================================================================
+      function rodar(funcao, args, botaoEl) {
         if (DEMO) {
           App.toast("Sem conexao com os dados agora: nada foi gravado.");
-          return;
+          return Promise.resolve(false);
         }
-        if (botao) { botao.disabled = true; }
-        Auth.cliente.rpc(funcao, args).then(function (r) {
+        if (botaoEl) botaoEl.disabled = true;
+        return Auth.cliente.rpc(funcao, args).then(function (r) {
           if (!r || r.error) {
-            // A mensagem do servidor ja vem escrita em portugues e sem termo
-            // de bastidor: e ela que a pessoa deve ler.
+            // A mensagem do servidor ja vem em portugues e sem termo de
+            // bastidor: e ela que a pessoa precisa ler.
             throw new Error((r && r.error && r.error.message) || "");
           }
-          var atualizado = r.data;
-          if (atualizado && atualizado.id) {
-            var novo = normalizar(juntarEpo(atualizado, itemAberto));
-            for (var i = 0; i < itens.length; i++) {
-              if (itens[i].id === novo.id) { itens[i] = novo; break; }
+          var linha = r.data;
+          if (linha && linha.id) {
+            var antigo = porId(linha.id);
+            if (antigo) {
+              var novo = normalizar(juntarEpo(linha, antigo));
+              for (var i = 0; i < itens.length; i++) {
+                if (itens[i].id === novo.id) { itens[i] = novo; break; }
+              }
             }
-            itemAberto = novo;
           }
-          App.toast("Pronto.");
-          fecharTicket();
+          editando = null;
           render();
+          return true;
         }).catch(function (e) {
-          if (botao) botao.disabled = false;
+          if (botaoEl) botaoEl.disabled = false;
           App.toast(e && e.message ? e.message
                                    : "Nao foi possivel salvar agora. Tente novamente.");
+          return false;
         });
       }
 
@@ -1269,6 +1076,144 @@
           regional: antigo.regional, cod_fornecedor: antigo.cod, base: antigo.base
         };
         return copia;
+      }
+
+      function valor(id) {
+        var el = $(id);
+        return el && el.value.trim() ? el.value.trim() : null;
+      }
+
+      function salvarData(id, enviar, botaoEl) {
+        var linha = document.querySelector('[data-linha="' + id + '"]');
+        if (!linha) return;
+        var ini = linha.querySelector('[data-campo="ini"]');
+        var fim = linha.querySelector('[data-campo="fim"]');
+        if (!ini || !ini.value) { App.toast("Informe a data prevista."); return; }
+        if (fim && fim.value && fim.value < ini.value) {
+          App.toast("A data final nao pode ser anterior a inicial.");
+          return;
+        }
+        rodar("cronograma_definir_data", {
+          p_item: id, p_inicio: ini.value, p_fim: (fim && fim.value) || null,
+          p_semana: null, p_observacao: null, p_enviar: !!enviar
+        }, botaoEl).then(function (ok) {
+          if (ok) App.toast(enviar ? "Data enviada para a Claro." : "Data guardada.");
+        });
+      }
+
+      function tratarAcao(acao, id, botaoEl) {
+        var it = porId(id);
+
+        if (acao === "cancelar-edicao") { editando = null; renderTabela(); return; }
+
+        if (acao === "sugerir") {
+          editando = { id: id, modo: "sugerir" };
+          renderTabela();
+          var c = $("ed-ini"); if (c) c.focus();
+          return;
+        }
+
+        if (acao === "registrar") {
+          editando = { id: id, modo: "registrar" };
+          renderTabela();
+          return;
+        }
+
+        if (acao === "confirmar-sugestao") {
+          var novaIni = valor("ed-ini");
+          if (!novaIni) { App.toast("Informe a data que serve melhor."); return; }
+          var novaFim = valor("ed-fim");
+          if (novaFim && novaFim < novaIni) {
+            App.toast("A data final nao pode ser anterior a inicial."); return;
+          }
+          rodar("cronograma_propor_data", {
+            p_item: id, p_inicio: novaIni, p_fim: novaFim, p_motivo: valor("ed-msg")
+          }, botaoEl).then(function (ok) {
+            if (ok) App.toast("Sugestao enviada para a APSIS.");
+          });
+          return;
+        }
+
+        if (acao === "confirmar-registro") {
+          var aconteceu = $("ed-sim") && $("ed-sim").checked;
+          if (aconteceu) {
+            var ri = valor("ed-rini");
+            if (!ri) { App.toast("Informe a data em que a auditoria aconteceu."); return; }
+            var rf = valor("ed-rfim");
+            if (rf && rf < ri) { App.toast("A data final nao pode ser anterior a inicial."); return; }
+            rodar("cronograma_registrar_realizacao", {
+              p_item: id, p_aconteceu: true, p_inicio: ri, p_fim: rf,
+              p_motivo: null, p_auditoria: null
+            }, botaoEl).then(function (ok) { if (ok) App.toast("Visita registrada."); });
+          } else {
+            var mot = valor("ed-motivo");
+            if (!mot) { App.toast("Descreva por que a auditoria nao aconteceu."); return; }
+            rodar("cronograma_registrar_realizacao", {
+              p_item: id, p_aconteceu: false, p_inicio: null, p_fim: null,
+              p_motivo: mot, p_auditoria: null
+            }, botaoEl).then(function (ok) { if (ok) App.toast("Registro salvo."); });
+          }
+          return;
+        }
+
+        if (acao === "aprovar") {
+          rodar("cronograma_aprovar", { p_item: id, p_mensagem: null }, botaoEl)
+            .then(function (ok) { if (ok) App.toast("Data aprovada."); });
+          return;
+        }
+
+        if (acao === "aceitar") {
+          rodar("cronograma_aceitar_proposta", { p_item: id, p_mensagem: null }, botaoEl)
+            .then(function (ok) { if (ok) App.toast("Data sugerida aceita e combinada."); });
+          return;
+        }
+
+        if (acao === "guardar") {
+          if (!it) return;
+          if (it.situacao === "sem_data") { salvarData(id, false, botaoEl); return; }
+          var jaAprovada = it.situacao === "confirmada";
+          App.confirmar({
+            titulo: jaAprovada ? "Esta data ja foi aprovada" : "Trocar a data",
+            texto: (jaAprovada
+              ? "Trocar a data desfaz a aprovacao da Claro: a unidade volta a esperar resposta."
+              : "A data muda e volta para a Claro aprovar.") +
+              "\n\nA data anterior fica registrada no historico.",
+            confirmar: "Trocar e reenviar", cancelar: "Voltar", perigo: jaAprovada
+          }).then(function (ok) {
+            if (ok) salvarData(id, true, botaoEl);
+            else renderTabela();
+          });
+          return;
+        }
+        if (acao === "enviar1")  { salvarData(id, true, botaoEl); return; }
+
+        if (acao === "reenviar") {
+          if (!it) return;
+          App.confirmar({
+            titulo: "Manter a data da APSIS",
+            texto: "A data " +
+              periodo(it.prevIni, it.prevFim != null ? it.prevFim : it.prevIni) +
+              " volta para a Claro aprovar, e a sugestao dela deixa de valer.",
+            confirmar: "Reenviar", cancelar: "Voltar"
+          }).then(function (ok) {
+            if (ok) salvarData(id, true, botaoEl);
+          });
+          return;
+        }
+
+        if (acao === "detalhe") { abrirTicket(id); return; }
+      }
+
+      function ligarRadioRegistro() {
+        var sim = $("ed-sim"), nao = $("ed-nao");
+        if (!sim || !nao) return;
+        function trocar() {
+          $("ed-bloco-sim").style.display = sim.checked ? "" : "none";
+          $("ed-bloco-nao").style.display = sim.checked ? "none" : "";
+        }
+        sim.addEventListener("change", trocar);
+        nao.addEventListener("change", trocar);
+        trocar();
       }
 
       function enviarLote() {
@@ -1301,15 +1246,157 @@
         });
       }
 
-      // ------------------------------------------------------------------
+      // ================================================================
+      // Modal de historico e acoes menos frequentes
+      // ================================================================
+      function abrirTicket(id) {
+        var it = porId(id);
+        if (!it) return;
+        itemAberto = it;
+
+        $("tk-titulo").textContent = it.nome;
+        $("tk-corpo").innerHTML =
+          '<div class="cron-cols">' +
+            "<div>" +
+              '<p class="col-titulo"><i class="ti ti-calendar-event" aria-hidden="true"></i>' +
+                "Situacao agora</p>" +
+              '<div class="tk-destaque"><b>' +
+                esc(it.prevIni != null
+                  ? periodo(it.prevIni, it.prevFim != null ? it.prevFim : it.prevIni)
+                  : (it.semana || "ainda sem data")) + "</b>" +
+                "<span>" + esc(textoDoEstado(it)) + "</span></div>" +
+              '<p class="muted" style="margin:10px 0 0;font-size:12.5px;">' +
+                (it.cod ? "Cod. " + esc(it.cod) + ", " : "") + esc(it.cidade) +
+                (it.uf ? "/" + esc(it.uf) : "") +
+                (it.regional && it.regional !== it.uf
+                  ? ", regional " + esc(it.regional) : "") + "</p>" +
+              '<p class="muted" style="margin-top:14px;font-size:12px;">' +
+                "A Claro ve esta mesma tela e responde por aqui.</p>" +
+            "</div>" +
+            '<div><p class="col-titulo"><i class="ti ti-history" aria-hidden="true"></i>' +
+              'O que ja aconteceu</p><div id="tk-fio">Carregando...</div></div>' +
+          "</div>";
+
+        var rodape = '<button class="btn btn-ghost" type="button" id="tk-cancelar">Fechar</button>';
+        if (podeMontar && it.situacao !== "cancelada" && it.situacao !== "realizada") {
+          rodape = '<button class="btn btn-ghost" type="button" data-tk="cancelar"' +
+                   ' style="margin-right:auto;">Tirar do ciclo</button>' + rodape;
+        } else if (podeMontar && it.situacao === "cancelada") {
+          rodape = '<button class="btn btn-ghost" type="button" data-tk="reabrir"' +
+                   ' style="margin-right:auto;">Trazer de volta</button>' + rodape;
+        }
+        $("tk-rodape").innerHTML = rodape;
+        $("tk-cancelar").addEventListener("click", fecharTicket);
+        Array.prototype.forEach.call($("tk-rodape").querySelectorAll("[data-tk]"), function (b) {
+          b.addEventListener("click", function () { acaoDoTicket(b.getAttribute("data-tk"), b); });
+        });
+
+        $("tk-modal").classList.add("is-open");
+        carregarFio(it);
+      }
+
+      function textoDoEstado(it) {
+        if (it.situacao === "aguardando_claro") return "Enviada para a Claro. Aguardando resposta.";
+        if (it.situacao === "aguardando_apsis") {
+          return "A Claro nao aprovou e sugeriu " +
+            periodo(it.propIni, it.propFim != null ? it.propFim : it.propIni) + ".";
+        }
+        if (it.situacao === "confirmada") {
+          return "Aprovada pela Claro" +
+            (it.confirmadaEm ? " em " + fmtDataHora(it.confirmadaEm) : "") + ".";
+        }
+        if (it.situacao === "realizada") {
+          return "Auditoria realizada em " +
+            periodo(it.realIni, it.realFim != null ? it.realFim : it.realIni) + ".";
+        }
+        if (it.situacao === "nao_realizada") {
+          return "Nao aconteceu: " + (it.motivo || "sem motivo registrado") + ".";
+        }
+        if (it.situacao === "cancelada") return "Esta unidade esta fora do ciclo " + CICLO + ".";
+        return "Ainda nao foi combinada nenhuma data.";
+      }
+
+      function acaoDoTicket(acao, botaoEl) {
+        var it = itemAberto;
+        if (!it) return;
+        if (acao === "cancelar") {
+          App.confirmar({
+            titulo: "Tirar do ciclo",
+            texto: "A unidade " + it.nome + " sai do cronograma de " + CICLO +
+                   ".\n\nO historico fica guardado e ela pode ser trazida de volta depois.",
+            confirmar: "Tirar do ciclo", cancelar: "Voltar", perigo: true
+          }).then(function (ok) {
+            if (!ok) return;
+            rodar("cronograma_cancelar", { p_item: it.id, p_motivo: null }, botaoEl)
+              .then(function (deu) { if (deu) fecharTicket(); });
+          });
+          return;
+        }
+        if (acao === "reabrir") {
+          rodar("cronograma_reabrir", { p_item: it.id, p_mensagem: null }, botaoEl)
+            .then(function (deu) { if (deu) fecharTicket(); });
+        }
+      }
+
+      function fecharTicket() {
+        $("tk-modal").classList.remove("is-open");
+        itemAberto = null;
+      }
+
+      function carregarFio(it) {
+        if (DEMO) {
+          $("tk-fio").innerHTML =
+            '<p class="muted">O historico aparece aqui conforme as datas vao sendo combinadas.</p>';
+          return;
+        }
+        Auth.cliente.from("cronograma_eventos")
+          .select("acao, data_inicio, data_fim, comentario, autor_nome, autor_papel, " +
+                  "criado_em, ordem")
+          .eq("item_id", it.id)
+          .order("criado_em", { ascending: false })
+          .order("ordem", { ascending: false })
+          .then(function (r) {
+            var alvo = $("tk-fio");
+            if (!alvo) return;
+            if (!r || r.error) {
+              alvo.innerHTML = '<p class="muted">Nao foi possivel carregar o historico agora.</p>';
+              return;
+            }
+            var evs = r.data || [];
+            if (!evs.length) {
+              alvo.innerHTML = '<p class="muted">Nada registrado ainda.</p>';
+              return;
+            }
+            alvo.innerHTML = '<ul class="tk-hist">' + evs.map(function (e, i) {
+              var quem = (e.autor_nome || "Alguem") +
+                (e.autor_papel ? " (" + (PAPEL_TEXTO[e.autor_papel] || e.autor_papel) + ")" : "");
+              var datas = e.data_inicio
+                ? " para " + periodo(dn(e.data_inicio), e.data_fim ? dn(e.data_fim) : null)
+                : "";
+              return "<li" + (i === 0 ? ' class="is-ultimo"' : "") + ">" +
+                "<b>" + esc(quem) + "</b>" +
+                "<span>" + esc(fmtDataHora(e.criado_em) + " - " +
+                  (ACAO_TEXTO[e.acao] || e.acao) + datas) + "</span>" +
+                (e.comentario ? "<q>" + esc(e.comentario) + "</q>" : "") +
+              "</li>";
+            }).join("") + "</ul>";
+          })
+          .catch(function () {
+            var alvo = $("tk-fio");
+            if (alvo) alvo.innerHTML =
+              '<p class="muted">Nao foi possivel carregar o historico agora.</p>';
+          });
+      }
+
+      // ================================================================
       // Planilha
-      // ------------------------------------------------------------------
-      function baixarModelo(botao) {
-        botao.disabled = true;
+      // ================================================================
+      function baixarModelo(botaoEl) {
+        botaoEl.disabled = true;
         PlanilhaCronograma.baixarModelo(itens, CICLO)
-          .then(function () { botao.disabled = false; })
+          .then(function () { botaoEl.disabled = false; })
           .catch(function (e) {
-            botao.disabled = false;
+            botaoEl.disabled = false;
             App.toast(e && e.message ? e.message : "Nao foi possivel gerar o modelo agora.");
           });
       }
@@ -1375,8 +1462,8 @@
         });
       }
 
-      // A previa e uma estimativa feita aqui no navegador. O numero que vale
-      // e o que o servidor devolve depois de gravar.
+      // A previa e uma estimativa feita aqui. O numero que vale e o que o
+      // servidor devolve depois de gravar.
       function compararComCadastro(lido, nomeArquivo) {
         var porCodigo = {};
         itens.forEach(function (it) {
@@ -1393,8 +1480,7 @@
 
           if (!atual) {
             if (!l.nome || !l.cidade || !l.uf) {
-              lido.erros.push({ linha: l.linha,
-                motivo: "unidade nova sem nome, cidade ou UF" });
+              lido.erros.push({ linha: l.linha, motivo: "unidade nova sem nome, cidade ou UF" });
               l.invalida = true;
               return;
             }
@@ -1444,7 +1530,7 @@
       }
 
       function bloco(titulo, aberto, corpo) {
-        return "<details class=\"imp-bloco\"" + (aberto ? " open" : "") + ">" +
+        return '<details class="imp-bloco"' + (aberto ? " open" : "") + ">" +
           "<summary>" + esc(titulo) + "</summary><div>" + corpo + "</div></details>";
       }
 
@@ -1463,11 +1549,11 @@
             '<div class="tk-aviso-corpo"><b>Nada foi gravado ainda</b>' +
             "<p>Confira abaixo antes de continuar.</p></div></div>" +
           '<p style="font-size:13px;margin:0 0 10px;">' + esc(p.arquivo) +
-            ', aba <b>' + esc(p.aba) + "</b>, " + p.total +
+            ", aba <b>" + esc(p.aba) + "</b>, " + p.total +
             (p.total === 1 ? " linha lida" : " linhas lidas") + ".</p>" +
           (p.abaEsperada ? "" :
             '<p class="muted" style="font-size:12.5px;margin:0 0 10px;">Nao achei uma aba chamada ' +
-            'Cronograma, entao li a aba ' + esc(p.aba) + ".</p>") +
+            "Cronograma, entao li a aba " + esc(p.aba) + ".</p>") +
           '<div class="imp-chips" style="margin-bottom:14px;">' +
             chips.map(function (c) { return '<span class="chip">' + esc(c) + "</span>"; }).join("") +
           "</div>";
@@ -1575,14 +1661,12 @@
             fecharImportacao();
             return;
           }
-          var botao = $("imp-gravar");
-          if (botao) botao.disabled = true;
+          var botaoEl = $("imp-gravar");
+          if (botaoEl) botaoEl.disabled = true;
 
           Auth.cliente.rpc("cronograma_importar", {
-            p_arquivo: p.arquivo,
-            p_linhas: p.linhas,
-            p_desativar: codigos,
-            p_ciclo: CICLO
+            p_arquivo: p.arquivo, p_linhas: p.linhas,
+            p_desativar: codigos, p_ciclo: CICLO
           }).then(function (r) {
             if (!r || r.error) throw new Error((r && r.error && r.error.message) || "");
             var d = r.data || {};
@@ -1597,7 +1681,7 @@
             fecharImportacao();
             return carregar().then(carregarUltimaImportacao).then(render);
           }).catch(function (e) {
-            if (botao) botao.disabled = false;
+            if (botaoEl) botaoEl.disabled = false;
             App.toast(e && e.message ? e.message
                                      : "Nao foi possivel gravar a planilha agora. Tente novamente.");
           });
@@ -1620,9 +1704,9 @@
         }).then(function (ok) { if (ok) seguir(); });
       }
 
-      // ------------------------------------------------------------------
+      // ================================================================
       // Ligacoes
-      // ------------------------------------------------------------------
+      // ================================================================
       $("btn-modelo").addEventListener("click", function () { baixarModelo(this); });
       $("btn-planilha").addEventListener("click", abrirImportacao);
       $("btn-enviar").addEventListener("click", enviarLote);
@@ -1645,6 +1729,7 @@
         if (ev.key !== "Escape") return;
         if ($("tk-modal").classList.contains("is-open")) fecharTicket();
         else if ($("imp-modal").classList.contains("is-open")) fecharImportacao();
+        else if (editando) { editando = null; renderTabela(); }
       });
 
       var buscaTimer = null;
@@ -1653,25 +1738,14 @@
         if (buscaTimer) clearTimeout(buscaTimer);
         buscaTimer = setTimeout(function () {
           filtro.busca = v.trim();
-          renderConteudo();
+          renderTabela();
         }, 180);
       });
       $("f-regional").addEventListener("change", function () {
-        filtro.regional = this.value; renderConteudo();
+        filtro.regional = this.value; renderTabela();
       });
       $("f-situacao").addEventListener("change", function () {
-        filtro.situacao = this.value; renderConteudo();
-      });
-
-      document.querySelector(".visao-switch").addEventListener("click", function (ev) {
-        var b = ev.target.closest ? ev.target.closest("[data-visao]") : null;
-        if (!b) return;
-        visao = b.getAttribute("data-visao");
-        Array.prototype.forEach.call(this.querySelectorAll("button"), function (x) {
-          x.classList.toggle("is-on", x === b);
-        });
-        renderFiltros();
-        renderConteudo();
+        filtro.situacao = this.value; renderTabela();
       });
 
       $("chips-escala").addEventListener("click", function (ev) {
@@ -1687,52 +1761,70 @@
         if (gan) gan.className = "gan " + (escala === "mes" ? "esc-mes" : "esc-semana");
       });
 
-      $("conteudo").addEventListener("click", function (ev) {
+      $("roadmap").addEventListener("click", function (ev) {
         if (!ev.target.closest) return;
         var g = ev.target.closest("[data-grupo]");
         if (g) {
           var reg = g.getAttribute("data-grupo");
           grupoFechado[reg] = !grupoFechado[reg];
           g.setAttribute("aria-expanded", grupoFechado[reg] ? "false" : "true");
-          var bloco = $("conteudo").querySelector('[data-bloco="' + reg + '"]');
-          if (bloco) bloco.style.display = grupoFechado[reg] ? "none" : "";
+          var bl = $("roadmap").querySelector('[data-bloco="' + reg + '"]');
+          if (bl) bl.style.display = grupoFechado[reg] ? "none" : "";
           return;
         }
         var alvo = ev.target.closest("[data-item]");
         if (alvo) abrirTicket(alvo.getAttribute("data-item"));
       });
 
-      // ------------------------------------------------------------------
-      // Partida
-      // ------------------------------------------------------------------
-      // No celular o roadmap nao cabe em escala de semana: a lista abre
-      // primeiro, e o grafico continua a um toque de distancia.
-      if (window.matchMedia && window.matchMedia("(max-width: 900px)").matches) {
-        visao = "lista";
-        escala = "mes";
-        var sw = document.querySelector('.visao-switch [data-visao="lista"]');
-        if (sw) {
-          sw.classList.add("is-on");
-          document.querySelector('.visao-switch [data-visao="grafico"]').classList.remove("is-on");
-        }
-      }
+      $("tabela").addEventListener("click", function (ev) {
+        if (!ev.target.closest) return;
+        var b = ev.target.closest("[data-acao]");
+        if (!b) return;
+        tratarAcao(b.getAttribute("data-acao"), b.getAttribute("data-id"), b);
+      });
 
+      // Mudou a data na linha: o botao de guardar aparece ali mesmo, para
+      // ninguem sair da tela achando que ja salvou.
+      $("tabela").addEventListener("change", function (ev) {
+        var alvo = ev.target;
+        if (!alvo || !alvo.getAttribute || !alvo.getAttribute("data-campo")) return;
+        var id = alvo.getAttribute("data-id");
+        var it = porId(id);
+        if (!it) return;
+        var linha = document.querySelector('[data-linha="' + id + '"]');
+        if (!linha) return;
+        var ini = linha.querySelector('[data-campo="ini"]');
+        var fim = linha.querySelector('[data-campo="fim"]');
+        var mudou = (ini.value || "") !== (it.prevIniIso || "") ||
+                    (fim.value || "") !== (it.prevFimIso || "");
+        var cel = linha.querySelector(".cel-acoes");
+        var jaTem = linha.querySelector('[data-acao="guardar"]');
+        if (mudou && !jaTem && cel) {
+          // Data que ainda nao foi para a Claro so precisa ser guardada.
+          // Data que ja esta com ela, ou ja aprovada, tem que voltar para
+          // aprovacao: guardar em silencio deixaria as duas pontas achando
+          // que combinaram dias diferentes.
+          cel.insertAdjacentHTML("afterbegin", it.situacao === "sem_data"
+            ? botao("guardar", id, "Guardar data", "btn-primary", "ti-device-floppy")
+            : botao("guardar", id, "Trocar data e reenviar", "btn-primary", "ti-send"));
+        } else if (!mudou && jaTem) {
+          jaTem.parentNode.removeChild(jaTem);
+        }
+      });
+
+      // ================================================================
+      // Partida
+      // ================================================================
       render();
 
       descobrirPapel()
         .then(carregar)
-        .then(function () {
-          // O cronograma abre inteiro, de proposito. Filtrar sozinho no que
-          // espera resposta deixaria a tela com uma ou duas linhas logo na
-          // abertura, escondendo o planejamento que e o motivo dela existir.
-          // O aviso do topo leva as pendencias com um clique.
-          return carregarUltimaImportacao();
-        })
+        .then(carregarUltimaImportacao)
         .then(render)
-        .catch(function (e) {
+        .catch(function () {
           carregando = false;
-          // A mensagem crua da consulta nao vai para a tela: ela fala de
-          // bastidor e nao ajuda quem esta olhando.
+          // A mensagem crua da consulta nao vai para a tela: fala de bastidor
+          // e nao ajuda quem esta olhando.
           falha = "Nao foi possivel carregar o cronograma agora. " +
                   "Atualize a pagina em alguns instantes.";
           render();
