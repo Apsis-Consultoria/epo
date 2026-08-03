@@ -76,12 +76,6 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><path d="M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/><path d="M3 21v-1a5 5 0 0 1 5-5h2"/><path d="m15 19 2 2 4-4"/></svg>
             Entrar com e-mail e senha
           </button>
-          <!-- Discreto de proposito: entrar e a acao principal, redefinir e a
-               saida de emergencia. Do mesmo tamanho dos outros, disputava a
-               atencao com eles. -->
-          <button id="btn-redefinir" class="text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2">
-            Esqueci a minha senha
-          </button>
 
           <!-- Cliente Claro e responsável da EPO: e-mail e senha.
                A senha é definida pelo próprio dono do e-mail, pelo link que
@@ -97,6 +91,11 @@
                 <label class="block text-left text-xs font-semibold text-gray-500 mb-1 mt-3" for="cli-senha">Senha</label>
                 <input id="cli-senha" type="password" placeholder="a senha que você definiu" autocomplete="current-password"
                   class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
+                <!-- Discreto e colado no campo que ele socorre. No modo de pedir
+                     o link este bloco inteiro some, junto com o campo. -->
+                <button id="btn-redefinir" class="block ml-auto mt-2 text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2">
+                  Esqueci a minha senha
+                </button>
               </div>
 
               <button id="btn-entrar-senha" class="w-full mt-4 font-semibold py-3 px-6 rounded-xl text-white transition-colors disabled:opacity-60" style="background: rgb(26, 71, 49);">
@@ -213,9 +212,9 @@
         abrirPainel("senha");
       });
 
+      // So aparece com o painel da senha aberto: o clique troca para o modo
+      // de pedir o link, com o e-mail que a pessoa ja digitou.
       $("btn-redefinir").addEventListener("click", function () {
-        if (!$("painel-cliente").classList.contains("hidden") &&
-            !$("btn-esqueci").classList.contains("hidden")) { fecharPainel(); return; }
         abrirPainel("link");
       });
 
