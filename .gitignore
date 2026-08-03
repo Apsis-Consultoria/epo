@@ -14,3 +14,8 @@ _*.txt
 _*.sql
 _*.xlsx
 db/carga-*.sql
+
+# Arquivos de trabalho do CLI do Supabase: identificam o projeto e a
+# organizacao, e nao tem por que virar pagina publica.
+supabase/.temp/
+.branches/
