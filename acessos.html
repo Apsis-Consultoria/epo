@@ -7,13 +7,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=48">
+  <link rel="stylesheet" href="assets/app.css?v=49">
   <style>
     /* Ajustes locais da tela de acessos */
-
-    /* Busca acima da matriz */
-    .acc-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
-    .acc-search { position: relative; flex: 1 1 260px; max-width: 340px; }
+    .acc-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 12px 18px; border-bottom: 1px solid var(--border); }
+    .acc-search { position: relative; flex: 1 1 260px; max-width: 360px; }
     .acc-search i {
       position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
       font-size: 16px; color: var(--text-muted); pointer-events: none;
@@ -21,89 +20,25 @@
     .acc-search .input { padding-left: 34px; }
     .acc-count { font-size: 13px; color: var(--text-2); }
 
-    /* Matriz com cabeçalho sticky */
-    .matrix-wrap { width: 100%; max-height: 560px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
-    .matrix { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
-    .matrix thead th {
-      position: sticky; top: 0; z-index: 3;
+    .pessoa-cel b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .pessoa-cel span { font-size: 12px; color: var(--text-2); }
+
+    .acc-acoes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
+      max-width: 250px; margin-left: auto; }
+
+    .modal.modal-acesso { max-width: 520px; }
+
+    .nota-acesso {
+      display: flex; gap: 9px; align-items: flex-start;
+      font-size: 12.5px; color: var(--text-2); line-height: 1.55;
       background: var(--surface-2);
-      text-align: center;
-      font-size: 12px; font-weight: 500; color: var(--text-2);
-      padding: 10px 10px;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-    .matrix thead th.col-user, .matrix thead th.col-papel { text-align: left; }
-    .matrix thead th.col-user { left: 0; z-index: 4; min-width: 230px; }
-    .matrix tbody td {
-      padding: 11px 10px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-      vertical-align: middle;
-      text-align: center;
-      background: var(--surface);
-    }
-    .matrix tbody tr:last-child td { border-bottom: 0; }
-    .matrix tbody td.col-user { position: sticky; left: 0; z-index: 2; text-align: left; }
-    .matrix tbody td.col-papel { text-align: left; }
-    .matrix tbody tr:hover td { background: var(--surface-2); }
-
-    .col-head { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
-    .col-head i { font-size: 17px; color: var(--text-2); }
-
-    /* Célula de usuário */
-    .user-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .user-nome { font-size: 13.5px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
-    .user-email { font-size: 12px; color: var(--text-2); }
-    .badge-claro {
-      display: inline-flex; align-items: center;
-      font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
-      color: var(--text-2); background: var(--surface-2);
       border: 1px solid var(--border);
-      border-radius: 999px; padding: 1px 8px;
+      border-radius: var(--radius-sm);
+      padding: 10px 12px; margin-top: 6px;
     }
+    .nota-acesso i { font-size: 16px; margin-top: 1px; color: var(--apsis-green); flex: none; }
 
-    .select-papel { min-height: 34px; padding: 4px 30px 4px 10px; font-size: 13px; width: 118px; }
-
-    /* Checkbox custom da matriz (18px, verde APSIS quando ativo) */
-    .acc-check {
-      appearance: none; -webkit-appearance: none;
-      width: 18px; height: 18px;
-      margin: 0;
-      border: 1.5px solid var(--border-strong);
-      border-radius: 4px;
-      background: var(--surface);
-      cursor: pointer;
-      display: inline-block;
-      vertical-align: middle;
-      position: relative;
-      transition: background .12s ease, border-color .12s ease;
-    }
-    .acc-check:hover { border-color: var(--apsis-green); }
-    .acc-check:checked { background: var(--apsis-green); border-color: var(--apsis-green); }
-    .acc-check:checked::after {
-      content: "";
-      position: absolute; left: 5px; top: 1.5px;
-      width: 5px; height: 9px;
-      border: solid #fff; border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-    }
-    .acc-check:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--primary-tint); }
-
-    /* Rodapé do card (legenda de papéis) */
-    .acc-legend {
-      margin-top: 14px; padding-top: 12px;
-      border-top: 1px solid var(--border);
-      font-size: 12.5px; color: var(--text-2);
-    }
-    .acc-legend strong { color: var(--text); font-weight: 600; }
-
-    .acc-empty { padding: 26px 14px !important; text-align: center !important; color: var(--text-muted); font-size: 13.5px; }
-
-    @media (max-width: 900px) {
-      .matrix thead th.col-user { min-width: 190px; }
-      .matrix-wrap { max-height: none; }
-    }
+    .is-hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -115,357 +50,541 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=48"></script>
-  <script src="assets/app.js?v=48"></script>
-  <script src="assets/supabase-config.js?v=48"></script>
+  <script src="assets/data.js?v=49"></script>
+  <script src="assets/app.js?v=49"></script>
+  <script src="assets/supabase-config.js?v=49"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=48"></script>
+  <script src="assets/auth.js?v=49"></script>
   <script>
     (function () {
       "use strict";
 
       var acoes =
-        '<button class="btn btn-ghost btn-sm" id="btn-add-user" type="button">' +
-          '<i class="ti ti-user-plus" aria-hidden="true"></i>Adicionar usuário' +
-        "</button>" +
-        '<button class="btn btn-primary btn-sm" id="btn-salvar" type="button">' +
-          '<i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar alterações' +
+        '<button class="btn btn-primary btn-sm" id="btn-liberar" type="button">' +
+          '<i class="ti ti-user-plus" aria-hidden="true"></i>Liberar acesso' +
         "</button>";
 
       Layout.mount("acessos", "Gerenciamento de acessos", acoes);
 
       var esc = App.escapeHtml;
-      var paginas = window.APP.paginas || [];
-      var presets = window.APP.papeisPreset || {};
+      var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
 
-      var PAPEL_LABEL = { admin: "Admin", gestor: "Gestor", auditor: "Auditor", cliente: "Cliente" };
-      var PAPEIS = ["admin", "gestor", "auditor", "cliente"];
-
-      // Rótulos curtos para as colunas da matriz
-      var LABEL_CURTO = {
-        geral: "Geral",
-        ranking: "Ranking",
-        comparativo: "Comparativo",
-        gerencial: "Gerencial",
-        auditoria: "Auditoria",
-        evidencias: "Evidências",
-        config: "Config.",
-        acessos: "Acessos"
+      var PAPEL_LABEL = {
+        admin: "Administrador APSIS",
+        gestor: "Coordenação APSIS",
+        auditor: "Consultor APSIS",
+        cliente: "Gerente da Claro",
+        responsavel: "Responsável da unidade",
+        sem_acesso: "Sem acesso liberado"
+      };
+      var BADGE_PAPEL = {
+        admin: "badge-ouro", gestor: "badge-success", auditor: "badge-media",
+        cliente: "badge-alta", responsavel: "badge-baixa", sem_acesso: "badge-danger"
       };
 
-      // ------------------------------------------------------------------
-      // Estado em memória (cópia independente - sem persistência)
-      // ------------------------------------------------------------------
-      function copiaPaginas(src) {
-        var out = {};
-        paginas.forEach(function (p) { out[p.key] = !!src[p.key]; });
-        return out;
-      }
-
-      var usuarios = (window.APP.usuarios || []).map(function (u) {
-        return {
-          id: u.id,
-          nome: u.nome,
-          email: u.email,
-          papel: u.papel,
-          ativo: u.ativo,
-          paginas: copiaPaginas(u.paginas || {})
-        };
-      });
-
-      var seq = usuarios.length; // para ids de novos usuários
+      var liberados = [];       // acessos_autorizados
+      var contas = [];          // perfis (só o administrador consegue ler)
+      var clientes = [];
+      var meuPapel = DEMO ? "admin" : "";
       var busca = "";
-
-      function usuarioById(id) {
-        for (var i = 0; i < usuarios.length; i++) {
-          if (usuarios[i].id === id) return usuarios[i];
-        }
-        return null;
-      }
-
-      function iniciais(nome) {
-        var partes = String(nome).trim().split(/\s+/);
-        var a = partes[0] ? partes[0].charAt(0) : "";
-        var b = partes.length > 1 ? partes[partes.length - 1].charAt(0) : "";
-        return (a + b).toUpperCase();
-      }
+      var carregando = true;
+      var falha = "";
+      var editandoId = null;
 
       // ------------------------------------------------------------------
-      // Estrutura estática da página
+      // Estrutura
       // ------------------------------------------------------------------
-      function kpiCard(id, label, icone) {
-        return (
-          '<div class="kpi">' +
-            '<div class="kpi-top">' +
-              '<span class="kpi-label">' + esc(label) + "</span>" +
-              '<span class="kpi-icon"><i class="ti ' + icone + '" aria-hidden="true"></i></span>' +
-            "</div>" +
-            '<span class="kpi-value" id="' + id + '">-</span>' +
-          "</div>"
-        );
-      }
+      document.getElementById("page").innerHTML =
+        '<p class="page-intro">Quem pode entrar no sistema é decidido aqui. Uma conta criada ' +
+          'sem estar nesta lista não enxerga nada até ser liberada.</p>' +
 
-      var htmlKpis =
-        '<div class="kpi-grid" style="margin-bottom:16px;">' +
-          kpiCard("kpi-total", "Usuários", "ti-users") +
-          kpiCard("kpi-admin", "Admins", "ti-shield-lock") +
-          kpiCard("kpi-gestor", "Gestores", "ti-briefcase") +
-          kpiCard("kpi-auditor", "Auditores", "ti-clipboard-check") +
-          kpiCard("kpi-cliente", "Clientes", "ti-building") +
-        "</div>";
-
-      var htmlColunas = paginas.map(function (p) {
-        return (
-          "<th>" +
-            '<span class="col-head" title="' + esc(p.label) + '">' +
-              '<i class="ti ' + esc(p.icone) + '" aria-hidden="true"></i>' +
-              esc(LABEL_CURTO[p.key] || p.label) +
-            "</span>" +
-          "</th>"
-        );
-      }).join("");
-
-      var htmlMatriz =
-        '<div class="card mb-0">' +
+        '<div class="card">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
-              '<span class="title">Matriz de acessos</span>' +
-              '<span class="subtitle">Marque as páginas que cada pessoa pode acessar - o papel aplica o padrão da linha</span>' +
+              '<span class="title">Acessos liberados</span>' +
+              '<span class="subtitle">O gerente da Claro entra com e-mail e senha; a equipe APSIS entra pela conta Microsoft</span>' +
             "</div>" +
+            '<span class="acc-count" id="conta-liberados"></span>' +
           "</div>" +
           '<div class="acc-toolbar">' +
             '<div class="acc-search">' +
               '<i class="ti ti-search" aria-hidden="true"></i>' +
-              '<input class="input" id="busca-usuario" type="search" placeholder="Buscar por nome ou e-mail" aria-label="Buscar usuário por nome ou e-mail">' +
+              '<input class="input" id="busca" type="search" autocomplete="off"' +
+                ' placeholder="Filtrar por nome ou e-mail" aria-label="Filtrar por nome ou e-mail">' +
             "</div>" +
-            '<span class="acc-count" id="busca-count"></span>' +
           "</div>" +
-          '<div class="matrix-wrap">' +
-            '<table class="matrix">' +
-              "<thead><tr>" +
-                '<th class="col-user">Usuário</th>' +
-                '<th class="col-papel">Papel</th>' +
-                htmlColunas +
-              "</tr></thead>" +
-              '<tbody id="matriz-body"></tbody>' +
-            "</table>" +
-          "</div>" +
-          '<div class="acc-legend">' +
-            "<strong>Papéis:</strong> Admin (tudo) &middot; Gestor &middot; Auditor (campo) &middot; Cliente (visão executiva)" +
-          "</div>" +
-        "</div>";
+          '<div id="lista"></div>' +
+        "</div>" +
 
-      // Modal de novo usuário -------------------------------------------------
-      var htmlOpcoesPapel = PAPEIS.map(function (p) {
-        return '<option value="' + p + '">' + PAPEL_LABEL[p] + "</option>";
-      }).join("");
+        '<div class="card mb-0 is-hidden" id="card-contas">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Contas que já entraram</span>' +
+              '<span class="subtitle">Quem aparece como sem acesso tentou entrar e está esperando liberação</span>' +
+            "</div>" +
+            '<span class="acc-count" id="conta-contas"></span>' +
+          "</div>" +
+          '<div id="lista-contas"></div>' +
+        "</div>" +
 
-      var htmlModal =
-        '<div class="modal-overlay" id="user-modal" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">' +
-          '<div class="modal">' +
+        '<div class="modal-overlay" id="mod" role="dialog" aria-modal="true" aria-labelledby="mod-titulo">' +
+          '<div class="modal modal-acesso">' +
             '<div class="modal-header">' +
-              '<h2 class="modal-title" id="user-modal-title">Adicionar usuário</h2>' +
-              '<button class="modal-close" id="user-modal-close" type="button" aria-label="Fechar"><i class="ti ti-x" aria-hidden="true"></i></button>' +
+              '<h2 class="modal-title" id="mod-titulo">Liberar acesso</h2>' +
+              '<button class="modal-close" id="mod-fechar" type="button" aria-label="Fechar">' +
+                '<i class="ti ti-x" aria-hidden="true"></i></button>' +
             "</div>" +
             '<div class="modal-body">' +
               '<div class="field">' +
-                '<label for="novo-nome">Nome</label>' +
-                '<input class="input" id="novo-nome" type="text" placeholder="Ex.: Mariana Duarte" autocomplete="off">' +
+                '<label for="f-email">E-mail</label>' +
+                '<input class="input" id="f-email" type="email" autocomplete="off"' +
+                  ' placeholder="o e-mail que a pessoa vai usar para entrar">' +
+                '<span class="hint">Precisa ser o mesmo e-mail da conta dela.</span>' +
               "</div>" +
               '<div class="field">' +
-                '<label for="novo-email">E-mail</label>' +
-                '<input class="input" id="novo-email" type="email" placeholder="nome@apsis.com.br" autocomplete="off">' +
+                '<label for="f-nome">Nome</label>' +
+                '<input class="input" id="f-nome" type="text" autocomplete="off"' +
+                  ' placeholder="para você reconhecer na lista">' +
               "</div>" +
-              '<div class="field" style="margin-bottom:4px;">' +
-                '<label for="novo-papel">Papel</label>' +
-                '<select class="select" id="novo-papel">' + htmlOpcoesPapel + "</select>" +
-                '<span class="hint">O papel aplica o padrão de páginas; depois é possível ajustar na matriz.</span>' +
+              '<div class="field">' +
+                '<label for="f-papel">O que essa pessoa é</label>' +
+                '<select class="select" id="f-papel"></select>' +
+              "</div>" +
+              '<div class="field" id="wrap-cliente">' +
+                '<label for="f-cliente">Cliente</label>' +
+                '<select class="select" id="f-cliente"></select>' +
+                '<span class="hint">Define quais unidades ela enxerga.</span>' +
+              "</div>" +
+              '<div class="nota-acesso">' +
+                '<i class="ti ti-info-circle" aria-hidden="true"></i>' +
+                "<span>Liberar aqui não cria a conta nem a senha. Depois de liberar, use " +
+                "<b>Convidar</b> para a pessoa receber um e-mail e escolher a senha dela. " +
+                "A APSIS nunca vê essa senha.</span>" +
               "</div>" +
             "</div>" +
             '<div class="modal-footer">' +
-              '<button class="btn btn-ghost btn-sm" id="user-modal-cancel" type="button">Cancelar</button>' +
-              '<button class="btn btn-primary btn-sm" id="user-modal-save" type="button"><i class="ti ti-check" aria-hidden="true"></i>Adicionar</button>' +
+              '<button class="btn btn-ghost" type="button" id="mod-cancelar">Cancelar</button>' +
+              '<button class="btn btn-primary" type="button" id="mod-salvar">Liberar acesso</button>' +
             "</div>" +
           "</div>" +
         "</div>";
 
-      document.getElementById("page").innerHTML =
-        '<p class="page-intro">' +
-          "Defina quem acessa cada página do sistema. O papel aplica um padrão; " +
-          "os acessos podem ser ajustados individualmente." +
-        "</p>" +
-        htmlKpis +
-        htmlMatriz +
-        htmlModal;
+      var $ = function (id) { return document.getElementById(id); };
 
       // ------------------------------------------------------------------
-      // Renderização dinâmica
+      // Sem conexão: lista curta e inventada, só para a tela não abrir vazia
       // ------------------------------------------------------------------
-      function renderKpis() {
-        var cont = { admin: 0, gestor: 0, auditor: 0, cliente: 0 };
-        usuarios.forEach(function (u) {
-          if (cont[u.papel] !== undefined) cont[u.papel] += 1;
-        });
-        document.getElementById("kpi-total").textContent = App.fmtNum(usuarios.length);
-        document.getElementById("kpi-admin").textContent = App.fmtNum(cont.admin);
-        document.getElementById("kpi-gestor").textContent = App.fmtNum(cont.gestor);
-        document.getElementById("kpi-auditor").textContent = App.fmtNum(cont.auditor);
-        document.getElementById("kpi-cliente").textContent = App.fmtNum(cont.cliente);
+      function catalogoSemConexao() {
+        return [
+          { id: "a1", email: "gerente.exemplo@exemplo.invalido", nome: "Gerente de exemplo",
+            papel: "cliente", ativo: true, convidado_em: new Date().toISOString(),
+            primeiro_acesso_em: new Date().toISOString() },
+          { id: "a2", email: "consultor.exemplo@apsis.com.br", nome: "Consultor de exemplo",
+            papel: "auditor", ativo: true, convidado_em: null, primeiro_acesso_em: null }
+        ];
       }
 
-      function linhaUsuario(u) {
-        var badge = u.papel === "cliente" ? ' <span class="badge-claro">Claro</span>' : "";
-        var selPapel = PAPEIS.map(function (p) {
-          return '<option value="' + p + '"' + (u.papel === p ? " selected" : "") + ">" + PAPEL_LABEL[p] + "</option>";
-        }).join("");
-
-        var celulas = paginas.map(function (p) {
-          var on = !!u.paginas[p.key];
-          return (
-            "<td>" +
-              '<input type="checkbox" class="acc-check" data-user="' + esc(u.id) + '" data-pagina="' + esc(p.key) + '"' +
-              (on ? " checked" : "") +
-              ' aria-label="' + esc(p.label) + " para " + esc(u.nome) + '">' +
-            "</td>"
-          );
-        }).join("");
-
-        return (
-          "<tr>" +
-            '<td class="col-user">' +
-              '<div class="user-cell">' +
-                '<span class="avatar">' + esc(iniciais(u.nome)) + "</span>" +
-                '<div style="min-width:0;">' +
-                  '<div class="user-nome">' + esc(u.nome) + badge + "</div>" +
-                  '<div class="user-email">' + esc(u.email) + "</div>" +
-                "</div>" +
-              "</div>" +
-            "</td>" +
-            '<td class="col-papel">' +
-              '<select class="select select-papel" data-user="' + esc(u.id) + '" aria-label="Papel de ' + esc(u.nome) + '">' +
-                selPapel +
-              "</select>" +
-            "</td>" +
-            celulas +
-          "</tr>"
-        );
+      function papeisQuePodeLiberar() {
+        // Criar coordenação é decisão de administrador: sem isso, um
+        // coordenador se multiplicaria sozinho. O servidor recusa de todo
+        // jeito; aqui a opção nem aparece.
+        var lista = [
+          { v: "cliente", t: PAPEL_LABEL.cliente },
+          { v: "auditor", t: PAPEL_LABEL.auditor }
+        ];
+        if (meuPapel === "admin") lista.push({ v: "gestor", t: PAPEL_LABEL.gestor });
+        return lista;
       }
 
-      function renderMatriz() {
-        var tbody = document.getElementById("matriz-body");
-        var q = busca.trim().toLowerCase();
-        var visiveis = usuarios.filter(function (u) {
-          if (!q) return true;
-          return u.nome.toLowerCase().indexOf(q) >= 0 || u.email.toLowerCase().indexOf(q) >= 0;
-        });
+      // ------------------------------------------------------------------
+      // Leitura
+      // ------------------------------------------------------------------
+      function descobrirPapel() {
+        if (DEMO) { meuPapel = (Auth.papelDemo && Auth.papelDemo()) || "admin"; return Promise.resolve(); }
+        return Auth.perfil().then(function (p) {
+          meuPapel = (p && p.papel) || "";
+        }).catch(function () { meuPapel = ""; });
+      }
 
-        if (!visiveis.length) {
-          tbody.innerHTML =
-            '<tr><td class="acc-empty" colspan="' + (paginas.length + 2) + '">' +
-              "Nenhum usuário encontrado para a busca." +
-            "</td></tr>";
-        } else {
-          tbody.innerHTML = visiveis.map(linhaUsuario).join("");
+      function carregar() {
+        carregando = true; falha = "";
+        if (DEMO) {
+          liberados = catalogoSemConexao();
+          clientes = [{ id: "claro", nome: "Claro" }];
+          contas = [];
+          carregando = false;
+          return Promise.resolve();
         }
-
-        var count = document.getElementById("busca-count");
-        count.textContent = visiveis.length + " de " + usuarios.length + " usuários";
+        var db = Auth.cliente;
+        return db.from("acessos_autorizados")
+          .select("id, email, nome, papel, cliente_id, ativo, observacao, " +
+                  "convidado_em, primeiro_acesso_em, criado_em")
+          .order("criado_em", { ascending: false })
+          .then(function (r) {
+            if (!r || r.error) {
+              throw new Error((r && r.error && r.error.message) || "falha ao ler os acessos");
+            }
+            liberados = r.data || [];
+            return db.from("clientes").select("id, nome").order("nome");
+          })
+          .then(function (r) {
+            if (!r || r.error) throw new Error("falha ao ler os clientes");
+            clientes = r.data || [];
+            // O cadastro de perfis é de leitura restrita ao administrador.
+            // Coordenação não lê, e isso não é erro: o cartão simplesmente
+            // não aparece para ela.
+            return db.from("perfis").select("user_id, nome, papel, cliente_id").order("papel");
+          })
+          .then(function (r) {
+            contas = (r && !r.error && r.data) ? r.data : [];
+            carregando = false;
+          });
       }
 
-      renderKpis();
-      renderMatriz();
-
       // ------------------------------------------------------------------
-      // Interações da matriz (delegação)
+      // Desenho
       // ------------------------------------------------------------------
-      document.getElementById("matriz-body").addEventListener("change", function (ev) {
-        var el = ev.target;
+      function render() {
+        renderLista();
+        renderContas();
+        $("btn-liberar").classList.toggle("is-hidden",
+          !(meuPapel === "admin" || meuPapel === "gestor"));
+      }
 
-        // Troca de papel -> aplica o preset na linha inteira
-        if (el.classList.contains("select-papel")) {
-          var u = usuarioById(el.getAttribute("data-user"));
-          if (!u) return;
-          u.papel = el.value;
-          u.paginas = copiaPaginas(presets[el.value] || {});
-          renderKpis();
-          renderMatriz();
-          App.toast("Padrão de " + PAPEL_LABEL[el.value] + " aplicado para " + u.nome + ".");
+      function situacao(a) {
+        if (!a.ativo) return '<span class="badge badge-baixa">Desativado</span>';
+        if (a.primeiro_acesso_em) {
+          return '<span class="badge badge-success">Já entrou</span>' +
+            '<span class="muted" style="display:block;font-size:11.5px;">' +
+            esc(fmtQuando(a.primeiro_acesso_em)) + "</span>";
+        }
+        if (a.convidado_em) {
+          return '<span class="badge badge-media">Convidado</span>' +
+            '<span class="muted" style="display:block;font-size:11.5px;">' +
+            esc(fmtQuando(a.convidado_em)) + "</span>";
+        }
+        return '<span class="badge badge-alta">Ainda não convidado</span>';
+      }
+
+      function fmtQuando(iso) {
+        if (!iso) return "";
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return "";
+        function p(n) { return (n < 10 ? "0" : "") + n; }
+        return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear() +
+               " às " + p(d.getHours()) + "h" + p(d.getMinutes());
+      }
+
+      function nomeCliente(id) {
+        var achado = "";
+        clientes.forEach(function (c) { if (c.id === id) achado = c.nome; });
+        return achado;
+      }
+
+      function visiveis() {
+        var q = busca.toLowerCase();
+        if (!q) return liberados;
+        return liberados.filter(function (a) {
+          return ((a.nome || "") + " " + (a.email || "")).toLowerCase().indexOf(q) >= 0;
+        });
+      }
+
+      function botao(acao, id, rotulo, classe, icone) {
+        return '<button class="btn btn-sm ' + classe + '" type="button" data-acao="' + acao +
+          '" data-id="' + esc(id) + '">' +
+          (icone ? '<i class="ti ' + icone + '" aria-hidden="true"></i>' : "") +
+          esc(rotulo) + "</button>";
+      }
+
+      function renderLista() {
+        var alvo = $("lista");
+        if (carregando) {
+          alvo.innerHTML = '<div class="empty"><p>Carregando...</p></div>';
+          return;
+        }
+        if (falha) {
+          alvo.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-alert-circle" aria-hidden="true"></i><p>' + esc(falha) + "</p></div>";
+          return;
+        }
+        if (!liberados.length) {
+          alvo.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-user-off" aria-hidden="true"></i>' +
+            "<p>Nenhum acesso liberado ainda. Use <b>Liberar acesso</b> para começar.</p></div>";
+          $("conta-liberados").textContent = "";
           return;
         }
 
-        // Toggle individual de página
-        if (el.classList.contains("acc-check")) {
-          var usr = usuarioById(el.getAttribute("data-user"));
-          var chave = el.getAttribute("data-pagina");
-          if (usr && chave) usr.paginas[chave] = el.checked;
+        var lista = visiveis();
+        $("conta-liberados").textContent = lista.length === liberados.length
+          ? liberados.length + (liberados.length === 1 ? " pessoa" : " pessoas")
+          : lista.length + " de " + liberados.length;
+
+        if (!lista.length) {
+          alvo.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-filter-off" aria-hidden="true"></i>' +
+            "<p>Ninguém com esse filtro.</p></div>";
+          return;
+        }
+
+        var podeMexer = meuPapel === "admin" || meuPapel === "gestor";
+
+        alvo.innerHTML =
+          '<div class="table-wrap"><table class="table">' +
+            "<thead><tr>" +
+              "<th>Pessoa</th><th>O que é</th><th>Cliente</th><th>Situação</th>" +
+              '<th class="num">Ações</th>' +
+            "</tr></thead><tbody>" +
+            lista.map(function (a) {
+              var b = [];
+              if (podeMexer) {
+                b.push(botao("convidar", a.id,
+                  a.convidado_em ? "Reenviar convite" : "Convidar",
+                  a.convidado_em ? "btn-ghost" : "btn-primary", "ti-mail"));
+                b.push(botao("editar", a.id, "", "btn-ghost btn-icon", "ti-pencil"));
+                b.push(botao(a.ativo ? "desativar" : "ativar", a.id,
+                  a.ativo ? "Desativar" : "Ativar", "btn-ghost",
+                  a.ativo ? "ti-user-off" : "ti-user-check"));
+              }
+              return "<tr>" +
+                '<td><div class="pessoa-cel"><b>' + esc(a.nome || "sem nome") + "</b>" +
+                  "<span>" + esc(a.email) + "</span></div></td>" +
+                '<td><span class="badge ' + (BADGE_PAPEL[a.papel] || "badge-baixa") + '">' +
+                  esc(PAPEL_LABEL[a.papel] || a.papel) + "</span></td>" +
+                "<td>" + esc(nomeCliente(a.cliente_id) || "-") + "</td>" +
+                "<td>" + situacao(a) + "</td>" +
+                '<td class="num"><span class="acc-acoes">' + b.join("") + "</span></td>" +
+              "</tr>";
+            }).join("") +
+          "</tbody></table></div>";
+      }
+
+      function renderContas() {
+        var card = $("card-contas");
+        // Só o administrador lê o cadastro de perfis.
+        if (carregando || !contas.length) { card.classList.add("is-hidden"); return; }
+        card.classList.remove("is-hidden");
+
+        var esperando = contas.filter(function (c) { return c.papel === "sem_acesso"; }).length;
+        $("conta-contas").textContent = contas.length +
+          (contas.length === 1 ? " conta" : " contas") +
+          (esperando ? ", " + esperando + " esperando liberação" : "");
+
+        $("lista-contas").innerHTML =
+          '<div class="table-wrap"><table class="table">' +
+            "<thead><tr><th>Pessoa</th><th>O que é hoje</th><th>Cliente</th></tr></thead><tbody>" +
+            contas.map(function (c) {
+              return "<tr>" +
+                '<td><div class="pessoa-cel"><b>' + esc(c.nome || "sem nome") + "</b></div></td>" +
+                '<td><span class="badge ' + (BADGE_PAPEL[c.papel] || "badge-baixa") + '">' +
+                  esc(PAPEL_LABEL[c.papel] || c.papel) + "</span></td>" +
+                "<td>" + esc(nomeCliente(c.cliente_id) || "-") + "</td>" +
+              "</tr>";
+            }).join("") +
+          "</tbody></table></div>";
+      }
+
+      // ------------------------------------------------------------------
+      // Modal
+      // ------------------------------------------------------------------
+      function abrirModal(a) {
+        editandoId = a ? a.id : null;
+        $("mod-titulo").textContent = a ? "Alterar acesso" : "Liberar acesso";
+        $("mod-salvar").textContent = a ? "Salvar" : "Liberar acesso";
+
+        $("f-papel").innerHTML = papeisQuePodeLiberar().map(function (p) {
+          return '<option value="' + p.v + '">' + esc(p.t) + "</option>";
+        }).join("");
+        $("f-cliente").innerHTML = clientes.map(function (c) {
+          return '<option value="' + esc(c.id) + '">' + esc(c.nome) + "</option>";
+        }).join("");
+
+        $("f-email").value = a ? (a.email || "") : "";
+        $("f-nome").value = a ? (a.nome || "") : "";
+        $("f-papel").value = a ? a.papel : "cliente";
+        if (a && a.cliente_id) $("f-cliente").value = a.cliente_id;
+        // O e-mail é a chave da liberação: trocar depois de criada viraria
+        // outra pessoa. Quem errou remove e libera de novo.
+        $("f-email").disabled = !!a;
+
+        trocarCliente();
+        $("mod").classList.add("is-open");
+        setTimeout(function () { (a ? $("f-nome") : $("f-email")).focus(); }, 60);
+      }
+
+      function fecharModal() {
+        $("mod").classList.remove("is-open");
+        editandoId = null;
+      }
+
+      // Gerente da Claro sem cliente não faz sentido: é o cliente que define
+      // o recorte de tudo o que ele enxerga.
+      function trocarCliente() {
+        var precisa = $("f-papel").value === "cliente";
+        $("wrap-cliente").classList.toggle("is-hidden", !precisa);
+      }
+
+      function salvar() {
+        var email = ($("f-email").value || "").trim().toLowerCase();
+        var nome = ($("f-nome").value || "").trim();
+        var papel = $("f-papel").value;
+        var cliente = papel === "cliente" ? $("f-cliente").value : null;
+
+        if (!/^\S+@\S+\.\S+$/.test(email)) {
+          App.toast("Informe um e-mail válido.");
+          return;
+        }
+        if (papel === "cliente" && !cliente) {
+          App.toast("Escolha o cliente do gerente.");
+          return;
+        }
+
+        var btn = $("mod-salvar");
+        btn.disabled = true;
+
+        if (DEMO) {
+          App.toast("Sem conexão com os dados agora: nada foi gravado.");
+          btn.disabled = false;
+          fecharModal();
+          return;
+        }
+
+        var linha = { email: email, nome: nome || null, papel: papel, cliente_id: cliente };
+        var db = Auth.cliente;
+        var acao = editandoId
+          ? db.from("acessos_autorizados").update(linha).eq("id", editandoId).select("id")
+          : db.from("acessos_autorizados").insert(linha).select("id");
+
+        acao.then(function (r) {
+          btn.disabled = false;
+          if (r.error) {
+            // 23505 é o e-mail repetido; a mensagem crua não ajudaria.
+            if (String(r.error.code) === "23505" || /duplicad|unique/i.test(r.error.message || "")) {
+              App.toast("Este e-mail já está na lista. Procure por ele acima.");
+              return;
+            }
+            App.toast(r.error.message || "Não foi possível salvar agora.");
+            return;
+          }
+          if (!r.data || !r.data.length) {
+            App.toast("Seu acesso não permite liberar pessoas. Fale com a coordenação da APSIS.");
+            return;
+          }
+          App.toast(editandoId ? "Acesso alterado." : "Acesso liberado. Agora envie o convite.");
+          fecharModal();
+          return carregar().then(render);
+        }).catch(function () {
+          btn.disabled = false;
+          App.toast("Não foi possível salvar agora. Tente novamente.");
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // Ações da linha
+      // ------------------------------------------------------------------
+      function porId(id) {
+        var achado = null;
+        liberados.forEach(function (a) { if (a.id === id) achado = a; });
+        return achado;
+      }
+
+      function mudarAtivo(a, ativo, botaoEl) {
+        if (DEMO) { App.toast("Sem conexão com os dados agora: nada foi gravado."); return; }
+        botaoEl.disabled = true;
+        Auth.cliente.from("acessos_autorizados")
+          .update({ ativo: ativo }).eq("id", a.id).select("id")
+          .then(function (r) {
+            botaoEl.disabled = false;
+            if (r.error || !r.data || !r.data.length) {
+              App.toast("Não foi possível alterar agora. Tente novamente.");
+              return;
+            }
+            App.toast(ativo
+              ? "Acesso reativado."
+              : "Acesso retirado. Se a pessoa estiver com a tela aberta, ela perde o acesso agora.");
+            return carregar().then(render);
+          })
+          .catch(function () {
+            botaoEl.disabled = false;
+            App.toast("Não foi possível alterar agora. Tente novamente.");
+          });
+      }
+
+      function convidar(a, botaoEl) {
+        if (DEMO) { App.toast("Sem conexão com os dados agora: nada foi enviado."); return; }
+        botaoEl.disabled = true;
+        var rotulo = botaoEl.textContent;
+        botaoEl.textContent = "Enviando...";
+
+        Auth.cliente.functions.invoke("convidar-responsavel", { body: { acesso_id: a.id } })
+          .then(function (r) {
+            var d = r.data || {};
+            botaoEl.disabled = false;
+            botaoEl.textContent = rotulo;
+            if (!d.ok) {
+              App.toast(d.motivo || "Não foi possível enviar o convite agora.");
+              return;
+            }
+            App.toast("Convite enviado para " + a.email + ".");
+            return carregar().then(render);
+          })
+          .catch(function () {
+            botaoEl.disabled = false;
+            botaoEl.textContent = rotulo;
+            App.toast("Não foi possível enviar o convite agora. Tente novamente.");
+          });
+      }
+
+      $("lista").addEventListener("click", function (ev) {
+        if (!ev.target.closest) return;
+        var b = ev.target.closest("[data-acao]");
+        if (!b) return;
+        var a = porId(b.getAttribute("data-id"));
+        if (!a) return;
+        var acao = b.getAttribute("data-acao");
+
+        if (acao === "editar") { abrirModal(a); return; }
+        if (acao === "convidar") { convidar(a, b); return; }
+        if (acao === "ativar") { mudarAtivo(a, true, b); return; }
+        if (acao === "desativar") {
+          App.confirmar({
+            titulo: "Retirar o acesso",
+            texto: (a.nome || a.email) + " deixa de enxergar o sistema.\n\n" +
+                   "Vale na hora: se a pessoa estiver com a tela aberta, o acesso cai no mesmo " +
+                   "movimento. A conta e o histórico ficam guardados, e dá para reativar depois.",
+            confirmar: "Retirar o acesso", cancelar: "Voltar", perigo: true
+          }).then(function (ok) { if (ok) mudarAtivo(a, false, b); });
         }
       });
 
-      document.getElementById("busca-usuario").addEventListener("input", function () {
-        busca = this.value || "";
-        renderMatriz();
-      });
-
-      // ------------------------------------------------------------------
-      // Ações do topo
-      // ------------------------------------------------------------------
-      // A tela mostra o desenho de quem acessa o que, mas ainda nao altera o
-      // acesso de ninguem. Dizer "atualizados" fazia o administrador acreditar
-      // que tinha trocado o papel de alguem.
-      document.getElementById("btn-salvar").addEventListener("click", function () {
-        App.confirmar({
-          titulo: "Alteração de acesso",
-          texto: "A troca de papel ainda não é aplicada por esta tela." + "\n\n" +
-            "Peça a alteração à coordenação da APSIS para que o acesso mude de verdade.",
-          confirmar: "Entendi",
-          cancelar: "Fechar"
-        });
-      });
-
-      // Modal de novo usuário -------------------------------------------------
-      var modal = document.getElementById("user-modal");
-      function abrirModal() {
-        document.getElementById("novo-nome").value = "";
-        document.getElementById("novo-email").value = "";
-        document.getElementById("novo-papel").value = "auditor";
-        modal.classList.add("is-open");
-        document.getElementById("novo-nome").focus();
-      }
-      function fecharModal() { modal.classList.remove("is-open"); }
-
-      document.getElementById("btn-add-user").addEventListener("click", abrirModal);
-      document.getElementById("user-modal-close").addEventListener("click", fecharModal);
-      document.getElementById("user-modal-cancel").addEventListener("click", fecharModal);
-      modal.addEventListener("click", function (ev) {
-        if (ev.target === modal) fecharModal();
-      });
+      $("btn-liberar").addEventListener("click", function () { abrirModal(null); });
+      $("mod-fechar").addEventListener("click", fecharModal);
+      $("mod-cancelar").addEventListener("click", fecharModal);
+      $("mod-salvar").addEventListener("click", salvar);
+      $("f-papel").addEventListener("change", trocarCliente);
+      $("mod").addEventListener("click", function (ev) { if (ev.target === this) fecharModal(); });
       document.addEventListener("keydown", function (ev) {
-        if (ev.key === "Escape" && modal.classList.contains("is-open")) fecharModal();
+        if (ev.key === "Escape" && $("mod").classList.contains("is-open")) fecharModal();
       });
 
-      document.getElementById("user-modal-save").addEventListener("click", function () {
-        var nome = document.getElementById("novo-nome").value.trim();
-        var email = document.getElementById("novo-email").value.trim();
-        var papel = document.getElementById("novo-papel").value;
+      var timer = null;
+      $("busca").addEventListener("input", function () {
+        var v = this.value;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(function () { busca = v.trim(); renderLista(); }, 180);
+      });
 
-        if (!nome) { App.toast("Informe o nome do usuário."); return; }
-        if (!email) { App.toast("Informe o e-mail do usuário."); return; }
-
-        seq += 1;
-        usuarios.push({
-          id: "u-" + (seq < 10 ? "0" + seq : seq),
-          nome: nome,
-          email: email,
-          papel: papel,
-          ativo: true,
-          paginas: copiaPaginas(presets[papel] || {})
+      // ------------------------------------------------------------------
+      render();
+      descobrirPapel()
+        .then(carregar)
+        .then(render)
+        .catch(function () {
+          carregando = false;
+          falha = "Não foi possível carregar os acessos agora. " +
+                  "Atualize a página em alguns instantes.";
+          render();
         });
-
-        fecharModal();
-        renderKpis();
-        renderMatriz();
-        App.toast("Usuário " + nome + " adicionado.");
-      });
     })();
   </script>
 </body>
