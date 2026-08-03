@@ -487,9 +487,9 @@
         '<button class="topbar-bell" type="button" aria-label="Notificações"><i class="ti ti-bell" aria-hidden="true"></i><span class="dot"></span></button>' +
         '<button class="avatar-btn" id="user-menu-btn" type="button" aria-label="Conta" aria-haspopup="true"><i class="ti ti-user" aria-hidden="true"></i></button>' +
         '<div class="user-menu" id="user-menu" role="menu">' +
-          // Sem nome escrito aqui. Havia uma "Ana Ribeiro" inventada, e quando o
-          // carregamento do perfil falhava ela ficava na tela como se fosse
-          // quem tinha entrado. Nome de gente na tela tem de vir do cadastro.
+          // Sem nome escrito aqui. Havia uma pessoa inventada neste lugar, e
+          // quando o carregamento do perfil falhava ela ficava na tela como se
+          // fosse quem tinha entrado. Nome de gente vem do cadastro, sempre.
           '<div class="user-menu-head"><p class="nm"></p><p class="em"></p></div>' +
           '<a class="user-menu-item" href="login.html" role="menuitem"><i class="ti ti-logout" aria-hidden="true"></i>Sair</a>' +
         '</div>' +
