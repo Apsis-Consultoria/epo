@@ -8,6 +8,7 @@
 //
 // O codigo NUNCA volta na resposta, nem em log, nem em mensagem de erro.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { montarEmail, saudacaoDe } from "../_shared/email-apsis.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
 const ANON = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -80,31 +81,24 @@ async function tokenAzure() {
   return j.access_token as string;
 }
 
-function corpoDoEmail(codigo: string) {
-  const digitos = codigo.split("").join(" ");
-  return "<!doctype html><html><body style=\"margin:0;background:#f4f6f5;\">" +
-    '<div style="max-width:520px;margin:0 auto;padding:28px 22px;font-family:Segoe UI,Arial,sans-serif;">' +
-      '<div style="background:#ffffff;border-radius:14px;padding:28px 26px;border:1px solid #e5e7eb;">' +
-        '<p style="margin:0 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;">APSIS Consultoria</p>' +
-        '<h1 style="margin:0 0 16px;font-size:20px;color:#1a4731;">Codigo de acesso</h1>' +
-        '<p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#374151;">' +
-          "Use o codigo abaixo para concluir a entrada no sistema de Auditoria de EPOs." +
-        "</p>" +
-        '<p style="margin:0 0 18px;padding:16px 18px;background:#f4f6f5;border:1px solid #e5e7eb;' +
-          'border-radius:10px;text-align:center;font-size:30px;font-weight:700;letter-spacing:.28em;' +
-          'color:#1a4731;font-family:Consolas,Menlo,monospace;">' + digitos + "</p>" +
-        '<p style="margin:0 0 6px;font-size:12.5px;line-height:1.6;color:#6b7280;">' +
-          "O codigo vale por " + MINUTOS + " minutos e serve para uma entrada so." +
-        "</p>" +
-        '<p style="margin:0;font-size:12.5px;line-height:1.6;color:#6b7280;">' +
-          "<b>Se nao foi voce que tentou entrar</b>, ignore esta mensagem e troque a sua senha. " +
-          "Ninguem da APSIS vai pedir este codigo por telefone, e-mail ou mensagem." +
-        "</p>" +
-      "</div>" +
-      '<p style="margin:16px 0 0;text-align:center;font-size:11.5px;color:#9ca3af;">' +
-        "Mensagem automatica do sistema de Auditoria de EPOs." +
-      "</p>" +
-    "</div></body></html>";
+// Mesmo desenho do e-mail de acesso, de _shared/email-apsis.ts. Antes este
+// e-mail era um bloco de texto sem marca nenhuma, e o outro tinha identidade.
+// Aqui nao ha botao: o codigo e digitado na tela, nao clicado.
+function corpoDoEmail(codigo: string, nome: string) {
+  return montarEmail({
+    titulo: "Código de acesso",
+    subtitulo: "Auditoria de unidades EPO · Apsis Consultoria",
+    saudacao: saudacaoDe(nome),
+    paragrafos: [
+      "Use o código abaixo para concluir a entrada no sistema de " +
+      "<b>Auditoria de EPOs</b> da Apsis Consultoria."
+    ],
+    destaque: { texto: codigo, legenda: "Seu código" },
+    aviso: "&#128274; <b>Dica de segurança:</b> o código vale por " + MINUTOS +
+           " minutos e serve para uma entrada só. Ninguém da Apsis vai pedir este " +
+           "código por telefone, e-mail ou mensagem. Se não foi você que tentou " +
+           "entrar, ignore esta mensagem e troque a sua senha."
+  });
 }
 
 async function enviarPeloGraph(para: string, assunto: string, html: string) {
@@ -205,8 +199,9 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, motivo: String(reg.motivo || "pedido recusado") }, 429);
   }
 
-  const envio = await enviarPeloGraph(email, "Codigo de acesso - Auditoria de EPOs",
-                                      corpoDoEmail(codigo));
+  const nome = String((usuario.user_metadata && usuario.user_metadata.full_name) || "").trim();
+  const envio = await enviarPeloGraph(email, "Código de acesso - Auditoria de EPOs",
+                                      corpoDoEmail(codigo, nome));
   if (!envio.ok) {
     // O desafio fica gravado mas ninguem recebeu o codigo: apaga, senao a
     // pessoa fica presa num codigo que nao existe em lugar nenhum.

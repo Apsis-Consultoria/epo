@@ -19,6 +19,7 @@
 //   2. se o Graph nao puder enviar, cai no envio do proprio projeto.
 // Sem nenhum dos dois, devolve ok:false com o motivo e nada e prometido na tela.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { montarEmail, saudacaoDe, escapar, VERDE } from "../_shared/email-apsis.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
 const ANON = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -99,11 +100,6 @@ function destinoDaSenha(origem: string | null) {
   return APP_URL.replace(/[^/]*$/, "") + "definir-senha.html";
 }
 
-function escapar(t: string) {
-  return String(t == null ? "" : t)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
 // ------------------------------------------------------------------- Azure
 async function tokenAzure() {
   const corpo = new URLSearchParams({
@@ -124,98 +120,38 @@ async function tokenAzure() {
   return j.access_token as string;
 }
 
-const LOGO = "https://ybixbsfmxblaippubtvw.supabase.co/storage/v1/object/public/assets/logo_com_nome.png";
-const VERDE = "#1a4731";
-const LARANJA = "#f47920";
-
-// Mesmo desenho do e-mail do Secure Share: faixa verde com a marca, saudacao
-// pelo nome, um quadro com os dados de acesso, o botao laranja de largura
-// cheia e o aviso de seguranca. O e-mail anterior era um bloco de texto sem
-// identidade nenhuma.
+// O desenho vem de _shared/email-apsis.ts, o mesmo do e-mail do codigo de
+// seguranca: escrito em cada funcao, os dois voltariam a divergir.
 //
-// Uma diferenca de proposito em relacao ao Secure Share: ali o quadro traz a
-// senha escrita. Aqui nao existe senha para mostrar - quem a escolhe e a
-// propria pessoa, no botao. Mandar senha por e-mail deixaria uma credencial
-// numa caixa de mensagens para sempre.
+// Uma diferenca de proposito em relacao ao e-mail do Secure Share: ali o quadro
+// traz a senha escrita. Aqui nao ha senha para mostrar - quem escolhe e a
+// propria pessoa, no botao. Senha em e-mail fica numa caixa de mensagens para
+// sempre.
 function corpoDoEmail(link: string, contexto: string, novaConta: boolean,
                       nome: string, email: string) {
-  const titulo = novaConta ? "Acesso à Auditoria de EPOs" : "Nova senha da Auditoria de EPOs";
-  const primeiroNome = (nome || "").trim().split(/\s+/)[0] || "";
-  const saudacao = primeiroNome ? "Olá, " + escapar(nome.trim()) + "," : "Olá,";
-
   const abertura = novaConta
     ? "Você recebeu acesso ao sistema de <b>Auditoria de EPOs</b> da Apsis Consultoria" +
       (contexto ? " como <b>" + escapar(contexto) + "</b>" : "") + "."
     : "Recebemos um pedido para você definir uma nova senha no sistema de " +
       "<b>Auditoria de EPOs</b> da Apsis Consultoria.";
 
-  const linhaDado = function (rotulo: string, valor: string, ultimo: boolean) {
-    return '<tr><td style="padding:9px 0;font-size:12.5px;color:#6b7280;width:78px;' +
-             (ultimo ? "" : "border-bottom:1px solid #eef0ef;") + '">' + rotulo + "</td>" +
-           '<td style="padding:9px 0;font-size:13px;color:#111827;' +
-             (ultimo ? "" : "border-bottom:1px solid #eef0ef;") + '">' + valor + "</td></tr>";
-  };
-
-  return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">' +
-    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-    // Sem o charset declarado, acento chega como caractere trocado em parte
-    // dos leitores de e-mail.
-    '</head><body style="margin:0;padding:0;background:#f4f6f5;">' +
-    '<div style="max-width:520px;margin:0 auto;padding:24px 16px;' +
-      'font-family:Segoe UI,Helvetica,Arial,sans-serif;">' +
-      '<div style="border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">' +
-
-        // faixa da marca
-        '<div style="background:' + VERDE + ';padding:26px 22px 22px;text-align:center;">' +
-          '<div style="display:inline-block;background:#ffffff;border-radius:10px;' +
-            'padding:11px 16px;margin-bottom:16px;">' +
-            '<img src="' + LOGO + '" alt="Apsis Consultoria" width="112" ' +
-              'style="display:block;width:112px;height:auto;border:0;">' +
-          "</div>" +
-          '<h1 style="margin:0 0 6px;font-size:17px;font-weight:600;color:#ffffff;">' +
-            titulo + "</h1>" +
-          '<p style="margin:0;font-size:11.5px;color:#a7c4b5;">' +
-            "Auditoria de unidades EPO &middot; Apsis Consultoria</p>" +
-        "</div>" +
-
-        // corpo
-        '<div style="background:#ffffff;padding:24px 22px 26px;">' +
-          '<p style="margin:0 0 14px;font-size:14px;font-weight:600;color:' + VERDE + ';">' +
-            saudacao + "</p>" +
-          '<p style="margin:0 0 18px;font-size:13.5px;line-height:1.6;color:#374151;">' +
-            abertura + "</p>" +
-
-          '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;' +
-            'margin:0 0 20px;">' +
-            '<p style="margin:0 0 4px;font-size:10.5px;letter-spacing:.08em;' +
-              'text-transform:uppercase;color:#9ca3af;">Seus dados de acesso</p>' +
-            '<table role="presentation" cellpadding="0" cellspacing="0" width="100%">' +
-              linhaDado("E-mail", '<span style="color:' + VERDE + ';">' + escapar(email) + "</span>", false) +
-              linhaDado("Senha", '<span style="color:#6b7280;">você escolhe no botão abaixo</span>', true) +
-            "</table>" +
-          "</div>" +
-
-          '<a href="' + link + '" style="display:block;background:' + LARANJA + ';color:#ffffff;' +
-            'text-decoration:none;font-weight:600;font-size:14.5px;text-align:center;' +
-            'padding:14px 18px;border-radius:8px;margin:0 0 18px;">' +
-            (novaConta ? "Definir minha senha" : "Definir nova senha") + " &rarr;</a>" +
-
-          '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;' +
-            'padding:11px 13px;margin:0 0 4px;">' +
-            '<p style="margin:0;font-size:12px;line-height:1.55;color:#78350f;">' +
-              "&#128274; <b>Dica de segurança:</b> não compartilhe a sua senha com ninguém. " +
-              "O link deste e-mail é pessoal e tem validade; se expirar, peça outro ao seu " +
-              "contato na Apsis." +
-            "</p>" +
-          "</div>" +
-        "</div>" +
-      "</div>" +
-
-      '<p style="margin:14px 0 0;text-align:center;font-size:11px;line-height:1.6;color:#9ca3af;">' +
-        "Este e-mail foi enviado pela Apsis Consultoria.<br>" +
-        "Se você não esperava esta mensagem, ignore este e-mail." +
-      "</p>" +
-    "</div></body></html>";
+  return montarEmail({
+    titulo: novaConta ? "Acesso à Auditoria de EPOs" : "Nova senha da Auditoria de EPOs",
+    subtitulo: "Auditoria de unidades EPO · Apsis Consultoria",
+    saudacao: saudacaoDe(nome),
+    paragrafos: [abertura],
+    quadro: {
+      rotulo: "Seus dados de acesso",
+      linhas: [
+        ["E-mail", '<span style="color:' + VERDE + ';">' + escapar(email) + "</span>"],
+        ["Senha", '<span style="color:#6b7280;">você escolhe no botão abaixo</span>']
+      ]
+    },
+    botao: { texto: novaConta ? "Definir minha senha" : "Definir nova senha", href: link },
+    aviso: "&#128274; <b>Dica de segurança:</b> não compartilhe a sua senha com ninguém. " +
+           "O link deste e-mail é pessoal e tem validade; se expirar, peça outro ao seu " +
+           "contato na Apsis."
+  });
 }
 
 // ------------------------------------------------------------------ handler
