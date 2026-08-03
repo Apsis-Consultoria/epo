@@ -6,7 +6,7 @@
   <title>Definir senha - Auditoria EPO's</title>
   <link rel="icon" type="image/png" href="assets/brand/logo-apsis.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="assets/portal.css?v=67" />
+  <link rel="stylesheet" href="assets/portal.css?v=68" />
 </head>
 <body>
   <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
@@ -72,7 +72,7 @@
     </div>
   </div>
 
-  <script src="assets/supabase-config.js?v=67"></script>
+  <script src="assets/supabase-config.js?v=68"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
     (function () {
@@ -117,6 +117,29 @@
       // Pode chegar como sessão pronta (link novo) ou como erro no endereço.
       function conferirSessao() {
         var hash = location.hash || "";
+
+        // Caminho novo: o e-mail traz ?codigo=..., e a troca por sessao
+        // acontece AQUI, no clique. O link pronto de antes consumia o codigo
+        // no primeiro GET, e leitor de e-mail que abre link para "pre-ver" ja
+        // o gastava antes do clique de verdade; alem disso, o formato antigo
+        // so funcionava no navegador que tinha pedido o link.
+        var codigo = new URLSearchParams(location.search).get("codigo");
+        if (codigo) {
+          db.auth.verifyOtp({ type: "recovery", token_hash: codigo }).then(function (r) {
+            if (r.error || !r.data || !r.data.session) {
+              if (window.console && console.warn) console.warn("verifyOtp", r.error);
+              $("sem-link").classList.remove("hidden");
+              return;
+            }
+            limparEndereco();
+            mostrarFormulario(r.data.session.user && r.data.session.user.email);
+          }, function (e) {
+            console.error("verifyOtp", e);
+            $("sem-link").classList.remove("hidden");
+          });
+          return;
+        }
+
         if (/error/i.test(hash) || /error/i.test(location.search)) {
           $("sem-link").classList.remove("hidden");
           return;
