@@ -979,6 +979,7 @@
   var paginas = [
     { key: "geral",       label: "Visão geral",              icone: "ti-layout-dashboard", href: "index.html" },
     { key: "epos",        label: "EPOs",                     icone: "ti-building-warehouse", href: "epos.html" },
+    { key: "cronograma",  label: "Cronograma",               icone: "ti-calendar-stats",   href: "cronograma.html" },
     { key: "ranking",     label: "Ranking",                  icone: "ti-trophy",           href: "ranking.html" },
     { key: "comparativo", label: "Comparativo",              icone: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial",         icone: "ti-report-analytics", href: "gerencial.html" },
@@ -1007,15 +1008,18 @@
   var visaoCoordenacao = {
     epos: true,  geral: true,  ranking: true,  comparativo: true,  gerencial: true,
     pendentes: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,
-    giro: true,  evidencias: true,  config: true,  acessos: true,  questionarios: true
+    giro: true,  evidencias: true,  config: true,  acessos: true,  questionarios: true,
+    cronograma: true
   };
 
+  // O consultor de campo enxerga o cronograma porque e a agenda das visitas
+  // dele, mas so de leitura: quem marca data e a coordenacao.
   var papeisPreset = {
     admin:       visaoCoordenacao,
     gestor:      visaoCoordenacao,
     cliente:     visaoCoordenacao,
-    auditor:     { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: true,  auditoria: true,  envio: false, checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false, questionarios: false },
-    responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false, questionarios: false }
+    auditor:     { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: true,  auditoria: true,  envio: false, checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false, questionarios: false, cronograma: true },
+    responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false, questionarios: false, cronograma: false }
   };
 
   function copiaPreset(papel) {

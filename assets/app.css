@@ -670,6 +670,7 @@ img { max-width: 100%; display: block; }
 .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .wrap { flex-wrap: wrap; }
 .grow { flex: 1; min-width: 0; }
+.is-hidden { display: none !important; }
 .nowrap { white-space: nowrap; }
 .tnum { font-variant-numeric: tabular-nums; }
 .page-intro { color: var(--text-2); margin-bottom: 22px; max-width: 720px; }
@@ -1171,4 +1172,252 @@ input[type="submit"],
 @media (max-width: 640px) {
   .ver-como-chip span { display: none; }
   .ver-como-chip { padding: 0 8px; }
+}
+
+/* =========================================================================
+   Cronograma: roadmap de planejado x realizado.
+
+   Toda barra e posicionada em porcentagem do intervalo de dias desenhado.
+   A grade de semanas e a marca de hoje ficam numa camada propria que ocupa
+   exatamente a mesma caixa das barras e usa a MESMA conta de porcentagem:
+   assim continuam alinhadas quando a tela e mais larga que o desenho.
+   A escala (semana ou mes) e so uma variavel de CSS: trocar de escala nao
+   recalcula nem redesenha barra nenhuma.
+   ========================================================================= */
+.gan { --gan-rot: 236px; --gan-sem: 34px; --gan-h: 40px; }
+.gan.esc-mes { --gan-sem: 14px; }
+
+.gan-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border-top: 1px solid var(--border);
+}
+.gan-scroll:focus-visible { outline: 2px solid var(--apsis-green); outline-offset: -2px; }
+
+.gan-canvas {                       /* --gan-sems vem do JS, sem unidade */
+  width: calc(var(--gan-rot) + var(--gan-sem) * var(--gan-sems));
+  min-width: 100%;
+}
+
+.gan-cab,
+.gan-linha,
+.gan-grupo { display: grid; grid-template-columns: var(--gan-rot) minmax(0, 1fr); }
+
+.gan-cab { border-bottom: 1px solid var(--border); background: var(--surface-2); }
+.gan-cab .gan-rot {
+  background: var(--surface-2);
+  font-size: 11px; font-weight: 600; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.gan-cab-faixa { position: relative; height: 42px; }
+.gan-mes {
+  position: absolute; top: 5px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-strong);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .03em;
+  color: var(--text-2);
+  white-space: nowrap; overflow: hidden;
+}
+.gan-sem-cel {
+  position: absolute; top: 24px;
+  padding-left: 4px;
+  font-size: 10.5px; color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.gan-corpo { position: relative; }
+.gan-grade {
+  position: absolute; top: 0; bottom: 0;
+  left: var(--gan-rot); right: 0;
+  pointer-events: none; z-index: 0;
+}
+.gan-col  { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); }
+.gan-hoje { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--apsis-orange); opacity: .85; }
+
+.gan-linha { border-bottom: 1px solid var(--border); }
+.gan-linha:hover .gan-rot,
+.gan-linha:hover .gan-faixa { background-color: var(--surface-2); }
+
+.gan-rot {
+  position: sticky; left: 0; z-index: 2;
+  display: flex; flex-direction: column; justify-content: center;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 5px 12px;
+  min-width: 0;
+}
+.gan-rot b {
+  display: block; font-size: 12.5px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gan-rot span {
+  display: block; font-size: 11px; color: var(--text-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gan-rot .atraso { color: var(--danger); font-weight: 600; }
+
+.gan-faixa { position: relative; height: var(--gan-h); z-index: 1; }
+
+.gan-grupo { background: var(--surface-2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.gan-grupo .gan-rot { background: var(--surface-2); padding: 0; }
+.gan-grupo .gan-faixa { height: 34px; background: var(--surface-2); }
+.gan-grupo-btn {
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; height: 100%; padding: 0 12px;
+  border: 0; background: none; cursor: pointer; text-align: left;
+  font-family: inherit; font-size: 11.5px; font-weight: 600;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--text-2);
+}
+.gan-grupo-btn i { font-size: 15px; transition: transform .15s; }
+.gan-grupo-btn[aria-expanded="false"] i { transform: rotate(-90deg); }
+
+/* ------------------------------------------------------------- as barras */
+.gan-barra {
+  position: absolute;
+  height: 10px; min-width: 10px; padding: 0;
+  border: 1px solid transparent; border-radius: 999px;
+  cursor: pointer;
+}
+/* area de toque confortavel sem engordar o desenho */
+.gan-barra::before { content: ""; position: absolute; inset: -9px -6px; }
+.gan-barra:focus-visible { outline: 2px solid var(--apsis-green); outline-offset: 2px; }
+.gan-barra i { position: absolute; right: 2px; top: -2px; font-size: 11px; }
+
+.gan-prev { top: 7px; background: var(--surface-2); border-color: var(--border-strong); }
+.gan-prev.s-aguardando_claro { background: var(--warning-bg); border-color: var(--apsis-orange); border-style: dashed; }
+.gan-prev.s-aguardando_apsis { background: var(--surface); border-color: var(--apsis-orange); border-style: dashed; }
+.gan-prev.s-confirmada       { background: var(--apsis-green); border-color: var(--apsis-green); }
+.gan-prev.s-realizada        { background: var(--border-strong); border-color: var(--border-strong); }
+.gan-prev.s-cancelada        { opacity: .45; }
+/* atraso nunca depende so de cor: tem hachura, triangulo e a palavra
+   "fora do prazo" no rotulo da linha */
+.gan-prev.is-atrasada {
+  border-color: var(--danger);
+  background-image: repeating-linear-gradient(45deg,
+    var(--danger) 0 2px, var(--danger-bg) 2px 7px);
+}
+.gan-prev.is-atrasada i { color: var(--danger); }
+
+.gan-prop { top: 7px; height: 10px; background: transparent; border: 1.5px dotted var(--apsis-orange); }
+
+.gan-real { top: 22px; background: var(--success); border-color: var(--success); }
+.gan-real.fora-da-data { background: var(--apsis-orange); border-color: var(--accent-600); }
+.gan-real i { color: #fff; }
+
+.gan-nao { position: absolute; top: 21px; font-size: 11.5px; color: var(--danger); white-space: nowrap; }
+.gan-semdata { position: absolute; left: 6px; top: 12px; font-size: 11.5px; color: var(--text-muted); }
+
+/* ------------------------------------------------------------- legenda */
+.gan-legenda {
+  display: flex; flex-wrap: wrap; gap: 8px 18px;
+  padding: 11px 18px;
+  border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-2);
+}
+.gan-legenda span { display: inline-flex; align-items: center; gap: 7px; }
+.gan-amostra {
+  display: inline-block; width: 22px; height: 10px; border-radius: 999px;
+  border: 1px solid var(--border-strong); background: var(--surface-2);
+}
+.gan-amostra.aguardando { background: var(--warning-bg); border: 1px dashed var(--apsis-orange); }
+.gan-amostra.sugerida   { background: transparent; border: 1.5px dotted var(--apsis-orange); }
+.gan-amostra.confirmada { background: var(--apsis-green); border-color: var(--apsis-green); }
+.gan-amostra.realizada  { background: var(--success); border-color: var(--success); }
+.gan-amostra.fora       { background: var(--apsis-orange); border-color: var(--accent-600); }
+.gan-amostra.atrasada   { border-color: var(--danger);
+  background: repeating-linear-gradient(45deg, var(--danger) 0 2px, var(--danger-bg) 2px 7px); }
+
+/* ---------------------------------------------------------------- ticket */
+.tk-aviso {
+  display: flex; align-items: flex-start; gap: 13px;
+  padding: 14px 16px;
+  border: 1px solid var(--apsis-orange);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: var(--warning-bg);
+}
+.tk-aviso .tk-ico { font-size: 21px; color: var(--apsis-orange); margin-top: 1px; }
+.tk-aviso-corpo { flex: 1; min-width: 0; }
+.tk-aviso-corpo b { display: block; font-size: 14px; }
+.tk-aviso-corpo p { margin: 3px 0 0; font-size: 12.5px; color: var(--text-2); }
+
+.tk-hist { list-style: none; margin: 0; padding: 0; }
+.tk-hist li {
+  position: relative;
+  margin-left: 5px; padding: 0 0 15px 18px;
+  border-left: 2px solid var(--border);
+  font-size: 12.5px;
+}
+.tk-hist li:last-child { border-left-color: transparent; padding-bottom: 0; }
+.tk-hist li::before {
+  content: ""; position: absolute; left: -6px; top: 3px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--border-strong);
+}
+.tk-hist li.is-ultimo::before { border-color: var(--apsis-green); background: var(--apsis-green); }
+.tk-hist b { display: block; font-weight: 600; }
+.tk-hist span { color: var(--text-2); }
+.tk-hist q { display: block; margin-top: 2px; color: var(--text-2); font-style: italic; }
+
+.tk-destaque {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.tk-destaque b { display: block; font-size: 17px; }
+.tk-destaque span { font-size: 12.5px; color: var(--text-2); }
+
+/* ------------------------------------------------------------ importacao */
+.imp-alvo {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 24px 18px;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  text-align: center; cursor: pointer;
+}
+.imp-alvo.is-sobre { border-color: var(--apsis-green); background: var(--surface-2); }
+.imp-alvo i { font-size: 28px; color: var(--text-muted); }
+.imp-alvo b { font-size: 13.5px; }
+.imp-alvo small { font-size: 12px; color: var(--text-2); }
+
+.imp-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.imp-bloco { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.imp-bloco > summary {
+  padding: 10px 13px; cursor: pointer;
+  background: var(--surface-2);
+  font-size: 13px; font-weight: 600;
+}
+.imp-bloco > div { padding: 11px 13px; font-size: 12.5px; }
+.imp-bloco ul { margin: 0; padding-left: 18px; }
+.imp-bloco li { margin-bottom: 4px; }
+.imp-erro { color: var(--danger); }
+.imp-atencao { color: var(--accent-600); }
+.imp-desativar { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 9px; }
+.imp-desativar span { font-size: 12.5px; }
+.imp-desativar em { display: block; font-style: normal; color: var(--text-2); }
+
+/* Filtros e modal largo: usados so nesta tela, mas ficam aqui junto do resto
+   para nao existir estilo escondido dentro do HTML. */
+.cron-toolbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.cron-busca { position: relative; flex: 1 1 260px; max-width: 400px; }
+.cron-busca i {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); font-size: 17px; pointer-events: none;
+}
+.cron-busca .input { padding-left: 36px; }
+.modal.modal-largo { max-width: 880px; }
+.cron-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.cron-rodape { padding: 11px 18px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--text-2); }
+
+@media (max-width: 900px) {
+  .gan { --gan-rot: 128px; --gan-sem: 13px; --gan-h: 46px; }
+  .gan-sem-cel { display: none; }
+  .gan-rot { padding: 5px 8px; }
+  .cron-cols { grid-template-columns: 1fr; }
 }

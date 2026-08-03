@@ -1,0 +1,1743 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cronograma - Auditoria de EPOs</title>
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+
+  <link rel="stylesheet" href="assets/app.css?v=46">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=46"></script>
+  <script src="assets/app.js?v=46"></script>
+  <script src="assets/supabase-config.js?v=46"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/auth.js?v=46"></script>
+  <script src="assets/cronograma-planilha.js?v=46"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var esc = App.escapeHtml;
+      var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
+      var CICLO = "2026";
+
+      // ------------------------------------------------------------------
+      // Vocabulario da tela. A situacao diz de quem e a vez.
+      // ------------------------------------------------------------------
+      var ROTULO = {
+        sem_data:         "Sem data definida",
+        aguardando_claro: "Aguardando a Claro",
+        aguardando_apsis: "Nova data sugerida",
+        confirmada:       "Data confirmada",
+        realizada:        "Realizada",
+        nao_realizada:    "Nao aconteceu",
+        cancelada:        "Fora deste ciclo"
+      };
+      var BADGE = {
+        sem_data:         "badge-baixa",
+        aguardando_claro: "badge-media",
+        aguardando_apsis: "badge-alta",
+        confirmada:       "badge-success",
+        realizada:        "badge-ouro",
+        nao_realizada:    "badge-danger",
+        cancelada:        "badge-baixa"
+      };
+      var ACAO_TEXTO = {
+        incluida:                 "entrou no cronograma",
+        importada:                "veio pela planilha",
+        data_definida:            "definiu a data",
+        data_enviada:             "enviou a data para aprovacao",
+        aprovada:                 "aprovou a data",
+        nova_data_proposta:       "sugeriu outra data",
+        proposta_aceita:          "aceitou a data sugerida",
+        realizada:                "registrou que a auditoria aconteceu",
+        nao_realizada:            "registrou que a auditoria nao aconteceu",
+        cancelada:                "tirou do ciclo",
+        reaberta:                 "reabriu",
+        desativada_pela_planilha: "saiu pela planilha"
+      };
+      var PAPEL_TEXTO = {
+        admin: "APSIS", gestor: "APSIS", auditor: "consultor APSIS",
+        cliente: "gerente da Claro", responsavel: "responsavel da unidade"
+      };
+
+      var MS = 86400000;
+      var MESES = ["jan", "fev", "mar", "abr", "mai", "jun",
+                   "jul", "ago", "set", "out", "nov", "dez"];
+
+      // ------------------------------------------------------------------
+      // Datas. Tudo em UTC: com fuso local, "2026-08-12" lido por new Date()
+      // volta como 11/08 no Brasil e a barra inteira anda um dia.
+      // ------------------------------------------------------------------
+      function dn(iso) {
+        if (!iso) return null;
+        var p = String(iso).slice(0, 10).split("-");
+        if (p.length !== 3) return null;
+        var t = Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+        return isNaN(t) ? null : Math.floor(t / MS);
+      }
+      function hojeN() {
+        var h = new Date();
+        return Math.floor(Date.UTC(h.getFullYear(), h.getMonth(), h.getDate()) / MS);
+      }
+      function paraIso(n) {
+        if (n == null) return "";
+        var d = new Date(n * MS);
+        return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate());
+      }
+      function pad(n) { return (n < 10 ? "0" : "") + n; }
+      // 1970-01-01 caiu numa quinta: por isso o mais quatro.
+      function segunda(n) { var dow = (n + 4) % 7; return n - ((dow + 6) % 7); }
+
+      function fmtDia(n) {
+        if (n == null) return "";
+        var d = new Date(n * MS);
+        return pad(d.getUTCDate()) + "/" + pad(d.getUTCMonth() + 1) + "/" + d.getUTCFullYear();
+      }
+      function fmtCurto(n) {
+        if (n == null) return "";
+        var d = new Date(n * MS);
+        return pad(d.getUTCDate()) + "/" + pad(d.getUTCMonth() + 1);
+      }
+      function periodo(a, b) {
+        if (a == null) return "";
+        if (b == null || b === a) return fmtDia(a);
+        return fmtCurto(a) + " a " + fmtDia(b);
+      }
+      function fmtDataHora(iso) {
+        if (!iso) return "";
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return "";
+        return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + "/" + d.getFullYear() +
+               " as " + pad(d.getHours()) + "h" + pad(d.getMinutes());
+      }
+
+      // ------------------------------------------------------------------
+      // Estado
+      // ------------------------------------------------------------------
+      var itens = [];
+      var papel = DEMO ? "admin" : "";
+      var podeMontar = DEMO;          // admin e gestor: datas, planilha, envio
+      var podeAprovar = DEMO;         // gerente da Claro (e a coordenacao)
+      var podeRegistrar = DEMO;       // quem marca o que aconteceu
+      var visao = "grafico";
+      var escala = "semana";
+      var filtro = { busca: "", regional: "", situacao: "" };
+      var grupoFechado = {};
+      var itemAberto = null;
+      var modoForcado = "";        // "remarcar" troca o formulario do ticket
+      var previa = null;              // resultado da leitura da planilha
+      var ultimaImportacao = null;
+      var carregando = true;
+      var falha = "";
+
+      // ------------------------------------------------------------------
+      // Estrutura fixa
+      // ------------------------------------------------------------------
+      var acoes =
+        '<button class="btn btn-ghost btn-sm is-hidden" id="btn-modelo" type="button">' +
+          '<i class="ti ti-download" aria-hidden="true"></i>Baixar modelo</button>' +
+        '<button class="btn btn-ghost btn-sm is-hidden" id="btn-planilha" type="button">' +
+          '<i class="ti ti-table-import" aria-hidden="true"></i>Enviar planilha</button>' +
+        '<button class="btn btn-primary btn-sm is-hidden" id="btn-enviar" type="button">' +
+          '<i class="ti ti-send" aria-hidden="true"></i><span id="btn-enviar-txt">Enviar datas para aprovacao</span></button>';
+
+      Layout.mount("cronograma", "Cronograma", acoes);
+
+      document.getElementById("page").innerHTML =
+        '<p class="page-intro">Planejamento das visitas do ciclo ' + CICLO +
+          ', com a data combinada com a Claro e o que aconteceu de fato.</p>' +
+        '<div id="aviso"></div>' +
+        '<div class="kpi-grid" id="kpis"></div>' +
+        '<div class="card mb-0">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Cronograma de auditorias</span>' +
+              '<span class="subtitle">A barra de cima e a data planejada. A de baixo e o que aconteceu.</span>' +
+            "</div>" +
+            '<div class="visao-switch" role="group" aria-label="Forma de ver o cronograma">' +
+              '<button type="button" data-visao="grafico" class="is-on">' +
+                '<i class="ti ti-timeline" aria-hidden="true"></i>Roadmap</button>' +
+              '<button type="button" data-visao="lista">' +
+                '<i class="ti ti-list" aria-hidden="true"></i>Lista</button>' +
+            "</div>" +
+          "</div>" +
+          '<div class="cron-toolbar">' +
+            '<div class="cron-busca">' +
+              '<i class="ti ti-search" aria-hidden="true"></i>' +
+              '<input class="input" id="f-busca" type="search" autocomplete="off"' +
+                ' placeholder="Filtrar por unidade, codigo ou cidade"' +
+                ' aria-label="Filtrar por unidade, codigo ou cidade">' +
+            "</div>" +
+            '<select class="select" id="f-regional" aria-label="Regional" style="max-width:200px;"></select>' +
+            '<select class="select" id="f-situacao" aria-label="Situacao" style="max-width:220px;">' +
+              '<option value="">Todas as situacoes</option>' +
+              '<option value="pendente">Esperando resposta</option>' +
+              '<option value="sem_data">Sem data definida</option>' +
+              '<option value="confirmada">Data confirmada</option>' +
+              '<option value="realizada">Realizadas</option>' +
+              '<option value="nao_realizada">Nao aconteceram</option>' +
+              '<option value="cancelada">Fora deste ciclo</option>' +
+            "</select>" +
+            '<span class="grow"></span>' +
+            '<span id="chips-escala">' +
+              '<button type="button" class="chip is-active" data-escala="semana">Semana</button> ' +
+              '<button type="button" class="chip" data-escala="mes">Mes</button>' +
+            "</span>" +
+          "</div>" +
+          '<div id="conteudo"></div>' +
+          '<div class="gan-legenda" id="legenda"></div>' +
+          '<div class="cron-rodape" id="rodape"></div>' +
+        "</div>" +
+        '<div class="modal-overlay" id="tk-modal" role="dialog" aria-modal="true" aria-labelledby="tk-titulo">' +
+          '<div class="modal modal-largo">' +
+            '<div class="modal-header">' +
+              '<h2 class="modal-title" id="tk-titulo">Unidade</h2>' +
+              '<button class="modal-close" id="tk-fechar" type="button" aria-label="Fechar">' +
+                '<i class="ti ti-x" aria-hidden="true"></i></button>' +
+            "</div>" +
+            '<div class="modal-body" id="tk-corpo"></div>' +
+            '<div class="modal-footer" id="tk-rodape"></div>' +
+          "</div>" +
+        "</div>" +
+        '<div class="modal-overlay" id="imp-modal" role="dialog" aria-modal="true" aria-labelledby="imp-titulo">' +
+          '<div class="modal modal-largo">' +
+            '<div class="modal-header">' +
+              '<h2 class="modal-title" id="imp-titulo">Enviar planilha do cronograma</h2>' +
+              '<button class="modal-close" id="imp-fechar" type="button" aria-label="Fechar">' +
+                '<i class="ti ti-x" aria-hidden="true"></i></button>' +
+            "</div>" +
+            '<div class="modal-body" id="imp-corpo"></div>' +
+            '<div class="modal-footer" id="imp-rodape"></div>' +
+          "</div>" +
+        "</div>" +
+        '<input type="file" id="imp-arquivo" accept=".xlsx,.xls,.csv" style="display:none;">';
+
+      var $ = function (id) { return document.getElementById(id); };
+
+      // ------------------------------------------------------------------
+      // Catalogo de demonstracao. Nomes inventados de proposito: o cadastro
+      // real vive no sistema, e esta pagina e publicada.
+      // ------------------------------------------------------------------
+      function catalogoDemo() {
+        var h = hojeN();
+        function iso(delta) { return paraIso(h + delta); }
+        return [
+          { id: "d1", situacao: "confirmada", nome: "Unidade Alfa", cod: "900101",
+            cidade: "Sao Paulo", uf: "SP", regional: "SP",
+            prevIniIso: iso(9), prevFimIso: iso(10), confirmadaEm: new Date().toISOString() },
+          { id: "d2", situacao: "aguardando_claro", nome: "Unidade Bravo", cod: "900102",
+            cidade: "Campinas", uf: "SP", regional: "SP",
+            prevIniIso: iso(17), prevFimIso: iso(17) },
+          { id: "d3", situacao: "aguardando_apsis", nome: "Unidade Charlie", cod: "900103",
+            cidade: "Belo Horizonte", uf: "MG", regional: "MG",
+            prevIniIso: iso(4), prevFimIso: iso(4),
+            propIniIso: iso(24), propFimIso: iso(25) },
+          { id: "d4", situacao: "realizada", nome: "Unidade Delta", cod: "900104",
+            cidade: "Porto Alegre", uf: "RS", regional: "RS",
+            prevIniIso: iso(-21), prevFimIso: iso(-20),
+            realIniIso: iso(-21), realFimIso: iso(-20) },
+          { id: "d5", situacao: "confirmada", nome: "Unidade Echo", cod: "900105",
+            cidade: "Rio de Janeiro", uf: "RJ", regional: "RJ",
+            prevIniIso: iso(-6), prevFimIso: iso(-5) },
+          { id: "d6", situacao: "sem_data", nome: "Unidade Foxtrot", cod: "900106",
+            cidade: "Juiz de Fora", uf: "MG", regional: "MG",
+            semana: "3a semana de setembro" }
+        ].map(normalizar);
+      }
+
+      function normalizar(linha) {
+        var epo = linha.epos || linha;
+        var o = {
+          id: linha.id,
+          situacao: linha.situacao || "sem_data",
+          epoId: epo.id || linha.epoId || linha.id,
+          nome: epo.nome || linha.nome || "",
+          cod: epo.cod_fornecedor || linha.cod || "",
+          base: epo.base || linha.base || "",
+          cidade: epo.cidade || linha.cidade || "",
+          uf: epo.uf || linha.uf || "",
+          regional: epo.regional || linha.regional || epo.uf || linha.uf || "",
+          semana: linha.semana_referencia || linha.semana || "",
+          observacao: linha.observacao || "",
+          motivo: linha.motivo || "",
+          auditoriaId: linha.auditoria_id || null,
+          confirmadaEm: linha.confirmada_em || linha.confirmadaEm || null,
+          prevIniIso: linha.data_prevista_inicio || linha.prevIniIso || "",
+          prevFimIso: linha.data_prevista_fim || linha.prevFimIso || "",
+          propIniIso: linha.data_proposta_inicio || linha.propIniIso || "",
+          propFimIso: linha.data_proposta_fim || linha.propFimIso || "",
+          realIniIso: linha.data_realizada_inicio || linha.realIniIso || "",
+          realFimIso: linha.data_realizada_fim || linha.realFimIso || ""
+        };
+        o.prevIni = dn(o.prevIniIso); o.prevFim = dn(o.prevFimIso);
+        o.propIni = dn(o.propIniIso); o.propFim = dn(o.propFimIso);
+        o.realIni = dn(o.realIniIso); o.realFim = dn(o.realFimIso);
+        return o;
+      }
+
+      function atrasada(it) {
+        if (it.situacao === "realizada" || it.situacao === "nao_realizada" ||
+            it.situacao === "cancelada" || it.situacao === "sem_data") return false;
+        var f = it.prevFim != null ? it.prevFim : it.prevIni;
+        return f != null && f < hojeN();
+      }
+
+      // ------------------------------------------------------------------
+      // Leitura
+      // ------------------------------------------------------------------
+      function aplicarPapel(p) {
+        papel = p || "";
+        podeMontar = papel === "admin" || papel === "gestor";
+        podeAprovar = podeMontar || papel === "cliente";
+        podeRegistrar = podeMontar || papel === "auditor";
+      }
+
+      function descobrirPapel() {
+        if (DEMO) {
+          aplicarPapel((window.Auth && Auth.papelDemo && Auth.papelDemo()) || "admin");
+          return Promise.resolve();
+        }
+        if (!(window.Auth && Auth.perfil)) { aplicarPapel(""); return Promise.resolve(); }
+        return Auth.perfil().then(function (p) {
+          var real = (p && p.papel) || "";
+          // "Ver como" existe para a coordenacao conferir a tela pelo angulo
+          // de outro perfil. Aqui isso muda os botoes tambem, nao so o menu:
+          // um botao que aparece na conferencia e some no uso real nao serve
+          // de conferencia. Os dados continuam sendo os de verdade, porque
+          // quem manda neles e o cadastro, nao esta tela.
+          var comoSe = (Auth.verComo && Auth.verComo()) || "";
+          var podeSimular = real === "admin" || real === "gestor";
+          aplicarPapel(comoSe && podeSimular ? comoSe : real);
+        }).catch(function () { aplicarPapel(""); });
+      }
+
+      function carregar() {
+        carregando = true; falha = "";
+        if (DEMO) {
+          itens = catalogoDemo();
+          carregando = false;
+          return Promise.resolve();
+        }
+        return Auth.cliente.from("cronograma_itens")
+          .select("id, ciclo, situacao, data_prevista_inicio, data_prevista_fim, " +
+                  "semana_referencia, data_proposta_inicio, data_proposta_fim, " +
+                  "data_realizada_inicio, data_realizada_fim, auditoria_id, motivo, " +
+                  "observacao, confirmada_em, " +
+                  "epos!inner(id, nome, cidade, uf, regional, cod_fornecedor, base, ativo)")
+          .eq("ciclo", CICLO)
+          .then(function (r) {
+            if (!r || r.error) {
+              throw new Error((r && r.error && r.error.message) ||
+                              "nao foi possivel ler o cronograma");
+            }
+            itens = (r.data || []).map(normalizar);
+            itens.sort(function (a, b) {
+              if (a.regional !== b.regional) return a.regional < b.regional ? -1 : 1;
+              if (a.prevIni != null && b.prevIni != null && a.prevIni !== b.prevIni) {
+                return a.prevIni - b.prevIni;
+              }
+              if (a.prevIni == null && b.prevIni != null) return 1;
+              if (a.prevIni != null && b.prevIni == null) return -1;
+              return a.nome.localeCompare(b.nome, "pt-BR");
+            });
+            carregando = false;
+          });
+      }
+
+      function carregarUltimaImportacao() {
+        if (DEMO || !podeMontar) return Promise.resolve();
+        return Auth.cliente.from("cronograma_importacoes")
+          .select("arquivo, criadas, atualizadas, desativadas, autor_nome, criado_em")
+          .order("criado_em", { ascending: false })
+          .limit(1)
+          .then(function (r) {
+            if (!r || r.error) return;      // e so um rodape: nao vale derrubar a tela
+            ultimaImportacao = (r.data && r.data[0]) || null;
+          })
+          .catch(function () {});
+      }
+
+      // ------------------------------------------------------------------
+      // Filtro
+      // ------------------------------------------------------------------
+      function visiveis() {
+        var busca = filtro.busca.toLowerCase();
+        return itens.filter(function (it) {
+          if (filtro.regional && it.regional !== filtro.regional) return false;
+          if (filtro.situacao === "pendente") {
+            if (!ehPendencia(it)) return false;
+          } else if (filtro.situacao && it.situacao !== filtro.situacao) {
+            return false;
+          }
+          if (!busca) return true;
+          return (it.nome + " " + it.cod + " " + it.cidade + " " + it.uf)
+            .toLowerCase().indexOf(busca) >= 0;
+        });
+      }
+
+      // A pendencia depende de quem esta olhando: o gerente da Claro responde
+      // o que a APSIS mandou, e a APSIS responde o que a Claro sugeriu.
+      function ehPendencia(it) {
+        if (papel === "cliente") return it.situacao === "aguardando_claro";
+        if (papel === "auditor") {
+          return it.situacao === "confirmada" && it.prevIni != null && it.prevIni < hojeN();
+        }
+        return it.situacao === "aguardando_apsis";
+      }
+
+      function contarPendencias() {
+        var n = 0;
+        itens.forEach(function (it) { if (ehPendencia(it)) n += 1; });
+        return n;
+      }
+
+      // ------------------------------------------------------------------
+      // Desenho
+      // ------------------------------------------------------------------
+      function render() {
+        renderAviso();
+        renderKpis();
+        renderFiltros();
+        renderConteudo();
+        renderLegenda();
+        renderRodape();
+        renderBotoes();
+      }
+
+      function renderAviso() {
+        var alvo = $("aviso");
+        if (carregando || falha) { alvo.innerHTML = ""; return; }
+        var n = contarPendencias();
+        if (!n) { alvo.innerHTML = ""; return; }
+
+        var titulo, texto;
+        if (papel === "cliente") {
+          titulo = n === 1 ? "1 data esperando sua resposta"
+                           : n + " datas esperando sua resposta";
+          texto = n === 1
+            ? "A APSIS propos uma data. Voce pode aprovar ou sugerir outra."
+            : "A APSIS propos data para estas unidades. Em cada uma voce pode " +
+              "aprovar ou sugerir outra data.";
+        } else if (papel === "auditor") {
+          titulo = n === 1 ? "1 visita para registrar" : n + " visitas para registrar";
+          texto = "A data ja passou e ainda nao ha registro do que aconteceu.";
+        } else {
+          titulo = n === 1 ? "A Claro sugeriu outra data para 1 unidade"
+                           : "A Claro sugeriu outra data para " + n + " unidades";
+          texto = "Abra cada uma para aceitar a data sugerida ou responder com outra.";
+        }
+
+        alvo.innerHTML =
+          '<div class="tk-aviso" style="margin-bottom:16px;">' +
+            '<i class="ti ti-bell-ringing tk-ico" aria-hidden="true"></i>' +
+            '<div class="tk-aviso-corpo">' +
+              "<b>" + esc(titulo) + "</b><p>" + esc(texto) + "</p>" +
+            "</div>" +
+            '<button class="btn btn-sm btn-primary" type="button" id="aviso-ir">' +
+              (n === 1 ? "Ver" : "Ver as " + n) + "</button>" +
+          "</div>";
+
+        $("aviso-ir").addEventListener("click", function () {
+          filtro.situacao = "pendente";
+          $("f-situacao").value = "pendente";
+          render();
+          var card = document.querySelector(".card.mb-0");
+          if (card && card.scrollIntoView) card.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+
+      function renderKpis() {
+        if (carregando || falha) { $("kpis").innerHTML = ""; return; }
+        var c = { total: 0, confirmada: 0, claro: 0, apsis: 0, realizada: 0, atraso: 0 };
+        itens.forEach(function (it) {
+          if (it.situacao === "cancelada") return;
+          c.total += 1;
+          if (it.situacao === "confirmada") c.confirmada += 1;
+          if (it.situacao === "aguardando_claro") c.claro += 1;
+          if (it.situacao === "aguardando_apsis") c.apsis += 1;
+          if (it.situacao === "realizada") c.realizada += 1;
+          if (atrasada(it)) c.atraso += 1;
+        });
+
+        var cartoes = [
+          { f: "", ico: "ti-building-warehouse", rot: "Unidades no ciclo", v: c.total, extra: "" },
+          { f: "confirmada", ico: "ti-calendar-check", rot: "Datas confirmadas", v: c.confirmada,
+            extra: c.atraso ? '<span class="kpi-delta delta-down">' +
+              '<i class="ti ti-alert-triangle" aria-hidden="true"></i>' +
+              c.atraso + (c.atraso === 1 ? " fora do prazo" : " fora do prazo") + "</span>" : "" },
+          { f: "aguardando_claro", ico: "ti-clock-hour-4", rot: "Aguardando a Claro", v: c.claro, extra: "" },
+          { f: "aguardando_apsis", ico: "ti-arrow-back-up", rot: "Aguardando a APSIS", v: c.apsis, extra: "" },
+          { f: "realizada", ico: "ti-circle-check", rot: "Realizadas", v: c.realizada, extra: "" }
+        ];
+
+        $("kpis").innerHTML = cartoes.map(function (k) {
+          return '<button class="kpi" type="button" data-filtro="' + k.f + '" ' +
+                 'style="text-align:left;font-family:inherit;cursor:pointer;">' +
+            '<div class="kpi-top">' +
+              '<span class="kpi-icon"><i class="ti ' + k.ico + '" aria-hidden="true"></i></span>' +
+              '<span class="kpi-label">' + esc(k.rot) + "</span>" +
+            "</div>" +
+            '<div class="kpi-value tnum">' + k.v + "</div>" + k.extra +
+          "</button>";
+        }).join("");
+
+        Array.prototype.forEach.call($("kpis").querySelectorAll("[data-filtro]"), function (b) {
+          b.addEventListener("click", function () {
+            filtro.situacao = b.getAttribute("data-filtro");
+            $("f-situacao").value = filtro.situacao;
+            render();
+          });
+        });
+      }
+
+      function renderFiltros() {
+        var sel = $("f-regional");
+        if (sel.getAttribute("data-pronto") !== "1") {
+          var conta = {};
+          itens.forEach(function (it) {
+            var r = it.regional || "sem regional";
+            conta[r] = (conta[r] || 0) + 1;
+          });
+          var chaves = Object.keys(conta).sort();
+          sel.innerHTML = '<option value="">Todas as regionais</option>' +
+            chaves.map(function (r) {
+              return '<option value="' + esc(r) + '">' + esc(r) + " (" + conta[r] + ")</option>";
+            }).join("");
+          sel.setAttribute("data-pronto", "1");
+        }
+        $("chips-escala").style.display = visao === "grafico" ? "" : "none";
+      }
+
+      function renderConteudo() {
+        var alvo = $("conteudo");
+
+        if (carregando) {
+          alvo.innerHTML = '<div class="empty"><p>Carregando o cronograma...</p></div>';
+          return;
+        }
+        if (falha) {
+          alvo.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-alert-circle" aria-hidden="true"></i>' +
+            "<p>" + esc(falha) + "</p></div>";
+          return;
+        }
+        if (!itens.length) {
+          alvo.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-calendar-off" aria-hidden="true"></i>' +
+            "<p>Nenhuma unidade no cronograma ainda." +
+            (podeMontar ? " Baixe o modelo, preencha e envie a planilha." : "") + "</p></div>";
+          return;
+        }
+
+        var lista = visiveis();
+        if (!lista.length) {
+          alvo.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-filter-off" aria-hidden="true"></i>' +
+            "<p>Nenhuma unidade com esses filtros.</p></div>";
+          return;
+        }
+
+        if (visao === "lista") desenharLista(alvo, lista);
+        else desenharGantt(alvo, lista);
+      }
+
+      function agruparPorRegional(lista) {
+        var ordem = [], mapa = {};
+        lista.forEach(function (it) {
+          var r = it.regional || "Sem regional";
+          if (!mapa[r]) { mapa[r] = { reg: r, itens: [], realizadas: 0 }; ordem.push(r); }
+          mapa[r].itens.push(it);
+          if (it.situacao === "realizada") mapa[r].realizadas += 1;
+        });
+        ordem.sort();
+        return ordem.map(function (r) { return mapa[r]; });
+      }
+
+      // ----------------------------------------------------------- roadmap
+      // O intervalo desenhado cobre todas as datas visiveis, sempre inclui
+      // hoje, comeca numa segunda e termina num domingo. Assim o total de
+      // dias e multiplo de sete e a grade de semanas fecha sem sobra.
+      function dominio(lista) {
+        var campos = ["prevIni", "prevFim", "propIni", "propFim", "realIni", "realFim"];
+        var min = null, max = null, i, k, v;
+        for (i = 0; i < lista.length; i++) {
+          for (k = 0; k < campos.length; k++) {
+            v = lista[i][campos[k]];
+            if (v == null) continue;
+            if (min === null || v < min) min = v;
+            if (max === null || v > max) max = v;
+          }
+        }
+        var h = hojeN();
+        if (min === null) { min = h; max = h; }
+        if (h < min) min = h;
+        if (h > max) max = h;
+        var ini = segunda(min) - 7;
+        var fim = segunda(max) + 13;
+        var semanas = Math.round((fim - ini + 1) / 7);
+        // Com duas datas coladas, uma barra sozinha ocuparia a tela inteira.
+        if (semanas < 8) { semanas = 8; fim = ini + semanas * 7 - 1; }
+        return { ini: ini, fim: fim, dias: fim - ini + 1, semanas: semanas };
+      }
+
+      function pctEsq(d, n)     { return (n - d.ini) / d.dias * 100; }
+      function pctLarg(d, a, b) { return (b - a + 1) / d.dias * 100; }
+
+      function htmlGrade(d) {
+        var out = "", n;
+        for (n = d.ini; n <= d.fim; n += 7) {
+          out += '<span class="gan-col" style="left:' + pctEsq(d, n).toFixed(4) + '%"></span>';
+        }
+        var h = hojeN();
+        if (h >= d.ini && h <= d.fim) {
+          out += '<span class="gan-hoje" style="left:' + pctEsq(d, h).toFixed(4) + '%"></span>';
+        }
+        return '<div class="gan-grade" aria-hidden="true">' + out + "</div>";
+      }
+
+      function htmlCabecalho(d) {
+        var out = "", n = d.ini, dt, ano, mes, ultimo, f;
+        while (n <= d.fim) {
+          dt = new Date(n * MS);
+          ano = dt.getUTCFullYear(); mes = dt.getUTCMonth();
+          ultimo = Math.floor(Date.UTC(ano, mes + 1, 0) / MS);
+          f = ultimo < d.fim ? ultimo : d.fim;
+          out += '<span class="gan-mes" style="left:' + pctEsq(d, n).toFixed(4) +
+                 "%;width:" + pctLarg(d, n, f).toFixed(4) + '%">' +
+                 MESES[mes] + " " + ano + "</span>";
+          n = f + 1;
+        }
+        for (n = d.ini; n <= d.fim; n += 7) {
+          dt = new Date(n * MS);
+          out += '<span class="gan-sem-cel" style="left:' + pctEsq(d, n).toFixed(4) + '%">' +
+                 dt.getUTCDate() + "/" + (dt.getUTCMonth() + 1) + "</span>";
+        }
+        return '<div class="gan-cab">' +
+                 '<div class="gan-rot">Unidade</div>' +
+                 '<div class="gan-cab-faixa">' + out + "</div>" +
+               "</div>";
+      }
+
+      function htmlBarras(d, it) {
+        var h = "", fim, tarde, fora;
+
+        if (it.prevIni != null) {
+          fim = it.prevFim != null ? it.prevFim : it.prevIni;
+          tarde = atrasada(it);
+          h += '<button type="button" class="gan-barra gan-prev s-' + esc(it.situacao) +
+               (tarde ? " is-atrasada" : "") + '" data-item="' + esc(it.id) + '"' +
+               ' style="left:' + pctEsq(d, it.prevIni).toFixed(4) +
+               "%;width:" + pctLarg(d, it.prevIni, fim).toFixed(4) + '%"' +
+               ' aria-label="' + esc(it.nome + ", " + ROTULO[it.situacao] + ", " +
+                 periodo(it.prevIni, fim) + (tarde ? ", fora do prazo" : "")) + '">' +
+               (tarde ? '<i class="ti ti-alert-triangle" aria-hidden="true"></i>' : "") +
+               "</button>";
+        }
+
+        if (it.situacao === "aguardando_apsis" && it.propIni != null) {
+          fim = it.propFim != null ? it.propFim : it.propIni;
+          h += '<button type="button" class="gan-barra gan-prop" data-item="' + esc(it.id) + '"' +
+               ' style="left:' + pctEsq(d, it.propIni).toFixed(4) +
+               "%;width:" + pctLarg(d, it.propIni, fim).toFixed(4) + '%"' +
+               ' aria-label="' + esc("Data sugerida pela Claro: " + periodo(it.propIni, fim)) +
+               '"></button>';
+        }
+
+        if (it.realIni != null) {
+          fim = it.realFim != null ? it.realFim : it.realIni;
+          fora = it.prevIni != null &&
+            (it.realIni < it.prevIni ||
+             it.realIni > (it.prevFim != null ? it.prevFim : it.prevIni));
+          h += '<button type="button" class="gan-barra gan-real' + (fora ? " fora-da-data" : "") +
+               '" data-item="' + esc(it.id) + '"' +
+               ' style="left:' + pctEsq(d, it.realIni).toFixed(4) +
+               "%;width:" + pctLarg(d, it.realIni, fim).toFixed(4) + '%"' +
+               ' aria-label="' + esc("Realizada em " + periodo(it.realIni, fim) +
+                 (fora ? ", fora da data combinada" : "")) + '">' +
+               '<i class="ti ti-check" aria-hidden="true"></i></button>';
+        } else if (it.situacao === "nao_realizada") {
+          h += '<span class="gan-nao" style="left:' +
+               (it.prevIni != null ? pctEsq(d, it.prevIni).toFixed(4) : "0") + '%">' +
+               '<i class="ti ti-x" aria-hidden="true"></i> nao aconteceu</span>';
+        }
+
+        if (!h) {
+          h = '<span class="gan-semdata">' +
+              esc(it.semana ? it.semana + ", data a combinar" : "data a combinar") + "</span>";
+        }
+        return h;
+      }
+
+      function htmlLinha(d, it) {
+        return '<div class="gan-linha" data-item="' + esc(it.id) + '">' +
+          '<div class="gan-rot" title="' + esc(it.nome) + '">' +
+            "<b>" + esc(it.nome) + "</b>" +
+            "<span>" + (it.cod ? "Cod. " + esc(it.cod) + ", " : "") + esc(it.cidade) +
+            (atrasada(it) ? ' <span class="atraso">fora do prazo</span>' : "") +
+            "</span>" +
+          "</div>" +
+          '<div class="gan-faixa">' + htmlBarras(d, it) + "</div>" +
+        "</div>";
+      }
+
+      function desenharGantt(alvo, lista) {
+        // O intervalo e calculado uma vez sobre todas as linhas filtradas e
+        // vale para todos os grupos: senao agosto de SP ficaria em posicao
+        // diferente de agosto de MG e a comparacao visual mentiria.
+        var d = dominio(lista);
+        var corpo = "";
+
+        agruparPorRegional(lista).forEach(function (g) {
+          var aberto = !grupoFechado[g.reg];
+          corpo +=
+            '<div class="gan-grupo"><div class="gan-rot">' +
+              '<button type="button" class="gan-grupo-btn" data-grupo="' + esc(g.reg) + '"' +
+                ' aria-expanded="' + (aberto ? "true" : "false") + '">' +
+                '<i class="ti ti-chevron-down" aria-hidden="true"></i>' + esc(g.reg) +
+                ", " + g.itens.length + (g.itens.length === 1 ? " unidade" : " unidades") +
+                ", " + g.realizadas + " realizadas</button>" +
+            "</div>" +
+            '<div class="gan-faixa"></div></div>' +
+            '<div data-bloco="' + esc(g.reg) + '"' + (aberto ? "" : ' style="display:none;"') + '>' +
+              g.itens.map(function (it) { return htmlLinha(d, it); }).join("") +
+            "</div>";
+        });
+
+        alvo.innerHTML =
+          '<div class="gan ' + (escala === "mes" ? "esc-mes" : "esc-semana") + '" id="gan">' +
+            '<div class="gan-scroll" id="gan-scroll" tabindex="0" role="region"' +
+              ' aria-label="Cronograma de auditorias, planejado e realizado">' +
+              '<div class="gan-canvas" style="--gan-sems:' + d.semanas + '">' +
+                htmlCabecalho(d) +
+                '<div class="gan-corpo">' + htmlGrade(d) + corpo + "</div>" +
+              "</div>" +
+            "</div>" +
+          "</div>";
+
+        // Primeira abertura: rola ate perto de hoje, nao ate o inicio do ciclo.
+        var sc = $("gan-scroll");
+        var rot = sc.querySelector(".gan-rot");
+        var largRot = rot ? rot.offsetWidth : 236;
+        var alvoX = (pctEsq(d, hojeN() - 10) / 100) * (sc.scrollWidth - largRot);
+        sc.scrollLeft = alvoX > 0 ? alvoX : 0;
+      }
+
+      // ------------------------------------------------------------- lista
+      function desenharLista(alvo, lista) {
+        var linhas = lista.map(function (it) {
+          return "<tr>" +
+            '<td><div class="epo-nome-cel"><b>' + esc(it.nome) + "</b>" +
+              (it.cod ? "<span>Cod. " + esc(it.cod) +
+                (it.base ? " / " + esc(it.base) : "") + "</span>" : "") + "</div></td>" +
+            "<td>" + esc(it.cidade) + (it.uf ? " / " + esc(it.uf) : "") + "</td>" +
+            "<td>" + esc(it.regional) + "</td>" +
+            "<td>" + celulaData(it) + "</td>" +
+            '<td><span class="badge ' + BADGE[it.situacao] + '">' +
+              esc(ROTULO[it.situacao]) + "</span>" +
+              (atrasada(it) ? ' <span class="tag" style="color:var(--danger);">fora do prazo</span>' : "") +
+            "</td>" +
+            "<td>" + celulaRealizacao(it) + "</td>" +
+            '<td class="num">' +
+              '<button class="btn btn-ghost btn-sm" type="button" data-item="' + esc(it.id) + '">' +
+                "Abrir</button></td>" +
+          "</tr>";
+        }).join("");
+
+        alvo.innerHTML =
+          '<div class="table-wrap"><table class="table">' +
+            "<thead><tr>" +
+              "<th>Unidade</th><th>Cidade / UF</th><th>Regional</th>" +
+              "<th>Data planejada</th><th>Situacao</th><th>O que aconteceu</th>" +
+              '<th class="num"></th>' +
+            "</tr></thead><tbody>" + linhas + "</tbody></table></div>";
+      }
+
+      function celulaData(it) {
+        if (it.prevIni == null) {
+          return '<span class="muted"><i class="ti ti-calendar-question" aria-hidden="true"></i> ' +
+                 esc(it.semana ? it.semana : "a combinar") + "</span>";
+        }
+        var txt = periodo(it.prevIni, it.prevFim != null ? it.prevFim : it.prevIni);
+        if (it.situacao === "aguardando_apsis" && it.propIni != null) {
+          txt += '<br><span class="muted" style="font-size:11.5px;">Claro sugeriu ' +
+                 esc(periodo(it.propIni, it.propFim != null ? it.propFim : it.propIni)) + "</span>";
+        }
+        return txt;
+      }
+
+      function celulaRealizacao(it) {
+        if (it.realIni != null) {
+          var t = periodo(it.realIni, it.realFim != null ? it.realFim : it.realIni);
+          return '<span style="color:var(--success);font-weight:600;">' + esc(t) + "</span>";
+        }
+        if (it.situacao === "nao_realizada") {
+          return '<span style="color:var(--danger);" title="' + esc(it.motivo || "") +
+                 '">nao aconteceu</span>';
+        }
+        return '<span class="muted">-</span>';
+      }
+
+      // ----------------------------------------------------------- legenda
+      function renderLegenda() {
+        if (carregando || falha || !itens.length) { $("legenda").innerHTML = ""; return; }
+        var itensLegenda = [
+          { c: "aguardando", t: "Aguardando a Claro" },
+          { c: "sugerida",   t: "Data sugerida pela Claro" },
+          { c: "confirmada", t: "Data confirmada" },
+          { c: "realizada",  t: "Realizada" },
+          { c: "fora",       t: "Realizada fora da data" },
+          { c: "atrasada",   t: "Fora do prazo" }
+        ];
+        $("legenda").innerHTML = itensLegenda.map(function (l) {
+          return "<span><i class=\"gan-amostra " + l.c + "\" aria-hidden=\"true\"></i>" +
+                 esc(l.t) + "</span>";
+        }).join("") +
+        '<span><i class="ti ti-line-dashed" aria-hidden="true" style="color:var(--apsis-orange);"></i>' +
+        "A linha laranja marca hoje</span>";
+      }
+
+      function renderRodape() {
+        if (carregando || falha) { $("rodape").innerHTML = ""; return; }
+        var ativos = itens.filter(function (it) { return it.situacao !== "cancelada"; });
+        var feitas = ativos.filter(function (it) { return it.situacao === "realizada"; });
+        var noPrazo = feitas.filter(function (it) {
+          if (it.prevIni == null || it.realIni == null) return false;
+          return it.realIni >= it.prevIni &&
+                 it.realIni <= (it.prevFim != null ? it.prevFim : it.prevIni);
+        });
+        var txt = ativos.length + (ativos.length === 1 ? " unidade" : " unidades") +
+                  " no ciclo " + CICLO + ", " + feitas.length + " realizadas";
+        if (feitas.length) {
+          txt += ", " + Math.round(noPrazo.length / feitas.length * 100) +
+                 "% dentro da data combinada";
+        }
+        txt += ".";
+        if (ultimaImportacao) {
+          txt += " Ultima planilha enviada em " + fmtDataHora(ultimaImportacao.criado_em) +
+                 (ultimaImportacao.autor_nome ? " por " + ultimaImportacao.autor_nome : "") +
+                 ": " + ultimaImportacao.criadas + " novas, " +
+                 ultimaImportacao.atualizadas + " atualizadas.";
+        }
+        $("rodape").textContent = txt;
+      }
+
+      function renderBotoes() {
+        $("btn-modelo").classList.toggle("is-hidden", !podeMontar);
+        $("btn-planilha").classList.toggle("is-hidden", !podeMontar);
+
+        var prontas = itens.filter(function (it) {
+          return it.situacao === "sem_data" && it.prevIni != null;
+        });
+        var mostra = podeMontar && prontas.length > 0;
+        $("btn-enviar").classList.toggle("is-hidden", !mostra);
+        if (mostra) {
+          $("btn-enviar-txt").textContent = "Enviar " + prontas.length +
+            (prontas.length === 1 ? " data para aprovacao" : " datas para aprovacao");
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // Modal do ticket
+      // ------------------------------------------------------------------
+      function abrirTicket(id) {
+        var it = null;
+        itens.forEach(function (x) { if (x.id === id) it = x; });
+        if (!it) return;
+        itemAberto = it;
+        modoForcado = "";
+
+        $("tk-titulo").textContent = it.nome;
+        $("tk-corpo").innerHTML =
+          '<div class="cron-cols">' +
+            '<div id="tk-esq"></div>' +
+            '<div><p class="col-titulo"><i class="ti ti-history" aria-hidden="true"></i>' +
+              "O que ja aconteceu</p><div id=\"tk-fio\">Carregando...</div></div>" +
+          "</div>";
+        montarLadoEsquerdo(it);
+        montarRodapeTicket(it);
+        $("tk-modal").classList.add("is-open");
+        carregarFio(it);
+      }
+
+      function fecharTicket() {
+        $("tk-modal").classList.remove("is-open");
+        itemAberto = null;
+        modoForcado = "";
+      }
+
+      function montarLadoEsquerdo(it) {
+        var prevTxt = it.prevIni != null
+          ? periodo(it.prevIni, it.prevFim != null ? it.prevFim : it.prevIni)
+          : (it.semana ? it.semana : "ainda sem data");
+
+        var estado;
+        if (it.situacao === "aguardando_claro") {
+          estado = "Enviada para a Claro. Aguardando a resposta.";
+        } else if (it.situacao === "aguardando_apsis") {
+          estado = "A Claro sugeriu " +
+            periodo(it.propIni, it.propFim != null ? it.propFim : it.propIni) + ".";
+        } else if (it.situacao === "confirmada") {
+          estado = "Data combinada com a Claro" +
+            (it.confirmadaEm ? " em " + fmtDataHora(it.confirmadaEm) : "") + ".";
+        } else if (it.situacao === "realizada") {
+          estado = "Auditoria realizada em " +
+            periodo(it.realIni, it.realFim != null ? it.realFim : it.realIni) + ".";
+        } else if (it.situacao === "nao_realizada") {
+          estado = "Nao aconteceu: " + (it.motivo || "sem motivo registrado") + ".";
+        } else if (it.situacao === "cancelada") {
+          estado = "Esta unidade esta fora do ciclo " + CICLO + ".";
+        } else {
+          estado = "Ainda nao foi combinada nenhuma data.";
+        }
+
+        var html =
+          '<p class="col-titulo"><i class="ti ti-calendar-event" aria-hidden="true"></i>' +
+            "Data em questao</p>" +
+          '<div class="tk-destaque"><b>' + esc(prevTxt) + "</b>" +
+            "<span>" + esc(estado) + "</span></div>" +
+          '<p class="muted" style="margin:10px 0 14px;font-size:12.5px;">' +
+            (it.cod ? "Cod. " + esc(it.cod) + ", " : "") + esc(it.cidade) +
+            (it.uf ? "/" + esc(it.uf) : "") +
+            (it.regional && it.regional !== it.uf ? ", regional " + esc(it.regional) : "") +
+          "</p>" +
+          '<div id="tk-form"></div>' +
+          '<p class="muted" style="margin-top:14px;font-size:12px;">' +
+            "A Claro ve esta mesma tela e responde por aqui.</p>";
+
+        $("tk-esq").innerHTML = html;
+        montarFormulario(it);
+      }
+
+      function campoData(id, rot, valor, dica) {
+        return '<div class="field"><label for="' + id + '">' + esc(rot) + "</label>" +
+          '<input class="input" id="' + id + '" type="date" value="' + esc(valor || "") +
+          '" min="2020-01-01" max="2035-12-31">' +
+          (dica ? '<span class="hint">' + esc(dica) + "</span>" : "") + "</div>";
+      }
+
+      function campoMensagem(id, rot) {
+        return '<div class="field"><label for="' + id + '">' + esc(rot) + "</label>" +
+          '<textarea class="textarea" id="' + id + '" rows="2"></textarea></div>';
+      }
+
+      // O formulario segue a situacao e o papel. Nenhum botao aparece para
+      // quem o servidor recusaria: a regra e a mesma dos dois lados.
+      function montarFormulario(it) {
+        var alvo = $("tk-form");
+        var modo = modoDoTicket(it);
+        var html = "";
+
+        if (modo === "definir") {
+          html = (it.situacao === "confirmada"
+            ? '<div class="tk-aviso" style="margin-bottom:14px;">' +
+                '<i class="ti ti-alert-triangle tk-ico" aria-hidden="true"></i>' +
+                '<div class="tk-aviso-corpo"><b>Esta data ja foi aprovada pela Claro</b>' +
+                "<p>Trocar a data desfaz a aprovacao: a unidade volta a esperar " +
+                "resposta e precisa ser aprovada de novo.</p></div></div>"
+            : "") +
+            campoData("tk-ini", "Data da visita", it.prevIniIso,
+                   "A Claro precisa aprovar antes de valer.") +
+                 campoData("tk-fim", "Ate (opcional)", it.prevFimIso,
+                   "Deixe em branco para visita de um dia so.") +
+                 campoMensagem("tk-msg", "Mensagem para a Claro (opcional)");
+        } else if (modo === "propor") {
+          html = campoData("tk-ini", "Data que voce sugere", it.prevIniIso) +
+                 campoData("tk-fim", "Ate (opcional)", "") +
+                 campoMensagem("tk-msg", "Por que essa data nao serve (opcional)");
+        } else if (modo === "responder") {
+          html = campoData("tk-ini", "Se preferir outra data, informe aqui", it.propIniIso) +
+                 campoData("tk-fim", "Ate (opcional)", it.propFimIso) +
+                 campoMensagem("tk-msg", "Mensagem (opcional)");
+        } else if (modo === "registrar") {
+          html = htmlFormRealizacao(it);
+        }
+
+        alvo.innerHTML = html;
+        if (modo === "registrar") ligarFormRealizacao();
+      }
+
+      function modoDoTicket(it) {
+        if (modoForcado === "remarcar" && podeMontar) return "definir";
+        if (podeMontar && (it.situacao === "sem_data" || it.situacao === "aguardando_claro")) {
+          return "definir";
+        }
+        if (podeMontar && it.situacao === "aguardando_apsis") return "responder";
+        if (papel === "cliente" && (it.situacao === "aguardando_claro" ||
+                                    it.situacao === "confirmada")) {
+          return "propor";
+        }
+        if (podeRegistrar && it.situacao === "confirmada") return "registrar";
+        if (podeRegistrar && (it.situacao === "realizada" || it.situacao === "nao_realizada")) {
+          return "registrar";
+        }
+        return "";
+      }
+
+      function htmlFormRealizacao(it) {
+        var padrao = it.realIniIso || it.prevIniIso || "";
+        var hoje = paraIso(hojeN());
+        return '<div class="radio-group" role="radiogroup" aria-label="O que aconteceu">' +
+            '<input type="radio" name="tk-oq" id="tk-oq-sim" value="sim"' +
+              (it.situacao !== "nao_realizada" ? " checked" : "") + ">" +
+            '<label for="tk-oq-sim">A auditoria aconteceu</label>' +
+            '<input type="radio" name="tk-oq" id="tk-oq-nao" value="nao"' +
+              (it.situacao === "nao_realizada" ? " checked" : "") + ">" +
+            '<label for="tk-oq-nao">Nao aconteceu</label>' +
+          "</div>" +
+          '<div id="tk-sim">' +
+            '<div class="field"><label for="tk-rini">Data em que aconteceu</label>' +
+              '<input class="input" id="tk-rini" type="date" value="' + esc(padrao) +
+              '" min="2020-01-01" max="' + hoje + '"></div>' +
+            '<div class="field"><label for="tk-rfim">Ate (opcional)</label>' +
+              '<input class="input" id="tk-rfim" type="date" value="' + esc(it.realFimIso || "") +
+              '" min="2020-01-01" max="' + hoje + '"></div>' +
+            '<div class="field"><label for="tk-aud">Vincular ao relatorio preenchido (opcional)</label>' +
+              '<select class="select" id="tk-aud"><option value="">Nao vincular agora</option></select></div>' +
+          "</div>" +
+          '<div id="tk-nao" style="display:none;">' +
+            '<div class="field"><label for="tk-motivo">Por que nao aconteceu</label>' +
+              '<textarea class="textarea" id="tk-motivo" rows="3">' +
+              esc(it.motivo || "") + "</textarea></div>" +
+          "</div>";
+      }
+
+      function ligarFormRealizacao() {
+        function trocar() {
+          var sim = $("tk-oq-sim").checked;
+          $("tk-sim").style.display = sim ? "" : "none";
+          $("tk-nao").style.display = sim ? "none" : "";
+        }
+        $("tk-oq-sim").addEventListener("change", trocar);
+        $("tk-oq-nao").addEventListener("change", trocar);
+        trocar();
+        carregarAuditorias(itemAberto);
+      }
+
+      function carregarAuditorias(it) {
+        if (DEMO || !it) return;
+        Auth.cliente.from("auditorias")
+          .select("id, data_visita, criado_em, processos(nome)")
+          .eq("epo_id", it.epoId)
+          .order("criado_em", { ascending: false })
+          .limit(20)
+          .then(function (r) {
+            if (!r || r.error) return;      // campo opcional: nao derruba o modal
+            var sel = $("tk-aud");
+            if (!sel) return;
+            (r.data || []).forEach(function (a) {
+              var op = document.createElement("option");
+              op.value = a.id;
+              op.textContent = ((a.processos && a.processos.nome) || "Relatorio") +
+                (a.data_visita ? " - " + periodo(dn(a.data_visita), null) : "");
+              if (it.auditoriaId === a.id) op.selected = true;
+              sel.appendChild(op);
+            });
+          })
+          .catch(function () {});
+      }
+
+      function montarRodapeTicket(it) {
+        var modo = modoDoTicket(it);
+        var botoes = '<button class="btn btn-ghost" type="button" id="tk-cancelar">Fechar</button>';
+
+        if (modo === "definir") {
+          botoes +=
+            '<button class="btn btn-ghost" type="button" data-acao="salvar">Salvar sem enviar</button>' +
+            '<button class="btn btn-primary" type="button" data-acao="enviar">' +
+              (it.situacao === "sem_data" ? "Enviar para a Claro"
+                                          : "Trocar a data e reenviar") + "</button>";
+        } else if (modo === "propor") {
+          if (it.situacao === "aguardando_claro") {
+            botoes += '<button class="btn btn-ghost" type="button" data-acao="propor">' +
+                        "Sugerir outra data</button>" +
+                      '<button class="btn btn-primary" type="button" data-acao="aprovar">' +
+                        "Aprovar esta data</button>";
+          } else {
+            botoes += '<button class="btn btn-primary" type="button" data-acao="propor">' +
+                        "Pedir outra data</button>";
+          }
+        } else if (modo === "responder") {
+          botoes += '<button class="btn btn-ghost" type="button" data-acao="enviar">' +
+                      "Responder com outra data</button>" +
+                    '<button class="btn btn-primary" type="button" data-acao="aceitar">' +
+                      "Aceitar a data sugerida</button>";
+        } else if (modo === "registrar") {
+          botoes += '<button class="btn btn-primary" type="button" data-acao="registrar">' +
+                      "Salvar o registro</button>";
+        }
+
+        // Data combinada muda: obra, feriado, equipe indisponivel. Sem este
+        // caminho a coordenacao teria de tirar a unidade do ciclo e recomecar.
+        if (podeMontar && it.situacao === "confirmada" && modoForcado !== "remarcar") {
+          botoes = botoes.replace('id="tk-cancelar">Fechar</button>',
+            'id="tk-cancelar">Fechar</button>' +
+            '<button class="btn btn-ghost" type="button" data-acao="remarcar">Remarcar</button>');
+        }
+
+        if (podeMontar && it.situacao !== "cancelada" && it.situacao !== "realizada") {
+          botoes = '<button class="btn btn-ghost" type="button" data-acao="cancelar"' +
+                   ' style="margin-right:auto;">Tirar do ciclo</button>' + botoes;
+        } else if (podeMontar && it.situacao === "cancelada") {
+          botoes = '<button class="btn btn-ghost" type="button" data-acao="reabrir"' +
+                   ' style="margin-right:auto;">Trazer de volta</button>' + botoes;
+        }
+
+        $("tk-rodape").innerHTML = botoes;
+        $("tk-cancelar").addEventListener("click", fecharTicket);
+        Array.prototype.forEach.call($("tk-rodape").querySelectorAll("[data-acao]"),
+          function (b) {
+            b.addEventListener("click", function () { executar(b.getAttribute("data-acao"), b); });
+          });
+      }
+
+      function carregarFio(it) {
+        if (DEMO) {
+          $("tk-fio").innerHTML =
+            '<p class="muted">O historico aparece aqui conforme as datas vao sendo combinadas.</p>';
+          return;
+        }
+        Auth.cliente.from("cronograma_eventos")
+          .select("acao, de_situacao, para_situacao, data_inicio, data_fim, comentario, " +
+                  "autor_nome, autor_papel, criado_em, ordem")
+          .eq("item_id", it.id)
+          .order("criado_em", { ascending: false })
+          .order("ordem", { ascending: false })
+          .then(function (r) {
+            var alvo = $("tk-fio");
+            if (!alvo) return;
+            if (!r || r.error) {
+              alvo.innerHTML = '<p class="muted">Nao foi possivel carregar o historico agora.</p>';
+              return;
+            }
+            var evs = r.data || [];
+            if (!evs.length) {
+              alvo.innerHTML = '<p class="muted">Nada registrado ainda.</p>';
+              return;
+            }
+            alvo.innerHTML = '<ul class="tk-hist">' + evs.map(function (e, i) {
+              var quem = (e.autor_nome || "Alguem") +
+                (e.autor_papel ? " (" + (PAPEL_TEXTO[e.autor_papel] || e.autor_papel) + ")" : "");
+              var quando = fmtDataHora(e.criado_em);
+              var oque = ACAO_TEXTO[e.acao] || e.acao;
+              var datas = e.data_inicio
+                ? " para " + periodo(dn(e.data_inicio), e.data_fim ? dn(e.data_fim) : null)
+                : "";
+              return "<li" + (i === 0 ? ' class="is-ultimo"' : "") + ">" +
+                "<b>" + esc(quem) + "</b>" +
+                "<span>" + esc(quando + " - " + oque + datas) + "</span>" +
+                (e.comentario ? "<q>" + esc(e.comentario) + "</q>" : "") +
+              "</li>";
+            }).join("") + "</ul>";
+          })
+          .catch(function () {
+            var alvo = $("tk-fio");
+            if (alvo) alvo.innerHTML = '<p class="muted">Nao foi possivel carregar o historico agora.</p>';
+          });
+      }
+
+      // ------------------------------------------------------------------
+      // Acoes. Toda escrita passa por funcao no servidor: a tabela nao aceita
+      // gravacao direta, e uma tentativa voltaria vazia sem erro nenhum.
+      // ------------------------------------------------------------------
+      function valorData(id) {
+        var el = $(id);
+        return el && el.value ? el.value : null;
+      }
+      function valorTexto(id) {
+        var el = $(id);
+        return el && el.value.trim() ? el.value.trim() : null;
+      }
+
+      function executar(acao, botao) {
+        var it = itemAberto;
+        if (!it) return;
+
+        if (acao === "remarcar") {
+          modoForcado = "remarcar";
+          montarFormulario(it);
+          montarRodapeTicket(it);
+          return;
+        }
+
+        var chamada = null;
+
+        if (acao === "salvar" || acao === "enviar") {
+          var ini = valorData("tk-ini");
+          if (!ini) { App.toast("Informe a data da visita."); return; }
+          var fim = valorData("tk-fim");
+          if (fim && fim < ini) { App.toast("A data final nao pode ser anterior a inicial."); return; }
+          chamada = ["cronograma_definir_data", {
+            p_item: it.id, p_inicio: ini, p_fim: fim, p_semana: null,
+            p_observacao: valorTexto("tk-msg"), p_enviar: acao === "enviar"
+          }];
+        } else if (acao === "aprovar") {
+          chamada = ["cronograma_aprovar", { p_item: it.id, p_mensagem: valorTexto("tk-msg") }];
+        } else if (acao === "propor") {
+          var pi = valorData("tk-ini");
+          if (!pi) { App.toast("Informe a data que voce sugere."); return; }
+          chamada = ["cronograma_propor_data", {
+            p_item: it.id, p_inicio: pi, p_fim: valorData("tk-fim"),
+            p_motivo: valorTexto("tk-msg")
+          }];
+        } else if (acao === "aceitar") {
+          chamada = ["cronograma_aceitar_proposta", { p_item: it.id, p_mensagem: valorTexto("tk-msg") }];
+        } else if (acao === "registrar") {
+          var aconteceu = $("tk-oq-sim").checked;
+          if (aconteceu) {
+            var ri = valorData("tk-rini");
+            if (!ri) { App.toast("Informe a data em que a auditoria aconteceu."); return; }
+            chamada = ["cronograma_registrar_realizacao", {
+              p_item: it.id, p_aconteceu: true, p_inicio: ri, p_fim: valorData("tk-rfim"),
+              p_motivo: null, p_auditoria: valorTexto("tk-aud")
+            }];
+          } else {
+            var mot = valorTexto("tk-motivo");
+            if (!mot) { App.toast("Descreva por que a auditoria nao aconteceu."); return; }
+            chamada = ["cronograma_registrar_realizacao", {
+              p_item: it.id, p_aconteceu: false, p_inicio: null, p_fim: null,
+              p_motivo: mot, p_auditoria: null
+            }];
+          }
+        } else if (acao === "cancelar") {
+          App.confirmar({
+            titulo: "Tirar do ciclo",
+            texto: "A unidade " + it.nome + " sai do cronograma de " + CICLO +
+                   ".\n\nO historico fica guardado e ela pode ser trazida de volta depois.",
+            confirmar: "Tirar do ciclo", cancelar: "Voltar", perigo: true
+          }).then(function (ok) {
+            if (ok) rodar("cronograma_cancelar", { p_item: it.id, p_motivo: null }, botao);
+          });
+          return;
+        } else if (acao === "reabrir") {
+          chamada = ["cronograma_reabrir", { p_item: it.id, p_mensagem: null }];
+        }
+
+        if (chamada) rodar(chamada[0], chamada[1], botao);
+      }
+
+      function rodar(funcao, args, botao) {
+        if (DEMO) {
+          App.toast("Sem conexao com os dados agora: nada foi gravado.");
+          return;
+        }
+        if (botao) { botao.disabled = true; }
+        Auth.cliente.rpc(funcao, args).then(function (r) {
+          if (!r || r.error) {
+            // A mensagem do servidor ja vem escrita em portugues e sem termo
+            // de bastidor: e ela que a pessoa deve ler.
+            throw new Error((r && r.error && r.error.message) || "");
+          }
+          var atualizado = r.data;
+          if (atualizado && atualizado.id) {
+            var novo = normalizar(juntarEpo(atualizado, itemAberto));
+            for (var i = 0; i < itens.length; i++) {
+              if (itens[i].id === novo.id) { itens[i] = novo; break; }
+            }
+            itemAberto = novo;
+          }
+          App.toast("Pronto.");
+          fecharTicket();
+          render();
+        }).catch(function (e) {
+          if (botao) botao.disabled = false;
+          App.toast(e && e.message ? e.message
+                                   : "Nao foi possivel salvar agora. Tente novamente.");
+        });
+      }
+
+      // A funcao devolve so a linha do cronograma; os dados da unidade
+      // continuam sendo os que a tela ja tinha.
+      function juntarEpo(linha, antigo) {
+        var copia = {};
+        Object.keys(linha).forEach(function (k) { copia[k] = linha[k]; });
+        copia.epos = {
+          id: antigo.epoId, nome: antigo.nome, cidade: antigo.cidade, uf: antigo.uf,
+          regional: antigo.regional, cod_fornecedor: antigo.cod, base: antigo.base
+        };
+        return copia;
+      }
+
+      function enviarLote() {
+        var prontas = itens.filter(function (it) {
+          return it.situacao === "sem_data" && it.prevIni != null;
+        });
+        if (!prontas.length) return;
+
+        App.confirmar({
+          titulo: "Enviar para aprovacao",
+          texto: prontas.length + (prontas.length === 1 ? " data vai" : " datas vao") +
+                 " para os gerentes da Claro aprovarem.\n\n" +
+                 "Eles podem aprovar ou sugerir outra data, e a resposta volta nesta tela.",
+          confirmar: "Enviar", cancelar: "Voltar"
+        }).then(function (ok) {
+          if (!ok) return;
+          if (DEMO) { App.toast("Sem conexao com os dados agora: nada foi enviado."); return; }
+          var ids = prontas.map(function (it) { return it.id; });
+          Auth.cliente.rpc("cronograma_enviar_aprovacao", { p_itens: ids, p_mensagem: null })
+            .then(function (r) {
+              if (!r || r.error) throw new Error((r && r.error && r.error.message) || "");
+              var n = (r.data && r.data.enviados) || 0;
+              App.toast(n + (n === 1 ? " data enviada." : " datas enviadas."));
+              return carregar().then(render);
+            })
+            .catch(function (e) {
+              App.toast(e && e.message ? e.message
+                                       : "Nao foi possivel enviar agora. Tente novamente.");
+            });
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // Planilha
+      // ------------------------------------------------------------------
+      function baixarModelo(botao) {
+        botao.disabled = true;
+        PlanilhaCronograma.baixarModelo(itens, CICLO)
+          .then(function () { botao.disabled = false; })
+          .catch(function (e) {
+            botao.disabled = false;
+            App.toast(e && e.message ? e.message : "Nao foi possivel gerar o modelo agora.");
+          });
+      }
+
+      function abrirImportacao() {
+        previa = null;
+        $("imp-corpo").innerHTML =
+          '<div class="imp-alvo" id="imp-alvo" role="button" tabindex="0">' +
+            '<i class="ti ti-file-spreadsheet" aria-hidden="true"></i>' +
+            "<b>Escolha a planilha ou arraste o arquivo aqui</b>" +
+            "<small>Uma aba so, chamada Cronograma. Baixe o modelo se ainda nao tiver.</small>" +
+          "</div>" +
+          '<p class="muted" style="margin-top:12px;font-size:12.5px;">' +
+            "Nada e gravado antes de voce conferir a previa.</p>";
+        $("imp-rodape").innerHTML =
+          '<button class="btn btn-ghost" type="button" id="imp-cancelar">Fechar</button>';
+        $("imp-cancelar").addEventListener("click", fecharImportacao);
+        ligarAlvo();
+        $("imp-modal").classList.add("is-open");
+      }
+
+      function fecharImportacao() {
+        $("imp-modal").classList.remove("is-open");
+        previa = null;
+      }
+
+      function ligarAlvo() {
+        var alvo = $("imp-alvo");
+        if (!alvo) return;
+        alvo.addEventListener("click", function () { $("imp-arquivo").click(); });
+        alvo.addEventListener("keydown", function (ev) {
+          if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); $("imp-arquivo").click(); }
+        });
+        ["dragenter", "dragover"].forEach(function (n) {
+          alvo.addEventListener(n, function (ev) {
+            ev.preventDefault(); alvo.classList.add("is-sobre");
+          });
+        });
+        ["dragleave", "drop"].forEach(function (n) {
+          alvo.addEventListener(n, function (ev) {
+            ev.preventDefault(); alvo.classList.remove("is-sobre");
+          });
+        });
+        alvo.addEventListener("drop", function (ev) {
+          var f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+          if (f) lerArquivo(f);
+        });
+      }
+
+      function lerArquivo(arquivo) {
+        $("imp-corpo").innerHTML = '<p class="muted">Lendo a planilha...</p>';
+        $("imp-rodape").innerHTML =
+          '<button class="btn btn-ghost" type="button" id="imp-cancelar">Fechar</button>';
+        $("imp-cancelar").addEventListener("click", fecharImportacao);
+
+        PlanilhaCronograma.ler(arquivo).then(function (lido) {
+          previa = compararComCadastro(lido, arquivo.name);
+          mostrarPrevia();
+        }).catch(function (e) {
+          $("imp-corpo").innerHTML =
+            '<div class="empty"><i class="ti ti-file-alert" aria-hidden="true"></i><p>' +
+            esc(e && e.message ? e.message : "Nao foi possivel ler a planilha.") + "</p></div>";
+        });
+      }
+
+      // A previa e uma estimativa feita aqui no navegador. O numero que vale
+      // e o que o servidor devolve depois de gravar.
+      function compararComCadastro(lido, nomeArquivo) {
+        var porCodigo = {};
+        itens.forEach(function (it) {
+          if (it.cod) porCodigo[it.cod + "|" + (it.base || "")] = it;
+        });
+
+        var novas = [], mudam = [], iguais = [], aprovadas = [], reabrem = [];
+        var vistos = {};
+
+        lido.linhas.forEach(function (l) {
+          var chave = l.cod + "|" + (l.base || "");
+          vistos[chave] = true;
+          var atual = porCodigo[chave];
+
+          if (!atual) {
+            if (!l.nome || !l.cidade || !l.uf) {
+              lido.erros.push({ linha: l.linha,
+                motivo: "unidade nova sem nome, cidade ou UF" });
+              l.invalida = true;
+              return;
+            }
+            novas.push(l);
+            return;
+          }
+
+          var difs = [];
+          if (l.nome && l.nome !== atual.nome) difs.push("nome");
+          if (l.cidade && l.cidade !== atual.cidade) difs.push("cidade");
+          if (l.uf && l.uf !== atual.uf) difs.push("UF");
+          if (l.regional && l.regional !== atual.regional) difs.push("regional");
+          if (l.endereco) difs.push("endereco");
+          if (l.cep) difs.push("CEP");
+
+          var jaAprovada = atual.situacao === "confirmada" ||
+                           atual.situacao === "realizada" ||
+                           atual.situacao === "nao_realizada";
+          var mudaData = l.data && l.data !== atual.prevIniIso;
+
+          if (mudaData && jaAprovada) {
+            aprovadas.push({ linha: l, atual: atual });
+          } else if (mudaData) {
+            difs.push("data");
+            if (atual.situacao === "aguardando_claro" || atual.situacao === "aguardando_apsis") {
+              reabrem.push({ linha: l, atual: atual });
+            }
+          }
+
+          if (difs.length) mudam.push({ linha: l, atual: atual, campos: difs });
+          else iguais.push({ linha: l, atual: atual });
+        });
+
+        var ausentes = itens.filter(function (it) {
+          if (!it.cod) return false;
+          return !vistos[it.cod + "|" + (it.base || "")];
+        });
+
+        return {
+          arquivo: nomeArquivo, aba: lido.aba, abaEsperada: lido.abaEsperada,
+          total: lido.total, erros: lido.erros, avisos: lido.avisos,
+          linhas: lido.linhas.filter(function (l) { return !l.invalida; }),
+          novas: novas, mudam: mudam, iguais: iguais,
+          aprovadas: aprovadas, reabrem: reabrem, ausentes: ausentes,
+          desativar: {}
+        };
+      }
+
+      function bloco(titulo, aberto, corpo) {
+        return "<details class=\"imp-bloco\"" + (aberto ? " open" : "") + ">" +
+          "<summary>" + esc(titulo) + "</summary><div>" + corpo + "</div></details>";
+      }
+
+      function mostrarPrevia() {
+        var p = previa;
+        var chips = [];
+        if (p.novas.length)     chips.push(p.novas.length + (p.novas.length === 1 ? " unidade nova" : " unidades novas"));
+        if (p.mudam.length)     chips.push(p.mudam.length + (p.mudam.length === 1 ? " atualizacao" : " atualizacoes"));
+        if (p.iguais.length)    chips.push(p.iguais.length + " sem mudanca");
+        if (p.aprovadas.length) chips.push(p.aprovadas.length + " com data ja aprovada, mantidas");
+        if (p.erros.length)     chips.push(p.erros.length + (p.erros.length === 1 ? " linha com problema" : " linhas com problema"));
+
+        var html =
+          '<div class="tk-aviso" style="margin-bottom:14px;">' +
+            '<i class="ti ti-eye-check tk-ico" aria-hidden="true"></i>' +
+            '<div class="tk-aviso-corpo"><b>Nada foi gravado ainda</b>' +
+            "<p>Confira abaixo antes de continuar.</p></div></div>" +
+          '<p style="font-size:13px;margin:0 0 10px;">' + esc(p.arquivo) +
+            ', aba <b>' + esc(p.aba) + "</b>, " + p.total +
+            (p.total === 1 ? " linha lida" : " linhas lidas") + ".</p>" +
+          (p.abaEsperada ? "" :
+            '<p class="muted" style="font-size:12.5px;margin:0 0 10px;">Nao achei uma aba chamada ' +
+            'Cronograma, entao li a aba ' + esc(p.aba) + ".</p>") +
+          '<div class="imp-chips" style="margin-bottom:14px;">' +
+            chips.map(function (c) { return '<span class="chip">' + esc(c) + "</span>"; }).join("") +
+          "</div>";
+
+        if (p.reabrem.length) {
+          html += '<div class="tk-aviso" style="margin-bottom:14px;">' +
+            '<i class="ti ti-alert-triangle tk-ico" aria-hidden="true"></i>' +
+            '<div class="tk-aviso-corpo"><b>' + p.reabrem.length +
+            (p.reabrem.length === 1 ? " unidade volta" : " unidades voltam") +
+            " para sem data</b><p>A data mudou e o pedido que estava com a Claro deixa de valer. " +
+            "Vai ser preciso enviar de novo para aprovacao.</p></div></div>";
+        }
+
+        if (p.novas.length) {
+          html += bloco("Vao entrar como novas (" + p.novas.length + ")", true,
+            "<ul>" + p.novas.map(function (l) {
+              return "<li>" + esc(l.nome) + " - " + esc(l.cidade) + "/" + esc(l.uf) +
+                     ", cod. " + esc(l.cod) +
+                     (l.data ? ", " + esc(PlanilhaCronograma.paraBrasil(l.data)) : "") + "</li>";
+            }).join("") + "</ul>");
+        }
+
+        if (p.mudam.length) {
+          html += bloco("Vao ser atualizadas (" + p.mudam.length + ")", true,
+            "<ul>" + p.mudam.map(function (m) {
+              return "<li><b>" + esc(m.atual.nome) + "</b>: " + esc(m.campos.join(", ")) +
+                (m.campos.indexOf("nome") >= 0
+                  ? '<br><span class="imp-atencao">o nome muda para ' + esc(m.linha.nome) + "</span>"
+                  : "") + "</li>";
+            }).join("") + "</ul>");
+        }
+
+        if (p.aprovadas.length) {
+          html += bloco("Datas ja aprovadas, mantidas (" + p.aprovadas.length + ")", false,
+            '<p class="imp-atencao">A planilha nao altera data que a Claro ja aprovou nem visita ' +
+            "ja registrada. So o texto de semana e observacao e atualizado.</p><ul>" +
+            p.aprovadas.map(function (a) {
+              return "<li>" + esc(a.atual.nome) + " - continua em " +
+                     esc(periodo(a.atual.prevIni, a.atual.prevFim)) + "</li>";
+            }).join("") + "</ul>");
+        }
+
+        if (p.iguais.length) {
+          html += bloco("Sem mudanca (" + p.iguais.length + ")", false,
+            "<p>" + esc(p.iguais.map(function (i) { return i.atual.nome; }).join(", ")) + "</p>");
+        }
+
+        if (p.ausentes.length) {
+          html += bloco("Nao vieram nesta planilha (" + p.ausentes.length + ")", true,
+            "<p>A planilha nunca exclui unidade. No maximo desativa, e so o que voce marcar.</p>" +
+            p.ausentes.map(function (a) {
+              return '<label class="imp-desativar">' +
+                '<input type="checkbox" class="checkbox" data-desativar="' + esc(a.cod) + '">' +
+                "<span><b>" + esc(a.nome) + "</b>" +
+                "<em>Nao veio nesta planilha. Desativar tira a unidade da operacao " +
+                "e mantem tudo que ja foi registrado.</em></span></label>";
+            }).join(""));
+        }
+
+        if (p.erros.length) {
+          html += bloco("Linhas que nao vao entrar (" + p.erros.length + ")", true,
+            '<ul class="imp-erro">' + p.erros.map(function (e) {
+              return "<li>" + (e.linha ? "Linha " + e.linha + ": " : "") + esc(e.motivo) + ".</li>";
+            }).join("") + "</ul>");
+        }
+
+        if (p.avisos.length) {
+          html += bloco("Observacoes (" + p.avisos.length + ")", false,
+            "<ul>" + p.avisos.map(function (a) {
+              return "<li>" + esc(a.motivo) + ".</li>";
+            }).join("") + "</ul>");
+        }
+
+        $("imp-corpo").innerHTML = html;
+
+        Array.prototype.forEach.call(
+          $("imp-corpo").querySelectorAll("[data-desativar]"), function (c) {
+            c.addEventListener("change", function () {
+              previa.desativar[c.getAttribute("data-desativar")] = c.checked;
+            });
+          });
+
+        var quantas = p.linhas.length;
+        var rotulo = quantas
+          ? "Gravar " + quantas + (quantas === 1 ? " unidade" : " unidades") +
+            (p.erros.length ? " (" + p.erros.length +
+              (p.erros.length === 1 ? " linha fica" : " linhas ficam") + " de fora)" : "")
+          : "Nada para gravar";
+
+        $("imp-rodape").innerHTML =
+          '<button class="btn btn-ghost" type="button" id="imp-cancelar">Descartar</button>' +
+          '<button class="btn btn-primary" type="button" id="imp-gravar"' +
+            (quantas ? "" : " disabled") + ">" + esc(rotulo) + "</button>";
+        $("imp-cancelar").addEventListener("click", fecharImportacao);
+        if (quantas) $("imp-gravar").addEventListener("click", gravarPlanilha);
+      }
+
+      function gravarPlanilha() {
+        var p = previa;
+        var codigos = Object.keys(p.desativar).filter(function (c) { return p.desativar[c]; });
+
+        function seguir() {
+          if (DEMO) {
+            App.toast("Sem conexao com os dados agora: a planilha nao foi gravada.");
+            fecharImportacao();
+            return;
+          }
+          var botao = $("imp-gravar");
+          if (botao) botao.disabled = true;
+
+          Auth.cliente.rpc("cronograma_importar", {
+            p_arquivo: p.arquivo,
+            p_linhas: p.linhas,
+            p_desativar: codigos,
+            p_ciclo: CICLO
+          }).then(function (r) {
+            if (!r || r.error) throw new Error((r && r.error && r.error.message) || "");
+            var d = r.data || {};
+            var msg = (d.criadas || 0) + " novas e " + (d.atualizadas || 0) + " atualizadas.";
+            if (d.desativadas) msg += " " + d.desativadas + " desativadas.";
+            if (d.criadas !== p.novas.length || d.atualizadas !== p.mudam.length) {
+              msg = "O cadastro mudou enquanto voce conferia. Gravamos " + msg;
+            } else {
+              msg += " As novas ja aparecem na tela de EPOs.";
+            }
+            App.toast(msg);
+            fecharImportacao();
+            return carregar().then(carregarUltimaImportacao).then(render);
+          }).catch(function (e) {
+            if (botao) botao.disabled = false;
+            App.toast(e && e.message ? e.message
+                                     : "Nao foi possivel gravar a planilha agora. Tente novamente.");
+          });
+        }
+
+        if (!codigos.length) { seguir(); return; }
+
+        var nomes = p.ausentes
+          .filter(function (a) { return p.desativar[a.cod]; })
+          .map(function (a) { return a.nome; });
+
+        App.confirmar({
+          titulo: "Confirmar o envio",
+          texto: p.linhas.length + (p.linhas.length === 1 ? " unidade vai" : " unidades vao") +
+                 " ser gravadas e " + codigos.length +
+                 (codigos.length === 1 ? " vai ser desativada: " : " vao ser desativadas: ") +
+                 nomes.join(", ") +
+                 ".\n\nDesativar tira a unidade da operacao e mantem tudo que ja foi auditado.",
+          confirmar: "Gravar e desativar", cancelar: "Voltar para a previa", perigo: true
+        }).then(function (ok) { if (ok) seguir(); });
+      }
+
+      // ------------------------------------------------------------------
+      // Ligacoes
+      // ------------------------------------------------------------------
+      $("btn-modelo").addEventListener("click", function () { baixarModelo(this); });
+      $("btn-planilha").addEventListener("click", abrirImportacao);
+      $("btn-enviar").addEventListener("click", enviarLote);
+      $("tk-fechar").addEventListener("click", fecharTicket);
+      $("imp-fechar").addEventListener("click", fecharImportacao);
+
+      $("imp-arquivo").addEventListener("change", function () {
+        var f = this.files && this.files[0];
+        this.value = "";                 // permite reenviar o mesmo arquivo
+        if (f) lerArquivo(f);
+      });
+
+      $("tk-modal").addEventListener("click", function (ev) {
+        if (ev.target === this) fecharTicket();
+      });
+      $("imp-modal").addEventListener("click", function (ev) {
+        if (ev.target === this) fecharImportacao();
+      });
+      document.addEventListener("keydown", function (ev) {
+        if (ev.key !== "Escape") return;
+        if ($("tk-modal").classList.contains("is-open")) fecharTicket();
+        else if ($("imp-modal").classList.contains("is-open")) fecharImportacao();
+      });
+
+      var buscaTimer = null;
+      $("f-busca").addEventListener("input", function () {
+        var v = this.value;
+        if (buscaTimer) clearTimeout(buscaTimer);
+        buscaTimer = setTimeout(function () {
+          filtro.busca = v.trim();
+          renderConteudo();
+        }, 180);
+      });
+      $("f-regional").addEventListener("change", function () {
+        filtro.regional = this.value; renderConteudo();
+      });
+      $("f-situacao").addEventListener("change", function () {
+        filtro.situacao = this.value; renderConteudo();
+      });
+
+      document.querySelector(".visao-switch").addEventListener("click", function (ev) {
+        var b = ev.target.closest ? ev.target.closest("[data-visao]") : null;
+        if (!b) return;
+        visao = b.getAttribute("data-visao");
+        Array.prototype.forEach.call(this.querySelectorAll("button"), function (x) {
+          x.classList.toggle("is-on", x === b);
+        });
+        renderFiltros();
+        renderConteudo();
+      });
+
+      $("chips-escala").addEventListener("click", function (ev) {
+        var b = ev.target.closest ? ev.target.closest("[data-escala]") : null;
+        if (!b) return;
+        escala = b.getAttribute("data-escala");
+        Array.prototype.forEach.call(this.querySelectorAll("button"), function (x) {
+          x.classList.toggle("is-active", x === b);
+        });
+        // Trocar a escala e so trocar a classe: as barras estao em
+        // porcentagem do intervalo, e o intervalo nao mudou.
+        var gan = $("gan");
+        if (gan) gan.className = "gan " + (escala === "mes" ? "esc-mes" : "esc-semana");
+      });
+
+      $("conteudo").addEventListener("click", function (ev) {
+        if (!ev.target.closest) return;
+        var g = ev.target.closest("[data-grupo]");
+        if (g) {
+          var reg = g.getAttribute("data-grupo");
+          grupoFechado[reg] = !grupoFechado[reg];
+          g.setAttribute("aria-expanded", grupoFechado[reg] ? "false" : "true");
+          var bloco = $("conteudo").querySelector('[data-bloco="' + reg + '"]');
+          if (bloco) bloco.style.display = grupoFechado[reg] ? "none" : "";
+          return;
+        }
+        var alvo = ev.target.closest("[data-item]");
+        if (alvo) abrirTicket(alvo.getAttribute("data-item"));
+      });
+
+      // ------------------------------------------------------------------
+      // Partida
+      // ------------------------------------------------------------------
+      // No celular o roadmap nao cabe em escala de semana: a lista abre
+      // primeiro, e o grafico continua a um toque de distancia.
+      if (window.matchMedia && window.matchMedia("(max-width: 900px)").matches) {
+        visao = "lista";
+        escala = "mes";
+        var sw = document.querySelector('.visao-switch [data-visao="lista"]');
+        if (sw) {
+          sw.classList.add("is-on");
+          document.querySelector('.visao-switch [data-visao="grafico"]').classList.remove("is-on");
+        }
+      }
+
+      render();
+
+      descobrirPapel()
+        .then(carregar)
+        .then(function () {
+          // O cronograma abre inteiro, de proposito. Filtrar sozinho no que
+          // espera resposta deixaria a tela com uma ou duas linhas logo na
+          // abertura, escondendo o planejamento que e o motivo dela existir.
+          // O aviso do topo leva as pendencias com um clique.
+          return carregarUltimaImportacao();
+        })
+        .then(render)
+        .catch(function (e) {
+          carregando = false;
+          // A mensagem crua da consulta nao vai para a tela: ela fala de
+          // bastidor e nao ajuda quem esta olhando.
+          falha = "Nao foi possivel carregar o cronograma agora. " +
+                  "Atualize a pagina em alguns instantes.";
+          render();
+        });
+    })();
+  </script>
+</body>
+</html>

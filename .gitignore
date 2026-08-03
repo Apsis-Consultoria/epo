@@ -6,3 +6,11 @@
 .DS_Store
 Thumbs.db
 node_modules/
+
+# Dados de cadastro do cliente nunca entram no repositorio: este site e
+# publicado, e razao social com endereco de fornecedor viraria pagina publica.
+_*.json
+_*.txt
+_*.sql
+_*.xlsx
+db/carga-*.sql

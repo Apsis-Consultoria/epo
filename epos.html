@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=45">
+  <link rel="stylesheet" href="assets/app.css?v=46">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -126,12 +126,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=45"></script>
-  <script src="assets/app.js?v=45"></script>
-  <script src="assets/geo-br.js?v=45"></script>
-  <script src="assets/supabase-config.js?v=45"></script>
+  <script src="assets/data.js?v=46"></script>
+  <script src="assets/app.js?v=46"></script>
+  <script src="assets/geo-br.js?v=46"></script>
+  <script src="assets/supabase-config.js?v=46"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=45"></script>
+  <script src="assets/auth.js?v=46"></script>
   <script>
     (function () {
       "use strict";
@@ -525,7 +525,12 @@
 
         tbody.innerHTML = lista.map(function (e) {
           return "<tr>" +
+            // O código do fornecedor é o que distingue unidades de mesmo
+            // nome: a relação da Claro repete razão social em cidades
+            // diferentes, e sem ele as linhas ficam iguais na tela.
             '<td class="epo-nome-cel"><b>' + esc(e.nome) + "</b>" +
+              (e.codigo ? "<span>Cód. " + esc(e.codigo) +
+                (e.base ? " · " + esc(e.base) : "") + "</span>" : "") +
               (e.cep ? "<span>CEP " + esc(e.cep) + "</span>" : "") + "</td>" +
             "<td>" + esc([e.cidade, e.uf].filter(Boolean).join(" · ") || "-") + "</td>" +
             "<td>" + esc(e.endereco || "-") + "</td>" +
@@ -707,12 +712,17 @@
         }
         return Promise.all([
           quantos("alocacoes"), quantos("auditorias"),
-          quantos("contagens_giro"), quantos("indicadores_reversa")
+          quantos("contagens_giro"), quantos("indicadores_reversa"),
+          // O cronograma sai junto com a unidade. Sem contar aqui, o aviso
+          // nao mencionaria o planejamento e a exclusao levaria o fio de
+          // aprovacao com a Claro sem dizer uma palavra.
+          quantos("cronograma_itens")
         ]).then(function (n) {
           return {
             pedidos: n[0].n, auditorias: n[1].n,
             contagens: n[2].n + n[3].n,
-            incerto: n[0].erro || n[1].erro || n[2].erro || n[3].erro
+            cronograma: n[4].n,
+            incerto: n[0].erro || n[1].erro || n[2].erro || n[3].erro || n[4].erro
           };
         });
       }
@@ -769,6 +779,10 @@
           if (v.pedidos) {
             aviso += v.pedidos + (v.pedidos === 1 ? " questionário pedido" : " questionários pedidos") +
               " e os documentos anexados nele" + (v.pedidos === 1 ? "" : "s") + " também saem da lista.\n\n";
+          }
+          if (v.cronograma) {
+            aviso += "O planejamento desta unidade no cronograma sai junto, com as datas " +
+              "combinadas e o histórico de aprovação da Claro.\n\n";
           }
           aviso += "Essa ação não tem volta.";
 
@@ -1236,11 +1250,17 @@
                 criadoEm: a.criado_em || ""
               };
             });
-            return db.from("epos").select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo").order("nome");
+            return db.from("epos")
+              .select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo, cod_fornecedor, base")
+              .order("nome");
           })
           .then(function (r) {
             if (r.error) throw new Error(r.error.message);
-            epos = r.data || [];
+            epos = (r.data || []).map(function (e) {
+              e.codigo = e.cod_fornecedor || "";
+              e.base = e.base || "";
+              return e;
+            });
             renderLista();
             abrirEdicaoDoLink();
           })
