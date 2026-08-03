@@ -368,6 +368,21 @@
   }
 
   // ------------------------------------------------------------------- UI
+  // Ligado assim que a tela existe, e nao depois de carregar o perfil. Estava
+  // dentro de atualizarUi: quando a leitura do perfil falhava, o Sair continuava
+  // sendo um link comum para login.html, ou seja, saia da tela SEM encerrar a
+  // sessao - e o login, vendo sessao valida, devolvia a pessoa para dentro.
+  // Sair e justamente o que tem de funcionar quando o resto falhou.
+  function ligarSair() {
+    var link = document.querySelector('.user-menu a[href="login.html"]');
+    if (!link || link.dataset.authWired) return;
+    link.dataset.authWired = "1";
+    link.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      sair();
+    });
+  }
+
   function atualizarUi(info) {
     var nm = document.querySelector(".user-menu .nm");
     var em = document.querySelector(".user-menu .em");
@@ -381,15 +396,7 @@
       av.style.fontWeight = "600";
       av.title = info.nome + (info.papel ? " · " + info.papel : "");
     }
-    // Sair: encerra a sessão de verdade
-    var sairLink = document.querySelector('.user-menu a[href="login.html"]');
-    if (sairLink && !sairLink.dataset.authWired) {
-      sairLink.dataset.authWired = "1";
-      sairLink.addEventListener("click", function (ev) {
-        ev.preventDefault();
-        sair();
-      });
-    }
+    ligarSair();
 
     if (info.podeSimular) montarVerComo(info.simulado);
     if (info.simulado) montarAvisoVerComo(info.simulado);
@@ -481,12 +488,18 @@
           location.replace("confirmar-acesso.html");
           return "precisa-codigo";
         }
-        return seguirComPerfil(s);
+        return seguirComPerfil(s, pageKey);
       });
     });
   }
 
-  function seguirComPerfil(s) {
+  // pageKey vem junto: ele e parametro de guard, e usar aqui sem receber
+  // dava ReferenceError. A promessa quebrava no meio, entao o nome de quem
+  // entrou nao aparecia, o menu nao era filtrado e a pessoa sem permissao
+  // para a tela deixava de ser redirecionada. So acontecia em sessao de
+  // verdade: em modo de teste o guard nem chega aqui, e foi por isso que
+  // passou.
+  function seguirComPerfil(s, pageKey) {
     var gravadas = null;
     return sincronizarPapel()
       .then(permissoesGravadas)
@@ -530,7 +543,18 @@
   // Guard automático (todas as páginas do app; login.html fica de fora)
   var arq = arquivoAtual();
   if (MAPA_PAGINAS[arq]) {
-    var rodar = function () { guard(MAPA_PAGINAS[arq]); };
+    var rodar = function () {
+      ligarSair();
+      // Erro na montagem nao pode deixar a tela pela metade em silencio: sem
+      // isto, quebrar aqui virava "Uncaught (in promise)" e a pessoa ficava com
+      // o menu sem filtro e sem saber de nada.
+      var r = guard(MAPA_PAGINAS[arq]);
+      if (r && r.catch) {
+        r.catch(function (e) {
+          if (window.console && console.error) console.error("guard", e);
+        });
+      }
+    };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", rodar);
     } else {

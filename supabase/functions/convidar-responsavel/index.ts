@@ -20,6 +20,7 @@
 // Sem nenhum dos dois, devolve ok:false com o motivo e nada e prometido na tela.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { montarEmail, saudacaoDe, escapar, VERDE } from "../_shared/email-apsis.ts";
+import { enviarPeloGraph } from "../_shared/enviar-email.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
 const ANON = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -98,26 +99,6 @@ function destinoDaSenha(origem: string | null) {
     }
   }
   return APP_URL.replace(/[^/]*$/, "") + "definir-senha.html";
-}
-
-// ------------------------------------------------------------------- Azure
-async function tokenAzure() {
-  const corpo = new URLSearchParams({
-    client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET,
-    scope: "https://graph.microsoft.com/.default",
-    grant_type: "client_credentials"
-  });
-  const r = await fetch("https://login.microsoftonline.com/" + TENANT + "/oauth2/v2.0/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: corpo.toString()
-  });
-  const j = await r.json();
-  if (!r.ok || !j.access_token) {
-    throw new Error("credenciais recusadas pela Microsoft: " + (j.error_description || j.error || r.status));
-  }
-  return j.access_token as string;
 }
 
 // O desenho vem de _shared/email-apsis.ts, o mesmo do e-mail do codigo de

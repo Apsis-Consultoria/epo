@@ -9,6 +9,7 @@
 // O codigo NUNCA volta na resposta, nem em log, nem em mensagem de erro.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { montarEmail, saudacaoDe } from "../_shared/email-apsis.ts";
+import { enviarPeloGraph } from "../_shared/enviar-email.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
 const ANON = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -61,29 +62,6 @@ function emailEncoberto(email: string) {
   return visivel + "*".repeat(Math.max(nome.length - visivel.length, 3)) + "@" + partes[1];
 }
 
-async function tokenAzure() {
-  const corpo = new URLSearchParams({
-    client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET,
-    scope: "https://graph.microsoft.com/.default",
-    grant_type: "client_credentials"
-  });
-  const r = await fetch("https://login.microsoftonline.com/" + TENANT + "/oauth2/v2.0/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: corpo.toString()
-  });
-  const j = await r.json();
-  if (!r.ok || !j.access_token) {
-    throw new Error("credenciais recusadas pela Microsoft: " +
-      (j.error_description || j.error || r.status));
-  }
-  return j.access_token as string;
-}
-
-// Mesmo desenho do e-mail de acesso, de _shared/email-apsis.ts. Antes este
-// e-mail era um bloco de texto sem marca nenhuma, e o outro tinha identidade.
-// Aqui nao ha botao: o codigo e digitado na tela, nao clicado.
 function corpoDoEmail(codigo: string, nome: string) {
   return montarEmail({
     titulo: "Código de acesso",
@@ -99,43 +77,6 @@ function corpoDoEmail(codigo: string, nome: string) {
            "código por telefone, e-mail ou mensagem. Se não foi você que tentou " +
            "entrar, ignore esta mensagem e troque a sua senha."
   });
-}
-
-async function enviarPeloGraph(para: string, assunto: string, html: string) {
-  if (!TENANT || !CLIENT_ID || !CLIENT_SECRET) {
-    return { ok: false, motivo: "credenciais do Azure nao configuradas" };
-  }
-  if (!REMETENTE) {
-    return { ok: false, motivo: "falta o segredo AZURE_REMETENTE com a caixa que envia" };
-  }
-  try {
-    const token = await tokenAzure();
-    const r = await fetch(GRAPH + "/users/" + encodeURIComponent(REMETENTE) + "/sendMail", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: {
-          subject: assunto,
-          body: { contentType: "HTML", content: html },
-          toRecipients: [{ emailAddress: { address: para } }]
-        },
-        saveToSentItems: false
-      })
-    });
-    if (r.status === 202) return { ok: true, motivo: "enviado pelo Microsoft Graph" };
-    const texto = await r.text();
-    let detalhe = texto.slice(0, 200);
-    try {
-      const j = JSON.parse(texto);
-      detalhe = (j.error && j.error.message) || detalhe;
-    } catch (_e) { /* deixa o texto cru */ }
-    if (r.status === 403) {
-      detalhe += " | o app do Azure precisa da permissao de aplicacao Mail.Send com consentimento do administrador";
-    }
-    return { ok: false, motivo: "Graph sendMail " + r.status + ": " + detalhe };
-  } catch (e) {
-    return { ok: false, motivo: String((e as Error).message || e) };
-  }
 }
 
 Deno.serve(async (req: Request) => {
