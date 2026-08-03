@@ -55,16 +55,17 @@ function htmlQuadro(q: NonNullable<Email["quadro"]>) {
 }
 
 function htmlDestaque(d: NonNullable<Email["destaque"]>) {
-  // Espaco entre os digitos para ninguem ler 6 como 8 na pressa.
-  const espacado = d.texto.split("").join(" ");
+  // O codigo sai exatamente como deve ser digitado. Havia espaco entre os
+  // digitos, para leitura, mas quem copiava o codigo colava os espacos junto
+  // e a confirmacao nao batia.
   return '<div style="border:1px solid #e5e7eb;border-radius:10px;background:#f8faf9;' +
       'padding:18px 16px;margin:0 0 20px;text-align:center;">' +
       (d.legenda
         ? '<p style="margin:0 0 8px;font-size:10.5px;letter-spacing:.08em;' +
           'text-transform:uppercase;color:#9ca3af;">' + d.legenda + "</p>"
         : "") +
-      '<p style="margin:0;font-size:30px;font-weight:700;letter-spacing:.26em;color:' + VERDE + ';' +
-        'font-family:Consolas,Menlo,monospace;">' + escapar(d.texto === espacado ? d.texto : espacado) +
+      '<p style="margin:0;font-size:30px;font-weight:700;color:' + VERDE + ';' +
+        'font-family:Consolas,Menlo,monospace;">' + escapar(d.texto) +
       "</p>" +
     "</div>";
 }
