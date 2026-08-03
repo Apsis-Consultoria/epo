@@ -118,9 +118,9 @@
   }
 
   var NOME_DEMO = {
-    responsavel: "Responsável da EPO (teste)",
-    cliente: "Gerente Claro (teste)",
-    auditor: "Consultor APSIS (teste)"
+    responsavel: "Responsável pela EPO (teste)",
+    cliente: "Gerencia Claro (teste)",
+    auditor: "Equipe de Campo Apsis (teste)"
   };
 
   // -------------------------------------------------------------- Ver como

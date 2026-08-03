@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=59">
+  <link rel="stylesheet" href="assets/app.css?v=60">
   <style>
     /* ---------------- Matriz de telas por cargo ---------------- */
     .matrix-wrap { width: 100%; overflow: auto; border-top: 1px solid var(--border); }
@@ -38,7 +38,6 @@
     .col-head i { font-size: 17px; color: var(--text-2); }
 
     .cargo-cel b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); }
-    .cargo-cel span { font-size: 11.5px; color: var(--text-2); }
 
     /* Caixa da matriz: 18px, verde APSIS quando marcada */
     .acc-check {
@@ -124,11 +123,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=59"></script>
-  <script src="assets/app.js?v=59"></script>
-  <script src="assets/supabase-config.js?v=59"></script>
+  <script src="assets/data.js?v=60"></script>
+  <script src="assets/app.js?v=60"></script>
+  <script src="assets/supabase-config.js?v=60"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=59"></script>
+  <script src="assets/auth.js?v=60"></script>
   <script>
     (function () {
       "use strict";
@@ -144,19 +143,12 @@
       var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
 
       var PAPEL_LABEL = {
-        admin: "Administrador APSIS",
-        gestor: "Coordenação APSIS",
-        auditor: "Consultor APSIS",
-        cliente: "Gerente da Claro",
-        responsavel: "Responsável da unidade",
+        admin: "Admin Apsis",
+        gestor: "Coordenação Apsis",
+        auditor: "Equipe de Campo Apsis",
+        cliente: "Gerencia Claro",
+        responsavel: "Responsável pela EPO",
         sem_acesso: "Sem acesso liberado"
-      };
-      var PAPEL_NOTA = {
-        admin: "alcança tudo, sempre",
-        gestor: "monta o cronograma e cuida do cadastro",
-        auditor: "preenche a auditoria em campo",
-        cliente: "aprova as datas e acompanha os resultados",
-        responsavel: "envia as evidências da unidade dele"
       };
       var BADGE_PAPEL = {
         admin: "badge-ouro", gestor: "badge-success", auditor: "badge-media",
@@ -165,7 +157,7 @@
 
       // Cargos que a matriz controla. Administrador aparece travado: ele
       // alcança tudo por definição, e é por ele que se conserta um engano.
-      var CARGOS = ["gestor", "cliente", "auditor", "responsavel"];
+      var CARGOS = ["gestor", "auditor", "cliente", "responsavel"];
 
       var LABEL_CURTO = {
         geral: "Visão geral", epos: "EPOs", cronograma: "Cronograma",
@@ -199,9 +191,6 @@
       }).join("");
 
       document.getElementById("page").innerHTML =
-        '<p class="page-intro">Duas coisas aqui: quais telas cada cargo alcança, e quem está ' +
-          'liberado para entrar.</p>' +
-
         '<div class="card">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
@@ -214,7 +203,7 @@
             '<tbody id="matriz-corpo"></tbody>' +
           "</table></div>" +
           '<div class="matriz-rodape">' +
-            '<span id="matriz-aviso">O administrador alcança tudo e não entra na matriz.</span>' +
+            '<span id="matriz-aviso"></span>' +
             '<span>' +
               '<button class="btn btn-ghost btn-sm is-hidden" type="button" id="btn-desfazer">Desfazer</button> ' +
               '<button class="btn btn-primary btn-sm is-hidden" type="button" id="btn-salvar-matriz">' +
@@ -227,7 +216,6 @@
           '<div class="card-header">' +
             '<div class="section-title">' +
               '<span class="title">Acessos liberados</span>' +
-              '<span class="subtitle">O gerente da Claro entra com e-mail e senha; a equipe APSIS entra pela conta Microsoft</span>' +
             "</div>" +
             '<span class="acc-count" id="conta-liberados"></span>' +
           "</div>" +
@@ -245,8 +233,6 @@
           '<div class="card-header">' +
             '<div class="section-title">' +
               '<span class="title">Contas de acesso</span>' +
-              '<span class="subtitle">Toda conta que existe hoje, tenha entrado ou não. ' +
-                "Quem aparece como sem acesso tentou entrar e está esperando liberação</span>" +
             "</div>" +
             '<span class="acc-count" id="conta-contas"></span>' +
           "</div>" +
@@ -401,9 +387,8 @@
       }
 
       function renderMatriz() {
-        $("sub-matriz").textContent = souAdmin()
-          ? "Marque as telas de cada cargo. Vale para todas as pessoas daquele cargo."
-          : "Somente o administrador altera esta matriz.";
+        // O unico texto que fica: sem ele, a matriz travada nao se explica.
+        $("sub-matriz").textContent = souAdmin() ? "" : "Somente o administrador altera esta matriz.";
 
         if (carregando) {
           $("matriz-corpo").innerHTML =
@@ -417,7 +402,7 @@
         // incompleta e para deixar claro que ele não é restringível.
         linhas.push("<tr>" +
           '<td class="col-cargo"><div class="cargo-cel"><b>' + esc(PAPEL_LABEL.admin) + "</b>" +
-            "<span>" + esc(PAPEL_NOTA.admin) + "</span></div></td>" +
+            "</div></td>" +
           paginas.map(function () {
             return '<td><input type="checkbox" class="acc-check" checked disabled' +
               ' aria-label="sempre liberado"></td>';
@@ -427,7 +412,7 @@
         CARGOS.forEach(function (c) {
           linhas.push("<tr>" +
             '<td class="col-cargo"><div class="cargo-cel"><b>' + esc(PAPEL_LABEL[c]) + "</b>" +
-              "<span>" + esc(PAPEL_NOTA[c] || "") + "</span></div></td>" +
+              "</div></td>" +
             paginas.map(function (p) {
               return "<td>" +
                 '<input type="checkbox" class="acc-check" data-papel="' + c + '"' +
@@ -448,7 +433,7 @@
         $("btn-salvar-matriz").classList.toggle("is-hidden", n === 0);
         $("btn-desfazer").classList.toggle("is-hidden", n === 0);
         $("matriz-aviso").textContent = n === 0
-          ? "O administrador alcança tudo e não entra na matriz."
+          ? ""
           : n + (n === 1 ? " mudança ainda não salva." : " mudanças ainda não salvas.");
       }
 
