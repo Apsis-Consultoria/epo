@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=62">
+  <link rel="stylesheet" href="assets/app.css?v=63">
   <style>
     /* ---------------- Matriz de telas por cargo ---------------- */
     .matrix-wrap { width: 100%; overflow: auto; border-top: 1px solid var(--border); }
@@ -123,11 +123,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=62"></script>
-  <script src="assets/app.js?v=62"></script>
-  <script src="assets/supabase-config.js?v=62"></script>
+  <script src="assets/data.js?v=63"></script>
+  <script src="assets/app.js?v=63"></script>
+  <script src="assets/supabase-config.js?v=63"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=62"></script>
+  <script src="assets/auth.js?v=63"></script>
   <script>
     (function () {
       "use strict";
@@ -262,11 +262,6 @@
                 '<label for="f-papel">O que essa pessoa é</label>' +
                 '<select class="select" id="f-papel"></select>' +
               "</div>" +
-              '<div class="field" id="wrap-cliente">' +
-                '<label for="f-cliente">Cliente</label>' +
-                '<select class="select" id="f-cliente"></select>' +
-                '<span class="hint">Define quais unidades ela enxerga.</span>' +
-              "</div>" +
               '<div class="nota-acesso">' +
                 '<i class="ti ti-info-circle" aria-hidden="true"></i>' +
                 "<span>Ao liberar, a pessoa recebe o e-mail de acesso e escolhe a senha dela. " +
@@ -301,13 +296,19 @@
         return out;
       }
 
+      // Os cinco papeis do sistema, na ordem de sempre. A lista mostrava so
+      // dois: quem precisava liberar administracao ou responsavel da EPO nao
+      // tinha por onde.
+      // Coordenacao e administracao continuam sendo escolha de administrador,
+      // senao um coordenador criaria outro, e qualquer um criaria um
+      // administrador. Para quem nao e administrador eles aparecem travados,
+      // e nao escondidos: assim se ve que existem e de quem depende.
       function papeisQuePodeLiberar() {
-        var lista = [
-          { v: "cliente", t: PAPEL_LABEL.cliente },
-          { v: "auditor", t: PAPEL_LABEL.auditor }
-        ];
-        if (meuPapel === "admin") lista.push({ v: "gestor", t: PAPEL_LABEL.gestor });
-        return lista;
+        var todos = ["admin", "gestor", "auditor", "cliente", "responsavel"];
+        return todos.map(function (v) {
+          var soAdmin = (v === "admin" || v === "gestor");
+          return { v: v, t: PAPEL_LABEL[v], travado: soAdmin && meuPapel !== "admin" };
+        });
       }
 
       function souAdmin() { return meuPapel === "admin"; }
@@ -665,19 +666,15 @@
         $("mod-salvar").textContent = a ? "Salvar" : "Liberar acesso";
 
         $("f-papel").innerHTML = papeisQuePodeLiberar().map(function (p) {
-          return '<option value="' + p.v + '">' + esc(p.t) + "</option>";
-        }).join("");
-        $("f-cliente").innerHTML = clientes.map(function (c) {
-          return '<option value="' + esc(c.id) + '">' + esc(c.nome) + "</option>";
+          return '<option value="' + p.v + '"' + (p.travado ? " disabled" : "") + ">" +
+            esc(p.t) + (p.travado ? " (só administrador)" : "") + "</option>";
         }).join("");
 
         $("f-email").value = a ? (a.email || "") : "";
         $("f-nome").value = a ? (a.nome || "") : "";
         $("f-papel").value = a ? a.papel : "cliente";
-        if (a && a.cliente_id) $("f-cliente").value = a.cliente_id;
         $("f-email").disabled = !!a;
 
-        trocarCliente();
         $("mod").classList.add("is-open");
         setTimeout(function () { (a ? $("f-nome") : $("f-email")).focus(); }, 60);
       }
@@ -687,19 +684,11 @@
         editandoId = null;
       }
 
-      function trocarCliente() {
-        var precisa = $("f-papel").value === "cliente";
-        $("wrap-cliente").classList.toggle("is-hidden", !precisa);
-      }
-
       function salvar() {
         var email = ($("f-email").value || "").trim().toLowerCase();
         var nome = ($("f-nome").value || "").trim();
         var papel = $("f-papel").value;
-        var cliente = papel === "cliente" ? $("f-cliente").value : null;
-
         if (!/^\S+@\S+\.\S+$/.test(email)) { App.toast("Informe um e-mail válido."); return; }
-        if (papel === "cliente" && !cliente) { App.toast("Escolha o cliente do gerente."); return; }
 
         var btn = $("mod-salvar");
         var rotuloBotao = btn.textContent;
@@ -712,7 +701,9 @@
           return;
         }
 
-        var linha = { email: email, nome: nome || null, papel: papel, cliente_id: cliente };
+        // O cliente nao vem daqui: e sempre a Claro, e quem preenche pelo papel
+        // e o servidor. Perguntar isso era pedir para escolher entre uma opcao.
+        var linha = { email: email, nome: nome || null, papel: papel };
         var db = Auth.cliente;
         var acao = editandoId
           ? db.from("acessos_autorizados").update(linha).eq("id", editandoId).select("id")
@@ -947,7 +938,6 @@
       $("mod-fechar").addEventListener("click", fecharModal);
       $("mod-cancelar").addEventListener("click", fecharModal);
       $("mod-salvar").addEventListener("click", salvar);
-      $("f-papel").addEventListener("change", trocarCliente);
       $("mod").addEventListener("click", function (ev) { if (ev.target === this) fecharModal(); });
       document.addEventListener("keydown", function (ev) {
         if (ev.key === "Escape" && $("mod").classList.contains("is-open")) fecharModal();

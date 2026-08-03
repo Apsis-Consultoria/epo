@@ -45,12 +45,18 @@ const PAPEIS_OK = ["admin", "gestor", "cliente"];
 // Quem pode convidar alguem da lista de acessos autorizados. O gerente da
 // Claro fica fora: liberar acesso ao sistema e decisao da APSIS.
 const PAPEIS_OK_ACESSO = ["admin", "gestor"];
+// Liberar administracao ou coordenacao e decisao de administrador. O banco ja
+// recusa; aqui a recusa vem antes, com o motivo em portugues.
+const PAPEIS_SO_DE_ADMIN = ["admin", "gestor"];
 
+// Os mesmos nomes que a tela de acessos mostra: o e-mail nao pode chamar o
+// papel de um jeito e o sistema de outro.
 const PAPEL_EM_PALAVRAS: Record<string, string> = {
-  cliente: "gerente da Claro",
-  gestor: "coordenacao APSIS",
-  auditor: "consultor APSIS",
-  responsavel: "responsavel da unidade"
+  admin: "Admin Apsis",
+  gestor: "Coordenação Apsis",
+  auditor: "Equipe de Campo Apsis",
+  cliente: "Gerencia Claro",
+  responsavel: "Responsável pela EPO"
 };
 
 const CORS: Record<string, string> = {
@@ -118,83 +124,98 @@ async function tokenAzure() {
   return j.access_token as string;
 }
 
-function corpoDoEmail(link: string, contexto: string, novaConta: boolean) {
-  const titulo = novaConta
-    ? "Seu acesso ao Auditoria EPOs"
-    : "Redefinir a senha do Auditoria EPOs";
-  const abertura = novaConta
-    ? "A APSIS criou o seu acesso ao sistema de Auditoria de EPOs."
-    : "Recebemos um pedido para você definir uma nova senha no sistema de Auditoria de EPOs.";
-  const linha = contexto
-    ? '<p style="margin:0 0 14px;font-size:14px;color:#4b5563;">Referente a: <b>' + escapar(contexto) + "</b></p>"
-    : "";
+const LOGO = "https://ybixbsfmxblaippubtvw.supabase.co/storage/v1/object/public/assets/logo_com_nome.png";
+const VERDE = "#1a4731";
+const LARANJA = "#f47920";
 
-  return "<!doctype html><html><body style=\"margin:0;background:#f4f6f5;\">" +
-    '<div style="max-width:560px;margin:0 auto;padding:28px 22px;font-family:Segoe UI,Arial,sans-serif;">' +
-      '<div style="background:#ffffff;border-radius:14px;padding:28px 26px;border:1px solid #e5e7eb;">' +
-        '<p style="margin:0 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;">APSIS Consultoria</p>' +
-        '<h1 style="margin:0 0 16px;font-size:20px;color:#1a4731;">' + titulo + "</h1>" +
-        '<p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#374151;">' + abertura + "</p>" +
-        linha +
-        '<p style="margin:0 0 22px;font-size:14px;line-height:1.6;color:#374151;">' +
-          "Clique no botão abaixo para <b>definir a sua senha</b>. Depois disso você entra no sistema " +
-          "sempre com o seu e-mail e essa senha." +
-        "</p>" +
-        '<p style="margin:0 0 24px;">' +
-          '<a href="' + link + '" style="display:inline-block;background:#1a4731;color:#ffffff;' +
-          'text-decoration:none;font-weight:600;font-size:15px;padding:13px 26px;border-radius:10px;">' +
-          "Definir minha senha</a>" +
-        "</p>" +
-        '<p style="margin:0 0 6px;font-size:12.5px;line-height:1.6;color:#6b7280;">' +
-          "O link é pessoal e tem validade. Se ele expirar, peça um novo para o seu contato na APSIS." +
-        "</p>" +
-        '<p style="margin:0;font-size:12.5px;line-height:1.6;color:#6b7280;">' +
-          "Se você não esperava este e-mail, ignore esta mensagem." +
-        "</p>" +
+// Mesmo desenho do e-mail do Secure Share: faixa verde com a marca, saudacao
+// pelo nome, um quadro com os dados de acesso, o botao laranja de largura
+// cheia e o aviso de seguranca. O e-mail anterior era um bloco de texto sem
+// identidade nenhuma.
+//
+// Uma diferenca de proposito em relacao ao Secure Share: ali o quadro traz a
+// senha escrita. Aqui nao existe senha para mostrar - quem a escolhe e a
+// propria pessoa, no botao. Mandar senha por e-mail deixaria uma credencial
+// numa caixa de mensagens para sempre.
+function corpoDoEmail(link: string, contexto: string, novaConta: boolean,
+                      nome: string, email: string) {
+  const titulo = novaConta ? "Acesso à Auditoria de EPOs" : "Nova senha da Auditoria de EPOs";
+  const primeiroNome = (nome || "").trim().split(/\s+/)[0] || "";
+  const saudacao = primeiroNome ? "Olá, " + escapar(nome.trim()) + "," : "Olá,";
+
+  const abertura = novaConta
+    ? "Você recebeu acesso ao sistema de <b>Auditoria de EPOs</b> da Apsis Consultoria" +
+      (contexto ? " como <b>" + escapar(contexto) + "</b>" : "") + "."
+    : "Recebemos um pedido para você definir uma nova senha no sistema de " +
+      "<b>Auditoria de EPOs</b> da Apsis Consultoria.";
+
+  const linhaDado = function (rotulo: string, valor: string, ultimo: boolean) {
+    return '<tr><td style="padding:9px 0;font-size:12.5px;color:#6b7280;width:78px;' +
+             (ultimo ? "" : "border-bottom:1px solid #eef0ef;") + '">' + rotulo + "</td>" +
+           '<td style="padding:9px 0;font-size:13px;color:#111827;' +
+             (ultimo ? "" : "border-bottom:1px solid #eef0ef;") + '">' + valor + "</td></tr>";
+  };
+
+  return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    // Sem o charset declarado, acento chega como caractere trocado em parte
+    // dos leitores de e-mail.
+    '</head><body style="margin:0;padding:0;background:#f4f6f5;">' +
+    '<div style="max-width:520px;margin:0 auto;padding:24px 16px;' +
+      'font-family:Segoe UI,Helvetica,Arial,sans-serif;">' +
+      '<div style="border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">' +
+
+        // faixa da marca
+        '<div style="background:' + VERDE + ';padding:26px 22px 22px;text-align:center;">' +
+          '<div style="display:inline-block;background:#ffffff;border-radius:10px;' +
+            'padding:11px 16px;margin-bottom:16px;">' +
+            '<img src="' + LOGO + '" alt="Apsis Consultoria" width="112" ' +
+              'style="display:block;width:112px;height:auto;border:0;">' +
+          "</div>" +
+          '<h1 style="margin:0 0 6px;font-size:17px;font-weight:600;color:#ffffff;">' +
+            titulo + "</h1>" +
+          '<p style="margin:0;font-size:11.5px;color:#a7c4b5;">' +
+            "Auditoria de unidades EPO &middot; Apsis Consultoria</p>" +
+        "</div>" +
+
+        // corpo
+        '<div style="background:#ffffff;padding:24px 22px 26px;">' +
+          '<p style="margin:0 0 14px;font-size:14px;font-weight:600;color:' + VERDE + ';">' +
+            saudacao + "</p>" +
+          '<p style="margin:0 0 18px;font-size:13.5px;line-height:1.6;color:#374151;">' +
+            abertura + "</p>" +
+
+          '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;' +
+            'margin:0 0 20px;">' +
+            '<p style="margin:0 0 4px;font-size:10.5px;letter-spacing:.08em;' +
+              'text-transform:uppercase;color:#9ca3af;">Seus dados de acesso</p>' +
+            '<table role="presentation" cellpadding="0" cellspacing="0" width="100%">' +
+              linhaDado("E-mail", '<span style="color:' + VERDE + ';">' + escapar(email) + "</span>", false) +
+              linhaDado("Senha", '<span style="color:#6b7280;">você escolhe no botão abaixo</span>', true) +
+            "</table>" +
+          "</div>" +
+
+          '<a href="' + link + '" style="display:block;background:' + LARANJA + ';color:#ffffff;' +
+            'text-decoration:none;font-weight:600;font-size:14.5px;text-align:center;' +
+            'padding:14px 18px;border-radius:8px;margin:0 0 18px;">' +
+            (novaConta ? "Definir minha senha" : "Definir nova senha") + " &rarr;</a>" +
+
+          '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;' +
+            'padding:11px 13px;margin:0 0 4px;">' +
+            '<p style="margin:0;font-size:12px;line-height:1.55;color:#78350f;">' +
+              "&#128274; <b>Dica de segurança:</b> não compartilhe a sua senha com ninguém. " +
+              "O link deste e-mail é pessoal e tem validade; se expirar, peça outro ao seu " +
+              "contato na Apsis." +
+            "</p>" +
+          "</div>" +
+        "</div>" +
       "</div>" +
-      '<p style="margin:16px 0 0;text-align:center;font-size:11.5px;color:#9ca3af;">' +
-        "Mensagem automática do sistema de Auditoria de EPOs." +
+
+      '<p style="margin:14px 0 0;text-align:center;font-size:11px;line-height:1.6;color:#9ca3af;">' +
+        "Este e-mail foi enviado pela Apsis Consultoria.<br>" +
+        "Se você não esperava esta mensagem, ignore este e-mail." +
       "</p>" +
     "</div></body></html>";
-}
-
-// Envio pelo Microsoft Graph, com a mesma credencial que leva os arquivos para
-// a pasta oficial. Precisa de Mail.Send de aplicacao e de uma caixa remetente.
-async function enviarPeloGraph(para: string, assunto: string, html: string) {
-  if (!TENANT || !CLIENT_ID || !CLIENT_SECRET) {
-    return { ok: false, motivo: "credenciais do Azure nao configuradas" };
-  }
-  if (!REMETENTE) {
-    return { ok: false, motivo: "falta o segredo AZURE_REMETENTE com a caixa que envia" };
-  }
-  try {
-    const token = await tokenAzure();
-    const r = await fetch(GRAPH + "/users/" + encodeURIComponent(REMETENTE) + "/sendMail", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: {
-          subject: assunto,
-          body: { contentType: "HTML", content: html },
-          toRecipients: [{ emailAddress: { address: para } }]
-        },
-        saveToSentItems: false
-      })
-    });
-    if (r.status === 202) return { ok: true, motivo: "enviado pelo Microsoft Graph" };
-    const texto = await r.text();
-    let detalhe = texto.slice(0, 200);
-    try {
-      const j = JSON.parse(texto);
-      detalhe = (j.error && j.error.message) || detalhe;
-    } catch (_e) { /* deixa o texto cru */ }
-    if (r.status === 403) {
-      detalhe += " | o app do Azure precisa da permissao de aplicacao Mail.Send com consentimento do administrador";
-    }
-    return { ok: false, motivo: "Graph sendMail " + r.status + ": " + detalhe };
-  } catch (e) {
-    return { ok: false, motivo: String((e as Error).message || e) };
-  }
 }
 
 // ------------------------------------------------------------------ handler
@@ -228,6 +249,8 @@ Deno.serve(async (req: Request) => {
   let email = String(corpo.email || "").trim().toLowerCase();
   let contexto = "";
   let papelPretendido = "responsavel";
+  // O e-mail cumprimenta pelo nome. Sem nome ele cumprimenta so com "Ola,".
+  let nomeDaPessoa = "";
   const alocacaoId = String(corpo.alocacao_id || "").trim();
   const acessoId = String(corpo.acesso_id || "").trim();
 
@@ -250,7 +273,12 @@ Deno.serve(async (req: Request) => {
     }
     email = String(l.email || "").trim().toLowerCase();
     papelPretendido = String(l.papel || "");
+    if (PAPEIS_SO_DE_ADMIN.indexOf(papelPretendido) >= 0 && papel !== "admin") {
+      return json({ ok: false,
+        motivo: "somente um administrador envia acesso de administracao ou coordenacao" }, 403);
+    }
     contexto = PAPEL_EM_PALAVRAS[papelPretendido] || papelPretendido;
+    nomeDaPessoa = String(l.nome || "");
   }
 
   if (alocacaoId) {
@@ -323,9 +351,9 @@ Deno.serve(async (req: Request) => {
   const link = (gerado.data.properties as Record<string, string>).action_link;
 
   const assunto = novaConta
-    ? "Seu acesso ao Auditoria EPOs" + (contexto ? " - " + contexto : "")
-    : "Definir nova senha - Auditoria EPOs";
-  const html = corpoDoEmail(link, contexto, novaConta);
+    ? "Seu acesso à Auditoria de EPOs" + (contexto ? " - " + contexto : "")
+    : "Nova senha da Auditoria de EPOs";
+  const html = corpoDoEmail(link, contexto, novaConta, nomeDaPessoa, email);
 
   // 1) Microsoft Graph, com a credencial que ja existe
   let envio = await enviarPeloGraph(email, assunto, html);
