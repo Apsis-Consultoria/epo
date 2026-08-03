@@ -6,7 +6,7 @@
   <title>Definir senha - Auditoria EPO's</title>
   <link rel="icon" type="image/png" href="assets/brand/logo-apsis.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="assets/portal.css?v=65" />
+  <link rel="stylesheet" href="assets/portal.css?v=66" />
 </head>
 <body>
   <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
@@ -43,6 +43,11 @@
             Salvar e entrar
           </button>
 
+          <a id="btn-voltar" href="login.html" class="hidden w-full mt-3 text-center text-sm font-semibold underline"
+            style="color: rgb(26,71,49);">
+            Ir para a tela de entrada
+          </a>
+
           <p class="text-xs text-gray-400 mt-4 leading-relaxed">
             A senha é só sua. A APSIS não tem acesso a ela e nunca vai pedir a sua senha por e-mail
             ou por telefone.
@@ -55,7 +60,7 @@
             Este endereço só funciona a partir do link que você recebeu por e-mail, e o link tem validade.
           </p>
           <p class="text-sm text-gray-600 leading-relaxed mt-3">
-            Peça um link novo para o seu contato na APSIS e abra por ele.
+            Na tela de entrada, use <b>Esqueci a minha senha</b> para receber um link novo.
           </p>
           <a href="login.html" class="inline-block mt-6 text-sm font-semibold underline" style="color: rgb(26,71,49);">
             Ir para a tela de entrada
@@ -67,7 +72,7 @@
     </div>
   </div>
 
-  <script src="assets/supabase-config.js?v=65"></script>
+  <script src="assets/supabase-config.js?v=66"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
     (function () {
@@ -98,6 +103,17 @@
         $("s1").focus();
       }
 
+      // O link do e-mail serve UMA vez. Enquanto ele fica no endereco, qualquer
+      // recarga tenta usar de novo e a resposta e "link invalido ou expirado" -
+      // e a sessao cai junto. Foi o que aconteceu no primeiro acesso de verdade:
+      // a senha foi salva e, um segundo depois, a sessao tinha ido embora.
+      function limparEndereco() {
+        if (!location.hash && !location.search) return;
+        try {
+          history.replaceState(null, "", location.pathname);
+        } catch (e) { /* navegador antigo: segue com o endereco como esta */ }
+      }
+
       // Pode chegar como sessão pronta (link novo) ou como erro no endereço.
       function conferirSessao() {
         var hash = location.hash || "";
@@ -107,15 +123,15 @@
         }
         db.auth.getSession().then(function (r) {
           var s = r && r.data && r.data.session;
-          if (s) { mostrarFormulario(s.user && s.user.email); return; }
+          if (s) { limparEndereco(); mostrarFormulario(s.user && s.user.email); return; }
           // o cliente às vezes só resolve o endereço no próximo tique
           db.auth.onAuthStateChange(function (_ev, sessao) {
-            if (sessao) mostrarFormulario(sessao.user && sessao.user.email);
+            if (sessao) { limparEndereco(); mostrarFormulario(sessao.user && sessao.user.email); }
           });
           setTimeout(function () {
             db.auth.getSession().then(function (r2) {
               var s2 = r2 && r2.data && r2.data.session;
-              if (s2) mostrarFormulario(s2.user && s2.user.email);
+              if (s2) { limparEndereco(); mostrarFormulario(s2.user && s2.user.email); }
               else $("sem-link").classList.remove("hidden");
             });
           }, 1400);
@@ -143,19 +159,30 @@
             btn.disabled = false;
             btn.textContent = "Salvar e entrar";
             console.error("definirSenha", r.error);
-            msg("Não foi possível salvar a senha. Tente de novo pelo link do e-mail.", true);
+            msg("Não foi possível salvar a senha. Peça um link novo na tela de entrada.", true);
             return;
           }
-          // avisa o sistema de que a senha agora é escolhida por ele
-          return db.rpc("marcar_senha_trocada").then(function () {}, function () {}).then(function () {
+          // Avisa o sistema de que a senha agora e escolhida por ele. Isto NAO
+          // pode ser engolido: sem a marca, o sistema manda a pessoa de volta
+          // para esta tela toda vez que ela entrar, sem dizer por que.
+          return db.rpc("marcar_senha_trocada").then(function (rm) {
+            if (rm && rm.error) throw rm.error;
+            if (rm && rm.data === false) throw new Error("sessao do link expirou");
             msg("Senha salva. Entrando...");
             setTimeout(function () { location.replace("index.html"); }, 700);
           });
         }, function (e) {
           btn.disabled = false;
           btn.textContent = "Salvar e entrar";
-          msg("Não foi possível salvar a senha agora. Tente de novo pelo link do e-mail.", true);
           console.error("definirSenha", e);
+          // A senha pode ter sido gravada e a marca nao: dizer "tente nova
+          // senha" mandaria a pessoa repetir algo que talvez ja tenha dado
+          // certo. O caminho seguro e entrar; se a senha nao pegou, a tela de
+          // entrada oferece o link de novo.
+          msg("A senha pode ter sido salva, mas a sessão do link expirou. " +
+              "Volte para a tela de entrada e faça login com a senha que você acabou de escolher.", true);
+          var volta = $("btn-voltar");
+          if (volta) volta.classList.remove("hidden");
         });
       });
 

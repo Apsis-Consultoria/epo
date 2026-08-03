@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/portal.css?v=65" />
+  <link rel="stylesheet" href="assets/portal.css?v=66" />
   <style>
     /* Ajustes de proporção do painel de login (sobrepõem o portal.css) */
     .login-col { padding-top: 3vh; }
@@ -76,26 +76,34 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><path d="M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/><path d="M3 21v-1a5 5 0 0 1 5-5h2"/><path d="m15 19 2 2 4-4"/></svg>
             Entrar com e-mail e senha
           </button>
+          <button id="btn-redefinir" class="w-full flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 font-semibold py-3 px-6 rounded-xl text-slate-600 transition-colors">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><path d="M2 12a10 10 0 1 0 3-7.1"/><path d="M2 3v6h6"/></svg>
+            Esqueci a minha senha
+          </button>
 
           <!-- Cliente Claro e responsável da EPO: e-mail e senha.
                A senha é definida pelo próprio dono do e-mail, pelo link que
                recebe quando a EPO é cadastrada. -->
           <div id="painel-cliente" class="w-full hidden">
             <div id="etapa-senha">
+              <p id="painel-titulo" class="text-left text-sm font-semibold text-slate-600 mb-3"></p>
               <label class="block text-left text-xs font-semibold text-gray-500 mb-1" for="cli-email">E-mail</label>
               <input id="cli-email" type="email" placeholder="o e-mail cadastrado na sua EPO" autocomplete="email"
                 class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
 
-              <label class="block text-left text-xs font-semibold text-gray-500 mb-1 mt-3" for="cli-senha">Senha</label>
-              <input id="cli-senha" type="password" placeholder="a senha que você definiu" autocomplete="current-password"
-                class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
+              <div id="campo-senha">
+                <label class="block text-left text-xs font-semibold text-gray-500 mb-1 mt-3" for="cli-senha">Senha</label>
+                <input id="cli-senha" type="password" placeholder="a senha que você definiu" autocomplete="current-password"
+                  class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
+              </div>
 
               <button id="btn-entrar-senha" class="w-full mt-4 font-semibold py-3 px-6 rounded-xl text-white transition-colors disabled:opacity-60" style="background: rgb(26, 71, 49);">
                 Entrar
               </button>
-              <button id="btn-esqueci" class="w-full mt-2 text-xs text-gray-400 underline">
-                Primeiro acesso ou esqueci a senha
+              <button id="btn-esqueci" class="w-full mt-4 font-semibold py-3 px-6 rounded-xl text-white transition-colors disabled:opacity-60" style="background: rgb(244, 129, 38);">
+                Enviar o link para definir a senha
               </button>
+              <button id="btn-fechar-painel" class="w-full mt-2 text-xs text-gray-400 underline">Voltar</button>
             </div>
             <div id="etapa-enviado" class="hidden text-left">
               <p class="text-sm text-gray-600 leading-relaxed">
@@ -112,11 +120,6 @@
 
           <p class="text-xs text-gray-400 text-center">Equipe APSIS, Claro e responsáveis das EPOs.<br />Cada pessoa vê apenas as telas do seu perfil.</p>
 
-          <!-- Entradas de teste: abrem o sistema já no perfil escolhido, com as
-               telas daquele perfil, enquanto o acesso definitivo não está pronto. -->
-          <div class="w-full flex flex-col items-center gap-2 pt-1">
-            <button id="btn-demo" class="text-xs text-gray-400 underline">Ver o sistema sem entrar</button>
-          </div>
         </div>
         <div style="flex:1 1 auto; display:flex; align-items:center; justify-content:center; width:100%; min-height:90px;">
           <img src="assets/brand/logo-claro.png" alt="Claro" onerror="this.style.display='none'" style="height:84px; width:auto; object-fit:contain; opacity:.95;" />
@@ -139,9 +142,9 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=65"></script>
+  <script src="assets/supabase-config.js?v=66"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=65"></script>
+  <script src="assets/auth.js?v=66"></script>
   <script>
     (function () {
       "use strict";
@@ -178,11 +181,43 @@
         }).catch(msFalhou);
       });
 
-      // Cliente: abre painel e-mail -> código
-      $("btn-cliente").addEventListener("click", function () {
-        $("painel-cliente").classList.toggle("hidden");
+      // O painel serve para os dois caminhos: entrar com a senha e pedir o link
+      // para definir uma nova. O que muda e qual botao aparece - antes o pedido
+      // de link era um texto cinza pequeno dentro do painel da senha, e quem
+      // precisava redefinir nao achava.
+      function abrirPainel(modo) {
+        var pedindoLink = modo === "link";
+        $("painel-cliente").classList.remove("hidden");
+        $("etapa-enviado").classList.add("hidden");
+        $("etapa-senha").classList.remove("hidden");
+        $("painel-titulo").textContent = pedindoLink
+          ? "Vamos enviar um link para você definir uma senha nova."
+          : "Entre com o e-mail cadastrado e a sua senha.";
+        $("campo-senha").classList.toggle("hidden", pedindoLink);
+        $("btn-entrar-senha").classList.toggle("hidden", pedindoLink);
+        $("btn-esqueci").classList.toggle("hidden", !pedindoLink);
+        $("cli-msg").classList.add("hidden");
         $("cli-email").focus();
+      }
+
+      function fecharPainel() {
+        $("painel-cliente").classList.add("hidden");
+        $("cli-msg").classList.add("hidden");
+      }
+
+      $("btn-cliente").addEventListener("click", function () {
+        if (!$("painel-cliente").classList.contains("hidden") &&
+            !$("btn-entrar-senha").classList.contains("hidden")) { fecharPainel(); return; }
+        abrirPainel("senha");
       });
+
+      $("btn-redefinir").addEventListener("click", function () {
+        if (!$("painel-cliente").classList.contains("hidden") &&
+            !$("btn-esqueci").classList.contains("hidden")) { fecharPainel(); return; }
+        abrirPainel("link");
+      });
+
+      $("btn-fechar-painel").addEventListener("click", fecharPainel);
 
       function entrarComSenha() {
         var email = ($("cli-email").value || "").trim().toLowerCase();
@@ -198,7 +233,8 @@
             btn.disabled = false;
             btn.textContent = "Entrar";
             // A mensagem é a mesma para e-mail errado e senha errada, de propósito.
-            msg("E-mail ou senha não conferem. Se é o seu primeiro acesso, use o link abaixo.", true);
+            msg("E-mail ou senha não conferem. Se é o seu primeiro acesso, " +
+                "use “Esqueci a minha senha” para receber um link.", true);
             return;
           }
           location.replace("index.html");
@@ -215,7 +251,9 @@
         if (ev.key === "Enter") entrarComSenha();
       });
       $("cli-email").addEventListener("keydown", function (ev) {
-        if (ev.key === "Enter") $("cli-senha").focus();
+        if (ev.key !== "Enter") return;
+        if ($("campo-senha").classList.contains("hidden")) $("btn-esqueci").click();
+        else $("cli-senha").focus();
       });
 
       // Primeiro acesso e esqueci a senha são o mesmo caminho: link por e-mail.
@@ -241,17 +279,9 @@
       });
 
       $("btn-voltar-senha").addEventListener("click", function () {
-        $("etapa-enviado").classList.add("hidden");
-        $("etapa-senha").classList.remove("hidden");
-        $("cli-email").focus();
+        abrirPainel("senha");
       });
 
-      // Demonstração sem login (protótipo continua navegável)
-      $("btn-demo").addEventListener("click", function () {
-        if (window.Auth) Auth.entrarDemo(); else location.href = "index.html";
-      });
-
-      // Entrada de teste no perfil do responsável da EPO: só as telas dele.
     })();
   </script>
 </body>
