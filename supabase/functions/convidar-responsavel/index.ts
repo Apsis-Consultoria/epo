@@ -1,7 +1,9 @@
-// Acesso do responsavel da EPO.
-// Quem cadastra a EPO informa o e-mail do responsavel; esta funcao cria a conta
-// dele e manda um e-mail com um link para ELE MESMO definir a senha. Depois
-// disso ele entra sempre com e-mail e senha.
+// Acesso por convite.
+// Serve para duas pessoas: o responsavel da unidade, cujo e-mail vem no
+// relatorio pedido, e quem a APSIS liberou na lista de acessos autorizados
+// (gerente da Claro, coordenacao, consultor). Nos dois casos esta funcao cria
+// a conta e manda um e-mail com um link para A PROPRIA PESSOA definir a senha.
+// Depois disso ela entra sempre com e-mail e senha.
 //
 // Regras:
 // - so admin, gestor ou cliente podem chamar (papel lido em perfis);
@@ -37,7 +39,19 @@ const REMETENTE = segredo(["AZURE_REMETENTE", "GRAPH_REMETENTE"]);
 const APP_URL = segredo(["APP_URL"]) || "https://apsis-consultoria.github.io/epo/";
 
 const GRAPH = "https://graph.microsoft.com/v1.0";
+// Quem pode convidar responsavel de unidade. O gerente da Claro entra aqui
+// porque e ele quem sabe o contato da unidade.
 const PAPEIS_OK = ["admin", "gestor", "cliente"];
+// Quem pode convidar alguem da lista de acessos autorizados. O gerente da
+// Claro fica fora: liberar acesso ao sistema e decisao da APSIS.
+const PAPEIS_OK_ACESSO = ["admin", "gestor"];
+
+const PAPEL_EM_PALAVRAS: Record<string, string> = {
+  cliente: "gerente da Claro",
+  gestor: "coordenacao APSIS",
+  auditor: "consultor APSIS",
+  responsavel: "responsavel da unidade"
+};
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -213,7 +227,31 @@ Deno.serve(async (req: Request) => {
 
   let email = String(corpo.email || "").trim().toLowerCase();
   let contexto = "";
+  let papelPretendido = "responsavel";
   const alocacaoId = String(corpo.alocacao_id || "").trim();
+  const acessoId = String(corpo.acesso_id || "").trim();
+
+  if (acessoId) {
+    if (PAPEIS_OK_ACESSO.indexOf(papel) < 0) {
+      return json({
+        ok: false,
+        motivo: "seu papel (" + (papel || "sem perfil") + ") nao pode liberar acesso ao sistema"
+      }, 403);
+    }
+    const { data: linha, error } = await admin
+      .from("acessos_autorizados")
+      .select("id, email, nome, papel, ativo")
+      .eq("id", acessoId).maybeSingle();
+    if (error) return json({ ok: false, motivo: "falha ao ler a liberacao: " + error.message }, 400);
+    if (!linha) return json({ ok: false, motivo: "liberacao nao encontrada" }, 404);
+    const l = linha as Record<string, any>;
+    if (!l.ativo) {
+      return json({ ok: false, motivo: "esta liberacao esta desativada. Ative antes de convidar" }, 400);
+    }
+    email = String(l.email || "").trim().toLowerCase();
+    papelPretendido = String(l.papel || "");
+    contexto = PAPEL_EM_PALAVRAS[papelPretendido] || papelPretendido;
+  }
 
   if (alocacaoId) {
     const { data: linha, error } = await admin
@@ -255,7 +293,7 @@ Deno.serve(async (req: Request) => {
     const criada = await admin.auth.admin.createUser({
       email: email,
       email_confirm: true,
-      user_metadata: { papel_pretendido: "responsavel", contexto: contexto }
+      user_metadata: { papel_pretendido: papelPretendido, contexto: contexto }
     });
     if (criada.error && !/already|registered|exists/i.test(String(criada.error.message || ""))) {
       return json({ ok: false, motivo: "nao foi possivel criar o acesso: " + criada.error.message }, 502);
@@ -317,10 +355,17 @@ Deno.serve(async (req: Request) => {
       .eq("id", alocacaoId);
   }
 
+  if (envio.ok && acessoId) {
+    await admin.from("acessos_autorizados")
+      .update({ convidado_em: new Date().toISOString() })
+      .eq("id", acessoId);
+  }
+
   return json({
     ok: envio.ok,
     email: email,
     contexto: contexto,
+    papel: papelPretendido,
     nova_conta: novaConta,
     motivo: envio.motivo
   }, envio.ok ? 200 : 502);
