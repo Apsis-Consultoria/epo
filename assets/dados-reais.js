@@ -206,8 +206,24 @@
     carregar: carregar,
     entao: function (fn) {
       carregar().then(function () {
-        try { fn(); }
-        catch (e) { if (window.console && console.error) console.error(e); }
+        try {
+          fn();
+        } catch (e) {
+          // Engolir o erro aqui deixava a tela EM BRANCO, sem uma palavra:
+          // foi o que aconteceu com a visao geral. Erro de montagem passa a
+          // aparecer na propria tela, para nunca mais existir tela vazia sem
+          // explicacao.
+          if (window.console && console.error) console.error(e);
+          var alvo = document.getElementById("page");
+          if (alvo && !alvo.innerHTML) {
+            alvo.innerHTML =
+              '<div class="empty">' +
+                '<i class="ti ti-alert-triangle" aria-hidden="true"></i>' +
+                "<p>Nao foi possivel montar esta tela agora. " +
+                "Atualize a pagina em alguns instantes.</p>" +
+              "</div>";
+          }
+        }
       });
     }
   };

@@ -284,7 +284,7 @@
     { key: "alocacoes",   label: "Reenvio de checklist",     icone: "ti-user-plus",        href: "alocacoes.html" },
     { key: "giro",        label: "Contagem Logística Reversa", icone: "ti-packages",        href: "contagem-giro.html" },
     { key: "evidencias",  label: "Evidências",               icone: "ti-camera",           href: "evidencias.html" },
-    { key: "config",      label: "Configurações",            icone: "ti-settings",         href: "configuracoes.html" },
+    { key: "criterios",   label: "Critérios da nota",        icone: "ti-adjustments",      href: "criterios-nota.html" },
     { key: "acessos",     label: "Gerenciamento de acessos", icone: "ti-lock-access",      href: "acessos.html" }
   ];
 
@@ -301,7 +301,7 @@
   var visaoCoordenacao = {
     epos: true,  geral: true,  ranking: true,  comparativo: true,  gerencial: true,
     pendentes: true,  auditoria: true,  envio: true,  checagem: true,  alocacoes: true,
-    giro: true,  evidencias: true,  config: true,  acessos: true,  questionarios: true,
+    giro: true,  evidencias: true,  criterios: true,  acessos: true,  questionarios: true,
     cronograma: true
   };
 
@@ -311,11 +311,11 @@
     admin:       visaoCoordenacao,
     gestor:      visaoCoordenacao,
     cliente:     visaoCoordenacao,
-    auditor:     { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: true,  auditoria: true,  envio: false, checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false, questionarios: false, cronograma: true },
-    responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false, questionarios: false, cronograma: false },
+    auditor:     { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: true,  auditoria: true,  envio: false, checagem: false, alocacoes: false, giro: true,  evidencias: false, criterios: false, acessos: false, questionarios: false, cronograma: true },
+    responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, criterios: false, acessos: false, questionarios: false, cronograma: false },
     // Entrou no sistema, mas a APSIS ainda nao liberou o acesso. Nao alcanca
     // tela nenhuma: quem cai aqui vai para a pagina que explica isso.
-    sem_acesso: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: false, checagem: false, alocacoes: false, giro: false, evidencias: false, config: false, acessos: false, questionarios: false, cronograma: false }
+    sem_acesso: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: false, checagem: false, alocacoes: false, giro: false, evidencias: false, criterios: false, acessos: false, questionarios: false, cronograma: false }
   };
 
   function copiaPreset(papel) {

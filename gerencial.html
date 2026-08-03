@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=53">
+  <link rel="stylesheet" href="assets/app.css?v=56">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -70,14 +70,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=53"></script>
-  <script src="assets/app.js?v=53"></script>
-  <script src="assets/geo-br.js?v=53"></script>
-  <script src="assets/mapa-epos.js?v=53"></script>
-  <script src="assets/supabase-config.js?v=53"></script>
+  <script src="assets/data.js?v=56"></script>
+  <script src="assets/app.js?v=56"></script>
+  <script src="assets/geo-br.js?v=56"></script>
+  <script src="assets/mapa-epos.js?v=56"></script>
+  <script src="assets/supabase-config.js?v=56"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=53"></script>
-  <script src="assets/dados-reais.js?v=53"></script>
+  <script src="assets/auth.js?v=56"></script>
+  <script src="assets/dados-reais.js?v=56"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -145,7 +145,7 @@
       // Score médio da carteira + demais campos do resumo
       var scoreMedio = epos.reduce(function (acc, e) { return acc + e.score; }, 0) / (epos.length || 1);
       var criticas = epos.filter(function (e) { return e.tier === "critico"; });
-      var ultimaLabel = (epos[0] && epos[0].vistorias.length)
+      var ultimaLabel = (epos[0] && epos[0].vistorias && epos[0].vistorias.length)
         ? epos[0].vistorias[epos[0].vistorias.length - 1].label
         : "jul/2026";
 
@@ -170,7 +170,7 @@
       }
 
       var htmlKpis =
-        '<div class="kpi-grid" style="margin-bottom:16px;">' +
+        '<div class="kpi-grid">' +
           kpiCard("EPOs auditadas", App.fmtNum(kpis.eposAuditadas), "ti-building-warehouse",
             '<span class="kpi-delta flat"><i class="ti ti-calendar" aria-hidden="true"></i>ciclo ' + esc(ultimaLabel) + "</span>") +
           kpiCard("Conformidade média", App.fmtPct(kpis.conformidadeMedia), "ti-circle-check",
@@ -354,8 +354,12 @@
         var meses = (epos[0] && epos[0].historico || []).map(function (h) { return h.mes; });
         var mediaMensal = meses.map(function (_, i) {
           var soma = 0;
-          epos.forEach(function (e) { soma += e.historico[i].score; });
-          return Math.round((soma / epos.length) * 10) / 10;
+          var n = 0;
+          epos.forEach(function (e) {
+            var h = e.historico && e.historico[i];
+            if (h && h.score != null) { soma += h.score; n += 1; }
+          });
+          return n ? Math.round((soma / n) * 10) / 10 : 0;
         });
 
         var ctx = canvas.getContext("2d");

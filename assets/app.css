@@ -347,7 +347,13 @@ img { max-width: 100%; display: block; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 
 /* ------------------------------------------------------------------ KPIs */
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+/* A faixa de numeros tambem nao tinha margem: ela encostava na caixa de
+   baixo em toda tela que a usa. O gap separa as celulas entre si, nao a
+   faixa do que vem depois. */
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px; margin-bottom: 16px;
+}
 
 .kpi {
   background: var(--surface);
@@ -679,6 +685,35 @@ img { max-width: 100%; display: block; }
 .wrap { flex-wrap: wrap; }
 .grow { flex: 1; min-width: 0; }
 .is-hidden { display: none !important; }
+
+/* -------------------------------------------------------------- Atalhos
+   A tela principal era so leitura: quem entrava tinha de procurar no menu
+   lateral onde fazer cada coisa. */
+.atalhos { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.atalho {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-decoration: none;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.atalho:hover { border-color: var(--apsis-green); box-shadow: var(--shadow-md); }
+.atalho-ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; flex: none;
+  border-radius: 10px;
+  background: var(--primary-tint);
+  color: var(--apsis-green);
+}
+.atalho-ico i { font-size: 19px; }
+.atalho-nm { display: block; font-size: 14px; font-weight: 600; color: var(--text); }
+.atalho-ds { display: block; font-size: 12px; color: var(--text-2); margin-top: 2px; line-height: 1.4; }
+
+/* Secao de menu sem tela propria: rotulo, nao link. */
+.nav-item.nav-secao { cursor: default; }
+.nav-item.nav-secao:hover { background: transparent; }
 .nowrap { white-space: nowrap; }
 .tnum { font-variant-numeric: tabular-nums; }
 .page-intro { color: var(--text-2); margin-bottom: 22px; max-width: 720px; }

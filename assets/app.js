@@ -28,8 +28,12 @@
     { key: "giro",        label: "Contagem Logística Reversa", icon: "ti-packages", href: "contagem-giro.html" },
     // Reenvio, acessos e arquivos são bastidores: quem opera o dia a dia
     // não passa por eles. Ficam como subtópicos de Configurações.
-    { key: "config",      label: "Configurações",    icon: "ti-settings",         href: "configuracoes.html",
+    // Configuracoes nao tem tela propria: e so o agrupador que abre as de
+    // baixo. Clicar no titulo de uma secao e abrir uma pagina que repete os
+    // proprios subtopicos nao leva a pessoa a lugar nenhum.
+    { key: "config",      label: "Configurações",    icon: "ti-settings",
       children: [
+        { key: "criterios",  label: "Critérios da nota",        href: "criterios-nota.html" },
         { key: "questionarios", label: "Questionários",          href: "questionarios.html" },
         { key: "alocacoes",  label: "Reenvio de checklist",     href: "alocacoes.html" },
         { key: "acessos",    label: "Gerenciamento de acessos", href: "acessos.html" },
@@ -377,12 +381,21 @@
         }).join("");
         // O painel dos filhos fica sempre aberto: subtópico que só aparece
         // quando a seção está em uso dá a impressão de que a tela sumiu.
+        // Secao sem tela propria e um rotulo, nao um link: assim ninguem
+        // clica esperando ir para algum lugar.
+        var cabeca = n.href
+          ? '<a class="nav-item' + (isActive || filhoAtivo ? " active" : "") + '" href="' + n.href + '"' +
+              (isActive ? ' aria-current="page"' : "") + ">" +
+              '<i class="ti ' + n.icon + '" aria-hidden="true"></i>' +
+              '<span class="nav-label">' + n.label + "</span>" +
+            "</a>"
+          : '<div class="nav-item nav-secao' + (filhoAtivo ? " active" : "") + '" ' +
+              'data-subnav="' + n.key + '">' +
+              '<i class="ti ' + n.icon + '" aria-hidden="true"></i>' +
+              '<span class="nav-label">' + n.label + "</span>" +
+            "</div>";
         return (
-          '<a class="nav-item' + (isActive || filhoAtivo ? " active" : "") + '" href="' + n.href + '"' +
-            (isActive ? ' aria-current="page"' : "") + ">" +
-            '<i class="ti ' + n.icon + '" aria-hidden="true"></i>' +
-            '<span class="nav-label">' + n.label + "</span>" +
-          "</a>" +
+          cabeca +
           '<div class="nav-sub is-open" data-subnav-panel="' + n.key + '">' + kids + "</div>"
         );
       }

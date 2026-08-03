@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=53">
+  <link rel="stylesheet" href="assets/app.css?v=56">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
@@ -112,14 +112,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=53"></script>
-  <script src="assets/app.js?v=53"></script>
-  <script src="assets/geo-br.js?v=53"></script>
-  <script src="assets/mapa-epos.js?v=53"></script>
-  <script src="assets/supabase-config.js?v=53"></script>
+  <script src="assets/data.js?v=56"></script>
+  <script src="assets/app.js?v=56"></script>
+  <script src="assets/geo-br.js?v=56"></script>
+  <script src="assets/mapa-epos.js?v=56"></script>
+  <script src="assets/supabase-config.js?v=56"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=53"></script>
-  <script src="assets/dados-reais.js?v=53"></script>
+  <script src="assets/auth.js?v=56"></script>
+  <script src="assets/dados-reais.js?v=56"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -144,11 +144,18 @@
         });
       });
 
-      var meses = epos[0].historico.map(function (h) { return h.mes; });
+      // Sem unidade cadastrada nao ha serie de meses. Antes esta linha lia
+      // epos[0] direto: com a lista vazia estourava, o erro era engolido e a
+      // tela ficava em branco em vez de mostrar as caixas zeradas.
+      var meses = (epos[0] && epos[0].historico ? epos[0].historico : [])
+        .map(function (h) { return h.mes; });
       var scoreMensal = meses.map(function (m, i) {
-        var s = 0;
-        epos.forEach(function (e) { s += e.historico[i].score; });
-        return Math.round((s / epos.length) * 10) / 10;
+        var s = 0, n = 0;
+        epos.forEach(function (e) {
+          var h = e.historico && e.historico[i];
+          if (h && h.score != null) { s += h.score; n += 1; }
+        });
+        return n ? Math.round((s / n) * 10) / 10 : 0;
       });
 
       var top = epos.slice(0, 3);
@@ -157,6 +164,16 @@
       // -------- Helpers de render --------
       function iniciais(nome) {
         return nome.replace(/^EPO\s+/i, "").trim().slice(0, 2).toUpperCase();
+      }
+
+      function atalho(href, icone, titulo, desc) {
+        return '<a class="atalho" href="' + href + '">' +
+          '<span class="atalho-ico"><i class="ti ' + icone + '" aria-hidden="true"></i></span>' +
+          "<span>" +
+            '<span class="atalho-nm">' + titulo + "</span>" +
+            '<span class="atalho-ds">' + desc + "</span>" +
+          "</span>" +
+        "</a>";
       }
 
       function epoRow(e, atencaoMode) {
@@ -234,12 +251,39 @@
               '<span class="hero-acao-desc">' + App.fmtNum(kpis.eposAuditadas) + ' EPOs auditadas para a Claro · ciclo médio de ' + App.fmtDias(kpis.tempoMedioCiclo) + ' da chegada à devolução.</span>' +
             '</div>' +
             '<div class="hero-acao-btns">' +
-              '<a class="cta-nova-btn is-ghost" href="pendentes.html?nova=1">' +
+              '<a class="cta-nova-btn is-ghost" href="epos.html?auditoria=1">' +
                 '<i class="ti ti-clipboard-plus" aria-hidden="true"></i>Nova auditoria' +
               '</a>' +
               '<a class="cta-nova-btn" href="pendentes.html">' +
-                '<i class="ti ti-clipboard-list" aria-hidden="true"></i>Auditorias pendentes' +
+                '<i class="ti ti-clipboard-list" aria-hidden="true"></i>Questionários pendentes' +
               '</a>' +
+            '</div>' +
+          '</section>' +
+
+          // (1b) Atalhos. A tela principal era so leitura: quem entrava tinha
+          // de achar no menu lateral onde fazer cada coisa. Aqui ficam os
+          // caminhos que a operacao usa todo dia.
+          '<section class="card mb-0">' +
+            '<div class="card-header"><div class="section-title">' +
+              '<span class="title">Atalhos</span>' +
+            '</div></div>' +
+            '<div class="atalhos">' +
+              atalho("epos.html?auditoria=1", "ti-clipboard-plus",
+                     "Nova auditoria", "Escolha a unidade e os questionários") +
+              atalho("pendentes.html", "ti-clipboard-list",
+                     "Questionários pendentes", "O que falta preencher em cada unidade") +
+              atalho("epos.html", "ti-building-warehouse",
+                     "EPOs", "Cadastro das unidades") +
+              atalho("cronograma.html", "ti-calendar-stats",
+                     "Cronograma", "Datas das visitas e aprovação da Claro") +
+              atalho("checagem.html", "ti-zoom-check",
+                     "Evidências recebidas", "O que chegou de cada lado") +
+              atalho("contagem-giro.html", "ti-packages",
+                     "Contagem Logística Reversa", "Conferência do material devolvido") +
+              atalho("ranking.html", "ti-trophy",
+                     "Ranking", "Classificação das unidades auditadas") +
+              atalho("gerencial.html", "ti-report-analytics",
+                     "Painel gerencial", "Relatório executivo do ciclo") +
             '</div>' +
           '</section>' +
 
