@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=60">
+  <link rel="stylesheet" href="assets/app.css?v=61">
   <style>
     /* ---------------- Matriz de telas por cargo ---------------- */
     .matrix-wrap { width: 100%; overflow: auto; border-top: 1px solid var(--border); }
@@ -123,11 +123,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=60"></script>
-  <script src="assets/app.js?v=60"></script>
-  <script src="assets/supabase-config.js?v=60"></script>
+  <script src="assets/data.js?v=61"></script>
+  <script src="assets/app.js?v=61"></script>
+  <script src="assets/supabase-config.js?v=61"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=60"></script>
+  <script src="assets/auth.js?v=61"></script>
   <script>
     (function () {
       "use strict";
@@ -269,8 +269,7 @@
               "</div>" +
               '<div class="nota-acesso">' +
                 '<i class="ti ti-info-circle" aria-hidden="true"></i>' +
-                "<span>Liberar aqui não cria a conta nem a senha. Depois de liberar, use " +
-                "<b>Convidar</b> para a pessoa receber um e-mail e escolher a senha dela. " +
+                "<span>Ao liberar, a pessoa recebe o e-mail de acesso e escolhe a senha dela. " +
                 "A APSIS nunca vê essa senha.</span>" +
               "</div>" +
             "</div>" +
@@ -510,7 +509,10 @@
             '<span class="muted" style="display:block;font-size:11.5px;">' +
             esc(fmtQuando(a.convidado_em)) + "</span>";
         }
-        return '<span class="badge badge-alta">Ainda não convidado</span>';
+        // Liberar acesso ja envia o e-mail. Se convidado_em esta vazio, o envio
+        // falhou: dizer "ainda nao convidado" faria parecer passo pendente de
+        // alguem, quando o que falta e tentar de novo.
+        return '<span class="badge badge-danger">Convite não saiu</span>';
       }
 
       function fmtQuando(iso) {
@@ -591,9 +593,9 @@
             lista.map(function (a) {
               var b = [];
               if (podeMexer) {
-                b.push(botao("convidar", a.id,
-                  a.convidado_em ? "Reenviar convite" : "Convidar",
-                  a.convidado_em ? "btn-ghost" : "btn-primary", "ti-mail"));
+                // Sempre reenvio: o primeiro envio sai junto com a liberacao,
+                // e nao ha caminho para mandar o primeiro acesso a mao.
+                b.push(botao("convidar", a.id, "Reenviar convite", "btn-ghost", "ti-mail"));
                 b.push(botao("editar", a.id, "", "btn-ghost btn-icon", "ti-pencil",
                   "Alterar este acesso"));
                 b.push(botao(a.ativo ? "desativar" : "ativar", a.id,
@@ -700,6 +702,7 @@
         if (papel === "cliente" && !cliente) { App.toast("Escolha o cliente do gerente."); return; }
 
         var btn = $("mod-salvar");
+        var rotuloBotao = btn.textContent;
         btn.disabled = true;
 
         if (DEMO) {
@@ -729,11 +732,32 @@
             App.toast("Seu acesso não permite liberar pessoas. Fale com a coordenação da APSIS.");
             return;
           }
-          App.toast(editandoId ? "Acesso alterado." : "Acesso liberado. Agora envie o convite.");
-          fecharModal();
-          return carregar().then(render);
+          if (editandoId) {
+            App.toast("Acesso alterado.");
+            fecharModal();
+            return carregar().then(render);
+          }
+
+          // Liberar e enviar sao um passo so: nao existe mandar o primeiro
+          // acesso a mao. Antes a liberacao terminava pedindo que alguem
+          // clicasse em Convidar depois, e quem esquecia deixava a pessoa
+          // liberada sem nunca receber nada.
+          btn.disabled = true;
+          btn.textContent = "Enviando o acesso...";
+          return enviarAcesso(r.data[0].id).then(function (env) {
+            btn.disabled = false;
+            btn.textContent = rotuloBotao;
+            fecharModal();
+            App.toast(env.ok
+              ? "Acesso liberado e enviado para " + email + "."
+              : "Acesso liberado, mas o e-mail não saiu" +
+                (env.motivo ? ": " + env.motivo : "") +
+                ". Use Reenviar convite na lista.");
+            return carregar().then(render);
+          });
         }).catch(function () {
           btn.disabled = false;
+          btn.textContent = rotuloBotao;
           App.toast("Não foi possível salvar agora. Tente novamente.");
         });
       }
@@ -769,29 +793,51 @@
           });
       }
 
+      // O motivo da falha vem no CORPO da resposta, e nao na mensagem do erro.
+      // Sem ler o corpo, qualquer falha de envio aparecia como "nao foi
+      // possivel enviar" - e era justamente o motivo que faltava para
+      // descobrir por que o e-mail nao chega.
+      function motivoDaFalha(err) {
+        var ctx = err && err.context;
+        if (ctx && typeof ctx.json === "function") {
+          return ctx.json().then(function (d) {
+            return { ok: false, motivo: (d && d.motivo) || "" };
+          }, function () { return { ok: false, motivo: "" }; });
+        }
+        return { ok: false, motivo: (err && err.message) || "" };
+      }
+
+      // Um caminho so de envio, para o e-mail da liberacao e o do reenvio nao
+      // divergirem.
+      function enviarAcesso(id) {
+        var cli = window.Auth ? Auth.cliente : null;
+        if (!cli || !cli.functions || !cli.functions.invoke) {
+          return Promise.resolve({ ok: false, motivo: "" });
+        }
+        return cli.functions.invoke("convidar-responsavel", { body: { acesso_id: id } })
+          .then(function (r) {
+            if (r.error) return motivoDaFalha(r.error);
+            var d = r.data || {};
+            return { ok: !!d.ok, motivo: d.motivo || "" };
+          }, motivoDaFalha);
+      }
+
       function convidar(a, botaoEl) {
         if (DEMO) { App.toast("Sem conexão com os dados agora: nada foi enviado."); return; }
         botaoEl.disabled = true;
-        var rotulo = botaoEl.textContent;
+        var rotulo = botaoEl.innerHTML;
         botaoEl.textContent = "Enviando...";
 
-        Auth.cliente.functions.invoke("convidar-responsavel", { body: { acesso_id: a.id } })
-          .then(function (r) {
-            var d = r.data || {};
-            botaoEl.disabled = false;
-            botaoEl.textContent = rotulo;
-            if (!d.ok) {
-              App.toast(d.motivo || "Não foi possível enviar o convite agora.");
-              return;
-            }
-            App.toast("Convite enviado para " + a.email + ".");
-            return carregar().then(render);
-          })
-          .catch(function () {
-            botaoEl.disabled = false;
-            botaoEl.textContent = rotulo;
-            App.toast("Não foi possível enviar o convite agora. Tente novamente.");
-          });
+        enviarAcesso(a.id).then(function (env) {
+          botaoEl.disabled = false;
+          botaoEl.innerHTML = rotulo;
+          if (!env.ok) {
+            App.toast("O e-mail não saiu" + (env.motivo ? ": " + env.motivo : "") + ".");
+            return;
+          }
+          App.toast("Acesso enviado para " + a.email + ".");
+          return carregar().then(render);
+        });
       }
 
       function apagar(a, botaoEl) {

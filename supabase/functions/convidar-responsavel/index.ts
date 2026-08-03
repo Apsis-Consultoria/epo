@@ -302,9 +302,14 @@ Deno.serve(async (req: Request) => {
   }
 
   // Link de uso unico para definir a senha. Nao volta na resposta.
-  const tipo = novaConta ? "invite" : "recovery";
+  //
+  // Sempre "recovery", nunca "invite". O tipo invite serve para e-mail que
+  // ainda NAO tem conta: ele mesmo cria. Como a conta acabou de ser criada
+  // acima, pedir invite recebia 422 "A user with this email address has
+  // already been registered", a funcao devolvia 502 e nenhum e-mail saia -
+  // ou seja, todo primeiro acesso falhava, sempre.
   const gerado = await admin.auth.admin.generateLink({
-    type: tipo as "invite" | "recovery",
+    type: "recovery",
     email: email,
     options: { redirectTo: destino }
   });
@@ -328,9 +333,11 @@ Deno.serve(async (req: Request) => {
   // 2) sem Graph, tenta o envio do proprio projeto
   if (!envio.ok) {
     console.warn("envio pelo Graph falhou:", envio.motivo);
-    const pelaPlataforma = novaConta
-      ? await admin.auth.admin.inviteUserByEmail(email, { redirectTo: destino })
-      : await comoUsuario.auth.resetPasswordForEmail(email, { redirectTo: destino });
+    // Aqui vale a mesma regra do link: a conta ja existe neste ponto, entao
+    // convidar recusaria com "already registered". Redefinir senha serve para
+    // os dois casos, porque conta nova nasce sem senha.
+    const pelaPlataforma = await comoUsuario.auth.resetPasswordForEmail(
+      email, { redirectTo: destino });
     if (!pelaPlataforma.error) {
       envio = { ok: true, motivo: "enviado pelo servico de e-mail do projeto" };
     } else {
