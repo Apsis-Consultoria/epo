@@ -205,6 +205,47 @@
       });
   }
 
+  // ---------------------------------------------- Telas por cargo
+  // A decisao de quais telas cada cargo alcanca fica guardada no sistema e e
+  // editada na tela de Gerenciamento de acessos. O padrao escrito no codigo
+  // continua valendo como reserva: se a leitura falhar, o menu nao desaba.
+  var promessaPermissoes = null;
+  function permissoesGravadas() {
+    if (promessaPermissoes) return promessaPermissoes;
+    if (!client) return Promise.resolve(null);
+    promessaPermissoes = client.from("permissoes_papel")
+      .select("papel, tela, permitido")
+      .then(function (r) {
+        if (r.error || !r.data || !r.data.length) return null;
+        var mapa = {};
+        r.data.forEach(function (x) {
+          if (!mapa[x.papel]) mapa[x.papel] = {};
+          mapa[x.papel][x.tela] = !!x.permitido;
+        });
+        return mapa;
+      })
+      .catch(function () { return null; });
+    return promessaPermissoes;
+  }
+
+  // Administrador alcanca tudo, sempre, e nao entra na tabela: se um dia
+  // alguem se trancasse fora por engano, e por ele que se conserta.
+  function permissoesDe(papel, gravadas) {
+    if (papel === "admin") {
+      var tudo = {};
+      Object.keys(MAPA_PAGINAS).forEach(function (arq) { tudo[MAPA_PAGINAS[arq]] = true; });
+      return tudo;
+    }
+    var base = ((window.APP && window.APP.papeisPreset) || {})[papel];
+    if (!base) return null;
+    var out = {};
+    Object.keys(base).forEach(function (k) { out[k] = !!base[k]; });
+    if (gravadas && gravadas[papel]) {
+      Object.keys(gravadas[papel]).forEach(function (k) { out[k] = gravadas[papel][k]; });
+    }
+    return out;
+  }
+
   // ------------------------------------------------------- Segundo fator
   // O codigo nunca e gerado nem conferido aqui: a tela so pergunta a situacao,
   // pede o envio e manda o que a pessoa digitou. Quem decide e o servidor.
@@ -445,9 +486,11 @@
   }
 
   function seguirComPerfil(s) {
-    return sincronizarPapel().then(function () {
-        return perfilDe(s.user);
-      }).then(function (p) {
+    var gravadas = null;
+    return sincronizarPapel()
+      .then(permissoesGravadas)
+      .then(function (g) { gravadas = g; return perfilDe(s.user); })
+      .then(function (p) {
         if (p.papel === "sem_acesso") {
           location.replace("sem-acesso.html");
           return "sem-acesso";
@@ -466,7 +509,7 @@
           simulado = "";
         }
 
-        var perms = mapa[simulado || p.papel];
+        var perms = permissoesDe(simulado || p.papel, gravadas);
         if (perms && pageKey && perms[pageKey] === false) {
           location.replace(primeiraPermitida(perms));
           return "sem-permissao";
