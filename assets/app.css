@@ -1184,8 +1184,8 @@ input[type="submit"],
    A escala (semana ou mes) e so uma variavel de CSS: trocar de escala nao
    recalcula nem redesenha barra nenhuma.
    ========================================================================= */
-.gan { --gan-rot: 236px; --gan-sem: 34px; --gan-h: 40px; }
-.gan.esc-mes { --gan-sem: 14px; }
+.gan { --gan-rot: 236px; --gan-sem: 34px; --gan-h: 46px; }
+.gan.esc-mes { --gan-sem: 18px; }
 
 .gan-scroll {
   overflow: auto;
@@ -1277,16 +1277,19 @@ input[type="submit"],
 /* ------------------------------------------------------------- as barras */
 .gan-barra {
   position: absolute;
-  height: 10px; min-width: 10px; padding: 0;
-  border: 1px solid transparent; border-radius: 999px;
+  height: 17px; padding: 0;
+  border: 1px solid transparent; border-radius: 3px;
   cursor: pointer;
 }
 /* area de toque confortavel sem engordar o desenho */
-.gan-barra::before { content: ""; position: absolute; inset: -9px -6px; }
+.gan-barra::before { content: ""; position: absolute; inset: -3px 0; }
 .gan-barra:focus-visible { outline: 2px solid var(--apsis-green); outline-offset: 2px; }
-.gan-barra i { position: absolute; right: 2px; top: -2px; font-size: 11px; }
+.gan-barra i {
+  position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
+  font-size: 12px;
+}
 
-.gan-prev { top: 7px; background: var(--surface-2); border-color: var(--border-strong); }
+.gan-prev { top: 5px; background: var(--surface-2); border-color: var(--border-strong); }
 .gan-prev.s-aguardando_claro { background: var(--warning-bg); border-color: var(--apsis-orange); border-style: dashed; }
 .gan-prev.s-aguardando_apsis { background: var(--surface); border-color: var(--apsis-orange); border-style: dashed; }
 .gan-prev.s-confirmada       { background: var(--apsis-green); border-color: var(--apsis-green); }
@@ -1301,27 +1304,15 @@ input[type="submit"],
 }
 .gan-prev.is-atrasada i { color: var(--danger); }
 
-.gan-prop { top: 7px; height: 10px; background: transparent; border: 1.5px dotted var(--apsis-orange); }
+/* A data que a Claro sugeriu fica vazada, para nao competir com a
+   combinada: e proposta, nao acordo. */
+.gan-prop { top: 5px; background: var(--warning-bg); border: 1.5px dashed var(--apsis-orange); }
 
-.gan-real { top: 22px; background: var(--success); border-color: var(--success); }
+.gan-real { top: 24px; height: 15px; background: var(--success); border-color: var(--success); }
 .gan-real.fora-da-data { background: var(--apsis-orange); border-color: var(--accent-600); }
 .gan-real i { color: #fff; }
 
-.gan-semdata { position: absolute; left: 6px; top: 12px; font-size: 11.5px; color: var(--text-muted); }
-
-/* Uma visita de um dia, num ciclo de meses, e um risco de poucos pixels.
-   A data escrita ao lado da barra e o que torna a linha legivel. */
-.gan-rotulo {
-  position: absolute; top: 12px;
-  font-size: 11.5px; color: var(--text-2);
-  white-space: nowrap; pointer-events: none;
-}
-.gan-rotulo.depois { margin-left: 8px; }
-/* Barra perto do fim do periodo: a data vai antes dela, senao o texto sai
-   da faixa e passa a esticar a rolagem horizontal sozinho. */
-.gan-rotulo.antes  { margin-right: 8px; text-align: right; }
-.gan-linha:hover .gan-rotulo { color: var(--text); }
-
+.gan-semdata { position: absolute; left: 6px; top: 14px; font-size: 11.5px; color: var(--text-muted); }
 /* ------------------------------------------------------------- legenda */
 .gan-legenda {
   display: flex; flex-wrap: wrap; gap: 8px 18px;
@@ -1331,14 +1322,15 @@ input[type="submit"],
 }
 .gan-legenda span { display: inline-flex; align-items: center; gap: 7px; }
 .gan-amostra {
-  display: inline-block; width: 22px; height: 10px; border-radius: 999px;
+  display: inline-block; width: 24px; height: 13px; border-radius: 3px;
   border: 1px solid var(--border-strong); background: var(--surface-2);
 }
 .gan-amostra.aguardando { background: var(--warning-bg); border: 1px dashed var(--apsis-orange); }
-.gan-amostra.sugerida   { background: transparent; border: 1.5px dotted var(--apsis-orange); }
+.gan-amostra.sugerida   { background: var(--warning-bg); border: 1.5px dashed var(--apsis-orange); }
 .gan-amostra.confirmada { background: var(--apsis-green); border-color: var(--apsis-green); }
 .gan-amostra.realizada  { background: var(--success); border-color: var(--success); }
 .gan-amostra.fora       { background: var(--apsis-orange); border-color: var(--accent-600); }
+.gan-nota { flex: 1 0 100%; color: var(--text-muted); font-size: 11.5px; }
 .gan-amostra.atrasada   { border-color: var(--danger);
   background: repeating-linear-gradient(45deg, var(--danger) 0 2px, var(--danger-bg) 2px 7px); }
 

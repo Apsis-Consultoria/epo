@@ -600,69 +600,61 @@
                "</div>";
       }
 
-      // Uma visita de um ou dois dias, num ciclo de meses, ocupa menos que a
-      // largura de um dedo. Por isso a data vai escrita ao lado da barra: o
-      // desenho mostra QUANDO, e o rotulo diz o dia exato sem depender do
-      // tamanho da barra.
+      // Uma visita de um ou dois dias, desenhada dia a dia num ciclo de meses,
+      // sai com quatro pixels: viraria um ponto, nao um bloco. Por isso cada
+      // bloco cobre a SEMANA inteira da visita, encaixado na grade. Fica um
+      // retangulo cheio, na cor da legenda, e o dia exato continua na tabela
+      // logo abaixo e no texto que aparece ao passar o mouse.
+      function blocoDaSemana(d, ini, fim) {
+        var a = segunda(ini);
+        var b = segunda(fim != null ? fim : ini) + 6;
+        if (a < d.ini) a = d.ini;
+        if (b > d.fim) b = d.fim;
+        return { esq: pctEsq(d, a), larg: pctLarg(d, a, b) };
+      }
+
       function htmlBarras(d, it) {
-        var h = "", fim, tarde, fora, ultimoFim = null, primeiroIni = null;
+        var h = "", fim, tarde, fora, bl, txt;
 
         if (it.prevIni != null) {
           fim = it.prevFim != null ? it.prevFim : it.prevIni;
           tarde = atrasada(it);
-          ultimoFim = fim;
-          primeiroIni = it.prevIni;
+          bl = blocoDaSemana(d, it.prevIni, fim);
+          txt = it.nome + ", " + ROTULO[it.situacao] + ", " + periodo(it.prevIni, fim) +
+                (tarde ? ", fora do prazo" : "");
           h += '<button type="button" class="gan-barra gan-prev s-' + esc(it.situacao) +
                (tarde ? " is-atrasada" : "") + '" data-item="' + esc(it.id) + '"' +
-               ' style="left:' + pctEsq(d, it.prevIni).toFixed(4) +
-               "%;width:" + pctLarg(d, it.prevIni, fim).toFixed(4) + '%"' +
-               ' aria-label="' + esc(it.nome + ", " + ROTULO[it.situacao] + ", " +
-                 periodo(it.prevIni, fim) + (tarde ? ", fora do prazo" : "")) + '">' +
+               ' style="left:' + bl.esq.toFixed(4) + "%;width:" + bl.larg.toFixed(4) + '%"' +
+               ' title="' + esc(txt) + '" aria-label="' + esc(txt) + '">' +
                (tarde ? '<i class="ti ti-alert-triangle" aria-hidden="true"></i>' : "") +
                "</button>";
         }
 
         if (it.situacao === "aguardando_apsis" && it.propIni != null) {
           fim = it.propFim != null ? it.propFim : it.propIni;
-          if (ultimoFim === null || fim > ultimoFim) ultimoFim = fim;
-          if (primeiroIni === null || it.propIni < primeiroIni) primeiroIni = it.propIni;
+          bl = blocoDaSemana(d, it.propIni, fim);
+          txt = "Claro sugeriu " + periodo(it.propIni, fim);
           h += '<button type="button" class="gan-barra gan-prop" data-item="' + esc(it.id) + '"' +
-               ' style="left:' + pctEsq(d, it.propIni).toFixed(4) +
-               "%;width:" + pctLarg(d, it.propIni, fim).toFixed(4) + '%"' +
-               ' aria-label="' + esc("Data sugerida pela Claro: " + periodo(it.propIni, fim)) +
-               '"></button>';
+               ' style="left:' + bl.esq.toFixed(4) + "%;width:" + bl.larg.toFixed(4) + '%"' +
+               ' title="' + esc(txt) + '" aria-label="' + esc(txt) + '"></button>';
         }
 
         if (it.realIni != null) {
           fim = it.realFim != null ? it.realFim : it.realIni;
-          if (ultimoFim === null || fim > ultimoFim) ultimoFim = fim;
-          if (primeiroIni === null || it.realIni < primeiroIni) primeiroIni = it.realIni;
           fora = it.prevIni != null &&
             (it.realIni < it.prevIni ||
              it.realIni > (it.prevFim != null ? it.prevFim : it.prevIni));
+          bl = blocoDaSemana(d, it.realIni, fim);
+          txt = "Realizada em " + periodo(it.realIni, fim) +
+                (fora ? ", fora da data combinada" : "");
           h += '<button type="button" class="gan-barra gan-real' + (fora ? " fora-da-data" : "") +
                '" data-item="' + esc(it.id) + '"' +
-               ' style="left:' + pctEsq(d, it.realIni).toFixed(4) +
-               "%;width:" + pctLarg(d, it.realIni, fim).toFixed(4) + '%"' +
-               ' aria-label="' + esc("Realizada em " + periodo(it.realIni, fim) +
-                 (fora ? ", fora da data combinada" : "")) + '">' +
+               ' style="left:' + bl.esq.toFixed(4) + "%;width:" + bl.larg.toFixed(4) + '%"' +
+               ' title="' + esc(txt) + '" aria-label="' + esc(txt) + '">' +
                '<i class="ti ti-check" aria-hidden="true"></i></button>';
         }
 
-        if (h) {
-          // Barra perto do fim do periodo desenhado: a data vai ANTES dela.
-          // Escrita depois, o texto sairia da faixa e esticaria a rolagem
-          // horizontal sem que exista dia nenhum ali.
-          var depois = pctEsq(d, ultimoFim + 1);
-          var antes = pctEsq(d, primeiroIni);
-          if (depois > 55 && antes >= 25) {
-            h += '<span class="gan-rotulo antes" style="right:' +
-                 (100 - antes).toFixed(4) + '%">' + esc(rotuloDaLinha(it)) + "</span>";
-          } else {
-            h += '<span class="gan-rotulo depois" style="left:' + depois.toFixed(4) + '%">' +
-                 esc(rotuloDaLinha(it)) + "</span>";
-          }
-        } else {
+        if (!h) {
           h = '<span class="gan-semdata">' +
               esc(it.semana ? it.semana + ", data a combinar" : "data a combinar") + "</span>";
         }
@@ -771,7 +763,9 @@
                  esc(l.t) + "</span>";
         }).join("") +
         '<span><i class="ti ti-line-dashed" aria-hidden="true" style="color:var(--apsis-orange);"></i>' +
-        "A linha laranja marca hoje</span>";
+        "A linha laranja marca hoje</span>" +
+        '<span class="gan-nota">Cada bloco cobre a semana da visita. A data exata ' +
+        "esta na tabela abaixo e aparece ao passar o mouse.</span>";
       }
 
       // ================================================================
