@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=57">
+  <link rel="stylesheet" href="assets/app.css?v=58">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -39,76 +39,6 @@
 
     .epo-loading { padding: 30px 14px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
 
-    /* ---------------- Modal em duas colunas ---------------- */
-    .modal.modal-largo { max-width: 940px; }
-    .modal-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-    .modal-col + .modal-col {
-      border-left: 1px solid var(--border);
-      padding-left: 22px;
-    }
-    .col-titulo {
-      display: flex; align-items: center; gap: 7px;
-      font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
-      color: var(--text-muted); margin-bottom: 14px;
-    }
-    .col-titulo i { font-size: 15px; color: var(--apsis-green); }
-    @media (max-width: 820px) {
-      .modal-cols { grid-template-columns: 1fr; gap: 4px; }
-      .modal-col + .modal-col {
-        border-left: 0; padding-left: 0;
-        border-top: 1px solid var(--border); padding-top: 18px; margin-top: 4px;
-      }
-    }
-
-    .field-row { display: flex; gap: 12px; }
-    .field-row .field { flex: 1 1 0; min-width: 0; }
-    .field-row .field.uf { flex: 0 0 96px; }
-    .field-row .field.cep { flex: 0 0 132px; }
-    @media (max-width: 640px) {
-      .field-row { flex-wrap: wrap; }
-      .field-row .field.uf, .field-row .field.cep { flex: 1 1 auto; }
-    }
-
-    /* Lista de questionários */
-    .procs-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-    .procs-head .procs-rotulo { font-size: 13px; font-weight: 500; color: var(--text); }
-    .procs-head .procs-count { font-size: 12px; color: var(--text-muted); }
-    .link-mini {
-      border: 0; background: transparent; padding: 0;
-      font-family: inherit; font-size: 12.5px; font-weight: 500;
-      color: var(--apsis-green); cursor: pointer; text-decoration: underline;
-    }
-    .link-mini:hover { color: var(--apsis-orange); }
-    .procs-box {
-      display: flex; flex-direction: column; gap: 2px;
-      max-height: 232px; overflow: auto;
-      border: 1px solid var(--border-strong);
-      border-radius: var(--radius-sm);
-      background: var(--surface);
-      padding: 6px;
-    }
-    .proc-opt { width: 100%; padding: 6px 8px; border-radius: var(--radius-sm); }
-    .proc-opt:hover { background: var(--surface-2); }
-    .proc-opt i { font-size: 16px; color: var(--text-2); flex: none; }
-    .proc-opt .nm { font-size: 13.5px; flex: 1; min-width: 0; }
-    .proc-opt.ja-pedido { opacity: .8; }
-    .proc-opt .tag-pedido {
-      font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px;
-      background: var(--primary-tint); color: var(--apsis-green); flex: none;
-    }
-    .procs-vazio { font-size: 13px; color: var(--text-muted); padding: 10px 8px; }
-
-    .nota-modal {
-      display: flex; gap: 8px; align-items: flex-start;
-      font-size: 12.5px; color: var(--text-2); line-height: 1.5;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 9px 11px; margin-top: 4px;
-    }
-    .nota-modal i { font-size: 15px; margin-top: 1px; color: var(--apsis-green); flex: none; }
-
-    .is-hidden { display: none !important; }
     .acoes-cel { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
     .btn-apagar { color: var(--danger); }
     .btn-apagar:hover { background: var(--danger-bg); }
@@ -126,12 +56,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=57"></script>
-  <script src="assets/app.js?v=57"></script>
-  <script src="assets/geo-br.js?v=57"></script>
-  <script src="assets/supabase-config.js?v=57"></script>
+  <script src="assets/data.js?v=58"></script>
+  <script src="assets/app.js?v=58"></script>
+  <script src="assets/geo-br.js?v=58"></script>
+  <script src="assets/form-epo.js?v=58"></script>
+  <script src="assets/supabase-config.js?v=58"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=57"></script>
+  <script src="assets/auth.js?v=58"></script>
   <script>
     (function () {
       "use strict";
@@ -146,13 +77,13 @@
       var esc = App.escapeHtml;
       var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
 
-      var UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
-      var htmlOpcoesUf = UFS.map(function (u) {
-        return '<option value="' + u + '"' + (u === "SP" ? " selected" : "") + ">" + u + "</option>";
-      }).join("");
+      var CICLO = (window.APP && APP.ciclo) || "2026";
 
       var epos = [];          // cadastro completo
       var processos = [];     // questionários pedíveis
+      // Linha do cronograma de cada unidade, para a data prevista desta tela
+      // ser a mesma que o roadmap mostra.
+      var itensCron = {};
       // Excluir EPO é da coordenação. Quem não tem esse alcance não vê o botão,
       // em vez de clicar e nada acontecer.
       var podeApagar = DEMO;
@@ -198,96 +129,17 @@
           "</div>" +
         "</div>";
 
+      // O corpo do formulario vem de assets/form-epo.js: as mesmas perguntas
+      // que a tela de Cronograma faz. Antes cada tela tinha o seu, e faltavam
+      // campos em ambas.
       var htmlModal =
         '<div class="modal-overlay" id="epo-modal" role="dialog" aria-modal="true" aria-labelledby="epo-modal-title">' +
-          '<div class="modal modal-largo">' +
+          '<div class="modal modal-xl">' +
             '<div class="modal-header">' +
               '<h2 class="modal-title" id="epo-modal-title">Nova unidade</h2>' +
               '<button class="modal-close" id="epo-modal-close" type="button" aria-label="Fechar"><i class="ti ti-x" aria-hidden="true"></i></button>' +
             "</div>" +
-            '<div class="modal-body">' +
-              '<div class="modal-cols">' +
-
-                // ---------------- coluna 1: cadastro ----------------
-                '<div class="modal-col">' +
-                  '<p class="col-titulo"><i class="ti ti-building-warehouse" aria-hidden="true"></i>Dados da EPO</p>' +
-                  // Aberto por "Nova auditoria": a EPO vem de uma lista, e os
-                  // dados dela preenchem o formulário ao escolher.
-                  '<div class="field is-hidden" id="f-escolha-wrap">' +
-                    '<label for="f-escolha">EPO</label>' +
-                    '<select class="select" id="f-escolha"></select>' +
-                    '<span class="hint">Escolha a unidade para ver os dados e marcar os questionários.</span>' +
-                  "</div>" +
-                  '<div class="field">' +
-                    '<label for="f-nome">Nome da EPO</label>' +
-                    '<input class="input" id="f-nome" type="text" placeholder="Ex.: EPO Horizonte" autocomplete="off">' +
-                  "</div>" +
-                  '<div class="field">' +
-                    '<label for="f-endereco">Endereço</label>' +
-                    '<input class="input" id="f-endereco" type="text" placeholder="Rua, número, complemento" autocomplete="off">' +
-                  "</div>" +
-                  '<div class="field-row">' +
-                    '<div class="field">' +
-                      '<label for="f-cidade">Cidade</label>' +
-                      '<input class="input" id="f-cidade" type="text" placeholder="Ex.: Campinas" autocomplete="off">' +
-                    "</div>" +
-                    '<div class="field uf">' +
-                      '<label for="f-uf">UF</label>' +
-                      '<select class="select" id="f-uf">' + htmlOpcoesUf + "</select>" +
-                    "</div>" +
-                    '<div class="field cep">' +
-                      '<label for="f-cep">CEP</label>' +
-                      '<input class="input" id="f-cep" type="text" inputmode="numeric" placeholder="00000-000" autocomplete="off" maxlength="9">' +
-                    "</div>" +
-                  "</div>" +
-                  '<div class="field">' +
-                    '<label for="f-ativo">Situação</label>' +
-                    '<select class="select" id="f-ativo">' +
-                      '<option value="1" selected>Ativa</option>' +
-                      '<option value="0">Inativa</option>' +
-                    "</select>" +
-                    '<span class="hint">EPO inativa sai do mapa e das listas, mas o histórico dela fica guardado.</span>' +
-                  "</div>" +
-                  '<div class="nota-modal">' +
-                    '<i class="ti ti-map-pin" aria-hidden="true"></i>' +
-                    "<span>Com o endereço preenchido a EPO cai no ponto exato do mapa. Só com cidade e UF ela aparece em posição aproximada.</span>" +
-                  "</div>" +
-                "</div>" +
-
-                // ---------------- coluna 2: questionários ----------------
-                '<div class="modal-col">' +
-                  '<p class="col-titulo"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Questionários e responsável</p>' +
-                  '<div class="field">' +
-                    '<label for="f-email">E-mail do responsável da EPO</label>' +
-                    '<input class="input" id="f-email" type="email" placeholder="nome@empresa.com.br" autocomplete="off">' +
-                    '<span class="hint">Ele recebe um e-mail para definir a própria senha e passa a entrar com esse e-mail.</span>' +
-                  "</div>" +
-                  '<div class="field">' +
-                    '<div class="procs-head">' +
-                      '<span class="procs-rotulo">Questionários desta EPO</span>' +
-                      '<span class="procs-count" id="f-procs-count"></span>' +
-                    "</div>" +
-                    '<div class="procs-box" id="f-procs"></div>' +
-                    '<button class="link-mini" id="f-procs-toggle" type="button" style="align-self:flex-start;">Marcar todos</button>' +
-                  "</div>" +
-                  '<div class="field-row">' +
-                    '<div class="field">' +
-                      '<label for="f-visita">Visita prevista (opcional)</label>' +
-                      '<input class="input" id="f-visita" type="date">' +
-                    "</div>" +
-                  "</div>" +
-                  '<div class="field" style="margin-bottom:4px;">' +
-                    '<label for="f-obs">Observação (opcional)</label>' +
-                    '<textarea class="textarea" id="f-obs" rows="2" style="min-height:62px;" placeholder="Ex.: priorizar notas fiscais dos últimos 30 dias"></textarea>' +
-                  "</div>" +
-                  '<div class="nota-modal">' +
-                    '<i class="ti ti-send" aria-hidden="true"></i>' +
-                    "<span>Ao salvar, cada questionário marcado fica pendente para o responsável e ele recebe um e-mail para definir a senha de acesso. Questionário já pedido continua pendente e não é duplicado.</span>" +
-                  "</div>" +
-                "</div>" +
-
-              "</div>" +
-            "</div>" +
+            '<div class="modal-body">' + FormEpo.colunas({ escolha: false }) + "</div>" +
             '<div class="modal-footer">' +
               '<button class="btn btn-ghost btn-sm" id="epo-modal-cancel" type="button">Cancelar</button>' +
               '<button class="btn btn-primary btn-sm" id="epo-modal-save" type="button"><i class="ti ti-check" aria-hidden="true"></i>Salvar EPO</button>' +
@@ -298,93 +150,17 @@
       document.getElementById("page").innerHTML = htmlTabela + htmlModal;
 
       // ------------------------------------------------------------------
-      // Questionários (coluna 2)
+      // Questionarios: a lista, o resumo e o "marcar todos" vivem no
+      // FormEpo, porque o Cronograma pergunta a mesma coisa.
       // ------------------------------------------------------------------
-      function procById(id) {
-        for (var i = 0; i < processos.length; i++) {
-          if (String(processos[i].id) === String(id)) return processos[i];
-        }
-        return null;
+      function sincronizarForm() {
+        FormEpo.atualizarListas({ processos: processos, pedidos: pedidos });
       }
-      function nomeProc(id) {
-        var p = procById(id);
-        return p ? p.nome : "questionário";
-      }
-
-      // Questionários já pedidos para a EPO, para o que está pendente continuar
-      // pendente e não virar pedido repetido.
-      function jaPedidos(epoId) {
-        var mapa = {};
-        if (!epoId) return mapa;
-        pedidos.forEach(function (a) {
-          if (String(a.epoId) === String(epoId)) mapa[String(a.procId)] = a;
-        });
-        return mapa;
-      }
-
-      function htmlProcs(epoId) {
-        if (!processos.length) return '<div class="procs-vazio">Nenhum questionário disponível.</div>';
-        var pedidosDaEpo = jaPedidos(epoId);
-        return processos.map(function (p, i) {
-          var id = "f-proc-" + i;
-          var pedido = pedidosDaEpo[String(p.id)];
-          return (
-            '<label class="checkbox proc-opt' + (pedido ? " ja-pedido" : "") + '" for="' + id + '">' +
-              '<input type="checkbox" id="' + id + '" value="' + esc(p.id) + '"' +
-                (pedido ? " checked disabled" : "") + ">" +
-              '<i class="ti ' + esc(p.icone || "ti-clipboard-list") + '" aria-hidden="true"></i>' +
-              '<span class="nm">' + esc(p.nome) + "</span>" +
-              (pedido ? '<span class="tag-pedido">' + esc(rotuloStatus(pedido.status)) + "</span>" : "") +
-            "</label>"
-          );
-        }).join("");
-      }
-
-      function rotuloStatus(s) {
-        if (s === "enviada") return "enviado";
-        if (s === "em_andamento") return "em andamento";
-        return "pendente";
-      }
-
-      function caixas() {
-        var box = document.getElementById("f-procs");
-        if (!box) return [];
-        return Array.prototype.slice.call(box.querySelectorAll('input[type="checkbox"]'));
-      }
-      function marcados() {
-        var out = [];
-        caixas().forEach(function (c) { if (c.checked && !c.disabled) out.push(c.value); });
-        return out;
-      }
-      function atualizarResumo() {
-        var livres = caixas().filter(function (c) { return !c.disabled; });
-        var n = marcados().length;
-        var jaN = caixas().length - livres.length;
-        var alvo = document.getElementById("f-procs-count");
-        var toggle = document.getElementById("f-procs-toggle");
-        var partes = [];
-        if (jaN) partes.push(jaN + (jaN === 1 ? " já pedido" : " já pedidos"));
-        partes.push(n ? n + (n === 1 ? " novo marcado" : " novos marcados") : "nenhum novo marcado");
-        if (alvo) alvo.textContent = partes.join(" · ");
-        if (toggle) {
-          toggle.style.display = livres.length ? "" : "none";
-          toggle.textContent = (livres.length && n === livres.length) ? "Desmarcar todos" : "Marcar todos";
-        }
-      }
-
       function renderProcs(epoId) {
-        var box = document.getElementById("f-procs");
-        if (box) box.innerHTML = htmlProcs(epoId);
-        atualizarResumo();
+        sincronizarForm();
+        FormEpo.renderProcs(epoId);
       }
-
-      document.getElementById("f-procs").addEventListener("change", atualizarResumo);
-      document.getElementById("f-procs-toggle").addEventListener("click", function () {
-        var livres = caixas().filter(function (c) { return !c.disabled; });
-        var marcarTodos = marcados().length !== livres.length;
-        livres.forEach(function (c) { c.checked = marcarTodos; });
-        atualizarResumo();
-      });
+      FormEpo.preparar({ processos: processos, pedidos: pedidos });
 
       // ------------------------------------------------------------------
       // Modal
@@ -398,13 +174,14 @@
       overlay.addEventListener("click", function (ev) { if (ev.target === overlay) fecharModal(); });
       document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") fecharModal(); });
 
+      function itemDoCronograma(epoId) {
+        return itensCron[String(epoId)] || null;
+      }
+
+      // A data prevista vem do cronograma, que e onde ela vive. Antes esta
+      // tela mostrava a data guardada no pedido de questionario, e o roadmap
+      // mostrava outra: eram dois campos com o mesmo nome em telas diferentes.
       function preencherForm(epo) {
-        document.getElementById("f-nome").value = (epo && epo.nome) || "";
-        document.getElementById("f-endereco").value = (epo && epo.endereco) || "";
-        document.getElementById("f-cidade").value = (epo && epo.cidade) || "";
-        document.getElementById("f-uf").value = (epo && epo.uf) || "SP";
-        document.getElementById("f-cep").value = (epo && epo.cep) || "";
-        document.getElementById("f-ativo").value = (epo && epo.ativo === false) ? "0" : "1";
         document.getElementById("epo-modal-title").textContent = modoAuditoria
           ? "Nova auditoria"
           : (epo ? "Editar unidade" : "Nova unidade");
@@ -413,38 +190,9 @@
           btnSalvar.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>' +
             (modoAuditoria ? "Pedir questionários" : "Salvar EPO");
         }
-
-        // O que ja foi pedido para esta EPO volta preenchido: e-mail do
-        // responsavel, visita prevista e observacao. Antes so o endereco vinha,
-        // e quem abria para incluir um questionario tinha que redigitar o resto.
-        // Campo a campo, os valores vinham de pedidos diferentes: dava para
-        // ver o e-mail de um com a visita de outro. Agora o pedido mais recente
-        // manda, e os anteriores so preenchem o que ele deixou vazio.
-        var emailAtual = "";
-        var visitaAtual = "";
-        var obsAtual = "";
-        if (epo) {
-          var meus = pedidos.filter(function (a) {
-            return String(a.epoId) === String(epo.id);
-          }).sort(function (x, y) {
-            return String(y.criadoEm || "").localeCompare(String(x.criadoEm || ""));
-          });
-          if (meus.length) {
-            var recente = meus[0];
-            emailAtual = recente.email || "";
-            visitaAtual = recente.visita ? String(recente.visita).slice(0, 10) : "";
-            obsAtual = recente.obs || "";
-            meus.forEach(function (a) {
-              if (!emailAtual && a.email) emailAtual = a.email;
-              if (!visitaAtual && a.visita) visitaAtual = String(a.visita).slice(0, 10);
-              if (!obsAtual && a.obs) obsAtual = a.obs;
-            });
-          }
-        }
-        document.getElementById("f-email").value = emailAtual;
-        document.getElementById("f-visita").value = visitaAtual;
-        document.getElementById("f-obs").value = obsAtual;
-        renderProcs(epo ? epo.id : null);
+        sincronizarForm();
+        if (epo) FormEpo.preencher(epo, { item: itemDoCronograma(epo.id) });
+        else FormEpo.limpar();
       }
 
       document.getElementById("btn-nova-epo").addEventListener("click", function () {
@@ -453,12 +201,6 @@
         preencherForm(null);
         abrirModal();
         document.getElementById("f-nome").focus();
-      });
-
-      // CEP com máscara, só para a leitura ficar limpa
-      document.getElementById("f-cep").addEventListener("input", function () {
-        var d = this.value.replace(/\D/g, "").slice(0, 8);
-        this.value = d.length > 5 ? d.slice(0, 5) + "-" + d.slice(5) : d;
       });
 
       // ------------------------------------------------------------------
@@ -870,18 +612,16 @@
         return Promise.resolve();
       }
 
-      // Convite: uma chamada por e-mail, nunca por questionário
-      function convidarSeNecessario(res, email) {
-        if (!email || !res.criados) return Promise.resolve();
-        return enviarConvite(res.ids[0]).then(function (ok) {
-          if (ok) { App.toast("Link de acesso enviado para " + email + "."); return; }
-          return avisarConviteManual();
-        });
-      }
-
       // ------------------------------------------------------------------
       // Pedidos de relatório
       // ------------------------------------------------------------------
+      function nomeProc(id) {
+        for (var i = 0; i < processos.length; i++) {
+          if (String(processos[i].id) === String(id)) return processos[i].nome;
+        }
+        return "questionário";
+      }
+
       function criarPedidosDemo(epo, procIds, email, visita, obs) {
         var res = { criados: 0, dups: [], erros: [], ids: [] };
         procIds.forEach(function (pid) {
@@ -900,105 +640,20 @@
         return res;
       }
 
-      // Uma linha por questionário, para tratar duplicidade isolada
-      function criarPedidos(epoId, procIds, email, visita, obs) {
-        var res = { criados: 0, dups: [], erros: [], ids: [] };
-        if (!procIds.length) return Promise.resolve(res);
-
-        return Auth.sessao().then(function (s) {
-          var criadoPor = s ? s.user.id : null;
-          var cadeia = Promise.resolve();
-          procIds.forEach(function (pid) {
-            cadeia = cadeia.then(function () {
-              return Auth.cliente.from("alocacoes").insert({
-                epo_id: epoId,
-                processo_id: pid,
-                responsavel_email: email,
-                status: "pendente",
-                criado_por: criadoPor,
-                visita_prevista: visita || null,
-                observacao: obs || null
-              }).select("id").then(
-                function (r) {
-                  if (r.error) {
-                    var msg = r.error.message || "";
-                    if (r.error.code === "23505" || /duplicate|unique/i.test(msg)) {
-                      res.dups.push(nomeProc(pid));
-                    } else {
-                      res.erros.push(nomeProc(pid) + " (" + msg + ")");
-                    }
-                    return;
-                  }
-                  res.criados += 1;
-                  if (r.data && r.data[0]) res.ids.push(r.data[0].id);
-                },
-                function (err) {
-                  res.erros.push(nomeProc(pid) + " (" + (err && err.message ? err.message : "erro inesperado") + ")");
-                }
-              );
-            });
-          });
-          return cadeia.then(function () { return res; });
-        });
-      }
-
-      function resumoPedido(res, email) {
-        var partes = [];
-        if (res.criados) {
-          partes.push(res.criados + (res.criados === 1 ? " questionário pedido" : " questionários pedidos") + (email ? " para " + email : ""));
-        }
-        if (res.dups.length) partes.push("já existiam: " + res.dups.join(", "));
-        if (res.erros.length) partes.push("falharam: " + res.erros.join("; "));
-        return partes.join(". ");
-      }
-
       // ------------------------------------------------------------------
       // Salvar
+      //
+      // Um caminho so: cadastro, cronograma, questionarios e convite ficam no
+      // FormEpo, o mesmo que a tela de Cronograma usa. Antes cada tela gravava
+      // do seu jeito, e a unidade cadastrada aqui nao aparecia no roadmap.
       // ------------------------------------------------------------------
-      function lerForm() {
-        return {
-          nome: document.getElementById("f-nome").value.trim(),
-          endereco: document.getElementById("f-endereco").value.trim(),
-          cidade: document.getElementById("f-cidade").value.trim(),
-          uf: document.getElementById("f-uf").value,
-          cep: document.getElementById("f-cep").value.trim(),
-          ativo: document.getElementById("f-ativo").value === "1",
-          email: document.getElementById("f-email").value.trim().toLowerCase(),
-          visita: document.getElementById("f-visita").value,
-          obs: document.getElementById("f-obs").value.trim(),
-          procIds: marcados()
-        };
-      }
-
-      // Endereço novo pede coordenada nova. Se o serviço não responder, salva sem
-      // ela: o mapa aproxima pela cidade e a tela mostra que está aproximado.
-      function coordenadaPara(dados, anterior) {
-        var mudou = !anterior ||
-          (anterior.endereco || "") !== dados.endereco ||
-          (anterior.cidade || "") !== dados.cidade ||
-          (anterior.uf || "") !== dados.uf;
-        if (!dados.endereco) return Promise.resolve({ lat: null, lng: null });
-        if (!mudou && anterior && anterior.lat != null) {
-          return Promise.resolve({ lat: anterior.lat, lng: anterior.lng });
-        }
-        return GeoBR.geocodificar(dados.endereco, dados.cidade, dados.uf).then(function (p) {
-          return p || { lat: null, lng: null };
-        });
-      }
-
       document.getElementById("epo-modal-save").addEventListener("click", function () {
-        var dados = lerForm();
-        if (!dados.nome) { App.toast("Informe o nome da EPO."); return; }
-        if (!dados.cidade) { App.toast("Informe a cidade da EPO."); return; }
-        if (dados.email && !/^\S+@\S+\.\S+$/.test(dados.email)) {
-          App.toast("Informe um e-mail válido para o responsável."); return;
-        }
-        if (dados.procIds.length && !dados.email) {
-          App.toast("Informe o e-mail de quem vai enviar os documentos desses questionários."); return;
-        }
-        if (dados.email && !dados.procIds.length && !editandoId) {
-          App.toast("Marque pelo menos um questionário para pedir ao responsável."); return;
-        }
+        sincronizarForm();
+        var dados = FormEpo.ler();
+        // Codigo do fornecedor: obrigatorio para unidade nova. Na edicao fica
+        // opcional, senao unidade antiga cadastrada sem codigo trava a edicao.
+        var erro = FormEpo.validar(dados, editandoId, !editandoId && !modoAuditoria);
+        if (erro) { App.toast(erro); return; }
 
         var anterior = null;
         if (editandoId) {
@@ -1013,125 +668,55 @@
         btn.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true"></i>Salvando...';
         function terminar() { btn.disabled = false; btn.innerHTML = textoOriginal; }
 
-        coordenadaPara(dados, anterior).then(function (coord) {
-          var linha = {
-            nome: dados.nome,
-            endereco: dados.endereco || null,
-            cidade: dados.cidade,
-            uf: dados.uf,
-            cep: dados.cep || null,
-            ativo: dados.ativo,
-            lat: coord.lat,
-            lng: coord.lng
-          };
-
-          if (DEMO) {
-            var epoDemo = anterior;
-            if (epoDemo) {
-              Object.keys(linha).forEach(function (k) { epoDemo[k] = linha[k]; });
-            } else {
-              demoSeq += 1;
-              epoDemo = JSON.parse(JSON.stringify(linha));
-              epoDemo.id = "demo-epo-" + demoSeq;
-              epos.push(epoDemo);
-            }
-            var resDemo = criarPedidosDemo(epoDemo, dados.procIds, dados.email, dados.visita, dados.obs);
-            ordenar();
-            renderLista();
-            fecharModal();
-            terminar();
-            var rDemo = resumoPedido(resDemo, dados.email);
-            App.toast(rotuloEpo(dados.nome) + (anterior ? " atualizada" : " cadastrada") + (rDemo ? " - " + rDemo : "") + ".");
-            return;
+        if (DEMO) {
+          var epoDemo = anterior;
+          if (epoDemo) {
+            epoDemo.nome = dados.nome; epoDemo.cidade = dados.cidade; epoDemo.uf = dados.uf;
+            epoDemo.endereco = dados.endereco; epoDemo.cep = dados.cep;
+            epoDemo.cod = dados.cod; epoDemo.base = dados.base;
+            epoDemo.regional = dados.regional; epoDemo.ativo = dados.ativo;
+          } else {
+            demoSeq += 1;
+            epoDemo = {
+              id: "demo-epo-" + demoSeq, nome: dados.nome, cidade: dados.cidade,
+              uf: dados.uf, endereco: dados.endereco, cep: dados.cep,
+              cod: dados.cod, base: dados.base, regional: dados.regional,
+              ativo: dados.ativo, lat: null, lng: null
+            };
+            epos.push(epoDemo);
           }
-
-          // Os campos voltam preenchidos e sao editaveis, mas nada os gravava:
-          // corrigir o e-mail do responsavel ou remarcar a visita de um pedido
-          // que ja existe nao tinha efeito nenhum.
-          function atualizarPedidosExistentes(epoId) {
-            if (!editandoId) return Promise.resolve(null);
-            var mudanca = {};
-            if (dados.email) mudanca.responsavel_email = dados.email;
-            if (dados.visita) mudanca.visita_prevista = dados.visita;
-            if (dados.obs) mudanca.observacao = dados.obs;
-            if (!Object.keys(mudanca).length) return Promise.resolve(null);
-            var jaTem = pedidos.some(function (a) {
-              return String(a.epoId) === String(epoId);
-            });
-            if (!jaTem) return Promise.resolve(null);
-            return Auth.cliente.from("alocacoes").update(mudanca).eq("epo_id", epoId).select("id")
-              .then(function (r) {
-                if (r.error) throw r.error;
-                return r.data || [];
-              });
-          }
-
-          function depoisDaEpo(epoId) {
-            if (!dados.procIds.length) {
-              return atualizarPedidosExistentes(epoId).then(function (mudados) {
-                fecharModal();
-                var quantos = mudados && mudados.length;
-                App.toast(rotuloEpo(dados.nome) + (editandoId ? " atualizada" : " cadastrada") +
-                  (quantos ? " - " + quantos + (quantos === 1 ? " questionário atualizado" : " questionários atualizados") : "") + ".");
-                return carregar();
-              }, function (e) {
-                console.error("atualizarPedidos", e);
-                fecharModal();
-                App.toast("A unidade foi salva, mas não foi possível atualizar os questionários já pedidos.");
-                return carregar();
-              });
-            }
-            return atualizarPedidosExistentes(epoId)
-              .catch(function (e) { console.error("atualizarPedidos", e); return null; })
-              .then(function () {
-                return criarPedidos(epoId, dados.procIds, dados.email, dados.visita, dados.obs);
-              })
-              .then(function (res) {
-                fecharModal();
-                var resumo = resumoPedido(res, dados.email);
-                App.toast(rotuloEpo(dados.nome) + (editandoId ? " atualizada" : " cadastrada") + (resumo ? " - " + resumo : "") + ".");
-                return convidarSeNecessario(res, dados.email).then(carregar);
-              });
-          }
-
-          if (editandoId) {
-            return Auth.cliente.from("epos").update(linha).eq("id", editandoId)
-              .then(function (r) {
-                if (r.error) throw r.error;
-                return depoisDaEpo(editandoId);
-              })
-              .then(terminar, function (e) {
-                console.error("salvarEpo", e);
-                terminar();
-                App.toast("Não foi possível salvar a EPO. Confira os dados e tente novamente.");
-              });
-          }
-
-          // Sem ordem, o "primeiro cliente" e o que o banco devolver: no dia em
-          // que existir um segundo, a EPO nasce sob o cliente errado.
-          return Auth.cliente.from("clientes").select("id").order("id").limit(1)
-            .then(function (r) {
-              if (r.error || !r.data || !r.data.length) {
-                throw new Error((r.error && r.error.message) || "Cliente não encontrado.");
-              }
-              linha.cliente_id = r.data[0].id;
-              return Auth.cliente.from("epos").insert(linha).select("id");
-            })
-            .then(function (r) {
-              if (r.error) throw r.error;
-              var novoId = r.data && r.data[0] ? r.data[0].id : null;
-              if (!novoId) throw new Error("EPO criada sem identificador.");
-              return depoisDaEpo(novoId);
-            })
-            .then(terminar, function (e) {
-              console.error("salvarEpo", e);
-              terminar();
-              App.toast("Não foi possível salvar a EPO. Confira os dados e tente novamente.");
-            });
-        }, function (e) {
-          console.error("coordenada", e);
+          var resDemo = criarPedidosDemo(epoDemo, dados.procIds, dados.email, dados.visita, dados.obs);
+          ordenar();
+          renderLista();
+          fecharModal();
           terminar();
-          App.toast("Não foi possível salvar a EPO agora. Tente novamente.");
+          var frase = [];
+          if (resDemo.criados) {
+            frase.push(resDemo.criados +
+              (resDemo.criados === 1 ? " questionário pedido" : " questionários pedidos"));
+          }
+          if (resDemo.dups.length) frase.push("já existiam: " + resDemo.dups.join(", "));
+          App.toast(rotuloEpo(dados.nome) + (anterior ? " atualizada" : " cadastrada") +
+            (frase.length ? " - " + frase.join(". ") : "") + ".");
+          return;
+        }
+
+        FormEpo.salvarTudo({
+          db: Auth.cliente,
+          dados: dados,
+          epoId: editandoId,
+          anterior: anterior,
+          ciclo: CICLO
+        }).then(function (r) {
+          fecharModal();
+          var frase = FormEpo.resumo(r, dados);
+          App.toast(rotuloEpo(dados.nome) + (r.criado ? " cadastrada" : " atualizada") +
+            (frase ? " - " + frase : "") + ".");
+          return carregar();
+        }).then(terminar, function (e) {
+          console.error("salvarEpo", e);
+          terminar();
+          App.toast((e && e.message) || "Não foi possível salvar a EPO. Confira os dados e tente novamente.");
         });
       });
 
@@ -1148,6 +733,8 @@
         epos = (window.APP.epos || []).map(function (e) {
           return {
             id: e.id, nome: e.nome, cidade: e.cidade, uf: e.uf,
+            regional: e.regional || "", cod: e.cod || "", codigo: e.cod || "",
+            base: e.base || "",
             endereco: e.endereco || "", cep: e.cep || "",
             lat: e.lat == null ? null : e.lat, lng: e.lng == null ? null : e.lng,
             ativo: true
@@ -1251,16 +838,44 @@
               };
             });
             return db.from("epos")
-              .select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo, cod_fornecedor, base")
+              .select("id, nome, cidade, uf, regional, endereco, cep, lat, lng, ativo, cod_fornecedor, base")
               .order("nome");
           })
           .then(function (r) {
             if (r.error) throw new Error(r.error.message);
             epos = (r.data || []).map(function (e) {
-              e.codigo = e.cod_fornecedor || "";
+              e.cod = e.cod_fornecedor || "";
+              e.codigo = e.cod;
               e.base = e.base || "";
               return e;
             });
+            // A data prevista de cada unidade. Falhar aqui nao derruba a tela:
+            // o cadastro aparece, e o formulario abre com a data em branco.
+            return db.from("cronograma_itens")
+              .select("id, epo_id, situacao, data_prevista_inicio, data_prevista_fim, " +
+                      "semana_referencia, observacao, confirmada_em")
+              .eq("ciclo", CICLO)
+              .then(function (rc) {
+                itensCron = {};
+                if (rc && !rc.error) {
+                  (rc.data || []).forEach(function (it) {
+                    itensCron[String(it.epo_id)] = {
+                      id: it.id,
+                      situacao: it.situacao,
+                      prevIniIso: it.data_prevista_inicio || "",
+                      prevFimIso: it.data_prevista_fim || "",
+                      semana: it.semana_referencia || "",
+                      observacao: it.observacao || "",
+                      confirmadaEm: it.confirmada_em || null
+                    };
+                  });
+                } else if (rc && rc.error && window.console) {
+                  console.warn("cronogramaItens", rc.error);
+                }
+                return null;
+              });
+          })
+          .then(function () {
             renderLista();
             abrirEdicaoDoLink();
           })

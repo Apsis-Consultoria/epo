@@ -14,6 +14,11 @@
   var cliente = { id: "claro", nome: "Claro" };
   var clientes = [{ id: "claro", nome: "Claro" }];
 
+  // Ciclo do cronograma. Fica aqui porque as telas de EPOs e de Cronograma
+  // gravam no mesmo ciclo: escrito em cada tela, uma comecaria a cadastrar
+  // unidade num ciclo que a outra nem lista.
+  var ciclo = "2026";
+
   // -----------------------------------------------------------------------
   // Regras de classificação por selo
   // -----------------------------------------------------------------------
@@ -347,6 +352,7 @@
   window.APP = {
     cliente: cliente,
     clientes: clientes,
+    ciclo: ciclo,
     tierRules: tierRules,
     processos: processos,
     checklist: processos, // ALIAS de compatibilidade (mesma referência)

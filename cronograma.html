@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=57">
+  <link rel="stylesheet" href="assets/app.css?v=58">
 </head>
 <body>
   <div class="app-shell">
@@ -20,19 +20,21 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=57"></script>
-  <script src="assets/app.js?v=57"></script>
-  <script src="assets/supabase-config.js?v=57"></script>
+  <script src="assets/data.js?v=58"></script>
+  <script src="assets/app.js?v=58"></script>
+  <script src="assets/supabase-config.js?v=58"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=57"></script>
-  <script src="assets/cronograma-planilha.js?v=57"></script>
+  <script src="assets/auth.js?v=58"></script>
+  <script src="assets/geo-br.js?v=58"></script>
+  <script src="assets/cronograma-planilha.js?v=58"></script>
+  <script src="assets/form-epo.js?v=58"></script>
   <script>
     (function () {
       "use strict";
 
       var esc = App.escapeHtml;
       var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
-      var CICLO = "2026";
+      var CICLO = (window.APP && APP.ciclo) || "2026";
 
       var ROTULO = {
         sem_data:         "Sem data definida",
@@ -228,60 +230,16 @@
           "</div>" +
         "</div>" +
         '<div class="modal-overlay" id="nova-modal" role="dialog" aria-modal="true" aria-labelledby="nova-titulo">' +
-          '<div class="modal modal-largo">' +
+          '<div class="modal modal-xl">' +
             '<div class="modal-header">' +
               '<h2 class="modal-title" id="nova-titulo">Nova EPO</h2>' +
               '<button class="modal-close" id="nova-fechar" type="button" aria-label="Fechar">' +
                 '<i class="ti ti-x" aria-hidden="true"></i></button>' +
             "</div>" +
-            '<div class="modal-body">' +
-              '<div class="cron-cols">' +
-                "<div>" +
-                  '<p class="col-titulo"><i class="ti ti-building-warehouse" aria-hidden="true"></i>' +
-                    "Dados da unidade</p>" +
-                  '<div class="field"><label for="n-cod">Cod. Fornecedor</label>' +
-                    '<input class="input" id="n-cod" type="text" autocomplete="off" placeholder="Ex.: 143620">' +
-                    '<span class="hint">E o que distingue unidades de mesmo nome. Sem ele, reenviar a planilha duplicaria o cadastro.</span></div>' +
-                  '<div class="field"><label for="n-base">Base (opcional)</label>' +
-                    '<input class="input" id="n-base" type="text" autocomplete="off" placeholder="vazio = base unica">' +
-                    '<span class="hint">Preencha somente se o mesmo codigo tiver mais de uma base.</span></div>' +
-                  '<div class="field"><label for="n-nome">Nome da EPO</label>' +
-                    '<input class="input" id="n-nome" type="text" autocomplete="off" placeholder="razao social"></div>' +
-                  '<div class="field"><label for="n-cidade">Cidade</label>' +
-                    '<input class="input" id="n-cidade" type="text" autocomplete="off"></div>' +
-                  '<div class="field-row">' +
-                    '<div class="field"><label for="n-uf">UF</label>' +
-                      '<select class="select" id="n-uf"></select></div>' +
-                    '<div class="field"><label for="n-regional">Regional</label>' +
-                      '<select class="select" id="n-regional"></select>' +
-                      '<span class="hint">Pode diferir do UF.</span></div>' +
-                  "</div>" +
-                "</div>" +
-                "<div>" +
-                  '<p class="col-titulo"><i class="ti ti-map-pin" aria-hidden="true"></i>' +
-                    "Endereco e data</p>" +
-                  '<div class="field"><label for="n-endereco">Endereco (opcional)</label>' +
-                    '<input class="input" id="n-endereco" type="text" autocomplete="off" placeholder="rua, numero, bairro"></div>' +
-                  '<div class="field"><label for="n-cep">CEP (opcional)</label>' +
-                    '<input class="input" id="n-cep" type="text" autocomplete="off" placeholder="00000-000" maxlength="9"></div>' +
-                  '<div class="field"><label for="n-data">Data prevista (opcional)</label>' +
-                    '<input class="input" id="n-data" type="date" min="2020-01-01" max="2035-12-31"></div>' +
-                  '<div class="field"><label for="n-ate">Ate (opcional)</label>' +
-                    '<input class="input" id="n-ate" type="date" min="2020-01-01" max="2035-12-31">' +
-                    '<span class="hint">Somente se a visita durar mais de um dia.</span></div>' +
-                  '<div class="field"><label for="n-semana">Semana (opcional)</label>' +
-                    '<input class="input" id="n-semana" type="text" autocomplete="off" placeholder="Ex.: 3a semana de julho">' +
-                    '<span class="hint">Texto livre, para quando a data ainda nao esta fechada.</span></div>' +
-                  '<div class="field"><label for="n-obs">Observacao (opcional)</label>' +
-                    '<input class="input" id="n-obs" type="text" autocomplete="off"></div>' +
-                  '<div class="tk-aviso" style="margin-top:4px;">' +
-                    '<i class="ti ti-info-circle tk-ico" aria-hidden="true"></i>' +
-                    '<div class="tk-aviso-corpo"><p>A unidade entra no cronograma e tambem na tela ' +
-                    "de EPOs. A data nao vai para a Claro agora: voce confere e envia depois.</p></div>" +
-                  "</div>" +
-                "</div>" +
-              "</div>" +
-            "</div>" +
+            // As perguntas vem de assets/form-epo.js: sao as mesmas que a tela
+            // de EPOs faz. Antes cada tela tinha o seu formulario, e a unidade
+            // cadastrada la nao entrava no cronograma.
+            '<div class="modal-body">' + FormEpo.colunas({ escolha: false }) + "</div>" +
             '<div class="modal-footer">' +
               '<button class="btn btn-ghost" type="button" id="nova-cancelar">Cancelar</button>' +
               '<button class="btn btn-primary" type="button" id="nova-salvar">Cadastrar unidade</button>' +
@@ -1560,52 +1518,90 @@
       }
 
       // ================================================================
-      // Nova EPO, uma por uma. Os mesmos campos da planilha, para quem
-      // cadastra a mao e quem cadastra em lote informarem a mesma coisa.
+      // Nova EPO, uma por uma.
+      //
+      // As perguntas e o gravar sao os mesmos da tela de EPOs (FormEpo): a
+      // unidade nasce no cadastro, entra no ciclo do cronograma e ja pode sair
+      // com os questionarios pedidos ao responsavel.
       // ================================================================
-      var UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
-                 "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+      var formListas = null;      // { processos, pedidos }, lidas na primeira vez
+
+      // Questionario e pedido existente entram so quando o formulario abre: o
+      // roadmap nao precisa deles para desenhar, e carregar sempre atrasaria a
+      // tela inteira por causa de uma janela que talvez ninguem abra.
+      function carregarListasDoForm() {
+        if (formListas) return Promise.resolve(formListas);
+        if (DEMO) { formListas = { processos: [], pedidos: [] }; return Promise.resolve(formListas); }
+
+        var db = Auth.cliente;
+        var candidatos = [];
+        return db.from("processos").select("id, nome, icone, ordem, tipo")
+          .eq("ativo", true).order("ordem")
+          .then(function (r) {
+            if (r.error) throw r.error;
+            candidatos = (r.data || []).filter(function (p) { return p.tipo !== "arquivado"; });
+            // So entra o questionario que da para preencher, ou seja, o que tem
+            // pergunta ativa.
+            return db.from("itens_checklist").select("processo_id, ativo");
+          })
+          .then(function (r) {
+            if (r.error) throw r.error;
+            var comPergunta = {};
+            (r.data || []).forEach(function (it) {
+              if (it.ativo !== false) comPergunta[it.processo_id] = true;
+            });
+            var procs = candidatos.filter(function (p) { return comPergunta[p.id]; });
+            return db.from("alocacoes")
+              .select("id, epo_id, processo_id, responsavel_email, status, visita_prevista, observacao, criado_em")
+              .order("criado_em", { ascending: false })
+              .then(function (ra) {
+                var peds = (ra && !ra.error ? (ra.data || []) : []).map(function (a) {
+                  return {
+                    id: a.id, epoId: a.epo_id, procId: a.processo_id,
+                    email: a.responsavel_email, status: a.status,
+                    visita: a.visita_prevista || "", obs: a.observacao || "",
+                    criadoEm: a.criado_em || ""
+                  };
+                });
+                formListas = { processos: procs, pedidos: peds };
+                return formListas;
+              });
+          })
+          .catch(function (e) {
+            // Sem a lista o cadastro continua possivel, so sem marcar
+            // questionario. Travar a janela por isso seria pior.
+            if (window.console && console.warn) console.warn("listasDoForm", e);
+            formListas = { processos: [], pedidos: [] };
+            return formListas;
+          });
+      }
 
       function abrirNova() {
-        var opcoes = UFS.map(function (u) {
-          return '<option value="' + u + '">' + u + "</option>";
-        }).join("");
-        $("n-uf").innerHTML = opcoes;
-        $("n-regional").innerHTML = '<option value="">igual ao UF</option>' + opcoes;
-
-        ["n-cod", "n-base", "n-nome", "n-cidade", "n-endereco", "n-cep",
-         "n-data", "n-ate", "n-semana", "n-obs"].forEach(function (id) { $(id).value = ""; });
-        $("n-uf").value = "SP";
-        $("n-regional").value = "";
+        FormEpo.preparar({ processos: [], pedidos: [] });
+        FormEpo.limpar();
         $("nova-salvar").disabled = false;
         $("nova-salvar").textContent = "Cadastrar unidade";
-
         $("nova-modal").classList.add("is-open");
-        setTimeout(function () { $("n-cod").focus(); }, 60);
+        setTimeout(function () { var c = $("f-cod"); if (c) c.focus(); }, 60);
+
+        carregarListasDoForm().then(function (l) {
+          FormEpo.atualizarListas(l);
+          FormEpo.renderProcs(null);
+        });
       }
 
       function fecharNova() { $("nova-modal").classList.remove("is-open"); }
 
       function salvarNova() {
-        var cod = ($("n-cod").value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-        var nome = ($("n-nome").value || "").trim();
-        var cidade = ($("n-cidade").value || "").trim();
-        var uf = $("n-uf").value;
-        var ini = $("n-data").value || null;
-        var fim = $("n-ate").value || null;
-
-        if (!cod) { App.toast("Informe o codigo do fornecedor."); return; }
-        if (!nome) { App.toast("Informe o nome da unidade."); return; }
-        if (!cidade) { App.toast("Informe a cidade."); return; }
-        if (fim && !ini) { App.toast('Preencheu "Ate" sem a data prevista.'); return; }
-        if (ini && fim && fim < ini) {
-          App.toast("A data final nao pode ser anterior a inicial."); return;
-        }
+        var d = FormEpo.ler();
+        // Aqui o codigo do fornecedor e sempre exigido: e a chave que a planilha
+        // usa para nao duplicar unidade no reenvio.
+        var erro = FormEpo.validar(d, null, true);
+        if (erro) { App.toast(erro); return; }
 
         var btn = $("nova-salvar");
         btn.disabled = true;
         btn.textContent = "Cadastrando...";
-
         function encerrar(msg) {
           btn.disabled = false;
           btn.textContent = "Cadastrar unidade";
@@ -1614,65 +1610,17 @@
 
         if (DEMO) { encerrar("Sem conexao com os dados agora: nada foi gravado."); return; }
 
-        var db = Auth.cliente;
-        var epoId = null;
-
-        db.from("clientes").select("id").limit(2)
+        FormEpo.salvarTudo({ db: Auth.cliente, dados: d, epoId: null, ciclo: CICLO })
           .then(function (r) {
-            if (r.error) throw new Error("nao foi possivel ler o cliente");
-            if (!r.data || r.data.length !== 1) {
-              throw new Error("Ha mais de um cliente cadastrado. Nao sei para qual gravar.");
-            }
-            return db.from("epos").insert({
-              cliente_id: r.data[0].id,
-              nome: nome,
-              cidade: cidade,
-              uf: uf,
-              regional: $("n-regional").value || null,
-              endereco: ($("n-endereco").value || "").trim() || null,
-              cep: ($("n-cep").value || "").trim() || null,
-              cod_fornecedor: cod,
-              base: ($("n-base").value || "").trim().toUpperCase(),
-              origem: "manual"
-            }).select("id");
-          })
-          .then(function (r) {
-            if (r.error) {
-              // 23505 e o codigo do fornecedor repetido: e a chave do cadastro.
-              if (String(r.error.code) === "23505" || /unique|duplicad/i.test(r.error.message || "")) {
-                throw new Error("Ja existe unidade com este codigo e base. Procure por ela na tabela.");
-              }
-              throw new Error(r.error.message || "nao foi possivel cadastrar");
-            }
-            if (!r.data || !r.data.length) {
-              throw new Error("Seu acesso nao permite cadastrar unidade.");
-            }
-            epoId = r.data[0].id;
-            // Entrar no ciclo e passo separado: a unidade existe no cadastro
-            // mesmo que o cronograma deste ano ainda nao a inclua.
-            return db.rpc("cronograma_incluir", { p_epo: epoId, p_ciclo: CICLO });
-          })
-          .then(function (r) {
-            if (r.error) throw new Error(r.error.message || "nao foi possivel incluir no ciclo");
-            var item = r.data;
-            if (!ini || !item || !item.id) return null;
-            // A data fica guardada e NAO vai para a Claro agora: quem envia e
-            // a coordenacao, depois de conferir a lista inteira.
-            return db.rpc("cronograma_definir_data", {
-              p_item: item.id, p_inicio: ini, p_fim: fim,
-              p_semana: ($("n-semana").value || "").trim() || null,
-              p_observacao: ($("n-obs").value || "").trim() || null,
-              p_enviar: false
-            });
-          })
-          .then(function () {
+            formListas = null;          // o pedido novo tem de aparecer na proxima abertura
             encerrar(null);
-            App.toast(nome + " cadastrada." + (ini ? " A data ainda nao foi enviada para a Claro." : ""));
+            var frase = FormEpo.resumo(r, d);
+            App.toast(d.nome + " cadastrada." + (frase ? " " + frase + "." : ""));
             fecharNova();
             return carregar().then(render);
           })
           .catch(function (e) {
-            encerrar(e && e.message ? e.message : "Nao foi possivel cadastrar agora.");
+            encerrar((e && e.message) ? e.message : "Nao foi possivel cadastrar agora.");
           });
       }
 

@@ -873,6 +873,87 @@ img { max-width: 100%; display: block; }
   gap: 10px;
 }
 
+/* ---------------------------------------- Formulário da unidade (FormEpo)
+   Estes estilos moravam dentro da tela de EPOs. Foram para cá quando o
+   formulário passou a ser um só para EPOs e Cronograma: estilo em uma tela
+   deixava o mesmo formulário desmontado na outra. */
+.modal.modal-largo { max-width: 940px; }
+.modal.modal-xl { max-width: 1180px; }
+.modal-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.modal-cols.tres { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.modal-col + .modal-col { border-left: 1px solid var(--border); padding-left: 22px; }
+.col-titulo {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 14px;
+}
+.col-titulo i { font-size: 15px; color: var(--apsis-green); }
+/* Três colunas em 1180px dão 350px cada: abaixo disso a terceira aperta os
+   rótulos, então ela desce antes de o resto quebrar. */
+@media (max-width: 1120px) {
+  .modal-cols.tres { grid-template-columns: 1fr 1fr; }
+  .modal-cols.tres > .modal-col:nth-child(3) {
+    grid-column: 1 / -1;
+    border-left: 0; padding-left: 0;
+    border-top: 1px solid var(--border); padding-top: 18px; margin-top: 4px;
+  }
+}
+@media (max-width: 820px) {
+  .modal-cols, .modal-cols.tres { grid-template-columns: 1fr; gap: 4px; }
+  .modal-col + .modal-col {
+    border-left: 0; padding-left: 0;
+    border-top: 1px solid var(--border); padding-top: 18px; margin-top: 4px;
+  }
+}
+
+.field-row { display: flex; gap: 12px; }
+.field-row .field { flex: 1 1 0; min-width: 0; }
+.field-row .field.uf { flex: 0 0 96px; }
+.field-row .field.cep { flex: 0 0 132px; }
+.field-row .field.base { flex: 0 0 108px; }
+@media (max-width: 640px) {
+  .field-row { flex-wrap: wrap; }
+  .field-row .field.uf, .field-row .field.cep, .field-row .field.base { flex: 1 1 auto; }
+}
+
+.procs-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.procs-head .procs-rotulo { font-size: 13px; font-weight: 500; color: var(--text); }
+.procs-head .procs-count { font-size: 12px; color: var(--text-muted); }
+.link-mini {
+  border: 0; background: transparent; padding: 0;
+  font-family: inherit; font-size: 12.5px; font-weight: 500;
+  color: var(--apsis-green); cursor: pointer; text-decoration: underline;
+}
+.link-mini:hover { color: var(--apsis-orange); }
+.procs-box {
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 232px; overflow: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 6px;
+}
+.proc-opt { width: 100%; padding: 6px 8px; border-radius: var(--radius-sm); }
+.proc-opt:hover { background: var(--surface-2); }
+.proc-opt i { font-size: 16px; color: var(--text-2); flex: none; }
+.proc-opt .nm { font-size: 13.5px; flex: 1; min-width: 0; }
+.proc-opt.ja-pedido { opacity: .8; }
+.proc-opt .tag-pedido {
+  font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px;
+  background: var(--primary-tint); color: var(--apsis-green); flex: none;
+}
+.procs-vazio { font-size: 13px; color: var(--text-muted); padding: 10px 8px; }
+
+.nota-modal {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-size: 12.5px; color: var(--text-2); line-height: 1.5;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px; margin-top: 4px;
+}
+.nota-modal i { font-size: 15px; margin-top: 1px; color: var(--apsis-green); flex: none; }
+
 /* Confirmação do próprio sistema (App.confirmar) */
 .confirmar-overlay { z-index: 120; }
 .confirmar-modal { max-width: 470px; }
