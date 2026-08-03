@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/portal.css" />
+  <link rel="stylesheet" href="assets/portal.css?v=45" />
   <style>
     /* Ajustes de proporção do painel de login (sobrepõem o portal.css) */
     .login-col { padding-top: 3vh; }
@@ -139,9 +139,9 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=44"></script>
+  <script src="assets/supabase-config.js?v=45"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=44"></script>
+  <script src="assets/auth.js?v=45"></script>
   <script>
     (function () {
       "use strict";
@@ -170,7 +170,9 @@
       $("btn-ms").addEventListener("click", function () {
         if (!window.Auth || !Auth.pronto) { location.href = "index.html"; return; }
         $("btn-ms").disabled = true;
-        $("btn-ms").innerHTML = '<i class="ti ti-loader-2"></i>Abrindo a conta Microsoft...';
+        // Esta pagina nao carrega a folha de icones; um <i class="ti"> aqui
+        // vira quadrado vazio. Texto simples resolve.
+        $("btn-ms").textContent = "Abrindo a conta Microsoft...";
         Auth.entrarMicrosoft().then(function (r) {
           if (r && r.error) msFalhou();
         }).catch(msFalhou);
@@ -226,7 +228,9 @@
           btn.disabled = false;
           $("etapa-senha").classList.add("hidden");
           $("etapa-enviado").classList.remove("hidden");
-          $("msg").classList.add("hidden");
+          // O id e cli-msg. Com "msg", $() devolvia null e o clique em
+          // "Esqueci a senha" terminava em erro no meio do caminho.
+          $("cli-msg").classList.add("hidden");
         }, function (e) {
           btn.disabled = false;
           console.error("pedirLinkDeSenha", e);

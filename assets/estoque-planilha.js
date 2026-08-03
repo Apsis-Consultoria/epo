@@ -198,7 +198,10 @@
     }
     if (!alvo) alvo = nomes[0];
 
-    var linhas = XLSX.utils.sheet_to_json(livro.Sheets[alvo], { header: 1, blankrows: false, defval: "" });
+    // blankrows: true mantem a linha vazia no array. Sem isso, o numero da
+    // linha no aviso de erro nao batia com o do Excel, e quem foi procurar o
+    // problema olhava a linha errada.
+    var linhas = XLSX.utils.sheet_to_json(livro.Sheets[alvo], { header: 1, blankrows: true, defval: "" });
     if (!linhas.length) throw new Error('a aba "' + alvo + '" está vazia');
 
     // Acha o cabeçalho nas primeiras linhas: gente insere título acima da tabela

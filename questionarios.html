@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=44">
+  <link rel="stylesheet" href="assets/app.css?v=45">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -109,11 +109,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=44"></script>
-  <script src="assets/app.js?v=44"></script>
-  <script src="assets/supabase-config.js?v=44"></script>
+  <script src="assets/data.js?v=45"></script>
+  <script src="assets/app.js?v=45"></script>
+  <script src="assets/supabase-config.js?v=45"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=44"></script>
+  <script src="assets/auth.js?v=45"></script>
   <script>
     (function () {
       "use strict";
@@ -749,17 +749,27 @@
             perguntas = r.data || [];
             ordenarPerguntas();
           })
+          .then(function () { return true; })
           .catch(function (e) {
             console.error("carregarPerguntas", e);
             perguntas = [];
             App.toast("Não foi possível carregar as perguntas. Tente novamente.");
+            return false;
           });
       }
 
       function recarregarTopico(topicoId) {
         var t = topicoPorId(topicoId);
-        return carregarPerguntas(topicoId).then(function () {
-          if (t) t.nPerguntas = perguntas.filter(function (p) { return p.ativo !== false; }).length;
+        var antes = t ? t.nPerguntas : 0;
+        return carregarPerguntas(topicoId).then(function (ok) {
+          // carregarPerguntas devolve falso quando a leitura falha. Zerar a
+          // contagem nesse caso faria o topico parecer vazio, e topico sem
+          // pergunta some das listas de pedido e de auditoria.
+          if (t) {
+            t.nPerguntas = (ok === false)
+              ? antes
+              : perguntas.filter(function (p) { return p.ativo !== false; }).length;
+          }
           renderNivel2();
         });
       }

@@ -257,6 +257,10 @@
     try {
       sessionStorage.removeItem("epoDemo");
       sessionStorage.removeItem("epoDemoPapel");
+      // A perspectiva escolhida em "Ver como" sobrevivia ao logout: quem
+      // entrasse depois caia direto na visao de outro papel, com menos telas,
+      // sem entender por que.
+      sessionStorage.removeItem("epoVerComo");
     } catch (e) {}
     var fim = function () { location.replace("login.html"); };
     if (!client) { fim(); return; }

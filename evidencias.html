@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=44">
+  <link rel="stylesheet" href="assets/app.css?v=45">
 </head>
 <body>
   <div class="app-shell">
@@ -18,11 +18,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=44"></script>
-  <script src="assets/app.js?v=44"></script>
-  <script src="assets/supabase-config.js?v=44"></script>
+  <script src="assets/data.js?v=45"></script>
+  <script src="assets/app.js?v=45"></script>
+  <script src="assets/supabase-config.js?v=45"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=44"></script>
+  <script src="assets/auth.js?v=45"></script>
   <script>
     (function () {
       "use strict";
@@ -556,12 +556,24 @@
             db.from("evidencias").select("id", { count: "exact", head: true }).in("sharepoint_status", PARADOS)
           ]).then(function (rs) {
             var n = 0;
-            rs.forEach(function (r) { if (!r.error && r.count) n += r.count; });
+            var falhou = false;
+            rs.forEach(function (r) {
+              if (r.error) { falhou = true; return; }
+              if (r.count) n += r.count;
+            });
+            // Falha na contagem devolvia zero e o botao de reenvio sumia: o
+            // arquivo parado continuava parado, sem ninguem saber.
+            if (falhou) return -1;
             return n;
           });
         }
 
         function mostrar(n) {
+          if (n === -1) {
+            rotulo.textContent = "Tentar reenviar os documentos parados";
+            btn.style.display = "";
+            return;
+          }
           if (!n) { btn.style.display = "none"; return; }
           rotulo.textContent = "Reenviar " + App.fmtNum(n) + (n === 1 ? " documento" : " documentos");
           btn.style.display = "";

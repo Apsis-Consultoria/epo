@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=44">
+  <link rel="stylesheet" href="assets/app.css?v=45">
   <style>
     /* Ajustes locais - tela de auditorias pendentes (escolher EPO e questionário) */
 
@@ -128,11 +128,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=44"></script>
-  <script src="assets/app.js?v=44"></script>
-  <script src="assets/supabase-config.js?v=44"></script>
+  <script src="assets/data.js?v=45"></script>
+  <script src="assets/app.js?v=45"></script>
+  <script src="assets/supabase-config.js?v=45"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=44"></script>
+  <script src="assets/auth.js?v=45"></script>
   <script>
     (function () {
       "use strict";
@@ -717,9 +717,15 @@
         erro = "";
         // ?epo= abre direto as auditorias daquela EPO (vem do detalhe da EPO)
         if (primeira && epoParam && !epoAberta) {
+          var achou = false;
           for (var i = 0; i < grupos.length; i++) {
-            if (String(grupos[i].id) === String(epoParam)) { mostrarNivel2(grupos[i].id); return; }
+            if (String(grupos[i].id) === String(epoParam)) { achou = true; mostrarNivel2(grupos[i].id); break; }
           }
+          if (achou) return;
+          // A unidade veio no link mas nao tem relatorio pedido. Antes o
+          // parametro era descartado sem dizer nada e a pessoa achava que a
+          // tela tinha ignorado o clique.
+          App.toast("Esta unidade ainda não tem relatório pedido.");
         }
         renderAtual();
       }

@@ -218,10 +218,34 @@
   // Endereço -> ponto, na hora de salvar o cadastro. Serviço aberto do
   // OpenStreetMap; se não responder, o cadastro salva sem coordenada e o mapa
   // aproxima pela cidade.
+  // O serviço de coordenadas é público e gratuito, e pede no máximo uma
+  // consulta por segundo. Uma EPO por vez ninguém nota; a importação de uma
+  // planilha inteira dispararia dezenas de uma vez e o endereço da APSIS
+  // acabaria bloqueado. A fila abaixo espaça as chamadas.
+  var filaGeo = Promise.resolve();
+  var ultimaGeo = 0;
+
+  function esperarVez() {
+    filaGeo = filaGeo.then(function () {
+      var agora = (new Date()).getTime();
+      var falta = 1100 - (agora - ultimaGeo);
+      ultimaGeo = agora + (falta > 0 ? falta : 0);
+      if (falta <= 0) return null;
+      return new Promise(function (ok) { setTimeout(ok, falta); });
+    });
+    return filaGeo;
+  }
+
   function geocodificar(endereco, cidade, uf) {
     var partes = [endereco, cidade, uf, "Brasil"].filter(Boolean).join(", ");
     var url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=" +
       encodeURIComponent(partes);
+    return esperarVez().then(function () {
+      return buscarCoordenada(url);
+    });
+  }
+
+  function buscarCoordenada(url) {
     return fetch(url, { headers: { Accept: "application/json" } })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (lista) {

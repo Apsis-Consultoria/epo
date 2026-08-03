@@ -452,11 +452,16 @@
             .order("data_visita", { ascending: false })
             .then(function (ra) {
               var ultima = {};
-              if (!ra.error) {
-                (ra.data || []).forEach(function (a) {
-                  if (!ultima[a.epo_id]) ultima[a.epo_id] = a;
-                });
+              if (ra.error) {
+                // Sem as notas, toda EPO viraria "sem vistoria" e o mapa
+                // ficaria sem medalha nenhuma, como se ninguem tivesse sido
+                // auditado. Melhor nao desenhar do que desenhar errado.
+                console.error("notas das EPOs:", ra.error);
+                throw new Error(ra.error.message || "falha ao ler as notas das EPOs");
               }
+              (ra.data || []).forEach(function (a) {
+                if (!ultima[a.epo_id]) ultima[a.epo_id] = a;
+              });
               return lista.map(function (e) {
                 var a = ultima[e.id];
                 e.score = a ? a.score : null;
