@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=43">
+  <link rel="stylesheet" href="assets/app.css?v=44">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -337,11 +337,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=43"></script>
-  <script src="assets/app.js?v=43"></script>
-  <script src="assets/supabase-config.js?v=43"></script>
+  <script src="assets/data.js?v=44"></script>
+  <script src="assets/app.js?v=44"></script>
+  <script src="assets/supabase-config.js?v=44"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=43"></script>
+  <script src="assets/auth.js?v=44"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -1848,18 +1848,26 @@
               throw semEpo;
             }
             var sc = computeScore();
+            // A auditoria nasce como RASCUNHO e so e selada depois que resposta,
+            // tempo e evidencia estiverem gravados.
+            //
+            // Nao e detalhe de estilo: a permissao de escrever resposta exige
+            // que a auditoria esteja em rascunho, a menos que quem envia seja
+            // admin ou gestor. Nascendo como "enviada", o consultor de campo
+            // gravava o cabecalho e TODAS as respostas eram recusadas - ficava
+            // uma auditoria com nota e sem uma resposta sequer. Nunca apareceu
+            // porque so admin testou ate agora.
             return db.from("auditorias").insert({
               epo_id: epoDb.id,
               processo_id: procDb.id,
               alocacao_id: aloc ? aloc.id : null,
               auditor_id: sess.user.id,
               data_visita: state.data || new Date().toISOString().slice(0, 10),
-              status: "enviada",
+              status: "rascunho",
               score: Math.round(sc.pts * 100) / 100,
               tier: sc.answered > 0 ? App.tierOf(sc.pts) : null,
               resp_epo: (state.assin.respEpo || "").trim() || null,
-              resp_claro: (state.assin.respClaro || "").trim() || null,
-              enviada_em: new Date().toISOString()
+              resp_claro: (state.assin.respClaro || "").trim() || null
             }).select("id").single();
           })
           .then(function (r) {
@@ -1896,6 +1904,28 @@
           })
           .then(function (r) {
             if (r.error) throw r.error;
+            // Os tempos do ciclo eram digitados em campo e descartados no
+            // envio. A tabela existe e estava vazia em todas as auditorias.
+            var t = state.tempos || {};
+            var algumTempo = ["chegada", "armazenagem", "distribuicao", "retornoCampo", "devolucao"]
+              .some(function (k) { return t[k] !== null && t[k] !== undefined && t[k] !== ""; });
+            if (!algumTempo) return r;
+            return db.from("tempos_ciclo").insert({
+              auditoria_id: audId,
+              chegada: t.chegada,
+              armazenagem: t.armazenagem,
+              distribuicao: t.distribuicao,
+              retorno_campo: t.retornoCampo,
+              devolucao: t.devolucao
+            }).then(function (rt) {
+              if (rt && rt.error) console.warn("tempos do ciclo:", rt.error.message || rt.error);
+              return r;   // o tempo nao pode derrubar o envio da auditoria
+            }, function (e) {
+              console.warn("tempos do ciclo:", e);
+              return r;
+            });
+          })
+          .then(function (r) {
             var respIdPorItemDb = {};
             (r.data || []).forEach(function (x) { respIdPorItemDb[x.item_id] = x.id; });
             // Fila de uploads: um a um, para não estourar conexões no celular
@@ -1926,6 +1956,24 @@
               });
             });
             return p;
+          })
+          .then(function () {
+            // Tudo gravado: agora a auditoria e selada. Falhando o selo, ela
+            // fica como rascunho - recuperavel, e melhor do que selada e vazia.
+            return db.from("auditorias")
+              .update({ status: "enviada", enviada_em: new Date().toISOString() })
+              .eq("id", audId).select("id")
+              .then(function (rs) {
+                if (rs.error) throw rs.error;
+                if (!rs.data || !rs.data.length) {
+                  var naoSelou = new Error(
+                    "As respostas foram gravadas, mas não foi possível concluir o envio. " +
+                    "Abra a auditoria novamente pela lista de pendentes."
+                  );
+                  naoSelou.avisoParaTela = true;
+                  throw naoSelou;
+                }
+              });
           })
           .then(function () {
             // encaminha as evidencias para a pasta oficial, em segundo plano
