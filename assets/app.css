@@ -728,8 +728,6 @@ img { max-width: 100%; display: block; }
 @media (max-width: 900px) { .atalhos > .atalho { flex: 0 0 180px; } }
 
 /* Secao de menu sem tela propria: rotulo, nao link. */
-.nav-item.nav-secao { cursor: default; }
-.nav-item.nav-secao:hover { background: transparent; }
 .nowrap { white-space: nowrap; }
 .tnum { font-variant-numeric: tabular-nums; }
 .page-intro { color: var(--text-2); margin-bottom: 22px; max-width: 720px; }

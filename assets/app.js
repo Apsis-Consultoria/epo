@@ -361,6 +361,21 @@
   // -----------------------------------------------------------------------
   // window.Layout - shell (sidebar + topbar)
   // -----------------------------------------------------------------------
+  // Aberto ou fechado fica guardado por secao. Sem isso, fechar Configuracoes
+  // duraria ate a proxima tela: o menu e remontado em cada pagina.
+  function secaoAberta(key) {
+    try {
+      var v = localStorage.getItem("epoNavSecao:" + key);
+      return v === null ? true : v === "1";   // sem escolha ainda, abre
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function guardarSecao(key, aberta) {
+    try { localStorage.setItem("epoNavSecao:" + key, aberta ? "1" : "0"); } catch (e) {}
+  }
+
   function buildSidebar(activeKey) {
     var processoAtivo = activeKey === "auditoria" ? getParam("processo") : null;
 
@@ -381,24 +396,29 @@
             "</a>"
           );
         }).join("");
-        // O painel dos filhos fica sempre aberto: subtópico que só aparece
-        // quando a seção está em uso dá a impressão de que a tela sumiu.
-        // Secao sem tela propria e um rotulo, nao um link: assim ninguem
-        // clica esperando ir para algum lugar.
+        // Secao sem tela propria e um botao que abre e fecha, nao um link:
+        // antes era um rotulo morto, e quem clicava nao via nada acontecer.
+        // Com filho ativo o painel abre a forca: esconder a tela em que a
+        // pessoa esta da a impressao de que ela sumiu do menu.
+        var aberto = filhoAtivo || secaoAberta(n.key);
+        var idPainel = "subnav-" + n.key;
         var cabeca = n.href
           ? '<a class="nav-item' + (isActive || filhoAtivo ? " active" : "") + '" href="' + n.href + '"' +
               (isActive ? ' aria-current="page"' : "") + ">" +
               '<i class="ti ' + n.icon + '" aria-hidden="true"></i>' +
               '<span class="nav-label">' + n.label + "</span>" +
             "</a>"
-          : '<div class="nav-item nav-secao' + (filhoAtivo ? " active" : "") + '" ' +
-              'data-subnav="' + n.key + '">' +
+          : '<button type="button" class="nav-item nav-parent' + (filhoAtivo ? " active" : "") + '" ' +
+              'data-subnav="' + n.key + '" aria-expanded="' + (aberto ? "true" : "false") + '" ' +
+              'aria-controls="' + idPainel + '">' +
               '<i class="ti ' + n.icon + '" aria-hidden="true"></i>' +
               '<span class="nav-label">' + n.label + "</span>" +
-            "</div>";
+              '<i class="ti ti-chevron-down nav-caret" aria-hidden="true"></i>' +
+            "</button>";
         return (
           cabeca +
-          '<div class="nav-sub is-open" data-subnav-panel="' + n.key + '">' + kids + "</div>"
+          '<div class="nav-sub' + (aberto ? " is-open" : "") + '" id="' + idPainel + '" ' +
+            'data-subnav-panel="' + n.key + '">' + kids + "</div>"
         );
       }
 
@@ -530,6 +550,7 @@
         var open = !panel.classList.contains("is-open");
         panel.classList.toggle("is-open", open);
         parent.setAttribute("aria-expanded", open ? "true" : "false");
+        guardarSecao(key, open);
       });
     }
 

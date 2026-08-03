@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=58">
+  <link rel="stylesheet" href="assets/app.css?v=59">
   <style>
     /* ---------------- Matriz de telas por cargo ---------------- */
     .matrix-wrap { width: 100%; overflow: auto; border-top: 1px solid var(--border); }
@@ -84,8 +84,17 @@
     .pessoa-cel b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); }
     .pessoa-cel span { font-size: 12px; color: var(--text-2); }
 
-    .acc-acoes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
-      max-width: 250px; margin-left: auto; }
+    /* Uma linha so. Com quebra, "Desativar" caia para a segunda linha e os
+       botoes da mesma pessoa apareciam em alturas diferentes. */
+    .acc-acoes { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: flex-end;
+      margin-left: auto; }
+    .acc-acoes .btn { white-space: nowrap; }
+    .btn-apagar { color: var(--danger); }
+    .btn-apagar:hover { background: var(--danger-bg); color: var(--danger); }
+    @media (max-width: 1100px) {
+      /* Sem espaco para os rotulos, todos viram icone: continua uma linha. */
+      .acc-acoes .btn .btn-txt { display: none; }
+    }
 
     .modal.modal-acesso { max-width: 520px; }
 
@@ -115,11 +124,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=58"></script>
-  <script src="assets/app.js?v=58"></script>
-  <script src="assets/supabase-config.js?v=58"></script>
+  <script src="assets/data.js?v=59"></script>
+  <script src="assets/app.js?v=59"></script>
+  <script src="assets/supabase-config.js?v=59"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=58"></script>
+  <script src="assets/auth.js?v=59"></script>
   <script>
     (function () {
       "use strict";
@@ -235,8 +244,9 @@
         '<div class="card mb-0 is-hidden" id="card-contas">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
-              '<span class="title">Contas que já entraram</span>' +
-              '<span class="subtitle">Quem aparece como sem acesso tentou entrar e está esperando liberação</span>' +
+              '<span class="title">Contas de acesso</span>' +
+              '<span class="subtitle">Toda conta que existe hoje, tenha entrado ou não. ' +
+                "Quem aparece como sem acesso tentou entrar e está esperando liberação</span>" +
             "</div>" +
             '<span class="acc-count" id="conta-contas"></span>' +
           "</div>" +
@@ -290,15 +300,10 @@
       // ------------------------------------------------------------------
       // Sem conexão
       // ------------------------------------------------------------------
-      function catalogoSemConexao() {
-        return [
-          { id: "a1", email: "gerente.exemplo@exemplo.invalido", nome: "Gerente de exemplo",
-            papel: "cliente", ativo: true, convidado_em: new Date().toISOString(),
-            primeiro_acesso_em: new Date().toISOString() },
-          { id: "a2", email: "consultor.exemplo@apsis.com.br", nome: "Consultor de exemplo",
-            papel: "auditor", ativo: true, convidado_em: null, primeiro_acesso_em: null }
-        ];
-      }
+      // Sem conexao a lista abre vazia. Antes nasciam aqui duas pessoas
+      // inventadas: nome de gente em tela de acesso parece acesso de verdade,
+      // e foi lido como tal.
+      function catalogoSemConexao() { return []; }
 
       function permissoesDoPadrao() {
         var out = {};
@@ -546,13 +551,17 @@
         });
       }
 
+      // O rotulo vai num <span> proprio para o CSS poder esconde-lo em tela
+      // estreita sem perder o botao: o title e o aria-label ficam sempre, entao
+      // o botao continua com nome para quem usa leitor de tela.
       function botao(acao, id, rotulo, classe, icone, titulo) {
         var nome = rotulo || titulo || "";
         return '<button class="btn btn-sm ' + classe + '" type="button" data-acao="' + acao +
           '" data-id="' + esc(id) + '"' +
-          (rotulo ? "" : ' aria-label="' + esc(nome) + '" title="' + esc(nome) + '"') + ">" +
+          ' aria-label="' + esc(nome) + '" title="' + esc(nome) + '">' +
           (icone ? '<i class="ti ' + icone + '" aria-hidden="true"></i>' : "") +
-          esc(rotulo) + "</button>";
+          (rotulo ? '<span class="btn-txt">' + esc(rotulo) + "</span>" : "") +
+          "</button>";
       }
 
       function renderLista() {
@@ -605,6 +614,11 @@
                 b.push(botao(a.ativo ? "desativar" : "ativar", a.id,
                   a.ativo ? "Desativar" : "Ativar", "btn-ghost",
                   a.ativo ? "ti-user-off" : "ti-user-check"));
+                // Apagar e definitivo e nao tem volta: fica com quem administra.
+                if (souAdmin()) {
+                  b.push(botao("apagar", a.id, "", "btn-ghost btn-icon btn-apagar",
+                    "ti-trash", "Apagar este acesso"));
+                }
               }
               return "<tr>" +
                 '<td><div class="pessoa-cel"><b>' + esc(a.nome || "sem nome") + "</b>" +
@@ -629,15 +643,27 @@
           (contas.length === 1 ? " conta" : " contas") +
           (esperando ? ", " + esperando + " esperando liberação" : "");
 
+        // Conta que existe sem estar na lista de acessos so dava para apagar por
+        // fora da tela: foi o que aconteceu com uma sobra de teste. Aqui ela
+        // tem o mesmo botao de apagar da outra lista.
+        var podeApagar = souAdmin();
         $("lista-contas").innerHTML =
           '<div class="table-wrap"><table class="table">' +
-            "<thead><tr><th>Pessoa</th><th>O que é hoje</th><th>Cliente</th></tr></thead><tbody>" +
+            "<thead><tr><th>Pessoa</th><th>O que é hoje</th><th>Cliente</th>" +
+              (podeApagar ? '<th class="num">Ações</th>' : "") +
+            "</tr></thead><tbody>" +
             contas.map(function (c) {
               return "<tr>" +
                 '<td><div class="pessoa-cel"><b>' + esc(c.nome || "sem nome") + "</b></div></td>" +
                 '<td><span class="badge ' + (BADGE_PAPEL[c.papel] || "badge-baixa") + '">' +
                   esc(PAPEL_LABEL[c.papel] || c.papel) + "</span></td>" +
                 "<td>" + esc(nomeCliente(c.cliente_id) || "-") + "</td>" +
+                (podeApagar
+                  ? '<td class="num"><span class="acc-acoes">' +
+                      botao("apagar-conta", c.user_id, "", "btn-ghost btn-icon btn-apagar",
+                            "ti-trash", "Apagar esta conta") +
+                    "</span></td>"
+                  : "") +
               "</tr>";
             }).join("") +
           "</tbody></table></div>";
@@ -783,6 +809,74 @@
           });
       }
 
+      function apagar(a, botaoEl) {
+        if (DEMO) { App.toast("Sem conexão com os dados agora: nada foi apagado."); return; }
+        botaoEl.disabled = true;
+        Auth.cliente.rpc("acesso_apagar", { p_id: a.id })
+          .then(function (r) {
+            botaoEl.disabled = false;
+            if (r.error) {
+              App.toast(r.error.message || "Não foi possível apagar agora. Tente novamente.");
+              return;
+            }
+            var d = r.data || {};
+            // Conta que assina trabalho ja registrado nao desaparece, senao a
+            // auditoria ficaria sem autor. Dizer "apagado" e ponto esconderia
+            // isso de quem clicou.
+            App.toast(d.tinha_conta && !d.conta_apagada
+              ? "Acesso apagado. A pessoa não entra mais. O nome dela continua nos " +
+                "trabalhos que ela assinou."
+              : "Acesso apagado.");
+            return carregar().then(render);
+          })
+          .catch(function (e) {
+            botaoEl.disabled = false;
+            App.toast((e && e.message) || "Não foi possível apagar agora. Tente novamente.");
+          });
+      }
+
+      function apagarConta(c, botaoEl) {
+        if (DEMO) { App.toast("Sem conexão com os dados agora: nada foi apagado."); return; }
+        botaoEl.disabled = true;
+        Auth.cliente.rpc("conta_apagar", { p_user: c.user_id })
+          .then(function (r) {
+            botaoEl.disabled = false;
+            if (r.error) {
+              App.toast(r.error.message || "Não foi possível apagar agora. Tente novamente.");
+              return;
+            }
+            var d = r.data || {};
+            App.toast(d.conta_apagada
+              ? "Conta apagada."
+              : "Conta sem acesso. Ela não entra mais, mas continua nos trabalhos que assinou.");
+            return carregar().then(render);
+          })
+          .catch(function (e) {
+            botaoEl.disabled = false;
+            App.toast((e && e.message) || "Não foi possível apagar agora. Tente novamente.");
+          });
+      }
+
+      $("lista-contas").addEventListener("click", function (ev) {
+        if (!ev.target.closest) return;
+        var b = ev.target.closest('[data-acao="apagar-conta"]');
+        if (!b) return;
+        var id = b.getAttribute("data-id");
+        var c = null;
+        contas.forEach(function (x) { if (String(x.user_id) === String(id)) c = x; });
+        if (!c) return;
+        App.confirmar({
+          titulo: "Apagar a conta",
+          texto: (c.nome || "Esta pessoa") + " deixa de ter conta neste sistema.\n\n" +
+                 "Vale para o login e para a liberação: as duas coisas somem, e não há " +
+                 "como reativar. Para dar acesso de novo, será preciso liberar e convidar " +
+                 "outra vez.\n\n" +
+                 "O que ela já fez fica: auditoria, contagem e cronograma continuam com o " +
+                 "nome dela.",
+          confirmar: "Apagar de vez", cancelar: "Voltar", perigo: true
+        }).then(function (ok) { if (ok) apagarConta(c, b); });
+      });
+
       $("lista").addEventListener("click", function (ev) {
         if (!ev.target.closest) return;
         var b = ev.target.closest("[data-acao]");
@@ -794,6 +888,19 @@
         if (acao === "editar") { abrirModal(a); return; }
         if (acao === "convidar") { convidar(a, b); return; }
         if (acao === "ativar") { mudarAtivo(a, true, b); return; }
+        if (acao === "apagar") {
+          App.confirmar({
+            titulo: "Apagar o acesso",
+            texto: (a.nome || a.email) + " sai da lista e não volta.\n\n" +
+                   "Não é o mesmo que retirar o acesso: aqui a liberação e o login da " +
+                   "pessoa deixam de existir, e não há como reativar. Para liberar de novo, " +
+                   "será preciso cadastrar e convidar outra vez.\n\n" +
+                   "O que ela já fez no sistema fica: auditoria, contagem e cronograma " +
+                   "continuam com o nome dela.",
+            confirmar: "Apagar de vez", cancelar: "Voltar", perigo: true
+          }).then(function (ok) { if (ok) apagar(a, b); });
+          return;
+        }
         if (acao === "desativar") {
           App.confirmar({
             titulo: "Retirar o acesso",
