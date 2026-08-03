@@ -23,8 +23,10 @@
     { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },
     { key: "pendentes",   label: "Auditorias pendentes", icon: "ti-clipboard-list", href: "pendentes.html" },
-    { key: "envio",       label: "Envio de evidências", icon: "ti-cloud-upload", href: "envio.html" },
-    { key: "checagem",    label: "Evidências recebidas", icon: "ti-zoom-check",   href: "checagem.html" },
+    // Uma tela so para evidencia. Cada lado anexa na propria caixa, na mesma
+    // tela onde ve o que os outros mandaram. Antes havia uma tela separada so
+    // para enviar, e quem enviava nao via o resto.
+    { key: "checagem",    label: "Evidências",       icon: "ti-photo-check",      href: "checagem.html" },
     { key: "giro",        label: "Contagem Logística Reversa", icon: "ti-packages", href: "contagem-giro.html" },
     // Reenvio, acessos e arquivos são bastidores: quem opera o dia a dia
     // não passa por eles. Ficam como subtópicos de Configurações.
@@ -37,7 +39,7 @@
         { key: "questionarios", label: "Questionários",          href: "questionarios.html" },
         { key: "alocacoes",  label: "Reenvio de checklist",     href: "alocacoes.html" },
         { key: "acessos",    label: "Gerenciamento de acessos", href: "acessos.html" },
-        { key: "evidencias", label: "Evidências",               href: "evidencias.html" }
+        { key: "evidencias", label: "Evidências enviadas",      href: "evidencias.html" }
       ] }
   ];
 
@@ -426,13 +428,13 @@
   }
 
   // Barra inferior (só mobile), no padrão do Gmail: dois atalhos fixos.
-  // 1) preencher: "Auditorias pendentes" para a equipe APSIS ou
-  //    "Envio de evidências" para o responsável da EPO (auth.js troca conforme
+  // 1) preencher: "Auditorias pendentes" para a equipe APSIS ou "Evidências"
+  //    para o responsável da EPO, que é onde ele anexa (auth.js troca conforme
   //    a permissão do papel, mantendo sempre dois botões).
   // 2) montagem de estoque: contagem dos itens que chegam na EPO.
   var BOTTOM = [
     { key: "pendentes", label: "Auditorias", icon: "ti-clipboard-list",  href: "pendentes.html" },
-    { key: "envio",     label: "Enviar",     icon: "ti-cloud-upload",    href: "envio.html", oculto: true },
+    { key: "checagem",  label: "Evidências", icon: "ti-photo-check",     href: "checagem.html", oculto: true },
     { key: "giro",      label: "Contagem",   icon: "ti-packages",        href: "contagem-giro.html" }
   ];
 

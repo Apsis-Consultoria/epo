@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Evidências recebidas - Auditoria de EPOs</title>
+  <title>Evidências - Auditoria de EPOs</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=56">
+  <link rel="stylesheet" href="assets/app.css?v=57">
   <style>
     /* Ajustes locais da tela de evidências recebidas (grade + lista) */
 
@@ -136,20 +136,29 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=56"></script>
-  <script src="assets/app.js?v=56"></script>
-  <script src="assets/supabase-config.js?v=56"></script>
+  <script src="assets/data.js?v=57"></script>
+  <script src="assets/app.js?v=57"></script>
+  <script src="assets/supabase-config.js?v=57"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=56"></script>
+  <script src="assets/auth.js?v=57"></script>
   <script>
     (function () {
       "use strict";
 
-      Layout.mount("checagem", "Evidências recebidas");
+      Layout.mount("checagem", "Evidências");
 
       var esc = App.escapeHtml;
       var page = document.getElementById("page");
       var DEMO = Auth.modoDemo() || !Auth.pronto;
+
+      // Um input escondido serve as tres caixas: o item e a origem vem do
+      // botao que abriu, nao do input.
+      var entradaArquivo = document.createElement("input");
+      entradaArquivo.type = "file";
+      entradaArquivo.multiple = true;
+      entradaArquivo.accept = "image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.zip";
+      entradaArquivo.style.display = "none";
+      var itemDoEnvio = null;
       var BUCKET = "evidencias";
 
       var STATUS_RESPOSTA = {
@@ -585,6 +594,42 @@
       }
 
       // Caixa da APSIS: a resposta do auditor em campo mais o que ele anexou.
+      // ------------------------------------------------------------------
+      // Cada lado anexa na propria caixa, nesta mesma tela. Antes havia uma
+      // tela separada so para enviar, e quem enviava nao via o que os outros
+      // tinham mandado.
+      // ------------------------------------------------------------------
+      var minhaOrigem = "epo";
+      var parAtual = null;
+
+      function origemDoPapel(papel) {
+        return papel === "cliente" ? "claro"
+             : (papel === "admin" || papel === "gestor" || papel === "auditor")
+               ? "consultor" : "epo";
+      }
+
+      function descobrirOrigem() {
+        if (DEMO) {
+          minhaOrigem = origemDoPapel((Auth.papelDemo && Auth.papelDemo()) || "admin");
+          return Promise.resolve(minhaOrigem);
+        }
+        if (!window.Auth || !Auth.perfil) return Promise.resolve(minhaOrigem);
+        return Auth.perfil().then(function (perf) {
+          var papel = (perf && perf.papel) || "";
+          minhaOrigem = origemDoPapel(papel);
+          return minhaOrigem;
+        }, function () { return minhaOrigem; });
+      }
+
+      // Botao so na caixa de quem esta olhando: ninguem anexa no lugar do
+      // outro, e o banco recusaria de todo jeito.
+      function botaoDeEnvio(origem, item) {
+        if (origem !== minhaOrigem) return "";
+        return '<button class="btn btn-sm btn-primary evid-enviar" type="button"' +
+          ' data-item="' + esc(item.id) + '">' +
+          '<i class="ti ti-paperclip" aria-hidden="true"></i>Enviar evidências</button>';
+      }
+
       function boxApsis(item, det) {
         var r = det.respostas[item.id];
         var m = App.origemMeta("consultor");
@@ -621,11 +666,12 @@
             partes.push('<span class="evid-box-vazia">sem arquivo anexado.</span>');
           }
         }
+        partes.push(botaoDeEnvio("consultor", item));
         return caixaDeEvidencia(m, partes, n);
       }
 
-      // Caixa da Claro e caixa da EPO: os dois enviam pela tela de envio de
-      // evidências, e o que separa um do outro é a origem gravada no anexo.
+      // Caixa da Claro e caixa da EPO: cada um anexa na propria, aqui mesmo,
+      // e o que separa um do outro e a origem gravada no anexo.
       function boxDoEnvio(item, det, origem) {
         var m = App.origemMeta(origem);
         var todos = det.anexos[item.id] || [];
@@ -654,6 +700,7 @@
           if (thumbs.length) partes.push('<div class="chk-thumbs">' + thumbs.join("") + "</div>");
           if (arquivos.length) partes.push('<div class="chk-files">' + arquivos.join("") + "</div>");
         }
+        partes.push(botaoDeEnvio(origem, item));
         return caixaDeEvidencia(m, partes, lista.length);
       }
 
@@ -735,12 +782,6 @@
           '<div class="row wrap">' +
             '<button class="btn btn-ghost btn-sm" type="button" id="btn-voltar">' +
               '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar</button>' +
-            // Atalho para a tela de anexos deste questionário: serve para
-            // complementar comprovação sem sair procurando.
-            (p.alocacao && !DEMO
-              ? '<a class="btn btn-ghost btn-sm" href="envio.html?alocacao=' + esc(p.alocacao.id) + '">' +
-                  '<i class="ti ti-paperclip" aria-hidden="true"></i>Abrir anexos da EPO</a>'
-              : "") +
             (aud
               ? '<button class="btn btn-primary btn-sm" type="button" id="btn-validar"' + (podeValidar ? "" : " disabled") + ">" +
                   '<i class="ti ti-rosette-discount-check" aria-hidden="true"></i>Validar auditoria</button>'
@@ -841,14 +882,105 @@
         });
       }
 
-      // ------------------------------------------------------------ start
-      estadoCarregando("Buscando auditorias e envios...");
-      carregarPares().then(function (lista) {
-        pares = lista;
-        renderLista();
-      }, function (e) {
-        estadoErro("Não foi possível carregar a lista: " + ((e && e.message) || "erro inesperado"));
+      // ------------------------------------------------------------------
+      // Envio de evidencia, na propria caixa
+      // ------------------------------------------------------------------
+      function sanitizarNome(nome) {
+        return String(nome || "arquivo")
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^A-Za-z0-9._-]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(-90) || "arquivo";
+      }
+
+      document.body.appendChild(entradaArquivo);
+
+      document.addEventListener("click", function (ev) {
+        var b = ev.target.closest ? ev.target.closest(".evid-enviar") : null;
+        if (!b || !parAtual) return;
+        itemDoEnvio = b.getAttribute("data-item");
+        entradaArquivo.value = "";
+        entradaArquivo.click();
       });
+
+      entradaArquivo.addEventListener("change", function () {
+        var lista = Array.prototype.slice.call(this.files || []);
+        this.value = "";
+        if (!lista.length || !itemDoEnvio || !parAtual) return;
+
+        if (DEMO) {
+          App.toast("Sem conexao com os dados agora: nada foi enviado.");
+          return;
+        }
+
+        var par = parAtual.par;
+        var alocs = par.alocacoes || (par.alocacao ? [par.alocacao] : []);
+        if (!alocs.length) {
+          App.toast("Este questionario ainda nao foi pedido a ninguem, entao nao ha onde anexar.");
+          return;
+        }
+        var alocId = alocs[0].id;
+        var itemId = itemDoEnvio;
+        var db = Auth.cliente;
+        var enviados = 0;
+
+        App.toast(lista.length === 1 ? "Enviando o arquivo..."
+                                     : "Enviando " + lista.length + " arquivos...");
+
+        // A origem tem de estar resolvida antes do primeiro arquivo: sem ela,
+        // o gerente da Claro enviaria como EPO e o banco recusaria um a um.
+        var cadeia = descobrirOrigem();
+        lista.forEach(function (f) {
+          cadeia = cadeia.then(function () {
+            var caminho = "alocacoes/" + alocId + "/" + itemId + "/" +
+                          (new Date()).getTime() + "-" + sanitizarNome(f.name);
+            return db.storage.from("evidencias").upload(caminho, f).then(function (up) {
+              if (up.error) throw new Error(up.error.message);
+              return db.from("alocacao_anexos").insert({
+                alocacao_id: alocId,
+                item_id: itemId,
+                origem: minhaOrigem,
+                storage_path: caminho,
+                nome_arquivo: f.name,
+                content_type: f.type || null,
+                tamanho: f.size
+              }).select("id");
+            }).then(function (ins) {
+              if (ins.error) throw new Error(ins.error.message);
+              if (!ins.data || !ins.data.length) {
+                throw new Error("seu acesso nao permite anexar neste questionario");
+              }
+              enviados += 1;
+            }).catch(function (err) {
+              console.error("upload", f.name, err);
+              App.toast("Nao foi possivel enviar " + f.name +
+                        (err && err.message ? ": " + err.message : "."));
+            });
+          });
+        });
+
+        cadeia.then(function () {
+          if (!enviados) return;
+          App.toast(enviados === 1 ? "Arquivo enviado." : enviados + " arquivos enviados.");
+          // Recarrega o detalhe: a caixa passa a mostrar o que subiu, com o
+          // link assinado que so o servidor sabe gerar.
+          abrirDetalhe(par);
+        });
+      });
+
+      // ------------------------------------------------------------ start
+      // A origem sai na frente: o botao de anexar aparece na caixa de quem
+      // esta olhando, e sem isso ele nasceria na caixa errada ate o primeiro
+      // envio resolver o papel.
+      estadoCarregando("Buscando auditorias e envios...");
+      descobrirOrigem()
+        .then(carregarPares)
+        .then(function (lista) {
+          pares = lista;
+          renderLista();
+        }, function (e) {
+          estadoErro("Não foi possível carregar a lista: " + ((e && e.message) || "erro inesperado"));
+        });
     })();
   </script>
 </body>

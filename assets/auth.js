@@ -44,7 +44,6 @@
     "gerencial.html": "gerencial",
     "pendentes.html": "pendentes",
     "auditoria.html": "auditoria",
-    "envio.html": "envio",
     "checagem.html": "checagem",
     "questionarios.html": "questionarios",
     "epo-detalhe.html": "ranking",
@@ -57,7 +56,7 @@
 
   // Primeira página permitida do papel (destino padrão pós-login/negado)
   function primeiraPermitida(perms) {
-    var ordem = ["geral", "epos", "cronograma", "pendentes", "auditoria", "envio", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "criterios", "questionarios", "acessos"];
+    var ordem = ["geral", "epos", "cronograma", "pendentes", "auditoria", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "criterios", "questionarios", "acessos"];
     var mapaInverso = {};
     Object.keys(MAPA_PAGINAS).forEach(function (arq) { mapaInverso[MAPA_PAGINAS[arq]] = arq; });
     for (var i = 0; i < ordem.length; i++) {
@@ -97,7 +96,9 @@
     };
     var pendentes = perms.pendentes !== false;
     mostra("pendentes", pendentes);
-    mostra("envio", !pendentes && perms.envio !== false);
+    // Quem nao preenche auditoria anexa evidencia: e a mesma tela onde ele ve
+    // o que os outros lados mandaram.
+    mostra("checagem", !pendentes && perms.checagem !== false);
     mostra("giro", perms.giro !== false);
   }
 

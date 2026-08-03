@@ -689,7 +689,10 @@ img { max-width: 100%; display: block; }
 /* -------------------------------------------------------------- Atalhos
    A tela principal era so leitura: quem entrava tinha de procurar no menu
    lateral onde fazer cada coisa. */
-.atalhos { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+/* Uma linha so. Em grade eles quebravam para a segunda linha e a faixa
+   virava um bloco; aqui encolhem juntos e cabem sempre. */
+.atalhos { display: flex; flex-wrap: nowrap; gap: 10px; overflow-x: auto; }
+.atalhos > .atalho { flex: 1 1 0; min-width: 0; }
 .atalho {
   display: flex; align-items: center; gap: 12px;
   padding: 13px 14px;
@@ -708,8 +711,21 @@ img { max-width: 100%; display: block; }
   color: var(--apsis-green);
 }
 .atalho-ico i { font-size: 19px; }
-.atalho-nm { display: block; font-size: 14px; font-weight: 600; color: var(--text); }
-.atalho-ds { display: block; font-size: 12px; color: var(--text-2); margin-top: 2px; line-height: 1.4; }
+.atalho > span:last-child { min-width: 0; }
+.atalho-nm {
+  display: block; font-size: 13.5px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.atalho-ds {
+  display: block; font-size: 11.5px; color: var(--text-2); margin-top: 2px;
+  line-height: 1.35;
+  /* Duas linhas no maximo: a terceira empurrava a altura de todos os cartoes. */
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Tela estreita: a descricao sai e a faixa rola de lado, em vez de quebrar. */
+@media (max-width: 1300px) { .atalho-ds { display: none; } }
+@media (max-width: 900px) { .atalhos > .atalho { flex: 0 0 180px; } }
 
 /* Secao de menu sem tela propria: rotulo, nao link. */
 .nav-item.nav-secao { cursor: default; }
