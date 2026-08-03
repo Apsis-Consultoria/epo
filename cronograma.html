@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=50">
+  <link rel="stylesheet" href="assets/app.css?v=51">
 </head>
 <body>
   <div class="app-shell">
@@ -20,12 +20,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=50"></script>
-  <script src="assets/app.js?v=50"></script>
-  <script src="assets/supabase-config.js?v=50"></script>
+  <script src="assets/data.js?v=51"></script>
+  <script src="assets/app.js?v=51"></script>
+  <script src="assets/supabase-config.js?v=51"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=50"></script>
-  <script src="assets/cronograma-planilha.js?v=50"></script>
+  <script src="assets/auth.js?v=51"></script>
+  <script src="assets/cronograma-planilha.js?v=51"></script>
   <script>
     (function () {
       "use strict";
@@ -124,7 +124,10 @@
       var escala = "semana";
       var filtro = { busca: "", regional: "", situacao: "" };
       var grupoFechado = {};
-      var editando = null;            // { id: "...", modo: "sugerir" | "registrar" }
+      // { id, modo: "sugerir" | "registrar", onde: "caixa" | "tabela" }
+      // O "onde" evita que o mesmo formulario apareca duas vezes, na caixa
+      // e na linha da tabela, com os mesmos campos repetidos na pagina.
+      var editando = null;
       var itemAberto = null;
       var previa = null;
       var ultimaImportacao = null;
@@ -137,11 +140,13 @@
       // data e combinada, aprovada e corrigida.
       // ------------------------------------------------------------------
       var acoes =
+        '<button class="btn btn-primary btn-sm is-hidden" id="btn-nova" type="button">' +
+          '<i class="ti ti-building-plus" aria-hidden="true"></i>Nova EPO</button>' +
         '<button class="btn btn-ghost btn-sm is-hidden" id="btn-modelo" type="button">' +
           '<i class="ti ti-download" aria-hidden="true"></i>Baixar modelo</button>' +
         '<button class="btn btn-ghost btn-sm is-hidden" id="btn-planilha" type="button">' +
           '<i class="ti ti-table-import" aria-hidden="true"></i>Enviar planilha</button>' +
-        '<button class="btn btn-primary btn-sm is-hidden" id="btn-enviar" type="button">' +
+        '<button class="btn btn-ghost btn-sm is-hidden" id="btn-enviar" type="button">' +
           '<i class="ti ti-send" aria-hidden="true"></i><span id="btn-enviar-txt">Enviar datas</span></button>';
 
       Layout.mount("cronograma", "Cronograma", acoes);
@@ -167,10 +172,12 @@
           '<div class="gan-legenda" id="legenda"></div>' +
         "</div>" +
 
+        '<div class="cron-duplo" id="duplo"></div>' +
+
         '<div class="card mb-0">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
-              '<span class="title">Datas por unidade</span>' +
+              '<span class="title">Todas as unidades</span>' +
               '<span class="subtitle" id="sub-tabela"></span>' +
             "</div>" +
           "</div>" +
@@ -218,6 +225,67 @@
             "</div>" +
             '<div class="modal-body" id="imp-corpo"></div>' +
             '<div class="modal-footer" id="imp-rodape"></div>' +
+          "</div>" +
+        "</div>" +
+        '<div class="modal-overlay" id="nova-modal" role="dialog" aria-modal="true" aria-labelledby="nova-titulo">' +
+          '<div class="modal modal-largo">' +
+            '<div class="modal-header">' +
+              '<h2 class="modal-title" id="nova-titulo">Nova EPO</h2>' +
+              '<button class="modal-close" id="nova-fechar" type="button" aria-label="Fechar">' +
+                '<i class="ti ti-x" aria-hidden="true"></i></button>' +
+            "</div>" +
+            '<div class="modal-body">' +
+              '<div class="cron-cols">' +
+                "<div>" +
+                  '<p class="col-titulo"><i class="ti ti-building-warehouse" aria-hidden="true"></i>' +
+                    "Dados da unidade</p>" +
+                  '<div class="field"><label for="n-cod">Cod. Fornecedor</label>' +
+                    '<input class="input" id="n-cod" type="text" autocomplete="off" placeholder="Ex.: 143620">' +
+                    '<span class="hint">E o que distingue unidades de mesmo nome. Sem ele, reenviar a planilha duplicaria o cadastro.</span></div>' +
+                  '<div class="field"><label for="n-base">Base (opcional)</label>' +
+                    '<input class="input" id="n-base" type="text" autocomplete="off" placeholder="vazio = base unica">' +
+                    '<span class="hint">Preencha somente se o mesmo codigo tiver mais de uma base.</span></div>' +
+                  '<div class="field"><label for="n-nome">Nome da EPO</label>' +
+                    '<input class="input" id="n-nome" type="text" autocomplete="off" placeholder="razao social"></div>' +
+                  '<div class="field"><label for="n-cidade">Cidade</label>' +
+                    '<input class="input" id="n-cidade" type="text" autocomplete="off"></div>' +
+                  '<div class="field-row">' +
+                    '<div class="field"><label for="n-uf">UF</label>' +
+                      '<select class="select" id="n-uf"></select></div>' +
+                    '<div class="field"><label for="n-regional">Regional</label>' +
+                      '<select class="select" id="n-regional"></select>' +
+                      '<span class="hint">Pode diferir do UF.</span></div>' +
+                  "</div>" +
+                "</div>" +
+                "<div>" +
+                  '<p class="col-titulo"><i class="ti ti-map-pin" aria-hidden="true"></i>' +
+                    "Endereco e data</p>" +
+                  '<div class="field"><label for="n-endereco">Endereco (opcional)</label>' +
+                    '<input class="input" id="n-endereco" type="text" autocomplete="off" placeholder="rua, numero, bairro"></div>' +
+                  '<div class="field"><label for="n-cep">CEP (opcional)</label>' +
+                    '<input class="input" id="n-cep" type="text" autocomplete="off" placeholder="00000-000" maxlength="9"></div>' +
+                  '<div class="field"><label for="n-data">Data prevista (opcional)</label>' +
+                    '<input class="input" id="n-data" type="date" min="2020-01-01" max="2035-12-31"></div>' +
+                  '<div class="field"><label for="n-ate">Ate (opcional)</label>' +
+                    '<input class="input" id="n-ate" type="date" min="2020-01-01" max="2035-12-31">' +
+                    '<span class="hint">Somente se a visita durar mais de um dia.</span></div>' +
+                  '<div class="field"><label for="n-semana">Semana (opcional)</label>' +
+                    '<input class="input" id="n-semana" type="text" autocomplete="off" placeholder="Ex.: 3a semana de julho">' +
+                    '<span class="hint">Texto livre, para quando a data ainda nao esta fechada.</span></div>' +
+                  '<div class="field"><label for="n-obs">Observacao (opcional)</label>' +
+                    '<input class="input" id="n-obs" type="text" autocomplete="off"></div>' +
+                  '<div class="tk-aviso" style="margin-top:4px;">' +
+                    '<i class="ti ti-info-circle tk-ico" aria-hidden="true"></i>' +
+                    '<div class="tk-aviso-corpo"><p>A unidade entra no cronograma e tambem na tela ' +
+                    "de EPOs. A data nao vai para a Claro agora: voce confere e envia depois.</p></div>" +
+                  "</div>" +
+                "</div>" +
+              "</div>" +
+            "</div>" +
+            '<div class="modal-footer">' +
+              '<button class="btn btn-ghost" type="button" id="nova-cancelar">Cancelar</button>' +
+              '<button class="btn btn-primary" type="button" id="nova-salvar">Cadastrar unidade</button>' +
+            "</div>" +
           "</div>" +
         "</div>" +
         '<input type="file" id="imp-arquivo" accept=".xlsx,.xls,.csv" style="display:none;">';
@@ -413,9 +481,125 @@
         renderFiltrosSelect();
         renderRoadmap();
         renderLegenda();
-        renderTabela();
+        renderTrabalho();
         renderRodape();
         renderBotoes();
+      }
+
+      // As duas caixas e a tabela mostram o mesmo dado por angulos diferentes:
+      // redesenham sempre juntas, senao uma fica dizendo o contrario da outra.
+      function renderTrabalho() {
+        renderDuplo();
+        renderTabela();
+      }
+
+      // ================================================================
+      // As duas caixas: a esquerda espera a Claro, a direita voltou dela
+      // ================================================================
+      function caixaItem(it, botoes) {
+        var fim = it.prevFim != null ? it.prevFim : it.prevIni;
+        return '<div class="cx-item">' +
+          '<div class="cx-corpo">' +
+            "<b>" + esc(it.nome) + "</b>" +
+            "<span>" + (it.cod ? "Cod. " + esc(it.cod) + " - " : "") +
+              esc(it.cidade) + (it.uf ? "/" + esc(it.uf) : "") + "</span>" +
+            '<span class="cx-data"><i class="ti ti-calendar-event" aria-hidden="true"></i>' +
+              esc(periodo(it.prevIni, fim)) + "</span>" +
+            (it.situacao === "aguardando_apsis" && it.propIni != null
+              ? '<span class="cx-data cx-sugerida">' +
+                '<i class="ti ti-calendar-repeat" aria-hidden="true"></i>Claro sugeriu ' +
+                esc(periodo(it.propIni, it.propFim != null ? it.propFim : it.propIni)) + "</span>"
+              : "") +
+            (it.observacao ? '<span style="margin-top:4px;">' + esc(it.observacao) + "</span>" : "") +
+          "</div>" +
+          (botoes ? '<div class="cx-acoes">' + botoes + "</div>" : "") +
+        "</div>";
+      }
+
+      function formaNaCaixa(it) {
+        var hoje = paraIso(hojeN());
+        return '<div class="cx-forma">' +
+          "<label>Que data serve melhor para " + esc(it.nome) + "?</label>" +
+          '<input class="input" type="date" id="cx-ini" value="' + esc(it.prevIniIso) +
+            '" min="' + hoje + '" max="2035-12-31">' +
+          '<input class="input" type="date" id="cx-fim" value="" min="' + hoje +
+            '" max="2035-12-31" title="Ate (opcional)">' +
+          '<input class="input" id="cx-msg" type="text" placeholder="Motivo (opcional)">' +
+          '<div class="cx-forma-btn">' +
+            '<button class="btn btn-sm btn-ghost" type="button" data-cx="cancelar">Cancelar</button>' +
+            '<button class="btn btn-sm btn-primary" type="button" data-cx="enviar-sugestao"' +
+              ' data-id="' + esc(it.id) + '">Enviar sugestao</button>' +
+          "</div>" +
+        "</div>";
+      }
+
+      function renderDuplo() {
+        var alvo = $("duplo");
+        if (carregando || falha || !itens.length) { alvo.innerHTML = ""; return; }
+
+        var esperando = itens.filter(function (it) { return it.situacao === "aguardando_claro"; });
+        var recusadas = itens.filter(function (it) { return it.situacao === "aguardando_apsis"; });
+
+        // Nenhuma das duas pontas tem pendencia: as caixas nao aparecem, para
+        // nao ocupar a tela com dois quadros vazios.
+        if (!esperando.length && !recusadas.length) { alvo.innerHTML = ""; return; }
+
+        var editaCaixa = editando && editando.onde === "caixa" ? editando.id : null;
+
+        var corpoEsq = esperando.length
+          ? esperando.map(function (it) {
+              if (editaCaixa === it.id) return formaNaCaixa(it);
+              var b = "";
+              if (papel === "cliente") {
+                b = '<button class="btn btn-sm btn-primary" type="button" data-cx="aprovar"' +
+                    ' data-id="' + esc(it.id) + '">' +
+                    '<i class="ti ti-check" aria-hidden="true"></i>Aprovar</button>' +
+                    '<button class="btn btn-sm btn-ghost" type="button" data-cx="desaprovar"' +
+                    ' data-id="' + esc(it.id) + '">' +
+                    '<i class="ti ti-calendar-x" aria-hidden="true"></i>Desaprovar</button>';
+              }
+              return caixaItem(it, b);
+            }).join("")
+          : '<div class="empty" style="padding:22px 14px;"><p>Nada esperando a Claro.</p></div>';
+
+        var corpoDir = recusadas.length
+          ? recusadas.map(function (it) {
+              var b = "";
+              if (podeMontar) {
+                b = '<button class="btn btn-sm btn-primary" type="button" data-cx="aceitar"' +
+                    ' data-id="' + esc(it.id) + '">' +
+                    '<i class="ti ti-check" aria-hidden="true"></i>Aceitar</button>' +
+                    '<button class="btn btn-sm btn-ghost" type="button" data-cx="manter"' +
+                    ' data-id="' + esc(it.id) + '">' +
+                    '<i class="ti ti-send" aria-hidden="true"></i>Manter a data</button>';
+              }
+              return caixaItem(it, b);
+            }).join("")
+          : '<div class="empty" style="padding:22px 14px;"><p>A Claro nao recusou nenhuma data.</p></div>';
+
+        alvo.innerHTML =
+          '<div class="card">' +
+            '<div class="card-header"><div class="section-title">' +
+              '<span class="title">Esperando aprovacao da Claro</span>' +
+              '<span class="subtitle">' +
+                (papel === "cliente"
+                  ? "Aprove a data ou informe outra que sirva melhor"
+                  : "A APSIS marcou e enviou; a vez e da Claro") + "</span>" +
+            "</div>" +
+            '<span class="acc-count">' + esperando.length + "</span></div>" +
+            '<div class="cx-lista">' + corpoEsq + "</div>" +
+          "</div>" +
+          '<div class="card">' +
+            '<div class="card-header"><div class="section-title">' +
+              '<span class="title">Nao aprovadas pela Claro</span>' +
+              '<span class="subtitle">' +
+                (podeMontar
+                  ? "Aceite a data sugerida ou mantenha a sua e reenvie"
+                  : "A APSIS esta respondendo a sua sugestao") + "</span>" +
+            "</div>" +
+            '<span class="acc-count">' + recusadas.length + "</span></div>" +
+            '<div class="cx-lista">' + corpoDir + "</div>" +
+          "</div>";
       }
 
       function renderAviso() {
@@ -907,7 +1091,9 @@
       }
 
       function celulaAcoes(it) {
-        if (editando && editando.id === it.id) return formularioNaLinha(it);
+        if (editando && editando.id === it.id && editando.onde !== "caixa") {
+          return formularioNaLinha(it);
+        }
 
         var b = [];
 
@@ -1027,6 +1213,7 @@
       }
 
       function renderBotoes() {
+        $("btn-nova").classList.toggle("is-hidden", !podeMontar);
         $("btn-modelo").classList.toggle("is-hidden", !podeMontar);
         $("btn-planilha").classList.toggle("is-hidden", !podeMontar);
 
@@ -1116,18 +1303,18 @@
       function tratarAcao(acao, id, botaoEl) {
         var it = porId(id);
 
-        if (acao === "cancelar-edicao") { editando = null; renderTabela(); return; }
+        if (acao === "cancelar-edicao") { editando = null; renderTrabalho(); return; }
 
         if (acao === "sugerir") {
-          editando = { id: id, modo: "sugerir" };
-          renderTabela();
+          editando = { id: id, modo: "sugerir", onde: "tabela" };
+          renderTrabalho();
           var c = $("ed-ini"); if (c) c.focus();
           return;
         }
 
         if (acao === "registrar") {
-          editando = { id: id, modo: "registrar" };
-          renderTabela();
+          editando = { id: id, modo: "registrar", onde: "tabela" };
+          renderTrabalho();
           return;
         }
 
@@ -1193,7 +1380,7 @@
             confirmar: "Trocar e reenviar", cancelar: "Voltar", perigo: jaAprovada
           }).then(function (ok) {
             if (ok) salvarData(id, true, botaoEl);
-            else renderTabela();
+            else renderTrabalho();
           });
           return;
         }
@@ -1399,6 +1586,131 @@
               '<p class="muted">Nao foi possivel carregar o historico agora.</p>';
           });
       }
+
+      // ================================================================
+      // Nova EPO, uma por uma. Os mesmos campos da planilha, para quem
+      // cadastra a mao e quem cadastra em lote informarem a mesma coisa.
+      // ================================================================
+      var UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
+                 "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+
+      function abrirNova() {
+        var opcoes = UFS.map(function (u) {
+          return '<option value="' + u + '">' + u + "</option>";
+        }).join("");
+        $("n-uf").innerHTML = opcoes;
+        $("n-regional").innerHTML = '<option value="">igual ao UF</option>' + opcoes;
+
+        ["n-cod", "n-base", "n-nome", "n-cidade", "n-endereco", "n-cep",
+         "n-data", "n-ate", "n-semana", "n-obs"].forEach(function (id) { $(id).value = ""; });
+        $("n-uf").value = "SP";
+        $("n-regional").value = "";
+        $("nova-salvar").disabled = false;
+        $("nova-salvar").textContent = "Cadastrar unidade";
+
+        $("nova-modal").classList.add("is-open");
+        setTimeout(function () { $("n-cod").focus(); }, 60);
+      }
+
+      function fecharNova() { $("nova-modal").classList.remove("is-open"); }
+
+      function salvarNova() {
+        var cod = ($("n-cod").value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        var nome = ($("n-nome").value || "").trim();
+        var cidade = ($("n-cidade").value || "").trim();
+        var uf = $("n-uf").value;
+        var ini = $("n-data").value || null;
+        var fim = $("n-ate").value || null;
+
+        if (!cod) { App.toast("Informe o codigo do fornecedor."); return; }
+        if (!nome) { App.toast("Informe o nome da unidade."); return; }
+        if (!cidade) { App.toast("Informe a cidade."); return; }
+        if (fim && !ini) { App.toast('Preencheu "Ate" sem a data prevista.'); return; }
+        if (ini && fim && fim < ini) {
+          App.toast("A data final nao pode ser anterior a inicial."); return;
+        }
+
+        var btn = $("nova-salvar");
+        btn.disabled = true;
+        btn.textContent = "Cadastrando...";
+
+        function encerrar(msg) {
+          btn.disabled = false;
+          btn.textContent = "Cadastrar unidade";
+          if (msg) App.toast(msg);
+        }
+
+        if (DEMO) { encerrar("Sem conexao com os dados agora: nada foi gravado."); return; }
+
+        var db = Auth.cliente;
+        var epoId = null;
+
+        db.from("clientes").select("id").limit(2)
+          .then(function (r) {
+            if (r.error) throw new Error("nao foi possivel ler o cliente");
+            if (!r.data || r.data.length !== 1) {
+              throw new Error("Ha mais de um cliente cadastrado. Nao sei para qual gravar.");
+            }
+            return db.from("epos").insert({
+              cliente_id: r.data[0].id,
+              nome: nome,
+              cidade: cidade,
+              uf: uf,
+              regional: $("n-regional").value || null,
+              endereco: ($("n-endereco").value || "").trim() || null,
+              cep: ($("n-cep").value || "").trim() || null,
+              cod_fornecedor: cod,
+              base: ($("n-base").value || "").trim().toUpperCase(),
+              origem: "manual"
+            }).select("id");
+          })
+          .then(function (r) {
+            if (r.error) {
+              // 23505 e o codigo do fornecedor repetido: e a chave do cadastro.
+              if (String(r.error.code) === "23505" || /unique|duplicad/i.test(r.error.message || "")) {
+                throw new Error("Ja existe unidade com este codigo e base. Procure por ela na tabela.");
+              }
+              throw new Error(r.error.message || "nao foi possivel cadastrar");
+            }
+            if (!r.data || !r.data.length) {
+              throw new Error("Seu acesso nao permite cadastrar unidade.");
+            }
+            epoId = r.data[0].id;
+            // Entrar no ciclo e passo separado: a unidade existe no cadastro
+            // mesmo que o cronograma deste ano ainda nao a inclua.
+            return db.rpc("cronograma_incluir", { p_epo: epoId, p_ciclo: CICLO });
+          })
+          .then(function (r) {
+            if (r.error) throw new Error(r.error.message || "nao foi possivel incluir no ciclo");
+            var item = r.data;
+            if (!ini || !item || !item.id) return null;
+            // A data fica guardada e NAO vai para a Claro agora: quem envia e
+            // a coordenacao, depois de conferir a lista inteira.
+            return db.rpc("cronograma_definir_data", {
+              p_item: item.id, p_inicio: ini, p_fim: fim,
+              p_semana: ($("n-semana").value || "").trim() || null,
+              p_observacao: ($("n-obs").value || "").trim() || null,
+              p_enviar: false
+            });
+          })
+          .then(function () {
+            encerrar(null);
+            App.toast(nome + " cadastrada." + (ini ? " A data ainda nao foi enviada para a Claro." : ""));
+            fecharNova();
+            return carregar().then(render);
+          })
+          .catch(function (e) {
+            encerrar(e && e.message ? e.message : "Nao foi possivel cadastrar agora.");
+          });
+      }
+
+      $("btn-nova").addEventListener("click", abrirNova);
+      $("nova-fechar").addEventListener("click", fecharNova);
+      $("nova-cancelar").addEventListener("click", fecharNova);
+      $("nova-salvar").addEventListener("click", salvarNova);
+      $("nova-modal").addEventListener("click", function (ev) {
+        if (ev.target === this) fecharNova();
+      });
 
       // ================================================================
       // Planilha
@@ -1740,8 +2052,9 @@
       document.addEventListener("keydown", function (ev) {
         if (ev.key !== "Escape") return;
         if ($("tk-modal").classList.contains("is-open")) fecharTicket();
+        else if ($("nova-modal").classList.contains("is-open")) fecharNova();
         else if ($("imp-modal").classList.contains("is-open")) fecharImportacao();
-        else if (editando) { editando = null; renderTabela(); }
+        else if (editando) { editando = null; renderTrabalho(); }
       });
 
       var buscaTimer = null;
@@ -1758,6 +2071,40 @@
       });
       $("f-situacao").addEventListener("change", function () {
         filtro.situacao = this.value; renderTabela();
+      });
+
+      // ---------------------------------------------- cliques nas caixas
+      $("duplo").addEventListener("click", function (ev) {
+        if (!ev.target.closest) return;
+        var b = ev.target.closest("[data-cx]");
+        if (!b) return;
+        var acao = b.getAttribute("data-cx");
+        var id = b.getAttribute("data-id");
+
+        if (acao === "cancelar") { editando = null; renderTrabalho(); return; }
+        if (acao === "desaprovar") {
+          editando = { id: id, modo: "sugerir", onde: "caixa" };
+          renderTrabalho();
+          var c = $("cx-ini"); if (c) c.focus();
+          return;
+        }
+        if (acao === "enviar-sugestao") {
+          var ini = valor("cx-ini");
+          if (!ini) { App.toast("Informe a data que serve melhor."); return; }
+          var fim = valor("cx-fim");
+          if (fim && fim < ini) {
+            App.toast("A data final nao pode ser anterior a inicial."); return;
+          }
+          rodar("cronograma_propor_data", {
+            p_item: id, p_inicio: ini, p_fim: fim, p_motivo: valor("cx-msg")
+          }, b).then(function (ok) {
+            if (ok) App.toast("Sugestao enviada para a APSIS.");
+          });
+          return;
+        }
+        if (acao === "aprovar") { tratarAcao("aprovar", id, b); return; }
+        if (acao === "aceitar") { tratarAcao("aceitar", id, b); return; }
+        if (acao === "manter")  { tratarAcao("reenviar", id, b); return; }
       });
 
       $("chips-escala").addEventListener("click", function (ev) {

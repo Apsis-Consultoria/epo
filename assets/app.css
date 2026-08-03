@@ -319,7 +319,15 @@ img { max-width: 100%; display: block; }
   border-radius: var(--radius);
   padding: 20px;
   box-shadow: var(--shadow-sm);
+  /* Sem esta margem as caixas de toda tela ficavam encostadas uma na outra.
+     A classe .mb-0, usada na ultima caixa de cada tela, existia justamente
+     para tirar esta margem: a intencao estava no codigo, a margem nao. */
+  margin-bottom: 16px;
 }
+/* Caixa dentro de grade ja tem o espaco do gap: margem aqui viraria sobra
+   embaixo de cada celula. */
+.grid-2 > .card, .grid-3 > .card, .grid-4 > .card,
+.kpi-grid > .card, .cron-duplo > .card { margin-bottom: 0; }
 .card-header {
   display: flex;
   align-items: flex-start;
@@ -1421,6 +1429,48 @@ input[type="submit"],
 .modal.modal-largo { max-width: 880px; }
 .cron-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .cron-rodape { padding: 11px 18px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--text-2); }
+
+/* ------------------------------------------- as duas caixas de aprovacao
+   Lado a lado de proposito: a esquerda e o que espera a Claro, a direita e o
+   que voltou dela. Quem olha entende de quem e a vez sem ler nada. */
+.cron-duplo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.cron-duplo > .card { margin-bottom: 0; }
+.cron-duplo .card-header { padding-bottom: 10px; }
+
+.cx-lista { display: flex; flex-direction: column; }
+.cx-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+}
+.cx-item:hover { background: var(--surface-2); }
+.cx-corpo { flex: 1; min-width: 0; }
+.cx-corpo b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); }
+.cx-corpo span { display: block; font-size: 12px; color: var(--text-2); }
+.cx-data {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 5px;
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+.cx-data i { font-size: 15px; color: var(--text-2); }
+.cx-sugerida { color: var(--accent-600); }
+.cx-sugerida i { color: var(--accent-600); }
+.cx-acoes { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.cx-acoes .btn { white-space: nowrap; }
+
+.cx-forma {
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 11px 18px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--warning-bg);
+}
+.cx-forma label { font-size: 12px; font-weight: 600; color: var(--text); }
+.cx-forma .input { height: 34px; font-size: 12.5px; }
+.cx-forma-btn { display: flex; gap: 7px; justify-content: flex-end; }
+
+@media (max-width: 1000px) {
+  .cron-duplo { grid-template-columns: 1fr; }
+}
 
 /* ------------------------------------------------- tabela de datas */
 .cron-tabela td { vertical-align: top; }
