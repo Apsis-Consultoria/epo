@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=51">
+  <link rel="stylesheet" href="assets/app.css?v=53">
   <style>
     /* Ajustes locais da tela de cadastro de EPO e pedido de relatórios */
 
@@ -135,11 +135,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=51"></script>
-  <script src="assets/app.js?v=51"></script>
-  <script src="assets/supabase-config.js?v=51"></script>
+  <script src="assets/data.js?v=53"></script>
+  <script src="assets/app.js?v=53"></script>
+  <script src="assets/supabase-config.js?v=53"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=51"></script>
+  <script src="assets/auth.js?v=53"></script>
   <script>
     (function () {
       "use strict";
@@ -692,7 +692,11 @@
         }
 
         var agora = Date.now();
-        var e1 = epoById("meridiano") || epos[0] || { id: "demo-epo-1", nome: "EPO Meridiano", cidade: "São Paulo", uf: "SP" };
+        // Sem unidade cadastrada nao ha o que montar; nome inventado aqui
+        // apareceria em tela como se fosse cadastro.
+        var e1 = epos[0] || null;
+        // Sem unidade cadastrada nao ha lista de exemplo para montar.
+        if (!e1) return [];
         var e2 = epoById("farol") || epos[1] || { id: "demo-epo-2", nome: "EPO Farol", cidade: "Rio de Janeiro", uf: "RJ" };
 
         alocacoes = [

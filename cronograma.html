@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=51">
+  <link rel="stylesheet" href="assets/app.css?v=53">
 </head>
 <body>
   <div class="app-shell">
@@ -20,12 +20,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=51"></script>
-  <script src="assets/app.js?v=51"></script>
-  <script src="assets/supabase-config.js?v=51"></script>
+  <script src="assets/data.js?v=53"></script>
+  <script src="assets/app.js?v=53"></script>
+  <script src="assets/supabase-config.js?v=53"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=51"></script>
-  <script src="assets/cronograma-planilha.js?v=51"></script>
+  <script src="assets/auth.js?v=53"></script>
+  <script src="assets/cronograma-planilha.js?v=53"></script>
   <script>
     (function () {
       "use strict";
@@ -297,30 +297,10 @@
       // nao ficar em branco. Nenhuma unidade nasce com resposta da Claro:
       // mostrar uma sugestao que ninguem fez faz a tela mentir.
       // ------------------------------------------------------------------
-      function catalogoSemConexao() {
-        var h = hojeN();
-        function iso(delta) { return paraIso(h + delta); }
-        return [
-          { id: "d1", situacao: "confirmada", nome: "Unidade Alfa", cod: "900101",
-            cidade: "Sao Paulo", uf: "SP", regional: "SP",
-            prevIniIso: iso(9), prevFimIso: iso(10), confirmadaEm: new Date().toISOString() },
-          { id: "d2", situacao: "aguardando_claro", nome: "Unidade Bravo", cod: "900102",
-            cidade: "Campinas", uf: "SP", regional: "SP",
-            prevIniIso: iso(17), prevFimIso: iso(18) },
-          { id: "d3", situacao: "sem_data", nome: "Unidade Charlie", cod: "900103",
-            cidade: "Belo Horizonte", uf: "MG", regional: "MG" },
-          { id: "d4", situacao: "realizada", nome: "Unidade Delta", cod: "900104",
-            cidade: "Porto Alegre", uf: "RS", regional: "RS",
-            prevIniIso: iso(-21), prevFimIso: iso(-19),
-            realIniIso: iso(-21), realFimIso: iso(-20) },
-          { id: "d5", situacao: "confirmada", nome: "Unidade Echo", cod: "900105",
-            cidade: "Rio de Janeiro", uf: "RJ", regional: "RJ",
-            prevIniIso: iso(-6), prevFimIso: iso(-5) },
-          { id: "d6", situacao: "sem_data", nome: "Unidade Foxtrot", cod: "900106",
-            cidade: "Juiz de Fora", uf: "MG", regional: "MG",
-            semana: "3a semana de setembro" }
-        ].map(normalizar);
-      }
+      // Sem conexao a tela abre vazia. Antes havia aqui seis unidades
+      // inventadas: numero em tela que nao existe no cadastro engana quem
+      // esta conferindo, e foi exatamente o que aconteceu.
+      function catalogoSemConexao() { return []; }
 
       function normalizar(linha) {
         var epo = linha.epos || linha;
@@ -560,7 +540,7 @@
               }
               return caixaItem(it, b);
             }).join("")
-          : '<div class="empty" style="padding:22px 14px;"><p>Nada esperando a Claro.</p></div>';
+          : '<div class="empty" style="padding:22px 14px;"><p>Nada aqui.</p></div>';
 
         var corpoDir = recusadas.length
           ? recusadas.map(function (it) {
@@ -575,27 +555,19 @@
               }
               return caixaItem(it, b);
             }).join("")
-          : '<div class="empty" style="padding:22px 14px;"><p>A Claro nao recusou nenhuma data.</p></div>';
+          : '<div class="empty" style="padding:22px 14px;"><p>Nada aqui.</p></div>';
 
         alvo.innerHTML =
           '<div class="card">' +
             '<div class="card-header"><div class="section-title">' +
-              '<span class="title">Esperando aprovacao da Claro</span>' +
-              '<span class="subtitle">' +
-                (papel === "cliente"
-                  ? "Aprove a data ou informe outra que sirva melhor"
-                  : "A APSIS marcou e enviou; a vez e da Claro") + "</span>" +
+              '<span class="title">Esperando para aprovação</span>' +
             "</div>" +
             '<span class="acc-count">' + esperando.length + "</span></div>" +
             '<div class="cx-lista">' + corpoEsq + "</div>" +
           "</div>" +
           '<div class="card">' +
             '<div class="card-header"><div class="section-title">' +
-              '<span class="title">Nao aprovadas pela Claro</span>' +
-              '<span class="subtitle">' +
-                (podeMontar
-                  ? "Aceite a data sugerida ou mantenha a sua e reenvie"
-                  : "A APSIS esta respondendo a sua sugestao") + "</span>" +
+              '<span class="title">Não aprovados pela Claro</span>' +
             "</div>" +
             '<span class="acc-count">' + recusadas.length + "</span></div>" +
             '<div class="cx-lista">' + corpoDir + "</div>" +

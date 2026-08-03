@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=51">
+  <link rel="stylesheet" href="assets/app.css?v=53">
   <style>
     /* Ajustes locais da tela de evidências recebidas (grade + lista) */
 
@@ -136,11 +136,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=51"></script>
-  <script src="assets/app.js?v=51"></script>
-  <script src="assets/supabase-config.js?v=51"></script>
+  <script src="assets/data.js?v=53"></script>
+  <script src="assets/app.js?v=53"></script>
+  <script src="assets/supabase-config.js?v=53"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=51"></script>
+  <script src="assets/auth.js?v=53"></script>
   <script>
     (function () {
       "use strict";
@@ -247,7 +247,10 @@
       // ------------------------------------------------------------ mock demo
       function paresDemo() {
         var procMock = (window.APP.processos && window.APP.processos[0]) || { id: "recebimento-expedicao", nome: "Recebimento e expedição", itens: [] };
-        var epoMock = (window.APP.epos && window.APP.epos[0]) || { nome: "EPO Meridiano", cidade: "São Paulo", uf: "SP" };
+        // Sem cadastro, nao ha unidade para exibir. Antes caia num nome
+        // inventado, que aparecia como se fosse uma EPO de verdade.
+        var epoMock = (window.APP.epos && window.APP.epos[0]) || null;
+        if (!epoMock) return [];
         var itens = (procMock.itens || []).slice(0, 3).map(function (it, i) {
           return { id: "demo-item-" + i, pergunta: it.pergunta, evidencia_esperada: it.evidencia, ordem: i + 1 };
         });

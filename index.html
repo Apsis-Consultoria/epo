@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=51">
+  <link rel="stylesheet" href="assets/app.css?v=53">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
@@ -112,15 +112,19 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=51"></script>
-  <script src="assets/app.js?v=51"></script>
-  <script src="assets/geo-br.js?v=51"></script>
-  <script src="assets/mapa-epos.js?v=51"></script>
-  <script src="assets/supabase-config.js?v=51"></script>
+  <script src="assets/data.js?v=53"></script>
+  <script src="assets/app.js?v=53"></script>
+  <script src="assets/geo-br.js?v=53"></script>
+  <script src="assets/mapa-epos.js?v=53"></script>
+  <script src="assets/supabase-config.js?v=53"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=51"></script>
+  <script src="assets/auth.js?v=53"></script>
+  <script src="assets/dados-reais.js?v=53"></script>
   <script>
-    (function () {
+    // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
+    // antes mostrava um catalogo de exemplo escrito no codigo, com
+    // unidades e notas que nao existiam em lugar nenhum.
+    DadosReais.entao(function () {
       "use strict";
 
       Layout.mount("geral", "Visão geral");
@@ -442,7 +446,6 @@
       // Mapa das EPOs, logo abaixo das caixas de indicadores.
       // Quem monta e quem decide se aparece e o assets/mapa-epos.js.
       MapaEpos.montar("card-mapa");
-    })();
-  </script>
+    });</script>
 </body>
 </html>
