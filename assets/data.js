@@ -1019,7 +1019,10 @@
     gestor:      visaoCoordenacao,
     cliente:     visaoCoordenacao,
     auditor:     { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: true,  auditoria: true,  envio: false, checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false, questionarios: false, cronograma: true },
-    responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false, questionarios: false, cronograma: false }
+    responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, config: false, acessos: false, questionarios: false, cronograma: false },
+    // Entrou no sistema, mas a APSIS ainda nao liberou o acesso. Nao alcanca
+    // tela nenhuma: quem cai aqui vai para a pagina que explica isso.
+    sem_acesso: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, auditoria: false, envio: false, checagem: false, alocacoes: false, giro: false, evidencias: false, config: false, acessos: false, questionarios: false, cronograma: false }
   };
 
   function copiaPreset(papel) {

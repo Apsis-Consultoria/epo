@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirmar acesso - Auditoria EPO's</title>
+  <link rel="icon" type="image/png" href="assets/brand/logo-apsis.png" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="assets/portal.css?v=48" />
+</head>
+<body>
+  <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
+    <img src="assets/brand/login-2.png" alt="" aria-hidden="true" onerror="this.style.display='none'"
+      class="absolute inset-0 w-full h-full object-cover opacity-60" />
+    <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(7,19,13,.94), rgba(7,19,13,.65), rgba(7,19,13,.85));"></div>
+
+    <div class="relative z-10 min-h-screen flex items-center justify-center px-5 py-10">
+      <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl px-7 py-8">
+        <img src="assets/brand/logo-apsis-transp.png" alt="APSIS" onerror="this.style.display='none'"
+          class="h-16 object-contain mx-auto mb-4" />
+
+        <h1 class="text-xl font-bold text-center" style="color: rgb(26,71,49); font-family: Sora, 'Segoe UI', sans-serif;">
+          Confirme o seu acesso
+        </h1>
+        <p id="destino" class="text-gray-500 text-sm text-center mt-1 mb-6">Preparando o envio do código...</p>
+
+        <!-- Campo do código -->
+        <div id="form-codigo" class="hidden">
+          <label class="block text-left text-xs font-semibold text-gray-500 mb-1" for="codigo">
+            Código de seis dígitos
+          </label>
+          <input id="codigo" type="text" inputmode="numeric" autocomplete="one-time-code"
+            maxlength="7" placeholder="000000"
+            class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none text-center"
+            style="border-width:1.5px; font-size:26px; font-weight:700; letter-spacing:.32em;" />
+
+          <button id="btn-confirmar" class="w-full mt-5 font-semibold py-3.5 px-6 rounded-xl text-white transition-colors disabled:opacity-60"
+            style="background: rgb(26,71,49);">
+            Confirmar e entrar
+          </button>
+
+          <div class="flex items-center justify-between mt-4">
+            <button id="btn-reenviar" class="text-xs font-semibold underline disabled:opacity-50"
+              style="color: rgb(26,71,49); background:none; border:0; padding:0; cursor:pointer;">
+              Enviar outro código
+            </button>
+            <button id="btn-sair" class="text-xs text-gray-400 underline"
+              style="background:none; border:0; padding:0; cursor:pointer;">
+              Entrar com outra conta
+            </button>
+          </div>
+
+          <p class="text-xs text-gray-400 mt-5 leading-relaxed">
+            O código vale por 10 minutos e serve para uma entrada só. Ninguém da APSIS vai pedir
+            este código por telefone, e-mail ou mensagem.
+          </p>
+        </div>
+
+        <!-- Não foi possível enviar -->
+        <div id="sem-envio" class="hidden text-center">
+          <p id="sem-envio-txt" class="text-sm text-gray-600 leading-relaxed"></p>
+          <button id="btn-tentar" class="inline-block mt-5 text-sm font-semibold underline"
+            style="color: rgb(26,71,49); background:none; border:0; padding:0; cursor:pointer;">
+            Tentar enviar de novo
+          </button>
+          <p class="mt-4">
+            <a href="login.html" class="text-xs text-gray-400 underline">Voltar para a entrada</a>
+          </p>
+        </div>
+
+        <p id="msg" class="text-xs text-center mt-4 hidden"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/supabase-config.js?v=48"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/auth.js?v=48"></script>
+  <script>
+    (function () {
+      "use strict";
+      var $ = function (id) { return document.getElementById(id); };
+
+      function msg(texto, erro) {
+        var el = $("msg");
+        el.textContent = texto || "";
+        if (!texto) { el.classList.add("hidden"); return; }
+        el.classList.remove("hidden");
+        el.style.color = erro ? "#dc2626" : "#16a34a";
+      }
+
+      function falhaNoEnvio(texto) {
+        $("form-codigo").classList.add("hidden");
+        $("sem-envio").classList.remove("hidden");
+        $("sem-envio-txt").textContent = texto;
+        $("destino").textContent = "";
+      }
+
+      if (!(window.Auth && Auth.pronto)) {
+        falhaNoEnvio("Não foi possível falar com o sistema agora. Atualize a página em alguns instantes.");
+        return;
+      }
+
+      // Quem chega aqui sem sessao ou sem precisar de codigo nao tem o que
+      // fazer nesta tela: volta para onde deveria estar.
+      function situacaoInicial() {
+        return Auth.sessao().then(function (s) {
+          if (!s) { location.replace("login.html"); return null; }
+          return Auth.mfaSituacao().then(function (m) {
+            if (!m || !m.precisa) { location.replace("index.html"); return null; }
+            return s;
+          });
+        });
+      }
+
+      var enviando = false;
+
+      function pedirCodigo(primeiraVez) {
+        if (enviando) return;
+        enviando = true;
+        $("btn-reenviar").disabled = true;
+        if (!primeiraVez) msg("Enviando...");
+
+        Auth.mfaEnviarCodigo().then(function (d) {
+          enviando = false;
+          $("form-codigo").classList.remove("hidden");
+          $("sem-envio").classList.add("hidden");
+          $("destino").textContent = d.para
+            ? "Enviamos um código para " + d.para
+            : "Enviamos um código para o seu e-mail";
+          msg(primeiraVez ? "" : "Código novo enviado.");
+          $("codigo").value = "";
+          $("codigo").focus();
+          // Freio simples contra clique repetido: o servidor tambem limita.
+          setTimeout(function () { $("btn-reenviar").disabled = false; }, 30000);
+        }).catch(function (e) {
+          enviando = false;
+          $("btn-reenviar").disabled = false;
+          var texto = (e && e.message) ||
+            "Não foi possível enviar o código agora. Tente de novo em alguns instantes.";
+          if (primeiraVez) falhaNoEnvio(texto);
+          else msg(texto, true);
+        });
+      }
+
+      function confirmar() {
+        var codigo = ($("codigo").value || "").replace(/[^0-9]/g, "");
+        if (codigo.length < 6) {
+          msg("Digite os seis dígitos que chegaram no seu e-mail.", true);
+          return;
+        }
+        var btn = $("btn-confirmar");
+        btn.disabled = true;
+        btn.textContent = "Confirmando...";
+
+        Auth.mfaConfirmar(codigo).then(function (r) {
+          if (r && r.ok) {
+            msg("Acesso confirmado. Entrando...");
+            setTimeout(function () { location.replace("index.html"); }, 600);
+            return;
+          }
+          btn.disabled = false;
+          btn.textContent = "Confirmar e entrar";
+          msg((r && r.motivo) || "Não foi possível confirmar agora.", true);
+          $("codigo").select();
+        }).catch(function () {
+          btn.disabled = false;
+          btn.textContent = "Confirmar e entrar";
+          msg("Não foi possível confirmar agora. Tente de novo.", true);
+        });
+      }
+
+      $("btn-confirmar").addEventListener("click", confirmar);
+      $("btn-reenviar").addEventListener("click", function () { pedirCodigo(false); });
+      $("btn-tentar").addEventListener("click", function () { pedirCodigo(true); });
+      $("btn-sair").addEventListener("click", function () { Auth.sair(); });
+
+      $("codigo").addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") confirmar();
+      });
+      // Só dígitos, e confirma sozinho quando os seis chegam (inclusive colando).
+      $("codigo").addEventListener("input", function () {
+        var limpo = this.value.replace(/[^0-9]/g, "").slice(0, 6);
+        if (limpo !== this.value) this.value = limpo;
+        if (limpo.length === 6) confirmar();
+      });
+
+      situacaoInicial().then(function (s) {
+        if (s) pedirCodigo(true);
+      }).catch(function () {
+        falhaNoEnvio("Não foi possível confirmar o seu acesso agora. Atualize a página em alguns instantes.");
+      });
+    })();
+  </script>
+</body>
+</html>

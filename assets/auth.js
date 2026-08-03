@@ -168,7 +168,11 @@
     return client.from("perfis").select("nome, papel, cliente_id, senha_provisoria")
       .eq("user_id", user.id).maybeSingle()
       .then(function (r) {
-        return r.data || { nome: user.email, papel: "auditor", cliente_id: null };
+        // Sem linha de perfil, a conta NAO tem acesso. Antes esta linha
+        // devolvia "auditor", entao quem entrasse sem liberacao era tratado
+        // pela tela como consultor da APSIS: o menu abria e as telas apareciam
+        // vazias, sem ninguem entender por que.
+        return r.data || { nome: user.email, papel: "sem_acesso", cliente_id: null };
       });
   }
 
@@ -186,12 +190,52 @@
     return promessaPerfil;
   }
 
-  // Se o e-mail ganhou alocação depois de já ter conta, promove a 'responsavel'
+  // Duas correcoes de papel, uma vez por carregamento:
+  // - quem foi liberado na lista de acessos depois de a conta existir;
+  // - quem ganhou relatorio pedido depois de ja ter conta.
+  // As duas sao decisoes que a APSIS ja tomou; aqui elas so chegam ao perfil.
   var papelSincronizado = false;
   function sincronizarPapel() {
     if (papelSincronizado || !client) return Promise.resolve();
     papelSincronizado = true;
-    return client.rpc("sincronizar_papel_responsavel").then(function () {}, function () {});
+    return client.rpc("sincronizar_meu_acesso")
+      .then(function () {}, function () {})
+      .then(function () {
+        return client.rpc("sincronizar_papel_responsavel").then(function () {}, function () {});
+      });
+  }
+
+  // ------------------------------------------------------- Segundo fator
+  // O codigo nunca e gerado nem conferido aqui: a tela so pergunta a situacao,
+  // pede o envio e manda o que a pessoa digitou. Quem decide e o servidor.
+  function mfaSituacao() {
+    if (!client) return Promise.resolve({ ligada: false, precisa: false });
+    return client.rpc("mfa_situacao").then(function (r) {
+      if (r.error) throw r.error;
+      return r.data || { ligada: false, precisa: false };
+    });
+  }
+
+  function mfaEnviarCodigo() {
+    if (!client) return Promise.reject(new Error("Envio indisponível no momento."));
+    return client.functions.invoke("enviar-codigo-acesso", { body: {} })
+      .then(function (r) {
+        // A função responde 502 com motivo legível quando o e-mail não sai; o
+        // corpo da resposta é mais útil que o erro de transporte.
+        var d = r.data || {};
+        if (d.ok) return d;
+        throw new Error(d.motivo ||
+          "Não foi possível enviar o código agora. Tente de novo em alguns instantes.");
+      });
+  }
+
+  function mfaConfirmar(codigo) {
+    if (!client) return Promise.reject(new Error("Confirmação indisponível no momento."));
+    return client.rpc("mfa_confirmar", { p_codigo: String(codigo || "") })
+      .then(function (r) {
+        if (r.error) throw r.error;
+        return r.data || { ok: false, motivo: "Não foi possível confirmar agora." };
+      });
   }
 
   // ---------------------------------------------------------------- Login
@@ -386,9 +430,28 @@
     }
     return sessao().then(function (s) {
       if (!s) { location.replace("login.html"); return "sem-sessao"; }
-      return sincronizarPapel().then(function () {
+      // Segundo fator antes de qualquer outra coisa: sem o codigo, o servidor
+      // nao devolve papel nenhum, e a tela abriria vazia sem explicacao.
+      return mfaSituacao().catch(function () {
+        return { precisa: false };
+      }).then(function (m) {
+        if (m && m.precisa) {
+          location.replace("confirmar-acesso.html");
+          return "precisa-codigo";
+        }
+        return seguirComPerfil(s);
+      });
+    });
+  }
+
+  function seguirComPerfil(s) {
+    return sincronizarPapel().then(function () {
         return perfilDe(s.user);
       }).then(function (p) {
+        if (p.papel === "sem_acesso") {
+          location.replace("sem-acesso.html");
+          return "sem-acesso";
+        }
         // Recebeu acesso e ainda não escolheu a senha: define primeiro.
         if (p.senha_provisoria) {
           location.replace("definir-senha.html");
@@ -418,7 +481,6 @@
         filtrarNav(perms);
         return simulado ? "ver-como" : "ok";
       });
-    });
   }
 
   // Guard automático (todas as páginas do app; login.html fica de fora)
@@ -447,6 +509,9 @@
     definirVerComo: definirVerComo,
     sair: sair,
     modoDemo: modoDemo,
-    papelDemo: papelDemo
+    papelDemo: papelDemo,
+    mfaSituacao: mfaSituacao,
+    mfaEnviarCodigo: mfaEnviarCodigo,
+    mfaConfirmar: mfaConfirmar
   };
 })();
