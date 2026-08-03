@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=61">
+  <link rel="stylesheet" href="assets/app.css?v=62">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
@@ -63,6 +63,13 @@
 
     /* Gráficos */
     .donut-wrap { position: relative; width: 176px; height: 176px; flex: 0 0 auto; }
+    /* A legenda pedia o espaco que sobrasse, e sobrava. Em tela de 320px ela
+       ficava com 50px ao lado do grafico de 176px, e "Ouro" saia cortado.
+       Com base propria ela desce para baixo do grafico. */
+    .legend.grow { flex: 1 1 210px; }
+    @media (max-width: 560px) {
+      .donut-wrap { margin: 0 auto; }
+    }
     .donut-center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; pointer-events: none; }
     .donut-total { display: block; font-size: 30px; font-weight: 600; line-height: 1; color: var(--text); }
     .chart-box { position: relative; height: 200px; }
@@ -71,10 +78,10 @@
     .legend-item { display: flex; align-items: center; gap: 11px; padding: 8px 0; }
     .legend-item:not(:last-child) { border-bottom: 1px solid var(--border); }
     .legend-dot { width: 12px; height: 12px; border-radius: 4px; flex: 0 0 auto; }
-    .legend-body { display: flex; flex-direction: column; line-height: 1.25; }
+    .legend-body { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
     .legend-label { font-weight: 500; color: var(--text); }
     .legend-hint { font-size: 12px; }
-    .legend-count { margin-left: auto; font-size: 16px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+    .legend-count { margin-left: auto; font-size: 16px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
 
     /* Listas de EPOs (Top / Precisam de atenção) */
     .epo-list { display: flex; flex-direction: column; }
@@ -112,14 +119,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=61"></script>
-  <script src="assets/app.js?v=61"></script>
-  <script src="assets/geo-br.js?v=61"></script>
-  <script src="assets/mapa-epos.js?v=61"></script>
-  <script src="assets/supabase-config.js?v=61"></script>
+  <script src="assets/data.js?v=62"></script>
+  <script src="assets/app.js?v=62"></script>
+  <script src="assets/geo-br.js?v=62"></script>
+  <script src="assets/mapa-epos.js?v=62"></script>
+  <script src="assets/supabase-config.js?v=62"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=61"></script>
-  <script src="assets/dados-reais.js?v=61"></script>
+  <script src="assets/auth.js?v=62"></script>
+  <script src="assets/dados-reais.js?v=62"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com

@@ -712,9 +712,14 @@ img { max-width: 100%; display: block; }
 }
 .atalho-ico i { font-size: 19px; }
 .atalho > span:last-child { min-width: 0; }
+/* Oito atalhos em uma linha dao pouco mais de 170px cada, e em uma linha de
+   texto o nome saia cortado no meio da palavra: "Questionarios pen...",
+   "Contagem Logistic...". O nome usa duas linhas; a FAIXA continua sendo uma
+   linha so de botoes, que era o pedido. */
 .atalho-nm {
-  display: block; font-size: 13.5px; font-weight: 600; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 13.5px; font-weight: 600; color: var(--text); line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .atalho-ds {
   display: block; font-size: 11.5px; color: var(--text-2); margin-top: 2px;
@@ -1658,4 +1663,78 @@ input[type="submit"],
   .gan-sem-cel { display: none; }
   .gan-rot { padding: 5px 8px; }
   .cron-cols { grid-template-columns: 1fr; }
+}
+
+/* =========================================================================
+   Celular: correcoes medidas tela por tela a 375px de largura.
+
+   O que estava errado, e por que:
+   - os atalhos da visao geral apareciam cortados no meio da palavra
+     ("Questionarios pen...", "Contagem Logistic..."): o nome tinha uma linha
+     so e o cartao 180px, entao 8 atalhos ficavam ilegiveis;
+   - o cabecalho de caixa nao quebrava, e os selos de nota da tela de
+     Criterios saiam 89px para fora da tela, fazendo a pagina inteira
+     rolar de lado;
+   - o formulario da unidade tem 15 campos: no celular ficava com 2190px de
+     conteudo numa janela de 716px, e o botao de salvar exigia rolar 1460px
+     porque o rodape rolava junto com o formulario;
+   - campos lado a lado ficavam com 140px, cortando rotulo curto como
+     "Regional" e "Situacao";
+   - o botao que abre o menu tinha 25px de altura, menor que a ponta do
+     dedo, e era o unico caminho para o menu no celular.
+   ========================================================================= */
+@media (max-width: 900px) {
+  /* Alvo de toque: no celular o dedo nao acerta 25px. */
+  .topbar-menu { min-width: 40px; min-height: 40px; padding: 8px; justify-content: center; }
+  .avatar-btn { width: 40px; height: 40px; font-size: 17px; }
+  .modal-close { width: 40px; height: 40px; }
+  .btn { min-height: 40px; }
+  .btn-sm { height: 40px; }
+  .btn-icon, .btn-icon.btn-sm { width: 40px; }
+  .cel-acoes .btn-icon { width: 40px; }
+  .link-mini { min-height: 32px; display: inline-flex; align-items: center; }
+  button.chip, .chip[role="button"] { height: 34px; padding: 0 12px; font-size: 12.5px; }
+
+  /* Atalho legivel: o nome usa duas linhas em vez de ser cortado, e a faixa
+     continua em uma linha so, rolando de lado, como no computador. */
+  .atalhos > .atalho { flex: 0 0 200px; }
+  .atalho { align-items: flex-start; }
+
+  /* Cabecalho de caixa: a acao desce para baixo do titulo em vez de empurrar
+     a pagina para fora da tela. */
+  .card-header { flex-wrap: wrap; }
+  .card-header .card-header-action { flex: 1 1 100%; flex-wrap: wrap; }
+
+  /* Janela em pe de tela cheia: o titulo fica no alto, o botao de salvar fica
+     embaixo, e so o meio rola. Antes tudo rolava junto e salvar sumia. */
+  .modal-overlay { padding: 0; align-items: stretch; }
+  .modal, .modal.modal-largo, .modal.modal-xl, .modal.modal-acesso, .modal.modal-confirmar {
+    max-width: none; width: 100%;
+    max-height: 100%; height: 100%;
+    border-radius: 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-header { flex: none; }
+  .modal-body { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .modal-footer { flex: none; }
+  /* Em janela curta os dois botoes ocupam a largura, para o dedo acertar. */
+  .modal-footer .btn { flex: 1 1 auto; justify-content: center; }
+}
+
+/* Aviso do proprio sistema continua sendo uma caixinha, e nao uma tela cheia:
+   ele tem duas linhas de texto e dois botoes. */
+@media (max-width: 900px) {
+  .confirmar-overlay { padding: 16px; align-items: center; }
+  .confirmar-overlay .modal {
+    max-width: 470px; height: auto; max-height: 90%;
+    border-radius: var(--radius);
+  }
+}
+
+@media (max-width: 480px) {
+  /* Campo lado a lado nao cabe: em coluna o rotulo aparece inteiro. */
+  .field-row { flex-direction: column; gap: 0; }
+  .field-row .field,
+  .field-row .field.uf, .field-row .field.cep, .field-row .field.base { flex: 1 1 auto; width: 100%; }
 }
