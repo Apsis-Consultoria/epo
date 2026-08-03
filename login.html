@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/portal.css?v=66" />
+  <link rel="stylesheet" href="assets/portal.css?v=67" />
   <style>
     /* Ajustes de proporção do painel de login (sobrepõem o portal.css) */
     .login-col { padding-top: 3vh; }
@@ -76,8 +76,10 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><path d="M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/><path d="M3 21v-1a5 5 0 0 1 5-5h2"/><path d="m15 19 2 2 4-4"/></svg>
             Entrar com e-mail e senha
           </button>
-          <button id="btn-redefinir" class="w-full flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 font-semibold py-3 px-6 rounded-xl text-slate-600 transition-colors">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><path d="M2 12a10 10 0 1 0 3-7.1"/><path d="M2 3v6h6"/></svg>
+          <!-- Discreto de proposito: entrar e a acao principal, redefinir e a
+               saida de emergencia. Do mesmo tamanho dos outros, disputava a
+               atencao com eles. -->
+          <button id="btn-redefinir" class="text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2">
             Esqueci a minha senha
           </button>
 
@@ -142,9 +144,9 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=66"></script>
+  <script src="assets/supabase-config.js?v=67"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=66"></script>
+  <script src="assets/auth.js?v=67"></script>
   <script>
     (function () {
       "use strict";
@@ -261,20 +263,35 @@
         var email = ($("cli-email").value || "").trim().toLowerCase();
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg("Informe o seu e-mail primeiro.", true); return; }
         var btn = this;
+        var rotulo = btn.textContent;
         btn.disabled = true;
-        Auth.pedirLinkDeSenha(email).then(function () {
-          btn.disabled = false;
+        btn.textContent = "Enviando...";
+
+        function liberar() { btn.disabled = false; btn.textContent = rotulo; }
+
+        Auth.pedirLinkDeSenha(email).then(function (r) {
+          liberar();
+          // O servico deixa pedir um link por minuto para o mesmo endereco.
+          // Quando recusa, dizer "enviamos" faz a pessoa esperar um e-mail que
+          // nao vem: foi o que aconteceu.
+          if (r && !r.enviado) {
+            if (r.espere) {
+              msg("Você pediu um link agora há pouco. Aguarde " + r.espere +
+                  " segundos e tente de novo.", true);
+            } else {
+              msg("Não foi possível enviar o link agora. Tente de novo em alguns instantes.", true);
+            }
+            return;
+          }
           $("etapa-senha").classList.add("hidden");
           $("etapa-enviado").classList.remove("hidden");
           // O id e cli-msg. Com "msg", $() devolvia null e o clique em
           // "Esqueci a senha" terminava em erro no meio do caminho.
           $("cli-msg").classList.add("hidden");
         }, function (e) {
-          btn.disabled = false;
+          liberar();
           console.error("pedirLinkDeSenha", e);
-          // Não revela se o e-mail existe: a resposta é sempre a mesma.
-          $("etapa-senha").classList.add("hidden");
-          $("etapa-enviado").classList.remove("hidden");
+          msg("Não foi possível enviar o link agora. Tente de novo em alguns instantes.", true);
         });
       });
 

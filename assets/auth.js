@@ -333,10 +333,27 @@
 
   // Manda o link para definir ou redefinir a senha. Serve para o "esqueci minha
   // senha" e para quem nunca definiu a dele.
+  //
+  // Devolve { enviado, espere } em vez de so a resposta crua. O servico limita
+  // um envio por minuto para o mesmo endereco: quando recusa, responde 429, e a
+  // tela dizia "o link foi enviado" do mesmo jeito. A pessoa ficava esperando um
+  // e-mail que nunca ia chegar.
   function pedirLinkDeSenha(email) {
     if (!client) return Promise.reject(new Error("Login indisponível no momento."));
     return client.auth.resetPasswordForEmail(email, {
       redirectTo: location.origin + location.pathname.replace(/[^/]*$/, "") + "definir-senha.html"
+    }).then(function (r) {
+      var erro = r && r.error;
+      if (!erro) return { enviado: true, espere: 0 };
+      var st = Number(erro.status || 0);
+      if (st === 429) {
+        // A mensagem do servico costuma trazer os segundos que faltam.
+        var m = /(\d+)\s*second/i.exec(String(erro.message || ""));
+        return { enviado: false, espere: m ? Number(m[1]) : 60 };
+      }
+      // Qualquer outra recusa: nao dizemos se o e-mail existe, mas tambem nao
+      // afirmamos que foi enviado.
+      return { enviado: false, espere: 0, erro: String(erro.message || "") };
     });
   }
 
