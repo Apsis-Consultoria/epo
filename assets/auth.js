@@ -81,6 +81,21 @@
         ).forEach(function (el) { el.style.display = "none"; });
       }
     });
+    // Secao sem nenhum filho visivel sai inteira. O cabecalho "Configuracoes"
+    // tem chave propria, que nao e tela nenhuma: o laco acima escondia os
+    // filhos um a um e o cabecalho ficava, abrindo um painel vazio - era o
+    // que o responsavel da EPO e a equipe de campo viam.
+    document.querySelectorAll(".nav-sub").forEach(function (painel) {
+      var vivo = false;
+      painel.querySelectorAll("a").forEach(function (a) {
+        if (a.style.display !== "none") vivo = true;
+      });
+      if (vivo) return;
+      painel.style.display = "none";
+      var chave = painel.getAttribute("data-subnav-panel");
+      var cab = document.querySelector('.nav-parent[data-subnav="' + chave + '"]');
+      if (cab) cab.style.display = "none";
+    });
     filtrarBarraInferior(perms);
   }
 
