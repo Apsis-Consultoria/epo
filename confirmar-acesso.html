@@ -6,7 +6,7 @@
   <title>Confirmar acesso - Auditoria EPO's</title>
   <link rel="icon" type="image/png" href="assets/brand/logo-apsis.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="assets/portal.css?v=105" />
+  <link rel="stylesheet" href="assets/portal.css?v=107" />
 </head>
 <body>
   <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
@@ -64,7 +64,10 @@
             Tentar enviar de novo
           </button>
           <p class="mt-4">
-            <a href="login.html" class="text-xs text-gray-400 underline">Voltar para a entrada</a>
+            <button id="btn-sair-2" class="text-xs text-gray-400 underline"
+              style="background:none; border:0; padding:0; cursor:pointer;">
+              Voltar para a entrada
+            </button>
           </p>
         </div>
 
@@ -73,9 +76,9 @@
     </div>
   </div>
 
-  <script src="assets/supabase-config.js?v=105"></script>
+  <script src="assets/supabase-config.js?v=107"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=105"></script>
+  <script src="assets/auth.js?v=107"></script>
   <script>
     (function () {
       "use strict";
@@ -183,6 +186,11 @@
       $("btn-reenviar").addEventListener("click", function () { pedirCodigo(false); });
       $("btn-tentar").addEventListener("click", function () { pedirCodigo(true); });
       $("btn-sair").addEventListener("click", function () { Auth.sair(); });
+      // Este botao ENCERRA a sessao antes de voltar. Como link simples ele
+      // devolvia para a entrada com a sessao de pe, e a entrada mandava para
+      // dentro outra vez: quem caia aqui sem conseguir receber o codigo nao tinha
+      // saida nenhuma.
+      $("btn-sair-2").addEventListener("click", function () { Auth.sair(); });
 
       $("codigo").addEventListener("keydown", function (ev) {
         if (ev.key === "Enter") confirmar();

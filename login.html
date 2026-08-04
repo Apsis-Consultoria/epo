@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/portal.css?v=105" />
+  <link rel="stylesheet" href="assets/portal.css?v=107" />
   <style>
     /* Ajustes de proporção do painel de login (sobrepõem o portal.css) */
     .login-col { padding-top: 3vh; }
@@ -140,9 +140,9 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=105"></script>
+  <script src="assets/supabase-config.js?v=107"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=105"></script>
+  <script src="assets/auth.js?v=107"></script>
   <script>
     (function () {
       "use strict";
@@ -214,10 +214,55 @@
       if (window.Auth && Auth.pronto) {
         // Ja entrou antes: vai direto para a tela dele, e nao para a visao
         // geral, que a equipe de campo e o responsavel da EPO nao alcancam.
+        // Saida garantida: login.html?sair=1 encerra a sessao guardada neste
+        // navegador e fica aqui, sem conferir nada. Serve para o caso em que a
+        // sessao esta num estado que nao da para completar - e o unico caminho
+        // que nao depende de o servidor responder nem de o segundo fator existir.
+        if (/[?&]sair=1/.test(location.search)) {
+          var limparTudo = function () {
+            try {
+              Object.keys(localStorage).forEach(function (k) {
+                if (/^sb-.*-auth-token/.test(k)) localStorage.removeItem(k);
+              });
+            } catch (e) {}
+            msg("Sessão encerrada neste navegador. Informe o seu e-mail para receber um código.");
+          };
+          Auth.cliente.auth.signOut({ scope: "local" }).then(limparTudo, limparTudo);
+          return;
+        }
+
         Auth.sessao().then(function (s) {
           if (!s) return;
-          Auth.telaInicial().then(function (d) { location.replace(d); },
-                                 function () { location.replace("index.html"); });
+          // Sessao que ainda pede o codigo do segundo fator NAO entra sozinha.
+          //
+          // Era um laco fechado: a entrada via a sessao e mandava para dentro, o
+          // guard via que faltava o codigo e mandava para a tela do codigo, e la o
+          // envio podia falhar (token velho da epoca da senha) - sem jeito de
+          // voltar para a entrada, porque a entrada mandava para dentro de novo.
+          //
+          // Sessao antiga, da epoca da senha, e sobra: encerra e fica aqui, que e
+          // onde se entra agora, por codigo.
+          Auth.mfaSituacao().then(function (m) {
+            if (m && m.precisa) {
+              function avisar() {
+                msg("A sua sessão anterior expirou. Informe o seu e-mail para receber um código.", true);
+              }
+              // Se o servidor recusar a saida (token velho), a sessao sai daqui
+              // de dentro: guardada, ela seria encontrada outra vez no proximo
+              // carregamento e o laco voltaria.
+              return Auth.cliente.auth.signOut()
+                .then(function (r) {
+                  if (r && r.error) return Auth.cliente.auth.signOut({ scope: "local" });
+                  return null;
+                }, function () { return Auth.cliente.auth.signOut({ scope: "local" }); })
+                .then(avisar, avisar);
+            }
+            Auth.telaInicial().then(function (d) { location.replace(d); },
+                                   function () { location.replace("index.html"); });
+          }, function () {
+            // Sem resposta sobre o segundo fator, nao arrisca o laco: fica aqui.
+            Auth.cliente.auth.signOut({ scope: "local" }).then(function () {}, function () {});
+          });
         });
       }
 

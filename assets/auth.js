@@ -494,7 +494,15 @@
     } catch (e) {}
     var fim = function () { location.replace("login.html"); };
     if (!client) { fim(); return; }
-    client.auth.signOut().then(fim).catch(fim);
+    // Token velho ou ja invalido faz o servidor recusar a saida. Nesse caso a
+    // sessao TEM de sair daqui de dentro de qualquer forma: se ela ficar guardada
+    // no navegador, a tela de entrada a encontra de novo e o laco volta.
+    client.auth.signOut()
+      .then(function (r) {
+        if (r && r.error) return client.auth.signOut({ scope: "local" });
+        return null;
+      }, function () { return client.auth.signOut({ scope: "local" }); })
+      .then(fim, fim);
   }
 
   // papel vazio = visitante, com todas as telas. Com papel, entra já na
