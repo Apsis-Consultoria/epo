@@ -287,11 +287,20 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // Marca que a senha ainda nao foi definida por ele, para a tela cobrar.
+  // Marca que a senha ainda nao foi definida por ele, para a tela cobrar - mas
+  // SO para quem nunca definiu.
+  //
+  // Antes marcava sempre. Quem ja tinha senha e recebia um reenvio (ou tinha a
+  // unidade dele editada, porque salvar a unidade reenvia o acesso) voltava a
+  // ser tratado como primeiro acesso: entrava com a senha certa e a tela o
+  // jogava para "defina a sua senha", toda vez, sem dizer por que. Foi assim
+  // que um responsavel ficou com senha_trocada_em preenchido e a marca de
+  // provisoria de volta em true.
   if (envio.ok && existente) {
     await admin.from("perfis")
       .update({ senha_provisoria: true })
-      .eq("user_id", existente.id);
+      .eq("user_id", existente.id)
+      .is("senha_trocada_em", null);
   }
 
   if (envio.ok && alocacaoId) {

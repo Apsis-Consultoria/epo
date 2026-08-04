@@ -57,13 +57,18 @@
 
   // Primeira página permitida do papel (destino padrão pós-login/negado)
   function primeiraPermitida(perms) {
-    var ordem = ["geral", "epos", "cronograma", "pendentes", "auditoria", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "criterios", "questionarios", "acessos"];
+    // "realizadas" faltava nesta lista: um cargo que alcancasse SO essa tela
+    // caia no fim do laco e era mandado para a tela de sem acesso.
+    var ordem = ["geral", "epos", "cronograma", "pendentes", "realizadas", "auditoria", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "criterios", "questionarios", "acessos"];
     var mapaInverso = {};
     Object.keys(MAPA_PAGINAS).forEach(function (arq) { mapaInverso[MAPA_PAGINAS[arq]] = arq; });
     for (var i = 0; i < ordem.length; i++) {
       if (!perms || perms[ordem[i]] !== false) return mapaInverso[ordem[i]] || "index.html";
     }
-    return "login.html";
+    // Nenhuma tela alcancada. Antes isto devolvia a tela de entrada, e com
+    // sessao valida a entrada devolve para dentro: ida e volta sem fim. Quem nao
+    // alcanca nada tem uma tela propria, que explica o que fazer.
+    return "sem-acesso.html";
   }
 
   // Esconde do menu apenas o que o papel nao alcança. Fora disso o menu
@@ -296,10 +301,18 @@
     return telas().then(function (p) { return !p || p[chave] !== false; });
   }
 
-  // Para onde levar quem clica em "voltar": a primeira tela de quem entrou, e
-  // nao a visao geral, que boa parte dos cargos nem alcanca.
+  // Para onde levar quem entrou (ou quem clica em "voltar"): a primeira tela
+  // dele, e nao a visao geral, que boa parte dos cargos nem alcanca. Sem isto,
+  // toda entrada passava pela visao geral e era desviada de la, o que aparece
+  // como um piscar de tela sem explicacao.
   function telaInicial() {
-    return telas().then(function (p) { return primeiraPermitida(p); });
+    return perfil().then(function (pf) {
+      if (pf && pf.papel === "sem_acesso") return "sem-acesso.html";
+      if (pf && pf.senha_provisoria) return "definir-senha.html";
+      return telas().then(function (p) { return primeiraPermitida(p); });
+    }, function () {
+      return telas().then(function (p) { return primeiraPermitida(p); });
+    });
   }
 
   // ------------------------------------------------------- Segundo fator

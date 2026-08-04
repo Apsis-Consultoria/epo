@@ -6,7 +6,7 @@
   <title>Definir senha - Auditoria EPO's</title>
   <link rel="icon" type="image/png" href="assets/brand/logo-apsis.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="assets/portal.css?v=86" />
+  <link rel="stylesheet" href="assets/portal.css?v=88" />
 </head>
 <body>
   <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
@@ -72,7 +72,7 @@
     </div>
   </div>
 
-  <script src="assets/supabase-config.js?v=86"></script>
+  <script src="assets/supabase-config.js?v=88"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
     (function () {
@@ -192,6 +192,10 @@
             if (rm && rm.error) throw rm.error;
             if (rm && rm.data === false) throw new Error("sessao do link expirou");
             msg("Senha salva. Entrando...");
+            // Esta tela nao carrega a camada de acesso do sistema (tem cliente
+            // proprio, para tratar o codigo do link sem dois clientes brigando
+            // pela mesma sessao). Entao entra pela visao geral, e quem nao a
+            // alcanca e encaminhado por ela para a tela dele.
             setTimeout(function () { location.replace("index.html"); }, 700);
           });
         }, function (e) {
