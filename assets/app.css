@@ -1499,9 +1499,18 @@ input[type="submit"],
 }
 .gan-prev.is-atrasada i { color: var(--danger); }
 
-/* A data que a Claro sugeriu fica vazada, para nao competir com a
-   combinada: e proposta, nao acordo. */
-.gan-prop { top: 5px; background: var(--warning-bg); border: 1.5px dashed var(--apsis-orange); }
+/* A data que a Claro sugeriu vem hachurada. Nao e enfeite: antes ela era um
+   bloco laranja tracejado igual ao de "aguardando a Claro", e as duas coisas
+   sao opostas - uma e a nossa data esperando resposta, a outra e a data que a
+   Claro quer no lugar. Quem olhava o grafico nao tinha como separar as duas.
+   A hachura tambem resolve para quem nao distingue cor, e continua sem ser
+   bloco cheio: e proposta, nao acordo. Inclinacao contraria a do atraso. */
+.gan-prop {
+  top: 5px;
+  border: 1px solid var(--apsis-orange);
+  background: repeating-linear-gradient(-45deg,
+    var(--apsis-orange) 0 2px, var(--warning-bg) 2px 7px);
+}
 
 .gan-real { top: 24px; height: 15px; background: var(--success); border-color: var(--success); }
 .gan-real.fora-da-data { background: var(--apsis-orange); border-color: var(--accent-600); }
@@ -1521,7 +1530,9 @@ input[type="submit"],
   border: 1px solid var(--border-strong); background: var(--surface-2);
 }
 .gan-amostra.aguardando { background: var(--warning-bg); border: 1px dashed var(--apsis-orange); }
-.gan-amostra.sugerida   { background: var(--warning-bg); border: 1.5px dashed var(--apsis-orange); }
+.gan-amostra.sugerida   { border-color: var(--apsis-orange);
+  background: repeating-linear-gradient(-45deg,
+    var(--apsis-orange) 0 2px, var(--warning-bg) 2px 7px); }
 .gan-amostra.confirmada { background: var(--apsis-green); border-color: var(--apsis-green); }
 .gan-amostra.realizada  { background: var(--success); border-color: var(--success); }
 .gan-amostra.fora       { background: var(--apsis-orange); border-color: var(--accent-600); }
@@ -1932,6 +1943,16 @@ input[type="submit"],
 
   /* Botao nao existe no papel. */
   .btn, button, .acc-acoes, .cel-acoes { display: none !important; }
+  /* Menos os do grafico: as barras e o titulo de cada estado sao botoes, e a
+     regra de cima apagava o desenho inteiro - saia a grade vazia com a legenda
+     embaixo. No papel nao se clica neles, mas eles SAO a informacao da folha. */
+  .gan-grupo-btn { display: flex !important; }
+  .gan-barra { display: block !important; }
+  .gan-barra i { display: block !important; }
+  /* Impressora costuma descartar cor de fundo; aqui o fundo e o significado. */
+  .gan-barra, .gan-amostra, .gan-grupo, .gan-grupo .gan-rot, .gan-grupo .gan-faixa {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
   /* Selo continua, porque e informacao: sai em cinza para nao gastar tinta. */
   .badge { border: 1px solid #999 !important; background: #fff !important; color: #000 !important; }
 

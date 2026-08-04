@@ -730,6 +730,22 @@
       });
   }
 
+  // Endereco antigo se limpa sozinho: /epos.html vira /epos na barra, e
+  // /index.html vira a raiz. Sem recarregar nada - so troca o que esta escrito.
+  //
+  // Quem hospeda o site serve as duas formas, entao um favorito antigo continua
+  // funcionando; o que ficava era o ".html" na barra, e a partir dali todo link
+  // copiado daquela aba levava o .html adiante.
+  function limparEndereco() {
+    if (!/\.html$/i.test(location.pathname)) return;
+    var limpo = location.pathname.replace(/\/index\.html$/i, "/")
+                                 .replace(/\.html$/i, "");
+    try {
+      history.replaceState(history.state, "", limpo + location.search + location.hash);
+    } catch (e) { /* navegador antigo: fica como esta, e funciona igual */ }
+  }
+  limparEndereco();
+
   // Guard automático (todas as páginas do app; login fica de fora)
   var arq = arquivoAtual();
   if (MAPA_PAGINAS[arq]) {
