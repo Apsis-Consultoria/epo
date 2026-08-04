@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=107">
+  <link rel="stylesheet" href="assets/app.css?v=108">
   <style>
     /* Ajustes locais - tela de auditorias pendentes (escolher EPO e questionário) */
 
@@ -160,11 +160,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=107"></script>
-  <script src="assets/app.js?v=107"></script>
-  <script src="assets/supabase-config.js?v=107"></script>
+  <script src="assets/data.js?v=108"></script>
+  <script src="assets/app.js?v=108"></script>
+  <script src="assets/supabase-config.js?v=108"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=107"></script>
+  <script src="assets/auth.js?v=108"></script>
   <script>
     (function () {
       "use strict";
@@ -270,7 +270,7 @@
       }
 
       function linkPreencher(l) {
-        var base = "auditoria.html?processo=" + encodeURIComponent(l.processo_slug || "");
+        var base = "auditoria?processo=" + encodeURIComponent(l.processo_slug || "");
         if (DEMO) return base + "&epo=" + encodeURIComponent(l.epo_id || "");
         return base + "&alocacao=" + encodeURIComponent(l.alocacao_id || "");
       }
@@ -622,7 +622,7 @@
         if (concluido(l)) {
           acoes =
             (podeChecagem
-              ? '<a class="btn btn-primary" href="checagem.html">' +
+              ? '<a class="btn btn-primary" href="checagem">' +
                   '<i class="ti ti-zoom-check" aria-hidden="true"></i>Ver nas evidências recebidas' +
                 "</a>"
               : "") +
@@ -736,7 +736,7 @@
       function irParaCadastroDaEpo() {
         // Abre a edicao da EPO no modo "nova auditoria": a unidade vem de lista
         // suspensa e os questionarios sao marcados ali mesmo.
-        var url = "epos.html?auditoria=1";
+        var url = "epos?auditoria=1";
         if (epoAberta) url += "&epo=" + encodeURIComponent(epoAberta);
         window.location.href = url;
       }

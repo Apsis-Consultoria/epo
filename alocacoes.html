@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=107">
+  <link rel="stylesheet" href="assets/app.css?v=108">
   <style>
     /* Ajustes locais da tela de cadastro de EPO e pedido de relatórios */
 
@@ -135,17 +135,17 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=107"></script>
-  <script src="assets/app.js?v=107"></script>
-  <script src="assets/supabase-config.js?v=107"></script>
+  <script src="assets/data.js?v=108"></script>
+  <script src="assets/app.js?v=108"></script>
+  <script src="assets/supabase-config.js?v=108"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=107"></script>
+  <script src="assets/auth.js?v=108"></script>
   <script>
     (function () {
       "use strict";
 
       var acoes =
-        '<a class="btn btn-ghost btn-sm" id="btn-nova-epo" href="epos.html">' +
+        '<a class="btn btn-ghost btn-sm" id="btn-nova-epo" href="epos">' +
           '<i class="ti ti-building-plus" aria-hidden="true"></i>Cadastrar EPO' +
         "</a>" +
         '<button class="btn btn-primary btn-sm" id="btn-pedir-relatorios" type="button">' +
@@ -277,7 +277,7 @@
         '<p class="page-intro">' +
           "Quem cria a EPO (gerente da Claro ou da APSIS) decide na hora quais relatórios serão pedidos e quem é o responsável da EPO. " +
           "O responsável recebe o acesso por e-mail e anexa os documentos de cada pergunta, antes ou durante a visita. " +
-          'O colaborador APSIS acha a EPO em <a href="pendentes.html">Auditorias pendentes</a>, vê o que já pode ser preenchido e responde o questionário pelo celular.' +
+          'O colaborador APSIS acha a EPO em <a href="pendentes">Auditorias pendentes</a>, vê o que já pode ser preenchido e responde o questionário pelo celular.' +
         "</p>" +
         htmlAviso +
         htmlTabela +
@@ -342,9 +342,9 @@
       // Claro e a APSIS mandaram. Nao ha mais tela separada so para enviar.
       function linkEnvio() {
         var origem = location.origin && location.origin !== "null" ? location.origin : "";
-        if (origem) return origem + location.pathname.replace(/[^/]*$/, "") + "checagem.html";
+        if (origem) return origem + location.pathname.replace(/[^/]*$/, "") + "checagem";
         var href = location.href.split("#")[0].split("?")[0];
-        return href.replace(/[^/]*$/, "") + "checagem.html";
+        return href.replace(/[^/]*$/, "") + "checagem";
       }
 
       function copiarFallback(txt) {

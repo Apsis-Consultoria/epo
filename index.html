@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=107">
+  <link rel="stylesheet" href="assets/app.css?v=108">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
@@ -119,14 +119,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=107"></script>
-  <script src="assets/app.js?v=107"></script>
-  <script src="assets/geo-br.js?v=107"></script>
-  <script src="assets/mapa-epos.js?v=107"></script>
-  <script src="assets/supabase-config.js?v=107"></script>
+  <script src="assets/data.js?v=108"></script>
+  <script src="assets/app.js?v=108"></script>
+  <script src="assets/geo-br.js?v=108"></script>
+  <script src="assets/mapa-epos.js?v=108"></script>
+  <script src="assets/supabase-config.js?v=108"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=107"></script>
-  <script src="assets/dados-reais.js?v=107"></script>
+  <script src="assets/auth.js?v=108"></script>
+  <script src="assets/dados-reais.js?v=108"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -206,7 +206,7 @@
           ? App.fmtNum(e.ncs) + " não-conformidades · " + App.fmtPct(e.conformidade) + " conformidade"
           : e.cidade + " · " + e.uf;
         return (
-          '<a class="epo-item" href="epo-detalhe.html?id=' + encodeURIComponent(e.id) + '">' +
+          '<a class="epo-item" href="epo-detalhe?id=' + encodeURIComponent(e.id) + '">' +
             '<span class="avatar" aria-hidden="true">' + iniciais(e.nome) + '</span>' +
             '<span class="grow">' +
               '<span class="row-between">' +
@@ -274,22 +274,22 @@
                 ' unidades auditadas no ciclo</span>' +
             '</div></div>' +
             '<div class="atalhos">' +
-              atalho("epos.html?auditoria=1", "ti-clipboard-plus",
+              atalho("epos?auditoria=1", "ti-clipboard-plus",
                      "Nova auditoria", "Escolha a unidade e os questionários") +
-              atalho("pendentes.html", "ti-clipboard-list",
+              atalho("pendentes", "ti-clipboard-list",
                      "Questionários pendentes", "O que falta preencher em cada unidade",
                      "pendentes") +
-              atalho("epos.html", "ti-building-warehouse",
+              atalho("epos", "ti-building-warehouse",
                      "EPOs", "Cadastre ou edite uma unidade") +
-              atalho("cronograma.html", "ti-calendar-stats",
+              atalho("cronograma", "ti-calendar-stats",
                      "Cronograma", "Datas das visitas e aprovação da Claro",
                      "cronograma") +
-              atalho("checagem.html", "ti-zoom-check",
+              atalho("checagem", "ti-zoom-check",
                      "Evidências recebidas", "O que chegou de cada lado") +
               atalhoEmBreve("ti-packages", "Contagem Logística Reversa") +
-              atalho("ranking.html", "ti-trophy",
+              atalho("ranking", "ti-trophy",
                      "Ranking", "Classificação das unidades auditadas") +
-              atalho("gerencial.html", "ti-report-analytics",
+              atalho("gerencial", "ti-report-analytics",
                      "Painel gerencial", "Relatório executivo do ciclo") +
             '</div>' +
           '</section>' +
@@ -374,7 +374,7 @@
                   '<h2 class="title">Top EPOs</h2>' +
                   '<span class="subtitle">Melhores classificadas do ciclo</span>' +
                 '</div>' +
-                '<a class="btn btn-ghost btn-sm card-header-action" href="ranking.html">' +
+                '<a class="btn btn-ghost btn-sm card-header-action" href="ranking">' +
                   '<i class="ti ti-trophy" aria-hidden="true"></i>Ver ranking' +
                 '</a>' +
               '</div>' +
@@ -453,13 +453,13 @@
       // chega, e nao antes: assim a tela nao espera por ela para aparecer.
       (function () {
         var MAPA_ATALHO = {
-          "epos.html": "epos", "pendentes.html": "pendentes", "cronograma.html": "cronograma",
-          "checagem.html": "checagem", "contagem-giro.html": "giro", "ranking.html": "ranking",
-          "gerencial.html": "gerencial", "comparar.html": "comparativo",
-          "realizadas.html": "realizadas", "epo-detalhe.html": "ranking",
-          "alocacoes.html": "alocacoes", "evidencias.html": "evidencias",
-          "questionarios.html": "questionarios", "criterios-nota.html": "criterios",
-          "acessos.html": "acessos"
+          "epos": "epos", "pendentes": "pendentes", "cronograma": "cronograma",
+          "checagem": "checagem", "contagem-giro": "giro", "ranking": "ranking",
+          "gerencial": "gerencial", "comparar": "comparativo",
+          "realizadas": "realizadas", "epo-detalhe": "ranking",
+          "alocacoes": "alocacoes", "evidencias": "evidencias",
+          "questionarios": "questionarios", "criterios-nota": "criterios",
+          "acessos": "acessos"
         };
         if (!window.Auth || !Auth.telas) return;
         Auth.telas().then(function (perms) {

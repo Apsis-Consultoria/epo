@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="assets/app.css?v=107">
+  <link rel="stylesheet" href="assets/app.css?v=108">
   <style>
     /* Ajustes locais desta tela (pequenos; reutiliza o design system) */
     .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-weight: 500; margin-bottom: 16px; transition: color .15s ease; }
@@ -77,11 +77,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=107"></script>
-  <script src="assets/app.js?v=107"></script>
-  <script src="assets/supabase-config.js?v=107"></script>
+  <script src="assets/data.js?v=108"></script>
+  <script src="assets/app.js?v=108"></script>
+  <script src="assets/supabase-config.js?v=108"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=107"></script>
+  <script src="assets/auth.js?v=108"></script>
   <script>
     (function () {
       "use strict";
@@ -99,7 +99,7 @@
       if (!epo && id) {
         Layout.mount("ranking", "Detalhe da EPO");
         document.getElementById("page").innerHTML =
-          '<a class="back-link" href="ranking.html">' +
+          '<a class="back-link" href="ranking">' +
             '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar ao ranking' +
           "</a>" +
           '<div class="card"><div class="empty">' +
@@ -150,7 +150,7 @@
         return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
       }
 
-      var novaAuditoriaHref = "pendentes.html?epo=" + encodeURIComponent(epo.id);
+      var novaAuditoriaHref = "pendentes?epo=" + encodeURIComponent(epo.id);
 
       // -------------------------------------------------- Cabeçalho (identidade + score)
       var headerHtml =
@@ -433,21 +433,21 @@
       // Voltar para a tela de onde esta EPO foi aberta. O link fixo para o
       // ranking mandava para o lugar errado quem entrou pelo mapa ou pela lista.
       var TELAS_DE_ORIGEM = {
-        "index.html": "Voltar à visão geral",
-        "epos.html": "Voltar às EPOs",
-        "ranking.html": "Voltar ao ranking",
-        "comparar.html": "Voltar ao comparativo",
-        "gerencial.html": "Voltar ao painel gerencial",
-        "pendentes.html": "Voltar às auditorias pendentes"
+        "index": "Voltar à visão geral",
+        "epos": "Voltar às EPOs",
+        "ranking": "Voltar ao ranking",
+        "comparar": "Voltar ao comparativo",
+        "gerencial": "Voltar ao painel gerencial",
+        "pendentes": "Voltar às auditorias pendentes"
       };
 
       function telaDeOrigem() {
-        var padrao = { href: "ranking.html", rotulo: "Voltar ao ranking" };
+        var padrao = { href: "ranking", rotulo: "Voltar ao ranking" };
         try {
           if (!document.referrer) return padrao;
           var u = new URL(document.referrer);
           if (u.origin !== location.origin) return padrao;
-          var arq = u.pathname.split("/").pop() || "index.html";
+          var arq = u.pathname.split("/").pop() || "index";
           if (!TELAS_DE_ORIGEM[arq]) return padrao;
           return { href: arq + (u.search || ""), rotulo: TELAS_DE_ORIGEM[arq] };
         } catch (e) {

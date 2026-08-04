@@ -175,7 +175,7 @@
       return '<p class="pop-nome">' + esc(u.nome) + "</p>" +
         '<p class="pop-local">' + esc(local || "Local não informado") + "</p>" +
         nota + aviso +
-        '<a class="pop-btn" href="epo-detalhe.html?id=' + encodeURIComponent(u.id) + '">' +
+        '<a class="pop-btn" href="epo-detalhe?id=' + encodeURIComponent(u.id) + '">' +
         '<i class="ti ti-arrow-right" aria-hidden="true"></i>Ver a EPO</a>';
     }
 

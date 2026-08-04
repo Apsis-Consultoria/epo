@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=107">
+  <link rel="stylesheet" href="assets/app.css?v=108">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -326,7 +326,7 @@
 <body class="wiz-body">
   <div class="wiz-shell">
     <header class="wiz-header" id="wiz-header">
-      <a class="wiz-icon-btn" id="wiz-sair" href="pendentes.html" aria-label="Voltar"><i class="ti ti-arrow-left" aria-hidden="true"></i></a>
+      <a class="wiz-icon-btn" id="wiz-sair" href="pendentes" aria-label="Voltar"><i class="ti ti-arrow-left" aria-hidden="true"></i></a>
       <div class="wiz-progress-track"><div class="wiz-progress-fill" id="wiz-progress"></div></div>
       <span class="wiz-counter" id="wiz-counter">1/1</span>
     </header>
@@ -337,11 +337,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=107"></script>
-  <script src="assets/app.js?v=107"></script>
-  <script src="assets/supabase-config.js?v=107"></script>
+  <script src="assets/data.js?v=108"></script>
+  <script src="assets/app.js?v=108"></script>
+  <script src="assets/supabase-config.js?v=108"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=107"></script>
+  <script src="assets/auth.js?v=108"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -403,7 +403,7 @@
       // Quando a auditoria veio de um relatorio pedido, "voltar" é a lista de
       // relatorios pendentes; senao, é o seletor de processo desta tela.
       function urlSeletor() {
-        return "pendentes.html";
+        return "pendentes";
       }
       function rotuloSeletor() {
         return "Voltar às auditorias pendentes";
@@ -425,7 +425,7 @@
          caminho e a tela de auditorias pendentes.
          ==================================================================== */
       if (!processo) {
-        window.location.replace("pendentes.html");
+        window.location.replace("pendentes");
         return;
       }
 
@@ -1778,7 +1778,7 @@
               "</div>" +
               '<div class="wiz-done-actions">' +
                 '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Outras auditorias pendentes</a>' +
-                '<a class="wiz-btn wiz-btn-back" href="index.html"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
+                '<a class="wiz-btn wiz-btn-back" href="index"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
               "</div>" +
             "</div>";
           main.scrollTop = 0;
@@ -1802,7 +1802,7 @@
             "</div>" +
             '<div class="wiz-done-actions">' +
               '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Outras auditorias pendentes</a>' +
-              '<a class="wiz-btn wiz-btn-back" href="index.html"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
+              '<a class="wiz-btn wiz-btn-back" href="index"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
             "</div>" +
           "</div>";
         main.scrollTop = 0;

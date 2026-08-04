@@ -34,25 +34,41 @@
     else document.addEventListener("DOMContentLoaded", function () { document.body.appendChild(barra); });
   }
 
-  // Página -> chave de permissão (mesmas chaves de APP.papeisPreset)
+  // Endereco -> chave de permissao (mesmas chaves de APP.papeisPreset).
+  //
+  // Sem ".html": o endereco publicado e /epos, e nao /epos. Quem hospeda
+  // resolve os dois para o mesmo arquivo, entao tudo que compara endereco tem de
+  // comparar a forma limpa - senao um /epos digitado a mao (ou vindo de um
+  // favorito antigo) passaria sem guard nenhum.
   var MAPA_PAGINAS = {
-    "epos.html": "epos",
-    "cronograma.html": "cronograma",
-    "index.html": "geral",
-    "ranking.html": "ranking",
-    "comparar.html": "comparativo",
-    "gerencial.html": "gerencial",
-    "pendentes.html": "pendentes",
-    "realizadas.html": "realizadas",
-    "auditoria.html": "auditoria",
-    "checagem.html": "checagem",
-    "questionarios.html": "questionarios",
-    "epo-detalhe.html": "ranking",
-    "alocacoes.html": "alocacoes",
-    "contagem-giro.html": "giro",
-    "evidencias.html": "evidencias",
-    "acessos.html": "acessos"
+    "epos": "epos",
+    "cronograma": "cronograma",
+    "index": "geral",
+    "ranking": "ranking",
+    "comparar": "comparativo",
+    "gerencial": "gerencial",
+    "pendentes": "pendentes",
+    "realizadas": "realizadas",
+    "auditoria": "auditoria",
+    "checagem": "checagem",
+    "questionarios": "questionarios",
+    "epo-detalhe": "ranking",
+    "alocacoes": "alocacoes",
+    "contagem-giro": "giro",
+    "evidencias": "evidencias",
+    "acessos": "acessos"
   };
+
+  // "epos", "epos", "/epo/epos?x=1", "" (a raiz) -> "epos" / "index".
+  // Uma funcao so, usada por todo lugar que compara endereco: guard, filtro do
+  // menu e os atalhos.
+  function nomeDaPagina(endereco) {
+    var t = String(endereco == null ? "" : endereco);
+    t = t.split("#")[0].split("?")[0];
+    t = t.split("/").pop();
+    t = t.replace(/\.html$/i, "");
+    return t === "" ? "index" : t;
+  }
 
   // Primeira página permitida do papel (destino padrão pós-login/negado)
   function primeiraPermitida(perms) {
@@ -62,12 +78,12 @@
     var mapaInverso = {};
     Object.keys(MAPA_PAGINAS).forEach(function (arq) { mapaInverso[MAPA_PAGINAS[arq]] = arq; });
     for (var i = 0; i < ordem.length; i++) {
-      if (!perms || perms[ordem[i]] !== false) return mapaInverso[ordem[i]] || "index.html";
+      if (!perms || perms[ordem[i]] !== false) return mapaInverso[ordem[i]] || "index";
     }
     // Nenhuma tela alcancada. Antes isto devolvia a tela de entrada, e com
     // sessao valida a entrada devolve para dentro: ida e volta sem fim. Quem nao
     // alcanca nada tem uma tela propria, que explica o que fazer.
-    return "sem-acesso.html";
+    return "sem-acesso";
   }
 
   // Esconde do menu apenas o que o papel nao alcança. Fora disso o menu
@@ -75,10 +91,15 @@
   // impressao de que o sistema perdeu funcao.
   function filtrarNav(perms) {
     if (!perms) return;
+    // Compara pelo NOME da pagina, e nao pelo texto do href: o menu pode ter
+    // "epos", "epos" ou "epos?filtro=x" e as tres sao a mesma tela.
+    var itens = document.querySelectorAll(".nav a[href]");
     Object.keys(MAPA_PAGINAS).forEach(function (arq) {
       var key = MAPA_PAGINAS[arq];
       if (perms[key] === false) {
-        document.querySelectorAll('.nav a[href="' + arq + '"], .nav a[href^="' + arq + '?"]').forEach(function (el) { el.style.display = "none"; });
+        Array.prototype.forEach.call(itens, function (el) {
+          if (nomeDaPagina(el.getAttribute("href")) === arq) el.style.display = "none";
+        });
         // Seção com subtópicos (ex.: Configurações): o pai e o painel dos
         // filhos saem junto com o item.
         document.querySelectorAll(
@@ -123,8 +144,7 @@
   }
 
   function arquivoAtual() {
-    var p = location.pathname.split("/").pop();
-    return p === "" ? "index.html" : p;
+    return nomeDaPagina(location.pathname);
   }
 
   function modoDemo() {
@@ -169,7 +189,7 @@
       else sessionStorage.removeItem("epoVerComo");
     } catch (e) {}
     var presets = (window.APP && window.APP.papeisPreset) || {};
-    location.href = papel ? primeiraPermitida(presets[papel]) : "index.html";
+    location.href = papel ? primeiraPermitida(presets[papel]) : "index";
   }
 
   function iniciais(nome) {
@@ -316,7 +336,7 @@
   // como um piscar de tela sem explicacao.
   function telaInicial() {
     return perfil().then(function (pf) {
-      if (pf && pf.papel === "sem_acesso") return "sem-acesso.html";
+      if (pf && pf.papel === "sem_acesso") return "sem-acesso";
       return telas().then(function (p) { return primeiraPermitida(p); });
     }, function () {
       return telas().then(function (p) { return primeiraPermitida(p); });
@@ -377,7 +397,7 @@
   }
 
   function destinoPosLogin() {
-    return location.origin + location.pathname.replace(/login\.html.*$/, "") + "index.html";
+    return location.origin + location.pathname.replace(/login(\.html)?.*$/, "") + "index";
   }
 
   // Antes de sair da página, confere se a conta Microsoft está ligada. Sem essa
@@ -492,7 +512,7 @@
       // sem entender por que.
       sessionStorage.removeItem("epoVerComo");
     } catch (e) {}
-    var fim = function () { location.replace("login.html"); };
+    var fim = function () { location.replace("login"); };
     if (!client) { fim(); return; }
     // Token velho ou ja invalido faz o servidor recusar a saida. Nesse caso a
     // sessao TEM de sair daqui de dentro de qualquer forma: se ela ficar guardada
@@ -515,17 +535,17 @@
     } catch (e) {}
     var presets = (window.APP && window.APP.papeisPreset) || {};
     var perms = papel ? presets[papel] : null;
-    location.href = perms ? primeiraPermitida(perms) : "index.html";
+    location.href = perms ? primeiraPermitida(perms) : "index";
   }
 
   // ------------------------------------------------------------------- UI
   // Ligado assim que a tela existe, e nao depois de carregar o perfil. Estava
   // dentro de atualizarUi: quando a leitura do perfil falhava, o Sair continuava
-  // sendo um link comum para login.html, ou seja, saia da tela SEM encerrar a
+  // sendo um link comum para login, ou seja, saia da tela SEM encerrar a
   // sessao - e o login, vendo sessao valida, devolvia a pessoa para dentro.
   // Sair e justamente o que tem de funcionar quando o resto falhou.
   function ligarSair() {
-    var link = document.querySelector('.user-menu a[href="login.html"]');
+    var link = document.querySelector('.user-menu a[href="login"], .user-menu a[href="login"]');
     if (!link || link.dataset.authWired) return;
     link.dataset.authWired = "1";
     link.addEventListener("click", function (ev) {
@@ -543,12 +563,14 @@
     document.addEventListener("click", function (ev) {
       var alvo = ev.target;
       if (!alvo || !alvo.closest) return;
-      var a = alvo.closest('a[href="index.html"]');
-      if (!a) return;
+      // Qualquer link que aponte para a visao geral, escrito como "index",
+      // "index" ou "./".
+      var a = alvo.closest("a[href]");
+      if (!a || nomeDaPagina(a.getAttribute("href")) !== "index") return;
       ev.preventDefault();
       telaInicial().then(function (destino) {
-        location.href = destino || "index.html";
-      }, function () { location.href = "index.html"; });
+        location.href = destino || "index";
+      }, function () { location.href = "index"; });
     });
   }
 
@@ -594,7 +616,7 @@
             '<i class="ti ti-arrow-back-up" aria-hidden="true"></i>Voltar ao meu acesso</button>'
         : "");
 
-    var sair = menu.querySelector('a[href="login.html"]');
+    var sair = menu.querySelector('a[href="login"], a[href="login"]');
     if (sair) menu.insertBefore(bloco, sair);
     else menu.appendChild(bloco);
 
@@ -647,14 +669,14 @@
       return Promise.resolve("offline");
     }
     return sessao().then(function (s) {
-      if (!s) { location.replace("login.html"); return "sem-sessao"; }
+      if (!s) { location.replace("login"); return "sem-sessao"; }
       // Segundo fator antes de qualquer outra coisa: sem o codigo, o servidor
       // nao devolve papel nenhum, e a tela abriria vazia sem explicacao.
       return mfaSituacao().catch(function () {
         return { precisa: false };
       }).then(function (m) {
         if (m && m.precisa) {
-          location.replace("confirmar-acesso.html");
+          location.replace("confirmar-acesso");
           return "precisa-codigo";
         }
         return seguirComPerfil(s, pageKey);
@@ -675,7 +697,7 @@
       .then(function (g) { gravadas = g; return perfilDe(s.user); })
       .then(function (p) {
         if (p.papel === "sem_acesso") {
-          location.replace("sem-acesso.html");
+          location.replace("sem-acesso");
           return "sem-acesso";
         }
         // Nao existe mais tela de definir senha: quem nao entra pela conta
@@ -708,7 +730,7 @@
       });
   }
 
-  // Guard automático (todas as páginas do app; login.html fica de fora)
+  // Guard automático (todas as páginas do app; login fica de fora)
   var arq = arquivoAtual();
   if (MAPA_PAGINAS[arq]) {
     var rodar = function () {

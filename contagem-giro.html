@@ -7,11 +7,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=107">
+  <link rel="stylesheet" href="assets/app.css?v=108">
   <style>
     /* ==========================================================================
        Contagem Logistica Reversa (contagem de giro) - questionario de tela cheia,
-       mesmo padrao visual do assistente de auditoria (auditoria.html).
+       mesmo padrao visual do assistente de auditoria (auditoria).
        Pensado para ser preenchido no navegador do celular, dentro da EPO.
        ========================================================================== */
     html, body { height: 100%; }
@@ -404,7 +404,7 @@
 <body class="wiz-body">
   <div class="wiz-shell">
     <header class="wiz-header" id="wiz-header">
-      <a class="wiz-icon-btn" href="index.html" aria-label="Voltar" title="Voltar"><i class="ti ti-arrow-left" aria-hidden="true"></i></a>
+      <a class="wiz-icon-btn" href="index" aria-label="Voltar" title="Voltar"><i class="ti ti-arrow-left" aria-hidden="true"></i></a>
       <div class="wiz-progress-track"><div class="wiz-progress-fill" id="wiz-progress"></div></div>
       <span class="wiz-counter" id="wiz-counter">1/1</span>
     </header>
@@ -415,13 +415,13 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=107"></script>
-  <script src="assets/app.js?v=107"></script>
-  <script src="assets/catalogo-giro.js?v=107"></script>
-  <script src="assets/estoque-planilha.js?v=107"></script>
-  <script src="assets/supabase-config.js?v=107"></script>
+  <script src="assets/data.js?v=108"></script>
+  <script src="assets/app.js?v=108"></script>
+  <script src="assets/catalogo-giro.js?v=108"></script>
+  <script src="assets/estoque-planilha.js?v=108"></script>
+  <script src="assets/supabase-config.js?v=108"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=107"></script>
+  <script src="assets/auth.js?v=108"></script>
   <script>
     (function () {
       "use strict";
@@ -1350,7 +1350,7 @@
             "</div>" +
             '<div class="wiz-done-actions">' +
               '<button class="wiz-btn wiz-btn-next" id="giro-nova" type="button"><i class="ti ti-plus" aria-hidden="true"></i>Nova contagem</button>' +
-              '<a class="wiz-btn wiz-btn-back" href="index.html"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
+              '<a class="wiz-btn wiz-btn-back" href="index"><i class="ti ti-home" aria-hidden="true"></i>Voltar à página inicial</a>' +
             "</div>" +
           "</div>";
         main.scrollTop = 0;

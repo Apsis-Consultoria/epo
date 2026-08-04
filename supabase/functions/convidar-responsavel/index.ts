@@ -94,12 +94,12 @@ function destinoDaEntrada(origem: string | null) {
     // mantem a pasta do app quando ele nao esta na raiz do dominio
     try {
       const caminho = new URL(APP_URL).pathname.replace(/[^/]*$/, "");
-      return base + (base.indexOf("localhost") >= 0 ? "/" : caminho) + "login.html";
+      return base + (base.indexOf("localhost") >= 0 ? "/" : caminho) + "login";
     } catch (_e) {
-      return base + "/login.html";
+      return base + "/login";
     }
   }
-  return APP_URL.replace(/[^/]*$/, "") + "login.html";
+  return APP_URL.replace(/[^/]*$/, "") + "login";
 }
 
 // O desenho vem de _shared/email-apsis.ts, o mesmo do e-mail do codigo de

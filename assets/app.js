@@ -16,19 +16,19 @@
   // feita pelo técnico no momento em que a devolução chega do campo.
   // -----------------------------------------------------------------------
   var NAV = [
-    { key: "geral",       label: "Visão geral",      icon: "ti-layout-dashboard", href: "index.html" },
-    { key: "epos",        label: "EPOs",             icon: "ti-building-warehouse", href: "epos.html" },
-    { key: "cronograma",  label: "Cronograma",       icon: "ti-calendar-stats",   href: "cronograma.html" },
-    { key: "ranking",     label: "Ranking",          icon: "ti-trophy",           href: "ranking.html" },
-    { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
-    { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },
-    { key: "pendentes",   label: "Auditorias pendentes", icon: "ti-clipboard-list", href: "pendentes.html" },
-    { key: "realizadas",  label: "Auditorias realizadas", icon: "ti-clipboard-check", href: "realizadas.html" },
+    { key: "geral",       label: "Visão geral",      icon: "ti-layout-dashboard", href: "index" },
+    { key: "epos",        label: "EPOs",             icon: "ti-building-warehouse", href: "epos" },
+    { key: "cronograma",  label: "Cronograma",       icon: "ti-calendar-stats",   href: "cronograma" },
+    { key: "ranking",     label: "Ranking",          icon: "ti-trophy",           href: "ranking" },
+    { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar" },
+    { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial" },
+    { key: "pendentes",   label: "Auditorias pendentes", icon: "ti-clipboard-list", href: "pendentes" },
+    { key: "realizadas",  label: "Auditorias realizadas", icon: "ti-clipboard-check", href: "realizadas" },
     // Uma tela so para evidencia. Cada lado anexa na propria caixa, na mesma
     // tela onde ve o que os outros mandaram. Antes havia uma tela separada so
     // para enviar, e quem enviava nao via o resto.
-    { key: "checagem",    label: "Evidências",       icon: "ti-photo-check",      href: "checagem.html" },
-    { key: "giro",        label: "Contagem Logística Reversa", icon: "ti-packages", href: "contagem-giro.html" },
+    { key: "checagem",    label: "Evidências",       icon: "ti-photo-check",      href: "checagem" },
+    { key: "giro",        label: "Contagem Logística Reversa", icon: "ti-packages", href: "contagem-giro" },
     // Reenvio, acessos e arquivos são bastidores: quem opera o dia a dia
     // não passa por eles. Ficam como subtópicos de Configurações.
     // Configuracoes nao tem tela propria: e so o agrupador que abre as de
@@ -36,10 +36,10 @@
     // proprios subtopicos nao leva a pessoa a lugar nenhum.
     { key: "config",      label: "Configurações",    icon: "ti-settings",
       children: [
-        { key: "questionarios", label: "Questionários",          href: "questionarios.html" },
-        { key: "alocacoes",  label: "Reenvio de checklist",     href: "alocacoes.html" },
-        { key: "acessos",    label: "Gerenciamento de acessos", href: "acessos.html" },
-        { key: "evidencias", label: "Evidências enviadas",      href: "evidencias.html" }
+        { key: "questionarios", label: "Questionários",          href: "questionarios" },
+        { key: "alocacoes",  label: "Reenvio de checklist",     href: "alocacoes" },
+        { key: "acessos",    label: "Gerenciamento de acessos", href: "acessos" },
+        { key: "evidencias", label: "Evidências enviadas",      href: "evidencias" }
       ] }
   ];
 
@@ -433,7 +433,7 @@
     }).join("");
 
     return (
-      '<a class="sidebar-logo" href="index.html" aria-label="APSIS - Auditoria de EPOs">' +
+      '<a class="sidebar-logo" href="index" aria-label="APSIS - Auditoria de EPOs">' +
         '<span class="sidebar-logo-pill"><img src="https://ybixbsfmxblaippubtvw.supabase.co/storage/v1/object/public/assets/logo_com_nome.png" alt="APSIS"></span>' +
         '<span class="sidebar-logo-mini" aria-hidden="true">A</span>' +
       "</a>" +
@@ -453,9 +453,9 @@
   //    a permissão do papel, mantendo sempre dois botões).
   // 2) montagem de estoque: contagem dos itens que chegam na EPO.
   var BOTTOM = [
-    { key: "pendentes", label: "Auditorias", icon: "ti-clipboard-list",  href: "pendentes.html" },
-    { key: "checagem",  label: "Evidências", icon: "ti-photo-check",     href: "checagem.html", oculto: true },
-    { key: "giro",      label: "Contagem",   icon: "ti-packages",        href: "contagem-giro.html" }
+    { key: "pendentes", label: "Auditorias", icon: "ti-clipboard-list",  href: "pendentes" },
+    { key: "checagem",  label: "Evidências", icon: "ti-photo-check",     href: "checagem", oculto: true },
+    { key: "giro",      label: "Contagem",   icon: "ti-packages",        href: "contagem-giro" }
   ];
 
   function buildBottombar(activeKey) {
@@ -491,7 +491,7 @@
           // quando o carregamento do perfil falhava ela ficava na tela como se
           // fosse quem tinha entrado. Nome de gente vem do cadastro, sempre.
           '<div class="user-menu-head"><p class="nm"></p><p class="em"></p></div>' +
-          '<a class="user-menu-item" href="login.html" role="menuitem"><i class="ti ti-logout" aria-hidden="true"></i>Sair</a>' +
+          '<a class="user-menu-item" href="login" role="menuitem"><i class="ti ti-logout" aria-hidden="true"></i>Sair</a>' +
         '</div>' +
       '</div>'
     );

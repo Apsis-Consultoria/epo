@@ -6,7 +6,7 @@
   <title>Acesso não liberado - Auditoria EPO's</title>
   <link rel="icon" type="image/png" href="assets/brand/logo-apsis.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="assets/portal.css?v=107" />
+  <link rel="stylesheet" href="assets/portal.css?v=108" />
 </head>
 <body>
   <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
@@ -49,9 +49,9 @@
     </div>
   </div>
 
-  <script src="assets/supabase-config.js?v=107"></script>
+  <script src="assets/supabase-config.js?v=108"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=107"></script>
+  <script src="assets/auth.js?v=108"></script>
   <script>
     (function () {
       "use strict";
@@ -73,7 +73,7 @@
       $("btn-sair").addEventListener("click", function () { Auth.sair(); });
 
       Auth.sessao().then(function (s) {
-        if (!s) { location.replace("login.html"); return; }
+        if (!s) { location.replace("login"); return; }
         $("quem").textContent = s.user && s.user.email ? s.user.email : "";
       });
 
@@ -91,7 +91,7 @@
             msg("Acesso liberado. Entrando...");
             setTimeout(function () {
               Auth.telaInicial().then(function (d) { location.replace(d); },
-                                     function () { location.replace("index.html"); });
+                                     function () { location.replace("index"); });
             }, 600);
             return;
           }

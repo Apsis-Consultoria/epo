@@ -275,21 +275,21 @@
   // { key, label, icone, href } - key é a mesma usada em usuarios[].paginas.
   // -----------------------------------------------------------------------
   var paginas = [
-    { key: "geral",       label: "Visão geral",              icone: "ti-layout-dashboard", href: "index.html" },
-    { key: "epos",        label: "EPOs",                     icone: "ti-building-warehouse", href: "epos.html" },
-    { key: "cronograma",  label: "Cronograma",               icone: "ti-calendar-stats",   href: "cronograma.html" },
-    { key: "ranking",     label: "Ranking",                  icone: "ti-trophy",           href: "ranking.html" },
-    { key: "comparativo", label: "Comparativo",              icone: "ti-arrows-diff",      href: "comparar.html" },
-    { key: "gerencial",   label: "Painel gerencial",         icone: "ti-report-analytics", href: "gerencial.html" },
-    { key: "pendentes",   label: "Auditorias pendentes",     icone: "ti-clipboard-list",   href: "pendentes.html" },
-    { key: "realizadas",  label: "Auditorias realizadas",    icone: "ti-clipboard-check",  href: "realizadas.html" },
-    { key: "auditoria",   label: "Preenchimento de questionário", icone: "ti-clipboard-check", href: "pendentes.html" },
-    { key: "checagem",    label: "Evidências",               icone: "ti-photo-check",      href: "checagem.html" },
-    { key: "questionarios", label: "Questionários",          icone: "ti-list-details",     href: "questionarios.html" },
-    { key: "alocacoes",   label: "Reenvio de checklist",     icone: "ti-user-plus",        href: "alocacoes.html" },
-    { key: "giro",        label: "Contagem Logística Reversa", icone: "ti-packages",        href: "contagem-giro.html" },
-    { key: "evidencias",  label: "Evidências enviadas",      icone: "ti-camera",           href: "evidencias.html" },
-    { key: "acessos",     label: "Gerenciamento de acessos", icone: "ti-lock-access",      href: "acessos.html" }
+    { key: "geral",       label: "Visão geral",              icone: "ti-layout-dashboard", href: "index" },
+    { key: "epos",        label: "EPOs",                     icone: "ti-building-warehouse", href: "epos" },
+    { key: "cronograma",  label: "Cronograma",               icone: "ti-calendar-stats",   href: "cronograma" },
+    { key: "ranking",     label: "Ranking",                  icone: "ti-trophy",           href: "ranking" },
+    { key: "comparativo", label: "Comparativo",              icone: "ti-arrows-diff",      href: "comparar" },
+    { key: "gerencial",   label: "Painel gerencial",         icone: "ti-report-analytics", href: "gerencial" },
+    { key: "pendentes",   label: "Auditorias pendentes",     icone: "ti-clipboard-list",   href: "pendentes" },
+    { key: "realizadas",  label: "Auditorias realizadas",    icone: "ti-clipboard-check",  href: "realizadas" },
+    { key: "auditoria",   label: "Preenchimento de questionário", icone: "ti-clipboard-check", href: "pendentes" },
+    { key: "checagem",    label: "Evidências",               icone: "ti-photo-check",      href: "checagem" },
+    { key: "questionarios", label: "Questionários",          icone: "ti-list-details",     href: "questionarios" },
+    { key: "alocacoes",   label: "Reenvio de checklist",     icone: "ti-user-plus",        href: "alocacoes" },
+    { key: "giro",        label: "Contagem Logística Reversa", icone: "ti-packages",        href: "contagem-giro" },
+    { key: "evidencias",  label: "Evidências enviadas",      icone: "ti-camera",           href: "evidencias" },
+    { key: "acessos",     label: "Gerenciamento de acessos", icone: "ti-lock-access",      href: "acessos" }
   ];
 
   // -----------------------------------------------------------------------
