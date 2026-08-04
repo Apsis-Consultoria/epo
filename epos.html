@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=70">
+  <link rel="stylesheet" href="assets/app.css?v=71">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -56,13 +56,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=70"></script>
-  <script src="assets/app.js?v=70"></script>
-  <script src="assets/geo-br.js?v=70"></script>
-  <script src="assets/form-epo.js?v=70"></script>
-  <script src="assets/supabase-config.js?v=70"></script>
+  <script src="assets/data.js?v=71"></script>
+  <script src="assets/app.js?v=71"></script>
+  <script src="assets/geo-br.js?v=71"></script>
+  <script src="assets/form-epo.js?v=71"></script>
+  <script src="assets/supabase-config.js?v=71"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=70"></script>
+  <script src="assets/auth.js?v=71"></script>
   <script>
     (function () {
       "use strict";
@@ -87,10 +87,11 @@
       // Excluir EPO é da coordenação. Quem não tem esse alcance não vê o botão,
       // em vez de clicar e nada acontecer.
       var podeApagar = DEMO;
-      // Cadastrar e editar seguem a mesma regra do servidor: coordenação e
-      // gerência da Claro. A equipe de campo via o botão, preenchia os 15
-      // campos e só no salvar recebia a recusa - em inglês.
-      var podeCadastrar = DEMO;
+      // Quem chega nesta tela pode cadastrar e editar: quem nao tem a tela
+      // liberada na matriz nao passa do guard. A regra e uma so, e do lado do
+      // servidor tambem: liberou a tela, a tela funciona inteira. Antes aqui
+      // havia uma lista fixa de papeis, e ela discordava da matriz.
+      var podeCadastrar = true;
       var pedidos = [];       // relatórios já pedidos { epoId, procId, email, status }
       var editandoId = null;  // null = criando
       // Aberto por "Nova auditoria": a EPO vem de lista suspensa e o objetivo
@@ -798,14 +799,12 @@
 
         if (window.Auth && Auth.perfil) {
           Auth.perfil().then(function (p) {
+            // Excluir continua sendo da coordenacao: apagar unidade leva
+            // embora o historico dela, e isso nao se desfaz marcando uma
+            // caixa na matriz.
             var papel = (p && p.papel) || "";
             var apaga = papel === "admin" || papel === "gestor";
-            var cadastra = apaga || papel === "cliente";
-            var mudou = apaga !== podeApagar || cadastra !== podeCadastrar;
-            podeApagar = apaga;
-            podeCadastrar = cadastra;
-            aplicarAlcance();
-            if (mudou) renderLista();
+            if (apaga !== podeApagar) { podeApagar = apaga; renderLista(); }
           });
         }
 
