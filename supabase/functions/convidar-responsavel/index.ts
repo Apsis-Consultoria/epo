@@ -215,19 +215,12 @@ Deno.serve(async (req: Request) => {
   if (!/^\S+@\S+\.\S+$/.test(email)) return json({ ok: false, motivo: "e-mail invalido" }, 400);
 
   // Conta ja existe? Decide entre convite e redefinicao, sem apagar nada.
+  // Consulta direta: paginar a lista inteira lia ate 4000 contas por chamada e
+  // parava de achar gente acima disso.
   let existente: { id: string } | null = null;
   try {
-    let pagina = 1;
-    while (pagina <= 20 && !existente) {
-      const { data: lista, error } = await admin.auth.admin.listUsers({ page: pagina, perPage: 200 });
-      if (error) break;
-      const achou = (lista && lista.users || []).find(function (u: Record<string, any>) {
-        return String(u.email || "").toLowerCase() === email;
-      });
-      if (achou) existente = { id: (achou as Record<string, any>).id };
-      if (!lista || !lista.users || lista.users.length < 200) break;
-      pagina += 1;
-    }
+    const { data, error } = await admin.rpc("conta_por_email", { p_email: email });
+    if (!error && data) existente = { id: String(data) };
   } catch (_e) { existente = null; }
 
   const destino = destinoDaSenha(req.headers.get("Origin"));

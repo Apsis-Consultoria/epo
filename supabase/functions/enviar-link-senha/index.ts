@@ -113,19 +113,15 @@ Deno.serve(async (req: Request) => {
 
   // Conta existe? A resposta ao chamador e a mesma nos dois casos; o que muda
   // e apenas se ha e-mail para mandar.
+  //
+  // Consulta direta, e nao varredura da lista de usuarios. Antes eram ate 20
+  // paginas de 200 contas por chamada: num endereco publico como este, e um
+  // jeito barato de fazer o servidor trabalhar caro - e acima de 4000 contas a
+  // busca deixaria de achar gente.
   let userId = "";
   try {
-    let pagina = 1;
-    while (pagina <= 20 && !userId) {
-      const { data: lista, error } = await admin.auth.admin.listUsers({ page: pagina, perPage: 200 });
-      if (error) break;
-      const achou = (lista && lista.users || []).find(function (u: Record<string, unknown>) {
-        return String(u.email || "").toLowerCase() === email;
-      });
-      if (achou) userId = String((achou as Record<string, unknown>).id);
-      if (!lista || !lista.users || lista.users.length < 200) break;
-      pagina += 1;
-    }
+    const { data, error } = await admin.rpc("conta_por_email", { p_email: email });
+    if (!error && data) userId = String(data);
   } catch (_e) { userId = ""; }
 
   if (!userId) return json({ enviado: true, espere: 0 });
