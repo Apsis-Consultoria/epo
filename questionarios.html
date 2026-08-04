@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=84">
+  <link rel="stylesheet" href="assets/app.css?v=85">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -115,11 +115,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=84"></script>
-  <script src="assets/app.js?v=84"></script>
-  <script src="assets/supabase-config.js?v=84"></script>
+  <script src="assets/data.js?v=85"></script>
+  <script src="assets/app.js?v=85"></script>
+  <script src="assets/supabase-config.js?v=85"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=84"></script>
+  <script src="assets/auth.js?v=85"></script>
   <script>
     (function () {
       "use strict";
@@ -1041,27 +1041,11 @@
           });
       }
 
-      function desativarPergunta(p) {
-        if (DEMO) {
-          p.ativo = false;
-          var t = topicoPorId(topicoAberto);
-          if (t) t.nPerguntas = perguntas.filter(function (x) { return x.ativo !== false; }).length;
-          renderNivel2();
-          App.toast("Pergunta desativada.");
-          return Promise.resolve();
-        }
-        return db.from("itens_checklist").update({ ativo: false }).eq("id", p.id)
-          .then(function (r) {
-            if (r.error) throw r.error;
-            App.toast("Pergunta desativada.");
-            return recarregarTopico(topicoAberto);
-          })
-          .catch(function (e) {
-            console.error("desativarPergunta", e);
-            App.toast("Não foi possível desativar a pergunta. Tente novamente.");
-          });
-      }
-
+      // Excluir apaga a pergunta. Antes, havendo resposta ou documento, o botao
+      // trocava de acao no meio do caminho e desativava - a pergunta continuava
+      // existindo, marcada como inativa, e quem clicou em Excluir tinha de
+      // descobrir isso sozinho. Agora a confirmacao diz o que vai embora junto e
+      // apaga o que foi confirmado.
       function apagarPergunta(id) {
         var p = perguntaPorId(id);
         if (!p) return;
@@ -1071,24 +1055,24 @@
             App.toast("Não foi possível conferir o histórico desta pergunta agora. Tente de novo em alguns instantes.");
             return;
           }
-          if (uso.respostas || uso.anexos) {
-            var partes = [];
-            if (uso.respostas) partes.push(uso.respostas + (uso.respostas === 1 ? " resposta de auditoria" : " respostas de auditoria"));
-            if (uso.anexos) partes.push(uso.anexos + (uso.anexos === 1 ? " documento enviado" : " documentos enviados"));
-            return App.confirmar({
-              titulo: "Esta pergunta já foi usada",
-              texto: "Ela tem " + partes.join(" e ") + " no histórico.\n\n" +
-                "Desativar tira a pergunta das auditorias novas e mantém o que já foi respondido.",
-              confirmar: "Desativar pergunta",
-              cancelar: "Deixar como está"
-            }).then(function (ok) {
-              if (ok) return desativarPergunta(p);
-            });
+
+          var junto = [];
+          if (uso.respostas) {
+            junto.push(uso.respostas + (uso.respostas === 1
+              ? " resposta de auditoria" : " respostas de auditoria"));
           }
+          if (uso.anexos) {
+            junto.push(uso.anexos + (uso.anexos === 1
+              ? " documento enviado" : " documentos enviados"));
+          }
+
+          var texto = p.pergunta + "\n\n";
+          if (junto.length) texto += junto.join(" e ") + " também vão ser apagados.\n\n";
+          texto += "Essa ação não tem volta.";
 
           return App.confirmar({
             titulo: "Excluir a pergunta?",
-            texto: p.pergunta + "\n\nEssa ação não tem volta.",
+            texto: texto,
             confirmar: "Excluir",
             cancelar: "Cancelar",
             perigo: true
@@ -1102,19 +1086,27 @@
               App.toast("Pergunta excluída.");
               return;
             }
-            return db.from("itens_checklist").delete().eq("id", id).select("id")
+            // Uma chamada so: a ordem das dependencias (link, anexo, resposta,
+            // pergunta) tem de valer inteira ou nao valer, senao sobra resposta
+            // sem pergunta.
+            return db.rpc("pergunta_apagar", { p_item: id })
               .then(function (r) {
                 if (r.error) throw r.error;
-                if (!r.data || !r.data.length) {
-                  App.toast("Seu acesso não permite excluir perguntas. Fale com a coordenação da APSIS.");
-                  return;
-                }
-                App.toast("Pergunta excluída.");
+                var d = r.data || {};
+                var extra = [];
+                if (d.respostas) extra.push(d.respostas + (d.respostas === 1 ? " resposta" : " respostas"));
+                if (d.anexos) extra.push(d.anexos + (d.anexos === 1 ? " documento" : " documentos"));
+                App.toast("Pergunta excluída." +
+                  (extra.length ? " " + extra.join(" e ") + " apagad" +
+                    (extra.length === 1 && (d.respostas === 1 || d.anexos === 1) ? "o" : "os") + " junto." : ""));
                 return recarregarTopico(topicoAberto);
               })
               .catch(function (e) {
                 console.error("apagarPergunta", e);
-                App.toast("Não foi possível excluir a pergunta. Tente novamente.");
+                var msg = String((e && e.message) || "");
+                App.toast(/permite/i.test(msg)
+                  ? "Seu acesso não permite excluir perguntas. Fale com a coordenação da APSIS."
+                  : "Não foi possível excluir a pergunta. Tente novamente.");
               });
           });
         });

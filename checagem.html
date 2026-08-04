@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=84">
+  <link rel="stylesheet" href="assets/app.css?v=85">
   <style>
     /* Ajustes locais da tela de evidências recebidas (grade + lista) */
 
@@ -136,11 +136,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=84"></script>
-  <script src="assets/app.js?v=84"></script>
-  <script src="assets/supabase-config.js?v=84"></script>
+  <script src="assets/data.js?v=85"></script>
+  <script src="assets/app.js?v=85"></script>
+  <script src="assets/supabase-config.js?v=85"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=84"></script>
+  <script src="assets/auth.js?v=85"></script>
   <script>
     (function () {
       "use strict";
@@ -159,6 +159,7 @@
       entradaArquivo.accept = "image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.zip";
       entradaArquivo.style.display = "none";
       var itemDoEnvio = null;
+      var origemDoEnvio = null;   // em qual caixa o botao foi clicado
       var BUCKET = "evidencias";
 
       var STATUS_RESPOSTA = {
@@ -623,12 +624,21 @@
         }, function () { return minhaOrigem; });
       }
 
-      // Botao so na caixa de quem esta olhando: ninguem anexa no lugar do
-      // outro, e o banco recusaria de todo jeito.
+      // Botao na caixa de quem esta olhando. A administracao tambem anexa na
+      // caixa da Claro: o documento chega por fora do sistema (autorizacao,
+      // laudo, e-mail) e quem recebe e a APSIS, entao exigir que a Claro entre
+      // para anexar deixaria a caixa vazia com o arquivo na mao de outro.
+      // O banco aceita exatamente isto - anexo com origem 'claro' vale para o
+      // cargo de administracao e para o gerente da Claro.
+      function podeAnexarEm(origem) {
+        if (origem === minhaOrigem) return true;
+        return origem === "claro" && meuPapel === "admin";
+      }
+
       function botaoDeEnvio(origem, item) {
-        if (origem !== minhaOrigem) return "";
+        if (!podeAnexarEm(origem)) return "";
         return '<button class="btn btn-sm btn-primary evid-enviar" type="button"' +
-          ' data-item="' + esc(item.id) + '">' +
+          ' data-item="' + esc(item.id) + '" data-origem="' + esc(origem) + '">' +
           '<i class="ti ti-paperclip" aria-hidden="true"></i>Enviar evidências</button>';
       }
 
@@ -905,6 +915,7 @@
         var b = ev.target.closest ? ev.target.closest(".evid-enviar") : null;
         if (!b || !parAtual) return;
         itemDoEnvio = b.getAttribute("data-item");
+        origemDoEnvio = b.getAttribute("data-origem") || null;
         entradaArquivo.value = "";
         entradaArquivo.click();
       });
@@ -933,8 +944,14 @@
         App.toast(lista.length === 1 ? "Enviando o arquivo..."
                                      : "Enviando " + lista.length + " arquivos...");
 
-        // A origem tem de estar resolvida antes do primeiro arquivo: sem ela,
-        // o gerente da Claro enviaria como EPO e o banco recusaria um a um.
+        // A origem e a da CAIXA em que o botao foi clicado, e nao a do cargo de
+        // quem clicou: a administracao anexa na caixa da APSIS e na da Claro, e
+        // o arquivo tem de ficar guardado como o que ele e. Sem isto, o anexo
+        // que a Claro mandou apareceria como registro do consultor.
+        var origemDaVez = origemDoEnvio || minhaOrigem;
+        // Resolvida antes do primeiro arquivo: sem isso, quem abrisse a tela e
+        // clicasse rapido enviaria com a origem errada e o banco recusaria um a
+        // um.
         var cadeia = descobrirOrigem();
         lista.forEach(function (f) {
           cadeia = cadeia.then(function () {
@@ -945,7 +962,7 @@
               return db.from("alocacao_anexos").insert({
                 alocacao_id: alocId,
                 item_id: itemId,
-                origem: minhaOrigem,
+                origem: origemDaVez,
                 storage_path: caminho,
                 nome_arquivo: f.name,
                 content_type: f.type || null,

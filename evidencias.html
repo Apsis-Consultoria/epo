@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=84">
+  <link rel="stylesheet" href="assets/app.css?v=85">
 </head>
 <body>
   <div class="app-shell">
@@ -18,11 +18,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=84"></script>
-  <script src="assets/app.js?v=84"></script>
-  <script src="assets/supabase-config.js?v=84"></script>
+  <script src="assets/data.js?v=85"></script>
+  <script src="assets/app.js?v=85"></script>
+  <script src="assets/supabase-config.js?v=85"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=84"></script>
+  <script src="assets/auth.js?v=85"></script>
   <script>
     (function () {
       "use strict";
@@ -580,13 +580,16 @@
         }
 
         /* ------------------------------------------------------------------
-           Situação do envio automático, na própria tela.
-           Antes só dava para saber isso rodando um comando no console do
-           navegador, o que não é trabalho de ninguém aqui.
+           Aviso na tela SO quando algo ficou para tras.
+           Antes esta faixa contava onde os arquivos sao guardados por fora,
+           com endereco da pasta e nome dos segredos lidos, atras de um "Ver
+           detalhes". Isso e bastidor da APSIS: nao ajuda quem usa a tela e nao
+           tem por que ficar escrito numa tela que a Claro alcanca. O detalhe
+           tecnico continua indo para o registro do navegador, que e onde ele
+           serve.
            ------------------------------------------------------------------ */
-        function faixa(estado, texto, detalhe) {
+        function faixa(estado, texto) {
           var cores = {
-            ok:     { fundo: "var(--success-bg)", cor: "var(--success)", icone: "ti-circle-check" },
             aviso:  { fundo: "var(--warning-bg)", cor: "var(--warning)", icone: "ti-alert-triangle" },
             neutro: { fundo: "var(--surface-2)",  cor: "var(--text-2)",  icone: "ti-loader-2" }
           };
@@ -604,80 +607,31 @@
           el.style.color = c.cor;
           el.innerHTML =
             '<i class="ti ' + c.icone + '" aria-hidden="true" style="font-size:16px;flex:0 0 auto;margin-top:1px;"></i>' +
-            '<span style="flex:1;">' + App.escapeHtml(texto) +
-              (detalhe
-                ? ' <button type="button" id="faixa-detalhe-btn" style="background:none;border:0;padding:0;' +
-                    'font:inherit;color:inherit;text-decoration:underline;cursor:pointer;">Ver detalhes</button>' +
-                  '<span id="faixa-detalhe" style="display:none;margin-top:8px;padding:8px 10px;border-radius:8px;' +
-                    'background:rgba(0,0,0,.06);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;' +
-                    'line-height:1.5;white-space:pre-wrap;word-break:break-word;">' + App.escapeHtml(detalhe) + "</span>"
-                : "") +
-            "</span>";
-          var btnDet = document.getElementById("faixa-detalhe-btn");
-          if (btnDet) {
-            btnDet.addEventListener("click", function () {
-              var box = document.getElementById("faixa-detalhe");
-              var abrindo = box.style.display === "none";
-              box.style.display = abrindo ? "block" : "none";
-              btnDet.textContent = abrindo ? "Esconder detalhes" : "Ver detalhes";
-            });
-          }
+            '<span style="flex:1;">' + App.escapeHtml(texto) + "</span>";
         }
 
-        // Resposta inteira da verificacao, para quem administra poder agir.
-        // Fica atras de um clique e so nesta tela, que o cliente nao acessa.
-        function detalheDe(d) {
-          if (!d) return "";
-          var partes = [];
-          if (d.motivo) partes.push(d.motivo);
-          if (d.faltando && d.faltando.length) partes.push("Falta cadastrar: " + d.faltando.join(" / "));
-          if (d.site) partes.push("Site: " + d.site);
-          if (d.biblioteca) partes.push("Biblioteca: " + d.biblioteca);
-          if (d.pasta) partes.push("Pasta: " + d.pasta);
-          if (d.pasta_url) partes.push(d.pasta_url);
-          if (d.segredos) {
-            partes.push("Segredos lidos: " + [d.segredos.tenant, d.segredos.client_id, d.segredos.secret]
-              .filter(Boolean).join(", "));
-          }
-          if (d.falhas && d.falhas.length) partes.push("Falhas:\n- " + d.falhas.join("\n- "));
-          return partes.join("\n");
+        function esconderFaixa() {
+          var el = document.getElementById("faixa-envio");
+          if (el && el.parentNode) el.parentNode.removeChild(el);
         }
 
         function conferirEnvio(pendentes) {
-          faixa("neutro", "Verificando o envio automático dos documentos...");
           return db.functions.invoke("sincronizar-sharepoint", { body: { teste: true } })
             .then(function (r) {
               var d = (r && r.data) || {};
               if (r && r.error && !d.motivo) throw r.error;
 
-              if (d.ok) {
-                faixa("ok",
-                  "Envio automático funcionando. Os documentos vão para " +
-                  (d.pasta || "a pasta oficial") + "." +
-                  (pendentes ? " Há " + App.fmtNum(pendentes) + (pendentes === 1 ? " documento" : " documentos") + " esperando: use o botão acima." : ""),
-                  detalheDe(d)
-                );
-                return;
-              }
+              // Funcionando: nada na tela. A ausencia de aviso e a boa noticia,
+              // e o que falta enviar ja aparece no rotulo do botao de reenviar.
+              if (d.ok) { esconderFaixa(); return; }
 
-              var motivo = String(d.motivo || "");
               console.warn("envio automático:", d);
-              var det = detalheDe(d);
-              if (d.configurado === false) {
-                faixa("aviso", "Falta cadastrar credencial para o envio automático.", det);
-              } else if (/403|accessDenied|Access denied|unauthorized/i.test(motivo)) {
-                faixa("aviso", "A Microsoft recusou a gravação: falta permissão de aplicação com consentimento do administrador.", det);
-              } else if (/biblioteca|nao encontrada|não encontrada|itemNotFound|invalidRequest|404/i.test(motivo)) {
-                faixa("aviso", "O destino não foi encontrado: confira o site, a biblioteca e a pasta.", det);
-              } else if (/recusadas pela Microsoft|invalid_client|unauthorized_client|AADSTS/i.test(motivo)) {
-                faixa("aviso", "A Microsoft não aceitou as credenciais do sistema.", det);
-              } else {
-                faixa("aviso", "O envio automático não completou. Os documentos ficam guardados no sistema.", det);
-              }
+              faixa("aviso", pendentes
+                ? "Os documentos estão guardados no sistema, mas ainda não foram encaminhados."
+                : "O encaminhamento automático dos documentos não está funcionando agora.");
             }, function (e) {
               console.warn("envio automático:", e);
-              faixa("aviso", "Não foi possível verificar o envio automático agora.",
-                String((e && e.message) || e));
+              esconderFaixa();
             });
         }
 
@@ -703,7 +657,7 @@
               var d = (r && r.data) || {};
               if (r && r.error) throw r.error;
               if (d.ok === false && d.configurado === false) {
-                App.toast("O envio automático ainda não está liberado. Fale com a Gestão de TI.");
+                App.toast("O encaminhamento dos documentos ainda não está liberado. Fale com a coordenação da APSIS.");
               } else if (d.enviados) {
                 App.toast(
                   App.fmtNum(d.enviados) + (d.enviados === 1 ? " documento enviado." : " documentos enviados.") +
@@ -713,7 +667,7 @@
                 App.toast("Não foi possível enviar " + d.falhas.length + (d.falhas.length === 1 ? " documento." : " documentos."));
                 console.warn("falhas no reenvio:", d.falhas);
                 faixa("aviso", "O reenvio não completou: " + d.falhas.length +
-                  (d.falhas.length === 1 ? " documento recusado." : " documentos recusados."), detalheDe(d));
+                  (d.falhas.length === 1 ? " documento recusado." : " documentos recusados."));
               } else {
                 App.toast("Nenhum documento pendente.");
               }
