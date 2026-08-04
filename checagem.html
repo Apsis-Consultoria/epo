@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=80">
+  <link rel="stylesheet" href="assets/app.css?v=81">
   <style>
     /* Ajustes locais da tela de evidências recebidas (grade + lista) */
 
@@ -136,11 +136,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=80"></script>
-  <script src="assets/app.js?v=80"></script>
-  <script src="assets/supabase-config.js?v=80"></script>
+  <script src="assets/data.js?v=81"></script>
+  <script src="assets/app.js?v=81"></script>
+  <script src="assets/supabase-config.js?v=81"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=80"></script>
+  <script src="assets/auth.js?v=81"></script>
   <script>
     (function () {
       "use strict";
@@ -600,6 +600,7 @@
       // tinham mandado.
       // ------------------------------------------------------------------
       var minhaOrigem = "epo";
+      var meuPapel = "";
       var parAtual = null;
 
       function origemDoPapel(papel) {
@@ -610,13 +611,14 @@
 
       function descobrirOrigem() {
         if (DEMO) {
-          minhaOrigem = origemDoPapel((Auth.papelDemo && Auth.papelDemo()) || "admin");
+          meuPapel = (Auth.papelDemo && Auth.papelDemo()) || "admin";
+          minhaOrigem = origemDoPapel(meuPapel);
           return Promise.resolve(minhaOrigem);
         }
         if (!window.Auth || !Auth.perfil) return Promise.resolve(minhaOrigem);
         return Auth.perfil().then(function (perf) {
-          var papel = (perf && perf.papel) || "";
-          minhaOrigem = origemDoPapel(papel);
+          meuPapel = (perf && perf.papel) || "";
+          minhaOrigem = origemDoPapel(meuPapel);
           return minhaOrigem;
         }, function () { return minhaOrigem; });
       }
@@ -777,12 +779,16 @@
             "</span>";
         }
 
-        var podeValidar = !!(aud && aud.status === "enviada");
+        // Validar e ato da coordenacao: o servidor recusa de qualquer outro
+        // cargo. Antes o botao aparecia para a Claro e para o responsavel da
+        // EPO, que clicavam e ouviam que nao podiam.
+        var souCoordenacao = meuPapel === "admin" || meuPapel === "gestor";
+        var podeValidar = !!(aud && aud.status === "enviada" && souCoordenacao);
         var botoes =
           '<div class="row wrap">' +
             '<button class="btn btn-ghost btn-sm" type="button" id="btn-voltar">' +
               '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar</button>' +
-            (aud
+            (aud && souCoordenacao
               ? '<button class="btn btn-primary btn-sm" type="button" id="btn-validar"' + (podeValidar ? "" : " disabled") + ">" +
                   '<i class="ti ti-rosette-discount-check" aria-hidden="true"></i>Validar auditoria</button>'
               : "") +

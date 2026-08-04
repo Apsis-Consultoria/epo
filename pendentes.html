@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=80">
+  <link rel="stylesheet" href="assets/app.css?v=81">
   <style>
     /* Ajustes locais - tela de auditorias pendentes (escolher EPO e questionário) */
 
@@ -160,11 +160,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=80"></script>
-  <script src="assets/app.js?v=80"></script>
-  <script src="assets/supabase-config.js?v=80"></script>
+  <script src="assets/data.js?v=81"></script>
+  <script src="assets/app.js?v=81"></script>
+  <script src="assets/supabase-config.js?v=81"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=80"></script>
+  <script src="assets/auth.js?v=81"></script>
   <script>
     (function () {
       "use strict";
@@ -172,7 +172,7 @@
       // "Nova auditoria" leva para o cadastro da EPO: e la que se marca quais
       // questionarios serao pedidos, e o pedido e o que faz a auditoria existir.
       var acoesTopo =
-        '<button class="btn btn-primary btn-sm" id="pd-nova" type="button">' +
+        '<button class="btn btn-primary btn-sm is-hidden" id="pd-nova" type="button">' +
           '<i class="ti ti-clipboard-plus" aria-hidden="true"></i>Nova auditoria' +
         "</button>";
 
@@ -192,6 +192,12 @@
       var epoParam = App.getParam("epo"); // chegou do detalhe da EPO
       var busca = "";
       var carregou = false;
+      // Botao que leva para outra tela so aparece se a pessoa alcanca aquela
+      // tela: "Nova auditoria" leva para o cadastro da EPO, e "Ver nas
+      // evidencias recebidas" leva para Evidencias. Sem isto a equipe de campo
+      // clicava e era desviada de volta, sem explicacao.
+      var podeEpos = true;
+      var podeChecagem = true;
       var erro = "";
       var anexosAntes = {};     // alocacao_id -> n_anexos (detecta anexo novo)
 
@@ -475,11 +481,13 @@
             '<div class="empty">' +
               '<i class="ti ti-clipboard-off" aria-hidden="true"></i>' +
               "<div>Nenhuma auditoria pedida até agora.</div>" +
-              '<div class="pd-vazio-acao">' +
-                '<button class="btn btn-primary btn-sm" type="button" data-nova="1">' +
-                  '<i class="ti ti-clipboard-plus" aria-hidden="true"></i>Nova auditoria' +
-                "</button>" +
-              "</div>" +
+              (podeEpos
+                ? '<div class="pd-vazio-acao">' +
+                    '<button class="btn btn-primary btn-sm" type="button" data-nova="1">' +
+                      '<i class="ti ti-clipboard-plus" aria-hidden="true"></i>Nova auditoria' +
+                    "</button>" +
+                  "</div>"
+                : "") +
             "</div>";
           return;
         }
@@ -613,9 +621,11 @@
         var acoes;
         if (concluido(l)) {
           acoes =
-            '<a class="btn btn-primary" href="checagem.html">' +
-              '<i class="ti ti-zoom-check" aria-hidden="true"></i>Ver nas evidências recebidas' +
-            "</a>" +
+            (podeChecagem
+              ? '<a class="btn btn-primary" href="checagem.html">' +
+                  '<i class="ti ti-zoom-check" aria-hidden="true"></i>Ver nas evidências recebidas' +
+                "</a>"
+              : "") +
             '<a class="btn btn-ghost" href="' + esc(linkPreencher(l)) + '">' +
               '<i class="ti ti-refresh" aria-hidden="true"></i>Preencher novamente' +
             "</a>";
@@ -732,6 +742,20 @@
       }
 
       document.getElementById("pd-nova").addEventListener("click", irParaCadastroDaEpo);
+
+      if (window.Auth && Auth.podeTela) {
+        Promise.all([Auth.podeTela("epos"), Auth.podeTela("checagem")])
+          .then(function (r) {
+            podeEpos = r[0];
+            podeChecagem = r[1];
+            document.getElementById("pd-nova").classList.toggle("is-hidden", !podeEpos);
+            if (carregou) renderAtual();
+          }, function () {
+            document.getElementById("pd-nova").classList.remove("is-hidden");
+          });
+      } else {
+        document.getElementById("pd-nova").classList.remove("is-hidden");
+      }
 
       // ------------------------------------------------------------------
       // Dados - modo demonstração (mock coerente, nada é gravado)

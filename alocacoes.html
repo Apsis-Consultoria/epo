@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=80">
+  <link rel="stylesheet" href="assets/app.css?v=81">
   <style>
     /* Ajustes locais da tela de cadastro de EPO e pedido de relatórios */
 
@@ -135,11 +135,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=80"></script>
-  <script src="assets/app.js?v=80"></script>
-  <script src="assets/supabase-config.js?v=80"></script>
+  <script src="assets/data.js?v=81"></script>
+  <script src="assets/app.js?v=81"></script>
+  <script src="assets/supabase-config.js?v=81"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=80"></script>
+  <script src="assets/auth.js?v=81"></script>
   <script>
     (function () {
       "use strict";
@@ -394,14 +394,14 @@
         }
       }
 
+      // Falha no reenvio nao virou mais um pedido de gambiarra: antes esta
+      // mensagem citava o correio de bastidor pelo nome, mandava a pessoa
+      // copiar um endereco a mao e ainda dizia que o convio por e-mail "ainda"
+      // nao existia - o que deixou de ser verdade quando o envio passou a sair
+      // no ato da liberacao.
       function avisarConviteManual() {
-        var link = linkEnvio();
-        return copiarTexto(link).then(function (ok) {
-          App.toast(
-            "O convite por e-mail ainda depende do SMTP. " +
-            (ok ? "O link de acesso foi copiado - envie para o responsável." : "Copie o link manualmente: " + link)
-          );
-        });
+        App.toast("Não foi possível reenviar o convite agora. Tente novamente em alguns minutos.");
+        return Promise.resolve();
       }
 
       // ------------------------------------------------------------------

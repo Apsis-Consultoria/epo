@@ -263,6 +263,45 @@
     return out;
   }
 
+  // Telas que quem entrou alcanca. A tela pergunta antes de oferecer um botao
+  // que leva para outra: botao que abre e volta na hora, ou pior, que abre uma
+  // tela que a pessoa nao pode usar, e pior do que botao que nao existe.
+  //
+  // Guardado depois do guard, que ja calculou isto. Se alguem perguntar antes,
+  // calcula na hora.
+  var permsAtuais = null;
+  function telas() {
+    if (permsAtuais) return Promise.resolve(permsAtuais);
+    if (modoDemo()) {
+      var presets = (window.APP && window.APP.papeisPreset) || {};
+      permsAtuais = presets[papelDemo()] || null;
+      return Promise.resolve(permsAtuais);
+    }
+    var gravadas = null;
+    return permissoesGravadas()
+      .then(function (g) { gravadas = g; return perfil(); })
+      .then(function (p) {
+        if (!p) return null;
+        var simulado = verComo();
+        if (simulado && PAPEIS_QUE_SIMULAM.indexOf(p.papel) < 0) simulado = "";
+        permsAtuais = permissoesDe(simulado || p.papel, gravadas);
+        return permsAtuais;
+      })
+      .catch(function () { return null; });
+  }
+
+  // Sem resposta (leitura falhou, sem sessao) responde que alcanca: a tela
+  // segue como sempre foi, e quem barra de verdade e o servidor.
+  function podeTela(chave) {
+    return telas().then(function (p) { return !p || p[chave] !== false; });
+  }
+
+  // Para onde levar quem clica em "voltar": a primeira tela de quem entrou, e
+  // nao a visao geral, que boa parte dos cargos nem alcanca.
+  function telaInicial() {
+    return telas().then(function (p) { return primeiraPermitida(p); });
+  }
+
   // ------------------------------------------------------- Segundo fator
   // O codigo nunca e gerado nem conferido aqui: a tela so pergunta a situacao,
   // pede o envio e manda o que a pessoa digitou. Quem decide e o servidor.
@@ -428,6 +467,24 @@
     });
   }
 
+  // "Voltar à página inicial" levava sempre para a visão geral, que a equipe de
+  // campo e o responsável da EPO não alcançam: a tela abria e o guard desviava
+  // no ato, então o botão prometia um lugar e entregava outro. Agora leva para
+  // a primeira tela de quem clicou - para quem alcança a visão geral, é ela
+  // mesma, e nada muda.
+  function ligarVoltarInicio() {
+    document.addEventListener("click", function (ev) {
+      var alvo = ev.target;
+      if (!alvo || !alvo.closest) return;
+      var a = alvo.closest('a[href="index.html"]');
+      if (!a) return;
+      ev.preventDefault();
+      telaInicial().then(function (destino) {
+        location.href = destino || "index.html";
+      }, function () { location.href = "index.html"; });
+    });
+  }
+
   function atualizarUi(info) {
     var nm = document.querySelector(".user-menu .nm");
     var em = document.querySelector(".user-menu .em");
@@ -569,6 +626,7 @@
         }
 
         var perms = permissoesDe(simulado || p.papel, gravadas);
+        permsAtuais = perms;
         if (perms && pageKey && perms[pageKey] === false) {
           location.replace(primeiraPermitida(perms));
           return "sem-permissao";
@@ -590,6 +648,7 @@
   if (MAPA_PAGINAS[arq]) {
     var rodar = function () {
       ligarSair();
+      ligarVoltarInicio();
       // Erro na montagem nao pode deixar a tela pela metade em silencio: sem
       // isto, quebrar aqui virava "Uncaught (in promise)" e a pessoa ficava com
       // o menu sem filtro e sem saber de nada.
@@ -618,6 +677,9 @@
     entrarComSenha: entrarComSenha,
     pedirLinkDeSenha: pedirLinkDeSenha,
     entrarDemo: entrarDemo,
+    telas: telas,
+    podeTela: podeTela,
+    telaInicial: telaInicial,
     verComo: verComo,
     definirVerComo: definirVerComo,
     sair: sair,

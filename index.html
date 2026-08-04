@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=80">
+  <link rel="stylesheet" href="assets/app.css?v=81">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
@@ -119,14 +119,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=80"></script>
-  <script src="assets/app.js?v=80"></script>
-  <script src="assets/geo-br.js?v=80"></script>
-  <script src="assets/mapa-epos.js?v=80"></script>
-  <script src="assets/supabase-config.js?v=80"></script>
+  <script src="assets/data.js?v=81"></script>
+  <script src="assets/app.js?v=81"></script>
+  <script src="assets/geo-br.js?v=81"></script>
+  <script src="assets/mapa-epos.js?v=81"></script>
+  <script src="assets/supabase-config.js?v=81"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=80"></script>
-  <script src="assets/dados-reais.js?v=80"></script>
+  <script src="assets/auth.js?v=81"></script>
+  <script src="assets/dados-reais.js?v=81"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -386,6 +386,30 @@
       }
 
       document.getElementById("page").innerHTML = html;
+
+      // Atalho para tela que a pessoa nao alcanca sai da caixa: seria clique
+      // que abre e volta na hora. Sai depois da pintura, quando a resposta
+      // chega, e nao antes: assim a tela nao espera por ela para aparecer.
+      (function () {
+        var MAPA_ATALHO = {
+          "epos.html": "epos", "pendentes.html": "pendentes", "cronograma.html": "cronograma",
+          "checagem.html": "checagem", "contagem-giro.html": "giro", "ranking.html": "ranking",
+          "gerencial.html": "gerencial", "comparar.html": "comparativo",
+          "realizadas.html": "realizadas", "epo-detalhe.html": "ranking",
+          "alocacoes.html": "alocacoes", "evidencias.html": "evidencias",
+          "questionarios.html": "questionarios", "criterios-nota.html": "criterios",
+          "acessos.html": "acessos"
+        };
+        if (!window.Auth || !Auth.telas) return;
+        Auth.telas().then(function (perms) {
+          if (!perms) return;
+          document.querySelectorAll(".atalho").forEach(function (a) {
+            var arq = String(a.getAttribute("href") || "").split("?")[0];
+            var chave = MAPA_ATALHO[arq];
+            if (chave && perms[chave] === false) a.remove();
+          });
+        }, function () {});
+      })();
 
       // -------- Gráficos (Chart.js) --------
       if (window.Chart) {
