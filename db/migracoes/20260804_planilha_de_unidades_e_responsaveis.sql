@@ -1,0 +1,35 @@
+-- ===========================================================================
+-- Planilha: entrada pela tela de EPOs (cadastro) e responsaveis nas duas.
+--
+-- Antes existia uma planilha so, a do cronograma, e ela nao conhecia os
+-- responsaveis da unidade. Agora:
+--   - epos_importar: cadastro da unidade e os responsaveis dela, sem encostar no
+--     cronograma (entrar no cronograma pede data, e data e decisao daquela tela);
+--   - cronograma_importar: chama epos_importar para o cadastro e cuida das datas.
+--     Uma logica de cadastro so no sistema.
+--
+-- Regra nas duas: celula vazia NUNCA apaga o que ja esta cadastrado. Por isso o
+-- import so acrescenta e corrige responsavel; tirar responsavel e ato da tela,
+-- onde se ve a lista inteira antes de mexer.
+--
+-- A coluna de e-mail aceita mais de um responsavel, separados por ponto e virgula
+-- ou virgula, com ou sem "Nome <email>". O nome da coluna ao lado e do primeiro.
+--
+-- Um defeito antigo corrigido no caminho: "select count(*), min(e.id)" nao existe
+-- para uuid (nao ha min(uuid)). Essa linha estava na funcao do cronograma desde o
+-- inicio e nunca havia rodado, porque exige unidade JA cadastrada sem codigo do
+-- fornecedor com o mesmo nome e cidade da planilha. No primeiro caso real a
+-- importacao inteira quebraria com erro cru.
+--
+-- Conferido com sessao simulada de coordenacao, tudo desfeito no fim:
+--   planilha de cadastro -> 2 unidades criadas, 1 unidade que estava sem codigo
+--   adotou o codigo, 3 responsaveis gravados, 0 linhas no cronograma;
+--   a mesma planilha pelo cronograma -> 0 duplicadas, 3 agendadas, responsaveis
+--   nao duplicados, data da unidade correta.
+--
+-- As funcoes estao aplicadas no banco nas migracoes
+-- planilha_de_epos_e_responsaveis_na_importacao,
+-- cronograma_importar_grava_responsavel,
+-- planilha_adota_unidade_sem_codigo_sem_quebrar e
+-- nome_da_coluna_vale_so_para_o_primeiro_responsavel.
+-- ===========================================================================

@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=98">
+  <link rel="stylesheet" href="assets/app.css?v=99">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -56,13 +56,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=98"></script>
-  <script src="assets/app.js?v=98"></script>
-  <script src="assets/geo-br.js?v=98"></script>
-  <script src="assets/form-epo.js?v=98"></script>
-  <script src="assets/supabase-config.js?v=98"></script>
+  <script src="assets/data.js?v=99"></script>
+  <script src="assets/app.js?v=99"></script>
+  <script src="assets/geo-br.js?v=99"></script>
+  <script src="assets/cronograma-planilha.js?v=99"></script>
+  <script src="assets/form-epo.js?v=99"></script>
+  <script src="assets/supabase-config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=98"></script>
+  <script src="assets/auth.js?v=99"></script>
   <script>
     (function () {
       "use strict";
@@ -70,6 +71,14 @@
       var acoes =
         '<button class="btn btn-primary btn-sm" id="btn-nova-epo" type="button">' +
           '<i class="ti ti-building-plus" aria-hidden="true"></i>Nova Unidade' +
+        "</button>" +
+        // Cadastro por planilha: e assim que entram as 25 unidades de uma vez, em
+        // vez de abrir o formulario 25 vezes.
+        '<button class="btn btn-ghost btn-sm is-hidden" id="btn-modelo-epo" type="button">' +
+          '<i class="ti ti-download" aria-hidden="true"></i>Baixar modelo' +
+        "</button>" +
+        '<button class="btn btn-ghost btn-sm is-hidden" id="btn-planilha-epo" type="button">' +
+          '<i class="ti ti-table-import" aria-hidden="true"></i>Enviar planilha' +
         "</button>";
 
       Layout.mount("epos", "EPOs", acoes);
@@ -215,8 +224,10 @@
       }
 
       function aplicarAlcance() {
-        var btn = document.getElementById("btn-nova-epo");
-        if (btn) btn.classList.toggle("is-hidden", !podeCadastrar);
+        ["btn-nova-epo", "btn-modelo-epo", "btn-planilha-epo"].forEach(function (id) {
+          var btn = document.getElementById(id);
+          if (btn) btn.classList.toggle("is-hidden", !podeCadastrar);
+        });
       }
       aplicarAlcance();
 
@@ -963,6 +974,159 @@
               "</div></td></tr>";
           });
       }
+
+      /* ==================================================================
+         CADASTRO POR PLANILHA
+
+         Duas coisas, nesta ordem:
+           1) "Baixar modelo" - sai a planilha com as colunas do cadastro, ja
+              preenchida com o que existe, para corrigir em vez de digitar tudo
+              de novo;
+           2) "Enviar planilha" - le no proprio navegador, mostra o que vai
+              acontecer e so grava depois de confirmado.
+
+         A leitura e a mesma do Cronograma (assets/cronograma-planilha.js): uma
+         planilha so no sistema, com as colunas de data valendo la e sendo
+         ignoradas aqui. Quem grava e epos_importar no banco, que trata cliente
+         unico, codigo repetido, celula vazia que nao apaga e a lista de erros
+         por linha.
+         ================================================================== */
+      (function () {
+        var db = (window.Auth && Auth.pronto && !DEMO) ? Auth.cliente : null;
+        var btnModelo = document.getElementById("btn-modelo-epo");
+        var btnEnviar = document.getElementById("btn-planilha-epo");
+        if (!btnModelo || !btnEnviar) return;
+
+        var entrada = document.createElement("input");
+        entrada.type = "file";
+        entrada.accept = ".xlsx,.xls,.csv";
+        entrada.style.display = "none";
+        document.body.appendChild(entrada);
+
+        // Unidades no formato que o modelo espera, com os responsaveis de cada
+        // uma na coluna de e-mail (separados por ponto e virgula).
+        function paraModelo() {
+          return epos.map(function (e) {
+            var lista = respsPorEpo[String(e.id)] || [];
+            var primeiro = lista[0] || {};
+            return {
+              cod: e.cod || "", base: e.base || "", nome: e.nome || "",
+              cidade: e.cidade || "", uf: e.uf || "",
+              endereco: e.endereco || "", cep: e.cep || "",
+              responsavelNome: primeiro.nome || e.responsavel_nome || "",
+              responsavelEmails: lista.length
+                ? lista.map(function (r) { return r.email; }).join("; ")
+                : (e.responsavel_email || "")
+            };
+          });
+        }
+
+        btnModelo.addEventListener("click", function () {
+          var btn = this;
+          btn.disabled = true;
+          PlanilhaCronograma.baixarModelo(paraModelo(), null, "epos")
+            .then(function () { btn.disabled = false; },
+                  function (e) {
+                    btn.disabled = false;
+                    App.toast((e && e.message) || "Nao foi possivel gerar o modelo agora.");
+                  });
+        });
+
+        btnEnviar.addEventListener("click", function () {
+          if (!db) { App.toast("Sem conexão com os dados agora."); return; }
+          entrada.value = "";
+          entrada.click();
+        });
+
+        function frase(n, um, muitos) {
+          return n + " " + (n === 1 ? um : muitos);
+        }
+
+        entrada.addEventListener("change", function () {
+          var arquivo = this.files && this.files[0];
+          this.value = "";
+          if (!arquivo) return;
+
+          btnEnviar.disabled = true;
+          var rotulo = btnEnviar.innerHTML;
+          btnEnviar.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true"></i>Lendo...';
+          function terminar() { btnEnviar.disabled = false; btnEnviar.innerHTML = rotulo; }
+
+          PlanilhaCronograma.ler(arquivo, "epos").then(function (r) {
+            terminar();
+            var boas = r.linhas || [];
+            if (!boas.length) {
+              App.toast(r.erros && r.erros.length
+                ? "Nenhuma linha aproveitável: " + r.erros[0].motivo + "."
+                : "A planilha não tem nenhuma unidade para cadastrar.");
+              return;
+            }
+
+            // Novas e já cadastradas, pelo código do fornecedor com a base.
+            var jaTem = {};
+            epos.forEach(function (e) {
+              jaTem[(e.cod || "") + "|" + (e.base || "").toUpperCase()] = true;
+            });
+            var novas = 0, conhecidas = 0;
+            boas.forEach(function (l) {
+              if (jaTem[l.cod + "|" + (l.base || "")]) conhecidas += 1; else novas += 1;
+            });
+
+            var partes = [];
+            if (novas) partes.push(frase(novas, "unidade nova", "unidades novas"));
+            if (conhecidas) partes.push(frase(conhecidas, "já cadastrada", "já cadastradas"));
+            var texto = partes.join(" e ") + ".";
+            if (r.erros && r.erros.length) {
+              texto += "\n\n" + frase(r.erros.length, "linha ficou de fora", "linhas ficaram de fora") + ":\n" +
+                r.erros.slice(0, 6).map(function (x) {
+                  return "linha " + x.linha + ": " + x.motivo;
+                }).join("\n");
+              if (r.erros.length > 6) texto += "\n(e mais " + (r.erros.length - 6) + ")";
+            }
+            texto += "\n\nCélula vazia não apaga o que já está cadastrado. " +
+                     "As datas da visita não entram por aqui: isso é na tela de Cronograma.";
+
+            App.confirmar({
+              titulo: "Cadastrar pela planilha?",
+              texto: texto,
+              confirmar: "Cadastrar",
+              cancelar: "Cancelar"
+            }).then(function (ok) {
+              if (!ok) return;
+              btnEnviar.disabled = true;
+              btnEnviar.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true"></i>Gravando...';
+
+              db.rpc("epos_importar", {
+                p_arquivo: arquivo.name, p_linhas: boas, p_desativar: []
+              }).then(function (res) {
+                terminar();
+                if (res.error) throw res.error;
+                var d = res.data || {};
+                var msg = [];
+                if (d.criadas) msg.push(frase(d.criadas, "unidade cadastrada", "unidades cadastradas"));
+                if (d.atualizadas) msg.push(frase(d.atualizadas, "atualizada", "atualizadas"));
+                if (d.inalteradas) msg.push(frase(d.inalteradas, "sem mudança", "sem mudança"));
+                if (d.responsaveis) msg.push(frase(d.responsaveis, "responsável", "responsáveis"));
+                App.toast(msg.length ? msg.join(", ") + "." : "Nada mudou.");
+                if (d.erros && d.erros.length && window.console) {
+                  console.warn("linhas recusadas pelo banco:", d.erros);
+                }
+                return carregar();
+              }).catch(function (e) {
+                terminar();
+                console.error("epos_importar", e);
+                var msg = String((e && e.message) || "");
+                App.toast(/permite/i.test(msg)
+                  ? "Seu acesso não permite cadastrar unidades. Fale com a coordenação da APSIS."
+                  : "Não foi possível gravar a planilha agora. Tente novamente.");
+              });
+            });
+          }, function (e) {
+            terminar();
+            App.toast((e && e.message) || "Não foi possível ler a planilha.");
+          });
+        });
+      })();
 
       carregar();
     })();

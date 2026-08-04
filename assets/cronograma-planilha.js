@@ -25,7 +25,9 @@
 
   // Quem preenche renomeia cabecalho, escreve com acento, sem acento,
   // maiuscula: tudo isso tem que continuar funcionando.
-  var COLUNAS = [
+  // As colunas do CADASTRO da unidade. Valem nas duas planilhas: a do cadastro
+  // (tela de EPOs) e a do cronograma, que e esta mais as colunas de data.
+  var COLUNAS_EPO = [
     { campo: "cod",        rotulo: "Cod. Fornecedor", larg: 16,
       nomes: ["cod. forn.", "cod forn", "codigo fornecedor", "cod fornecedor",
               "codigo do fornecedor", "codigo", "cod", "fornecedor"] },
@@ -42,6 +44,18 @@
       nomes: ["endereco_epo", "endereco", "logradouro"] },
     { campo: "cep",        rotulo: "CEP", larg: 12,
       nomes: ["cep"] },
+    // Responsavel da unidade. A coluna do e-mail aceita mais de um, separados
+    // por ponto e virgula: uma unidade pode ter mais de um responsavel, e todos
+    // recebem o acesso. O nome da coluna ao lado e do primeiro da lista.
+    { campo: "responsavel_nome",  rotulo: "Responsavel", larg: 26,
+      nomes: ["responsavel", "responsavel da epo", "nome do responsavel",
+              "contato", "nome do contato"] },
+    { campo: "responsavel_email", rotulo: "E-mail do responsavel", larg: 38,
+      nomes: ["e-mail do responsavel", "email do responsavel", "e-mails",
+              "emails", "e-mail", "email", "e-mail de contato"] }
+  ];
+
+  var COLUNAS_DATA = [
     { campo: "data",       rotulo: "Data prevista", larg: 15,
       nomes: ["data prevista", "inicio previsto", "data da visita", "previsto",
               "inicio", "visita", "data"] },
@@ -52,6 +66,17 @@
     { campo: "observacao", rotulo: "Observacao", larg: 34,
       nomes: ["observacoes", "observacao", "obs", "nota"] }
   ];
+
+  var COLUNAS_CRONOGRAMA = COLUNAS_EPO.concat(COLUNAS_DATA);
+
+  // Qual conjunto usar. "epos" = so cadastro; qualquer outra coisa = cronograma,
+  // que e o que as chamadas antigas esperavam.
+  function colunasDe(modo) {
+    return modo === "epos" ? COLUNAS_EPO : COLUNAS_CRONOGRAMA;
+  }
+
+  // Compatibilidade com quem ja chamava sem escolher o conjunto.
+  var COLUNAS = COLUNAS_CRONOGRAMA;
 
   // --------------------------------------------------------------- biblioteca
   var promessaLib = null;
@@ -195,9 +220,22 @@
   // ------------------------------------------------------------------ modelo
   // Baixa preenchido com o que ja esta no cronograma: quem recebe o arquivo
   // corrige o que precisa em vez de digitar 25 codigos de novo.
-  function baixarModelo(unidades, ciclo) {
+  // Um valor por coluna, na ordem do conjunto escolhido: assim acrescentar
+  // coluna no cabecalho nao pede mexer aqui, e cabecalho e conteudo nao saem
+  // desalinhados (era o que aconteceria montando a linha a mao).
+  function valorDaColuna(u, campo) {
+    if (campo === "data") return paraBrasil(u.prevIniIso);
+    if (campo === "ate")  return paraBrasil(u.prevFimIso);
+    if (campo === "responsavel_nome")  return texto(u.responsavelNome);
+    if (campo === "responsavel_email") return texto(u.responsavelEmails);
+    return texto(u[campo]);
+  }
+
+  function baixarModelo(unidades, ciclo, modo) {
     return carregar().then(function (XLSX) {
-      var linhas = [COLUNAS.map(function (c) { return c.rotulo; })];
+      var colunas = colunasDe(modo);
+      var soCadastro = modo === "epos";
+      var linhas = [colunas.map(function (c) { return c.rotulo; })];
       var lista = (unidades || []).slice();
 
       lista.sort(function (a, b) {
@@ -207,40 +245,45 @@
       });
 
       lista.forEach(function (u) {
-        linhas.push([
-          texto(u.cod), texto(u.base), texto(u.nome), texto(u.cidade), texto(u.uf),
-          texto(u.endereco), texto(u.cep),
-          paraBrasil(u.prevIniIso), paraBrasil(u.prevFimIso),
-          texto(u.semana), texto(u.observacao)
-        ]);
+        linhas.push(colunas.map(function (c) { return valorDaColuna(u, c.campo); }));
       });
 
       // Cadastro vazio: a linha de exemplo e visivelmente um exemplo. Exemplo
       // com dado plausivel volta preenchido e vira registro falso.
       if (!lista.length) {
-        linhas.push(["EXEMPLO - apague esta linha", "", "Nome da unidade", "Cidade", "SP",
-                     "", "", "", "12/08/2026", "", "", ""]);
+        linhas.push(colunas.map(function (c) {
+          if (c.campo === "cod") return "EXEMPLO - apague esta linha";
+          if (c.campo === "nome") return "Nome da unidade";
+          if (c.campo === "cidade") return "Cidade";
+          if (c.campo === "uf") return "SP";
+          if (c.campo === "responsavel_nome") return "Nome de quem responde";
+          if (c.campo === "responsavel_email") return "primeiro@epo.com.br; segundo@epo.com.br";
+          if (c.campo === "data") return "12/08/2026";
+          return "";
+        }));
       }
 
       var aba = XLSX.utils.aoa_to_sheet(linhas);
-      aba["!cols"] = COLUNAS.map(function (c) { return { wch: c.larg }; });
+      aba["!cols"] = colunas.map(function (c) { return { wch: c.larg }; });
       aba["!freeze"] = { xSplit: 0, ySplit: 1 };
 
       var livro = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(livro, aba, "Cronograma");
-      XLSX.writeFile(livro, "cronograma-auditorias-" + (ciclo || "") + ".xlsx");
+      XLSX.utils.book_append_sheet(livro, aba, soCadastro ? "Unidades" : "Cronograma");
+      XLSX.writeFile(livro, soCadastro
+        ? "unidades-epo.xlsx"
+        : "cronograma-auditorias-" + (ciclo || "") + ".xlsx");
       return true;
     });
   }
 
   // ----------------------------------------------------------------- leitura
-  function ler(arquivo) {
+  function ler(arquivo, modo) {
     return carregar().then(function (XLSX) {
       return new Promise(function (ok, falhou) {
         var leitor = new FileReader();
         leitor.onerror = function () { falhou(new Error("Nao foi possivel abrir o arquivo.")); };
         leitor.onload = function (ev) {
-          try { ok(interpretar(XLSX, ev.target.result)); }
+          try { ok(interpretar(XLSX, ev.target.result, modo)); }
           catch (e) { falhou(e); }
         };
         leitor.readAsArrayBuffer(arquivo);
@@ -248,16 +291,21 @@
     });
   }
 
-  function interpretar(XLSX, buffer) {
+  function interpretar(XLSX, buffer, modo) {
     // Sem cellDates de proposito: com ele a celula vira Date no fuso local e
     // a data anda um dia. O numero de serie e convertido em UTC por lerData.
     var livro = XLSX.read(new Uint8Array(buffer), { type: "array" });
     var nomes = livro.SheetNames || [];
     if (!nomes.length) throw new Error("A planilha esta vazia.");
 
-    var alvo = null, i;
-    for (i = 0; i < nomes.length; i++) {
-      if (normalizar(nomes[i]).indexOf("cronograma") >= 0) { alvo = nomes[i]; break; }
+    // Aba preferida: "Cronograma" na planilha de datas, "Unidades" na de
+    // cadastro. Sem nenhuma delas, vale a primeira aba do arquivo.
+    var procurar = modo === "epos" ? ["unidade", "epo"] : ["cronograma"];
+    var alvo = null, i, j;
+    for (i = 0; i < nomes.length && !alvo; i++) {
+      for (j = 0; j < procurar.length; j++) {
+        if (normalizar(nomes[i]).indexOf(procurar[j]) >= 0) { alvo = nomes[i]; break; }
+      }
     }
     var abaEsperada = !!alvo;
     if (!alvo) alvo = nomes[0];
@@ -272,7 +320,7 @@
     // O cabecalho pode nao estar na primeira linha: gente poe titulo em cima.
     var iCab = -1, mapa = null, l, tentativa;
     for (l = 0; l < Math.min(grade.length, 10); l++) {
-      tentativa = mapearColunas(grade[l] || []);
+      tentativa = mapearColunas(grade[l] || [], modo);
       if (tentativa && tentativa.cod >= 0) { iCab = l; mapa = tentativa; break; }
     }
     if (iCab < 0) {
@@ -358,9 +406,15 @@
     };
   }
 
-  function mapearColunas(cabecalho) {
+  function mapearColunas(cabecalho, modo) {
     var mapa = {};
-    COLUNAS.forEach(function (c) { mapa[c.campo] = qualColuna(cabecalho, c.nomes); });
+    // Sempre procura TODAS as colunas conhecidas, mesmo no modo cadastro: se a
+    // pessoa mandar a planilha do cronograma na tela de EPOs, as datas sao
+    // simplesmente ignoradas em vez de a leitura reclamar de coluna a mais.
+    COLUNAS_CRONOGRAMA.forEach(function (c) {
+      mapa[c.campo] = qualColuna(cabecalho, c.nomes);
+    });
+    mapa._modo = modo === "epos" ? "epos" : "cronograma";
     return mapa;
   }
 
@@ -376,7 +430,8 @@
     var uf = texto(pegar(bruta, mapa, "uf")).toUpperCase();
 
     var temAlgo = cod || nome || cidade || uf ||
-      texto(pegar(bruta, mapa, "endereco")) || texto(pegar(bruta, mapa, "data"));
+      texto(pegar(bruta, mapa, "endereco")) || texto(pegar(bruta, mapa, "data")) ||
+      texto(pegar(bruta, mapa, "responsavel_email"));
     if (!temAlgo) return null;                       // linha em branco
 
     if (/^EXEMPLO/.test(String(pegar(bruta, mapa, "cod")).toUpperCase())) return null;
@@ -409,6 +464,24 @@
       return null;
     }
 
+    // E-mail do responsavel: a celula aceita mais de um. Aqui so se confere o
+    // formato para avisar quem escreveu errado - quem separa e grava e o banco,
+    // que e o mesmo caminho da tela.
+    var emails = texto(pegar(bruta, mapa, "responsavel_email"));
+    if (emails) {
+      var ruins = [];
+      emails.split(/[;,]+/).forEach(function (parte) {
+        var e = String(parte).replace(/^[^<]*</, "").replace(/>/g, "").trim();
+        if (!e) return;
+        if (!/^\S+@\S+\.\S+$/.test(e)) ruins.push(e);
+      });
+      if (ruins.length) {
+        erros.push({ linha: numero, codigo: cod,
+                     motivo: "e-mail que nao parece valido: " + ruins.join(", ") });
+        return null;
+      }
+    }
+
     return {
       linha: numero,
       cod: cod,
@@ -418,6 +491,8 @@
       uf: uf,
       endereco: texto(pegar(bruta, mapa, "endereco")),
       cep: texto(pegar(bruta, mapa, "cep")),
+      responsavel_nome: texto(pegar(bruta, mapa, "responsavel_nome")),
+      responsavel_email: emails,
       data: dIni ? dIni.iso : "",
       ate: dFim ? dFim.iso : "",
       semana: texto(pegar(bruta, mapa, "semana")),

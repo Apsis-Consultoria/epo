@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=98">
+  <link rel="stylesheet" href="assets/app.css?v=99">
 </head>
 <body>
   <div class="app-shell">
@@ -20,14 +20,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=98"></script>
-  <script src="assets/app.js?v=98"></script>
-  <script src="assets/supabase-config.js?v=98"></script>
+  <script src="assets/data.js?v=99"></script>
+  <script src="assets/app.js?v=99"></script>
+  <script src="assets/supabase-config.js?v=99"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=98"></script>
-  <script src="assets/geo-br.js?v=98"></script>
-  <script src="assets/cronograma-planilha.js?v=98"></script>
-  <script src="assets/form-epo.js?v=98"></script>
+  <script src="assets/auth.js?v=99"></script>
+  <script src="assets/geo-br.js?v=99"></script>
+  <script src="assets/cronograma-planilha.js?v=99"></script>
+  <script src="assets/form-epo.js?v=99"></script>
   <script>
     (function () {
       "use strict";
@@ -279,6 +279,13 @@
           base: epo.base || linha.base || "",
           cidade: epo.cidade || linha.cidade || "",
           uf: epo.uf || linha.uf || "",
+          // Vao para o modelo da planilha: sem eles, baixar o modelo devolvia as
+          // colunas de endereco e de responsavel em branco, e quem preenchesse
+          // por cima acabava mandando de volta o que ja estava cadastrado.
+          endereco: epo.endereco || linha.endereco || "",
+          cep: epo.cep || linha.cep || "",
+          responsavelNome: epo.responsavel_nome || "",
+          responsavelEmails: epo.responsavel_email || "",
           semana: linha.semana_referencia || linha.semana || "",
           observacao: linha.observacao || "",
           motivo: linha.motivo || "",
@@ -349,7 +356,8 @@
                   "semana_referencia, data_proposta_inicio, data_proposta_fim, " +
                   "data_realizada_inicio, data_realizada_fim, auditoria_id, motivo, " +
                   "observacao, confirmada_em, " +
-                  "epos!inner(id, nome, cidade, uf, cod_fornecedor, base, ativo)")
+                  "epos!inner(id, nome, cidade, uf, endereco, cep, cod_fornecedor, base, ativo, " +
+                  "responsavel_nome, responsavel_email)")
           .eq("ciclo", CICLO)
           .then(function (r) {
             if (!r || r.error) {
@@ -1703,7 +1711,7 @@
       // ================================================================
       function baixarModelo(botaoEl) {
         botaoEl.disabled = true;
-        PlanilhaCronograma.baixarModelo(itens, CICLO)
+        PlanilhaCronograma.baixarModelo(itens, CICLO, "cronograma")
           .then(function () { botaoEl.disabled = false; })
           .catch(function (e) {
             botaoEl.disabled = false;
@@ -1762,7 +1770,7 @@
           '<button class="btn btn-ghost" type="button" id="imp-cancelar">Fechar</button>';
         $("imp-cancelar").addEventListener("click", fecharImportacao);
 
-        PlanilhaCronograma.ler(arquivo).then(function (lido) {
+        PlanilhaCronograma.ler(arquivo, "cronograma").then(function (lido) {
           previa = compararComCadastro(lido, arquivo.name);
           mostrarPrevia();
         }).catch(function (e) {
