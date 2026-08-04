@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=72">
+  <link rel="stylesheet" href="assets/app.css?v=73">
   <style>
     /* Ajustes locais - tela de auditorias pendentes (escolher EPO e questionário) */
 
@@ -26,6 +26,19 @@
     /* Lista das auditorias a preencher: uma linha por auditoria, com a acao
        na propria linha. Nao e grade de cartoes porque o que importa aqui e
        varrer de cima para baixo o que falta. */
+    .pd-bloco { margin-bottom: 20px; }
+    .pd-bloco-cab {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+      padding-bottom: 10px; border-bottom: 1.5px solid var(--border);
+    }
+    .pd-bloco-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .pd-bloco-info .nm { font-size: 15.5px; font-weight: 600; color: var(--text); }
+    .pd-bloco-info .loc { font-size: 12.5px; color: var(--text-2); }
+    @media (max-width: 760px) {
+      .pd-bloco-cab { flex-wrap: wrap; }
+      .pd-bloco-cab .btn { flex: 1 1 auto; justify-content: center; }
+    }
+
     .pd-lista { display: flex; flex-direction: column; gap: 10px; }
     .pd-item {
       display: flex; align-items: center; gap: 14px;
@@ -147,11 +160,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=72"></script>
-  <script src="assets/app.js?v=72"></script>
-  <script src="assets/supabase-config.js?v=72"></script>
+  <script src="assets/data.js?v=73"></script>
+  <script src="assets/app.js?v=73"></script>
+  <script src="assets/supabase-config.js?v=73"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=72"></script>
+  <script src="assets/auth.js?v=73"></script>
   <script>
     (function () {
       "use strict";
@@ -426,18 +439,12 @@
               esc(l.processo_icone || "ti-clipboard-list") + '" aria-hidden="true"></i></span>' +
             '<div class="pd-item-corpo">' +
               '<span class="nm">' + esc(l.processo_nome || "Questionário") + "</span>" +
-              '<span class="loc">' + esc(l.epo_nome || "EPO") +
-                (local(l.cidade, l.uf) ? " · " + esc(local(l.cidade, l.uf)) : "") + "</span>" +
               (meta ? '<div class="pd-meta">' + meta + "</div>" : "") +
             "</div>" +
             '<div class="pd-item-fim">' + situacao +
               '<a class="btn btn-primary btn-sm" href="' + esc(linkPreencher(l)) + '">' +
                 '<i class="ti ti-clipboard-check" aria-hidden="true"></i>Preencher' +
               "</a>" +
-              '<button class="btn btn-ghost btn-sm" type="button" data-epo="' + esc(l.epo_id) + '"' +
-                ' title="Ver todos os questionários desta EPO">' +
-                '<i class="ti ti-list-search" aria-hidden="true"></i>Ver a EPO' +
-              "</button>" +
             "</div>" +
           "</article>"
         );
@@ -479,8 +486,12 @@
 
         var lista = pendentesDaLista();
         var feitas = linhas.filter(concluido).length;
+        var unidades = {};
+        lista.forEach(function (l) { unidades[String(l.epo_id)] = true; });
+        var nUn = Object.keys(unidades).length;
         elResumo.textContent =
           lista.length + (lista.length === 1 ? " auditoria a preencher" : " auditorias a preencher") +
+          " em " + nUn + (nUn === 1 ? " EPO" : " EPOs") +
           (feitas ? " · " + feitas + (feitas === 1 ? " já enviada" : " já enviadas") : "");
 
         if (!lista.length) {
@@ -494,7 +505,41 @@
           return;
         }
 
-        elLista.innerHTML = '<div class="pd-lista">' + lista.map(linhaPendente).join("") + "</div>";
+        // Agrupado por EPO: pode haver mais de uma unidade liberada para a
+        // mesma pessoa, e uma lista corrida misturava os questionarios de
+        // todas. Cada unidade e um bloco, com o que falta preencher dentro.
+        var porEpo = [];
+        var indice = {};
+        lista.forEach(function (l) {
+          var k = String(l.epo_id);
+          if (!indice[k]) {
+            indice[k] = { id: l.epo_id, nome: l.epo_nome || "EPO",
+                          cidade: l.cidade, uf: l.uf, itens: [] };
+            porEpo.push(indice[k]);
+          }
+          indice[k].itens.push(l);
+        });
+
+        elLista.innerHTML = porEpo.map(function (g) {
+          return (
+            '<section class="pd-bloco">' +
+              '<header class="pd-bloco-cab">' +
+                '<span class="pd-icon"><i class="ti ti-building-warehouse" aria-hidden="true"></i></span>' +
+                '<div class="pd-bloco-info">' +
+                  '<span class="nm">' + esc(g.nome) + "</span>" +
+                  '<span class="loc">' + esc(local(g.cidade, g.uf)) + "</span>" +
+                "</div>" +
+                '<span class="badge badge-alta">' + g.itens.length +
+                  (g.itens.length === 1 ? " a preencher" : " a preencher") + "</span>" +
+                '<button class="btn btn-ghost btn-sm" type="button" data-epo="' + esc(g.id) + '"' +
+                  ' title="Ver todos os questionários desta EPO, inclusive os enviados">' +
+                  '<i class="ti ti-list-search" aria-hidden="true"></i>Ver a EPO' +
+                "</button>" +
+              "</header>" +
+              '<div class="pd-lista">' + g.itens.map(linhaPendente).join("") + "</div>" +
+            "</section>"
+          );
+        }).join("");
       }
 
       // ------------------------------------------------------------------

@@ -103,6 +103,13 @@
     var col2 =
       '<div class="modal-col">' +
         '<p class="col-titulo"><i class="ti ti-map-pin" aria-hidden="true"></i>Localização</p>' +
+        // O CEP vem primeiro porque ele preenche o resto: oito numeros erram
+        // menos que rua, cidade e sigla digitadas a mao.
+        '<div class="field">' +
+          '<label for="f-cep">CEP</label>' +
+          '<input class="input" id="f-cep" type="text" inputmode="numeric" placeholder="00000-000" autocomplete="off" maxlength="9">' +
+          '<span class="hint" id="f-cep-aviso">Preenche endereço, cidade e UF.</span>' +
+        "</div>" +
         '<div class="field">' +
           '<label for="f-endereco">Endereço</label>' +
           '<input class="input" id="f-endereco" type="text" placeholder="rua, número, complemento" autocomplete="off">' +
@@ -117,13 +124,6 @@
             '<select class="select" id="f-uf">' + opcoesUf(null) + "</select>" +
           "</div>" +
         "</div>" +
-        // Nao existe campo de regional: o estado da unidade e o UF, e tudo o
-        // que agrupa por estado usa ele. Ter os dois abria a porta para a
-        // mesma unidade contar num estado no mapa e em outro no cronograma.
-        '<div class="field">' +
-          '<label for="f-cep">CEP</label>' +
-          '<input class="input" id="f-cep" type="text" inputmode="numeric" placeholder="00000-000" autocomplete="off" maxlength="9">' +
-        "</div>" +
         '<div class="nota-modal">' +
           '<i class="ti ti-map-pin" aria-hidden="true"></i>' +
           "<span>Com o endereço preenchido a EPO cai no ponto exato do mapa. " +
@@ -137,6 +137,10 @@
       '<div class="modal-col">' +
         '<p class="col-titulo"><i class="ti ti-clipboard-list" aria-hidden="true"></i>' +
           "Questionários e visita</p>" +
+        '<div class="field">' +
+          '<label for="f-resp-nome">Nome do responsável da EPO</label>' +
+          '<input class="input" id="f-resp-nome" type="text" placeholder="como ele assina" autocomplete="off">' +
+        "</div>" +
         '<div class="field">' +
           '<label for="f-email">E-mail do responsável da EPO</label>' +
           '<input class="input" id="f-email" type="email" placeholder="nome@empresa.com.br" autocomplete="off">' +
@@ -182,6 +186,8 @@
     return '<div class="modal-cols tres">' + col1 + col2 + col3 + "</div>";
   }
 
+  function setVal(id, v) { var e = $(id); if (e) e.value = v == null ? "" : v; }
+
   // -------------------------------------------------------------- preparar
   function preparar(opts) {
     var o = opts || {};
@@ -195,7 +201,10 @@
       cep.addEventListener("input", function () {
         var d = this.value.replace(/\D/g, "").slice(0, 8);
         this.value = d.length > 5 ? d.slice(0, 5) + "-" + d.slice(5) : d;
+        // Oito numeros digitados: busca sozinho, sem esperar sair do campo.
+        if (d.length === 8) buscarCep();
       });
+      cep.addEventListener("blur", buscarCep);
     }
 
     var box = $("f-procs");
@@ -213,6 +222,51 @@
         resumoProcs();
       });
     }
+  }
+
+  // Busca o endereco do CEP e preenche o que estiver vazio. NAO sobrescreve o
+  // que a pessoa escreveu: quem digitou o endereco antes do CEP nao perde o
+  // numero e o complemento, que sao justamente o que o CEP nao sabe.
+  var cepBuscado = "";
+
+  function buscarCep() {
+    var campo = $("f-cep");
+    var aviso = $("f-cep-aviso");
+    if (!campo || !window.GeoBR || !GeoBR.porCep) return;
+    var limpo = String(campo.value || "").replace(/\D/g, "");
+    if (limpo.length !== 8 || limpo === cepBuscado) return;
+    cepBuscado = limpo;
+    if (aviso) aviso.textContent = "Procurando o endereço...";
+
+    GeoBR.porCep(limpo).then(function (a) {
+      if (!a) {
+        if (aviso) aviso.textContent = "CEP não encontrado. Preencha o endereço à mão.";
+        return;
+      }
+      var preenchidos = [];
+      if (a.endereco && !txt("f-endereco")) {
+        setVal("f-endereco", a.endereco);
+        preenchidos.push("endereço");
+      }
+      if (a.cidade && !txt("f-cidade")) {
+        setVal("f-cidade", a.cidade);
+        preenchidos.push("cidade");
+      }
+      if (a.uf) {
+        var uf = $("f-uf");
+        // O seletor de UF nasce em SP: trocar por causa do CEP e o certo,
+        // porque SP aqui e valor de partida, e nao escolha de ninguem.
+        if (uf && (!uf.value || uf.value === "SP" || uf.value !== a.uf)) {
+          setVal("f-uf", a.uf);
+          preenchidos.push("UF");
+        }
+      }
+      if (aviso) {
+        aviso.textContent = preenchidos.length
+          ? "Preenchido: " + preenchidos.join(", ") + ". Confira o número e o complemento."
+          : "Endereço já preenchido: nada foi trocado.";
+      }
+    });
   }
 
   function atualizarListas(o) {
@@ -295,8 +349,6 @@
   }
 
   // ------------------------------------------------------------ preencher
-  function setVal(id, v) { var e = $(id); if (e) e.value = v == null ? "" : v; }
-
   // extras.item = linha do cronograma daquela unidade, quando a tela tem.
   // Sem ela a data prevista vem do pedido de questionario, que e o que a tela
   // de EPOs sempre teve.
@@ -311,10 +363,15 @@
     setVal("f-uf", (epo && epo.uf) || "SP");
     setVal("f-cep", epo && epo.cep);
 
-    // O pedido mais recente manda, e os anteriores so preenchem o que ele
-    // deixou vazio: campo a campo, dava para ver o e-mail de um pedido com a
-    // visita de outro.
-    var email = "", visita = "", obs = "";
+    // O responsavel e dado da UNIDADE. Antes o e-mail era reconstruido a
+    // partir dos pedidos de questionario, e voltava vazio quando ainda nao
+    // havia pedido: parecia que o dado tinha sido apagado.
+    setVal("f-resp-nome", (epo && epo.responsavel_nome) || "");
+
+    // Do pedido ainda vem a visita e a observacao. O pedido mais recente
+    // manda, e os anteriores so preenchem o que ele deixou vazio: campo a
+    // campo, dava para ver o e-mail de um pedido com a visita de outro.
+    var email = (epo && epo.responsavel_email) || "", visita = "", obs = "";
     if (epo) {
       var meus = pedidos.filter(function (a) {
         return String(a.epoId) === String(epo.id);
@@ -322,7 +379,7 @@
         return String(y.criadoEm || "").localeCompare(String(x.criadoEm || ""));
       });
       if (meus.length) {
-        email = meus[0].email || "";
+        if (!email) email = meus[0].email || "";
         visita = meus[0].visita ? String(meus[0].visita).slice(0, 10) : "";
         obs = meus[0].obs || "";
         meus.forEach(function (a) {
@@ -344,7 +401,11 @@
 
   function limpar() {
     ["f-cod","f-base","f-nome","f-endereco","f-cidade","f-cep",
-     "f-email","f-visita","f-ate","f-semana","f-obs"].forEach(function (id) { setVal(id, ""); });
+     "f-resp-nome","f-email","f-visita","f-ate","f-semana",
+     "f-obs"].forEach(function (id) { setVal(id, ""); });
+    cepBuscado = "";
+    var aviso = $("f-cep-aviso");
+    if (aviso) aviso.textContent = "Preenche endereço, cidade e UF.";
     setVal("f-uf", "SP");
     setVal("f-ativo", "1");
     renderProcs(null);
@@ -364,6 +425,7 @@
       cidade: txt("f-cidade"),
       uf: val("f-uf") || "SP",
       cep: txt("f-cep"),
+      respNome: txt("f-resp-nome"),
       email: txt("f-email").toLowerCase(),
       visita: val("f-visita") || "",
       ate: val("f-ate") || "",
@@ -439,6 +501,8 @@
         cep: d.cep || null,
         cod_fornecedor: d.cod || null,
         base: d.base || "",
+        responsavel_nome: d.respNome || null,
+        responsavel_email: d.email || null,
         ativo: d.ativo,
         lat: coord.lat,
         lng: coord.lng

@@ -260,6 +260,45 @@
       .catch(function () { return null; });
   }
 
+  // ------------------------------------------------------------------- CEP
+  // Preenche endereco, cidade e estado a partir do CEP. Digitar oito numeros e
+  // menos trabalho e erra menos que digitar rua, cidade e sigla a mao.
+  //
+  // Servico publico dos Correios (ViaCEP). Vai apenas o CEP: nao acompanha
+  // nome, e-mail nem qualquer dado de pessoa.
+  var cacheCep = {};
+
+  function porCep(cep) {
+    var limpo = String(cep || "").replace(/\D/g, "");
+    if (limpo.length !== 8) return Promise.resolve(null);
+    if (cacheCep[limpo] !== undefined) return Promise.resolve(cacheCep[limpo]);
+
+    return fetch("https://viacep.com.br/ws/" + limpo + "/json/", {
+      headers: { Accept: "application/json" }
+    }).then(function (r) {
+      return r.ok ? r.json() : null;
+    }).then(function (j) {
+      // O servico responde 200 com { erro: true } para CEP que nao existe.
+      if (!j || j.erro) { cacheCep[limpo] = null; return null; }
+      var rua = String(j.logradouro || "").trim();
+      var bairro = String(j.bairro || "").trim();
+      var achado = {
+        cep: limpo.slice(0, 5) + "-" + limpo.slice(5),
+        // Endereco sem numero: o numero e a unica parte que o CEP nao sabe.
+        endereco: [rua, bairro].filter(Boolean).join(" - "),
+        rua: rua,
+        bairro: bairro,
+        cidade: String(j.localidade || "").trim(),
+        uf: String(j.uf || "").trim().toUpperCase()
+      };
+      cacheCep[limpo] = achado;
+      return achado;
+    }).catch(function () {
+      // Sem resposta nao guarda nada: a proxima tentativa pode dar certo.
+      return null;
+    });
+  }
+
   window.GeoBR = {
     LIMITES: [[-34.0, -74.0], [5.5, -34.5]],   // Brasil inteiro
     CENTRO: [-15.0, -52.0],
@@ -270,6 +309,7 @@
     daUf: daUf,
     pontoDaEpo: pontoDaEpo,
     espalhar: espalhar,
-    geocodificar: geocodificar
+    geocodificar: geocodificar,
+    porCep: porCep
   };
 })();

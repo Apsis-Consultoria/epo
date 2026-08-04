@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=72">
+  <link rel="stylesheet" href="assets/app.css?v=73">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -337,11 +337,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=72"></script>
-  <script src="assets/app.js?v=72"></script>
-  <script src="assets/supabase-config.js?v=72"></script>
+  <script src="assets/data.js?v=73"></script>
+  <script src="assets/app.js?v=73"></script>
+  <script src="assets/supabase-config.js?v=73"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=72"></script>
+  <script src="assets/auth.js?v=73"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -489,7 +489,7 @@
         tempos: { chegada: null, armazenagem: null, distribuicao: null, retornoCampo: null, devolucao: null },
         contagens: { equipamentos: null, fontes: null, controles: null, equipControle: null },
         respostas: {}, // id -> { status, obs, just, arquivos: File[] }
-        assin: { respEpo: "", respClaro: "", data: "" }
+        assin: { respEpo: "" }
       };
       (function initEpo() {
         var e = App.epoById(state.epoId);
@@ -693,8 +693,12 @@
         };
       }
 
-      function fmtScore01(n) {
-        return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      // A nota do sistema vai de 0 a 100, e e assim que ela aparece no ranking,
+      // na tela das EPOs e nos cortes de selo. Aqui ela era escrita como fracao
+      // com duas casas ("0,33"), na mesma tela em que o selo dizia Critico por
+      // comparar 33 com o corte 55: dois numeros diferentes para a mesma coisa.
+      function fmtNota(pts) {
+        return String(Math.round(Number(pts) || 0));
       }
 
       // ------------------------------------ Contagem da reversa (percentuais)
@@ -1450,13 +1454,16 @@
         );
       }
 
+      // Um campo so: quem acompanhou a visita pela EPO. O nome de quem preenche
+      // ja e a conta que esta preenchendo, e a data da visita foi perguntada na
+      // primeira tela - perguntar de novo aqui deixava as duas divergirem, e
+      // esta ficava em branco.
       function renderAssinaturas() {
         return (
           '<p class="wiz-eyebrow">' + esc(processo.nome) + " · Finalização</p>" +
-          '<h1 class="wiz-question">Classificação e assinaturas</h1>' +
-          '<div class="wiz-field"><label for="f-resp-epo">Responsável pela EPO</label><input class="input" id="f-resp-epo" value="' + esc(state.assin.respEpo) + '" placeholder="Nome"></div>' +
-          '<div class="wiz-field"><label for="f-resp-claro">Responsável Claro / auditor</label><input class="input" id="f-resp-claro" value="' + esc(state.assin.respClaro) + '" placeholder="Nome"></div>' +
-          '<div class="wiz-field"><label for="f-assin-data">Data</label><input class="input" id="f-assin-data" type="date" value="' + esc(state.assin.data) + '"></div>'
+          '<h1 class="wiz-question">Quem acompanhou pela EPO</h1>' +
+          '<div class="wiz-field"><label for="f-resp-epo">Responsável pela EPO</label>' +
+            '<input class="input" id="f-resp-epo" value="' + esc(state.assin.respEpo) + '" placeholder="Nome de quem acompanhou a visita"></div>'
         );
       }
 
@@ -1511,7 +1518,7 @@
           '<p class="wiz-eyebrow">' + esc(processo.nome) + " · Resumo</p>" +
           '<h1 class="wiz-question">Auditoria pronta para envio</h1>' +
           '<div class="wiz-summary-card">' +
-            '<div class="wiz-summary-score tnum">' + fmtScore01(r.score01) + "</div>" +
+            '<div class="wiz-summary-score tnum">' + fmtNota(r.pts) + "</div>" +
             '<div class="wiz-summary-tier">' + (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : '<span class="badge">Sem avaliação</span>') + "</div>" +
             '<div class="wiz-summary-grid">' + statsHtml + "</div>" +
           "</div>" +
@@ -1674,8 +1681,6 @@
           }
         } else if (step.type === "assinaturas") {
           document.getElementById("f-resp-epo").addEventListener("input", function (ev) { state.assin.respEpo = ev.target.value; });
-          document.getElementById("f-resp-claro").addEventListener("input", function (ev) { state.assin.respClaro = ev.target.value; });
-          document.getElementById("f-assin-data").addEventListener("input", function (ev) { state.assin.data = ev.target.value; });
         } else if (step.type === "resumo") {
           document.getElementById("btn-rascunho").addEventListener("click", function () {
             App.toast("Rascunho salvo.");
@@ -1750,7 +1755,7 @@
               "Enviada para conferência: a equipe APSIS vai comparar suas respostas e evidências com as do responsável da EPO." + "</p>" +
             '<div class="wiz-done-score">' +
               (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : "") +
-              '<strong class="tnum">' + fmtScore01(r.score01) + " / 1,00</strong>" +
+              '<strong class="tnum">' + fmtNota(r.pts) + " / 100</strong>" +
             "</div>" +
             '<div class="wiz-done-actions">' +
               '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Outras auditorias pendentes</a>' +
@@ -1866,8 +1871,7 @@
               status: "rascunho",
               score: Math.round(sc.pts * 100) / 100,
               tier: sc.answered > 0 ? App.tierOf(sc.pts) : null,
-              resp_epo: (state.assin.respEpo || "").trim() || null,
-              resp_claro: (state.assin.respClaro || "").trim() || null
+              resp_epo: (state.assin.respEpo || "").trim() || null
             }).select("id").single();
           })
           .then(function (r) {
