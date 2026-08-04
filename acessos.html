@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=110">
+  <link rel="stylesheet" href="assets/app.css?v=111">
   <style>
     /* ---------------- Matriz de telas por cargo ---------------- */
     .matrix-wrap { width: 100%; overflow: auto; border-top: 1px solid var(--border); }
@@ -21,7 +21,19 @@
       border-bottom: 1px solid var(--border);
       white-space: nowrap;
     }
-    .matrix thead th.col-cargo { text-align: left; left: 0; z-index: 4; min-width: 210px; }
+    /* A tela agora fica na linha e o cargo na coluna. São 16 telas e 5 cargos:
+       no sentido anterior a tabela tinha 16 colunas e escondia o nome de quase
+       todas atrás da rolagem lateral. Assim ela cresce para baixo, que é o lado
+       em que a página já rola. */
+    .matrix thead th.col-tela { text-align: left; left: 0; z-index: 4; min-width: 240px; }
+    /* O nome do cargo pode quebrar em duas linhas. Preso numa linha so
+       ("Equipe de Campo Apsis"), a tabela voltava a ter rolagem lateral - que
+       era justamente o que se queria tirar. */
+    .matrix thead th.col-cargo-h { min-width: 112px; white-space: normal; }
+    .col-nota {
+      display: block; font-size: 10.5px; font-weight: 400;
+      color: var(--text-muted); text-transform: none; letter-spacing: 0;
+    }
     .matrix tbody td {
       padding: 11px 8px;
       border-bottom: 1px solid var(--border);
@@ -31,13 +43,20 @@
       background: var(--surface);
     }
     .matrix tbody tr:last-child td { border-bottom: 0; }
-    .matrix tbody td.col-cargo { position: sticky; left: 0; z-index: 2; text-align: left; }
+    .matrix tbody td.col-tela { position: sticky; left: 0; z-index: 2; text-align: left; }
     .matrix tbody tr:hover td { background: var(--surface-2); }
 
-    .col-head { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
-    .col-head i { font-size: 17px; color: var(--text-2); }
+    .tela-cel b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); }
+    /* Como se chega até a tela. Em cinza porque é apoio, não o nome dela. */
+    .tela-cel span { display: block; font-size: 11.5px; color: var(--text-muted); line-height: 1.4; }
 
-    .cargo-cel b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .matrix tbody tr.linha-grupo td {
+      background: var(--surface-2);
+      font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+      color: var(--text-2); text-align: left; padding: 7px 10px;
+      position: sticky; left: 0;
+    }
+    .matrix tbody tr.linha-grupo:hover td { background: var(--surface-2); }
 
     /* Caixa da matriz: 18px, verde APSIS quando marcada */
     .acc-check {
@@ -110,13 +129,13 @@
     .is-hidden { display: none !important; }
 
     @media (max-width: 900px) {
-      .matrix thead th.col-cargo { min-width: 170px; }
+      .matrix thead th.col-tela { min-width: 200px; }
+      .matrix thead th.col-cargo-h { min-width: 108px; }
     }
 
-    /* Celular: a matriz tinha 16 colunas e escondia 1031px atras da rolagem
-       lateral, ou seja, quase tudo. Cada cargo passa a ser um cartao, e cada
-       tela uma linha com o nome ao lado da caixa - o nome era exatamente o que
-       a rolagem escondia. */
+    /* Celular: nao ha largura para 5 colunas de cargo mais o nome da tela.
+       Cada TELA passa a ser um cartao, e cada cargo uma linha com o nome ao
+       lado da caixa - o nome era exatamente o que a rolagem escondia. */
     @media (max-width: 820px) {
       .matrix-wrap { overflow: visible; border-top: 0; }
       .matrix { display: block; width: 100%; }
@@ -134,14 +153,20 @@
         text-align: left; width: auto; background: transparent;
       }
       .matrix tbody td::after {
-        content: attr(data-tela-nome);
+        content: attr(data-cargo-nome);
         font-size: 13px; color: var(--text-2);
       }
-      .matrix tbody td.col-cargo {
+      .matrix tbody td.col-tela {
         display: block; padding: 0 0 9px; margin-bottom: 6px;
         border-bottom: 1px solid var(--border); min-height: 0;
       }
-      .matrix tbody td.col-cargo::after { content: none; }
+      .matrix tbody td.col-tela::after { content: none; }
+      /* O grupo vira um titulo solto entre os cartoes, sem moldura. */
+      .matrix tbody tr.linha-grupo {
+        border: 0; background: transparent; padding: 4px 0 2px; margin-bottom: 0;
+      }
+      .matrix tbody tr.linha-grupo td { display: block; padding: 0; }
+      .matrix tbody tr.linha-grupo td::after { content: none; }
     }
   </style>
 </head>
@@ -154,11 +179,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=110"></script>
-  <script src="assets/app.js?v=110"></script>
-  <script src="assets/supabase-config.js?v=110"></script>
+  <script src="assets/data.js?v=111"></script>
+  <script src="assets/app.js?v=111"></script>
+  <script src="assets/supabase-config.js?v=111"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=110"></script>
+  <script src="assets/auth.js?v=111"></script>
   <script>
     (function () {
       "use strict";
@@ -190,16 +215,15 @@
       // alcança tudo por definição, e é por ele que se conserta um engano.
       var CARGOS = ["gestor", "auditor", "cliente", "responsavel"];
 
-      var LABEL_CURTO = {
-        geral: "Visão geral", epos: "EPOs", cronograma: "Cronograma",
-        ranking: "Ranking", comparativo: "Comparativo", gerencial: "Gerencial",
-        pendentes: "Pendentes", realizadas: "Realizadas", auditoria: "Preenchimento", envio: "Envio",
-        checagem: "Recebidas", questionarios: "Questionários", alocacoes: "Reenvio",
-        giro: "Reversa", evidencias: "Evidências", config: "Config.", acessos: "Acessos"
-      };
-
-      var paginas = (window.APP && window.APP.paginas) || [];
+      // A matriz é montada sobre TODAS as telas guardadas do sistema, e não
+      // sobre a lista do menu lateral: tela que existe e não está no menu
+      // (o detalhe da EPO, o preenchimento do questionário) ficava fora, e
+      // quem liberava um cargo não via essas telas em lugar nenhum.
+      var telas = (window.APP && window.APP.telasSistema) || [];
       var presets = (window.APP && window.APP.papeisPreset) || {};
+
+      // Ordem das colunas: quem alcança mais primeiro.
+      var COLUNAS = ["admin", "gestor", "auditor", "cliente", "responsavel"];
 
       var permissoes = {};      // papel -> tela -> bool
       var mexidas = {};         // papel|tela -> bool, só o que mudou
@@ -214,10 +238,9 @@
       // ------------------------------------------------------------------
       // Estrutura
       // ------------------------------------------------------------------
-      var htmlColunas = paginas.map(function (p) {
-        return "<th><span class=\"col-head\" title=\"" + esc(p.label) + "\">" +
-          '<i class="ti ' + esc(p.icone) + '" aria-hidden="true"></i>' +
-          esc(LABEL_CURTO[p.key] || p.label) + "</span></th>";
+      var htmlColunas = COLUNAS.map(function (c) {
+        return '<th class="col-cargo-h">' + esc(PAPEL_LABEL[c]) +
+          (c === "admin" ? '<span class="col-nota">alcança tudo</span>' : "") + "</th>";
       }).join("");
 
       document.getElementById("page").innerHTML =
@@ -229,7 +252,7 @@
             "</div>" +
           "</div>" +
           '<div class="matrix-wrap"><table class="matrix">' +
-            '<thead><tr><th class="col-cargo">Cargo</th>' + htmlColunas + "</tr></thead>" +
+            '<thead><tr><th class="col-tela">Tela</th>' + htmlColunas + "</tr></thead>" +
             '<tbody id="matriz-corpo"></tbody>' +
           "</table></div>" +
           '<div class="matriz-rodape">' +
@@ -319,8 +342,8 @@
         var out = {};
         CARGOS.forEach(function (c) {
           out[c] = {};
-          paginas.forEach(function (p) {
-            out[c][p.key] = !!(presets[c] && presets[c][p.key]);
+          telas.forEach(function (t) {
+            out[c][t.key] = !!(presets[c] && presets[c][t.key]);
           });
         });
         return out;
@@ -353,6 +376,25 @@
         }).catch(function () { meuPapel = ""; });
       }
 
+      // Uma tela nova entra em três lugares: nesta lista, no guard e na regra
+      // do banco. Se um deles ficar atrás, a matriz deixa de valer para aquela
+      // tela em silêncio - foi o que aconteceu com o detalhe da EPO. Esta
+      // conferência compara os dois lados e avisa na própria tela.
+      var descompasso = "";
+      function conferirLista(dados) {
+        var naLista = {}, noBanco = {};
+        telas.forEach(function (t) { naLista[t.key] = true; });
+        dados.forEach(function (x) { noBanco[x.tela] = true; });
+        var soNoBanco = Object.keys(noBanco).filter(function (k) { return !naLista[k]; });
+        var soNaLista = Object.keys(naLista).filter(function (k) { return !noBanco[k]; });
+        var partes = [];
+        if (soNoBanco.length) partes.push("o servidor guarda permissão para " + soNoBanco.join(", "));
+        if (soNaLista.length) partes.push("ainda não há permissão guardada para " + soNaLista.join(", "));
+        descompasso = partes.length
+          ? "Confira o cadastro de telas: " + partes.join("; ") + "."
+          : "";
+      }
+
       function carregar() {
         carregando = true; falha = "";
         mexidas = {};
@@ -374,6 +416,7 @@
                 if (!permissoes[x.papel]) permissoes[x.papel] = {};
                 permissoes[x.papel][x.tela] = !!x.permitido;
               });
+              conferirLista(r.data);
             }
             return db.from("acessos_autorizados")
               .select("id, email, nome, papel, ativo, observacao, " +
@@ -414,39 +457,47 @@
         // O unico texto que fica: sem ele, a matriz travada nao se explica.
         $("sub-matriz").textContent = souAdmin() ? "" : "Somente o administrador altera esta matriz.";
 
+        var colunas = COLUNAS.length + 1;
+
         if (carregando) {
           $("matriz-corpo").innerHTML =
-            '<tr><td class="col-cargo" colspan="' + (paginas.length + 1) + '">Carregando...</td></tr>';
+            '<tr><td class="col-tela" colspan="' + colunas + '">Carregando...</td></tr>';
           return;
         }
 
         var linhas = [];
+        var grupoAtual = "";
 
-        // Administrador entra como linha travada, para a matriz não parecer
-        // incompleta e para deixar claro que ele não é restringível.
-        linhas.push("<tr>" +
-          '<td class="col-cargo"><div class="cargo-cel"><b>' + esc(PAPEL_LABEL.admin) + "</b>" +
-            "</div></td>" +
-          paginas.map(function (p) {
-            return '<td data-tela-nome="' + esc(LABEL_CURTO[p.key] || p.label) + '">' +
-              '<input type="checkbox" class="acc-check" checked disabled' +
-              ' aria-label="sempre liberado"></td>';
-          }).join("") +
-        "</tr>");
+        telas.forEach(function (t) {
+          if (t.grupo !== grupoAtual) {
+            grupoAtual = t.grupo;
+            linhas.push('<tr class="linha-grupo"><td colspan="' + colunas + '">' +
+              esc(grupoAtual) + "</td></tr>");
+          }
 
-        CARGOS.forEach(function (c) {
-          linhas.push("<tr>" +
-            '<td class="col-cargo"><div class="cargo-cel"><b>' + esc(PAPEL_LABEL[c]) + "</b>" +
-              "</div></td>" +
-            paginas.map(function (p) {
-              return '<td data-tela-nome="' + esc(LABEL_CURTO[p.key] || p.label) + '">' +
-                '<input type="checkbox" class="acc-check" data-papel="' + c + '"' +
-                ' data-tela="' + esc(p.key) + '"' + (valorAtual(c, p.key) ? " checked" : "") +
-                (souAdmin() ? "" : " disabled") +
-                ' aria-label="' + esc(PAPEL_LABEL[c] + ", " + (LABEL_CURTO[p.key] || p.key)) + '">' +
+          // "onde" existe porque metade destas telas não está no menu: sem
+          // isso, liberar ou tirar uma tela é decidir no escuro.
+          var celTela = '<td class="col-tela"><div class="tela-cel"><b>' + esc(t.label) + "</b>" +
+            '<span>' + esc(t.onde) + "</span></div></td>";
+
+          var celulas = COLUNAS.map(function (c) {
+            // Administrador entra travado, para a matriz não parecer incompleta
+            // e para deixar claro que é por ele que se conserta um engano.
+            if (c === "admin") {
+              return '<td data-cargo-nome="' + esc(PAPEL_LABEL.admin) + '">' +
+                '<input type="checkbox" class="acc-check" checked disabled' +
+                ' aria-label="' + esc(PAPEL_LABEL.admin + ", " + t.label + ", sempre liberado") + '">' +
+                "</td>";
+            }
+            return '<td data-cargo-nome="' + esc(PAPEL_LABEL[c]) + '">' +
+              '<input type="checkbox" class="acc-check" data-papel="' + c + '"' +
+              ' data-tela="' + esc(t.key) + '"' + (valorAtual(c, t.key) ? " checked" : "") +
+              (souAdmin() ? "" : " disabled") +
+              ' aria-label="' + esc(PAPEL_LABEL[c] + ", " + t.label) + '">' +
               "</td>";
-            }).join("") +
-          "</tr>");
+          }).join("");
+
+          linhas.push("<tr>" + celTela + celulas + "</tr>");
         });
 
         $("matriz-corpo").innerHTML = linhas.join("");
@@ -458,7 +509,7 @@
         $("btn-salvar-matriz").classList.toggle("is-hidden", n === 0);
         $("btn-desfazer").classList.toggle("is-hidden", n === 0);
         $("matriz-aviso").textContent = n === 0
-          ? ""
+          ? descompasso
           : n + (n === 1 ? " mudança ainda não salva." : " mudanças ainda não salvas.");
       }
 

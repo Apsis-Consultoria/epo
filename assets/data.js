@@ -293,6 +293,47 @@
   ];
 
   // -----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
+  // TODAS as telas guardadas do sistema, e não só as que aparecem no menu.
+  //
+  // A tela de acessos era montada a partir de "paginas", que é a lista do MENU
+  // LATERAL. Tela que existe e não está no menu ficava fora da matriz: era o
+  // caso do detalhe da EPO, que se alcança clicando numa unidade na visão
+  // geral, no ranking ou no mapa, e cuja permissão vinha pendurada na do
+  // ranking. Quem liberava um cargo não via essa tela em lugar nenhum.
+  //
+  // Esta lista é a mesma coisa que o guard usa (MAPA_PAGINAS em auth.js) e a
+  // mesma coisa que o banco aceita (perm_tela_chk em permissoes_papel). Uma
+  // tela nova precisa entrar nos três lugares, e a tela de acessos tem uma
+  // conferência que avisa quando um deles fica atrás.
+  //
+  // key     = permissão gravada no banco
+  // arquivo = página, sem extensão
+  // onde    = como a pessoa chega até ela (o que o menu não conta)
+  // -----------------------------------------------------------------------
+  var telasSistema = [
+    { grupo: "Acompanhamento", key: "geral",         label: "Visão geral",                arquivo: "index",         onde: "menu lateral" },
+    { grupo: "Acompanhamento", key: "ranking",       label: "Ranking",                    arquivo: "ranking",       onde: "menu lateral" },
+    { grupo: "Acompanhamento", key: "detalhe",       label: "Detalhe da EPO",             arquivo: "epo-detalhe",   onde: "clique numa unidade: visão geral, ranking ou mapa" },
+    { grupo: "Acompanhamento", key: "comparativo",   label: "Comparativo",                arquivo: "comparar",      onde: "menu lateral" },
+    { grupo: "Acompanhamento", key: "gerencial",     label: "Painel gerencial",           arquivo: "gerencial",     onde: "menu lateral" },
+
+    { grupo: "Cadastro",       key: "epos",          label: "EPOs",                       arquivo: "epos",          onde: "menu lateral e atalho da visão geral" },
+    { grupo: "Cadastro",       key: "cronograma",    label: "Cronograma",                 arquivo: "cronograma",    onde: "menu lateral e atalho da visão geral" },
+    { grupo: "Cadastro",       key: "questionarios", label: "Questionários",              arquivo: "questionarios", onde: "menu lateral" },
+
+    { grupo: "Vistoria",       key: "pendentes",     label: "Auditorias pendentes",       arquivo: "pendentes",     onde: "menu lateral e atalho da visão geral" },
+    { grupo: "Vistoria",       key: "auditoria",     label: "Preenchimento do questionário", arquivo: "auditoria",  onde: "botão Preencher, em Auditorias pendentes" },
+    { grupo: "Vistoria",       key: "realizadas",    label: "Auditorias realizadas",      arquivo: "realizadas",    onde: "menu lateral" },
+
+    { grupo: "Evidências",     key: "checagem",      label: "Evidências",                 arquivo: "checagem",      onde: "menu lateral e botão Conferir, em Auditorias pendentes" },
+    { grupo: "Evidências",     key: "evidencias",    label: "Evidências enviadas",        arquivo: "evidencias",    onde: "atalho Evidências recebidas, na visão geral" },
+    { grupo: "Evidências",     key: "alocacoes",     label: "Reenvio de checklist",       arquivo: "alocacoes",     onde: "menu lateral" },
+    { grupo: "Evidências",     key: "giro",          label: "Contagem Logística Reversa", arquivo: "contagem-giro", onde: "menu lateral (em breve)" },
+
+    { grupo: "Administração",  key: "acessos",       label: "Gerenciamento de acessos",   arquivo: "acessos",       onde: "menu lateral" }
+  ];
+
   // Presets de permissão por papel (usados como sugestão na tela de acessos).
   // -----------------------------------------------------------------------
   // "A princípio": responsável só envia evidências; auditor APSIS só vê os questionários.
@@ -303,7 +344,7 @@
   // enxerga apenas as EPOs do cliente dele, e isso nao depende desta tabela.
   // Coordenação APSIS e gerência da Claro veem o sistema inteiro.
   var visaoCoordenacao = {
-    epos: true,  geral: true,  ranking: true,  comparativo: true,  gerencial: true,
+    epos: true,  geral: true,  ranking: true,  detalhe: true,  comparativo: true,  gerencial: true,
     pendentes: true,  realizadas: true, auditoria: true,   checagem: true,  alocacoes: true,
     giro: true,  evidencias: true,   acessos: true,  questionarios: true,
     cronograma: true
@@ -315,17 +356,17 @@
     admin:       visaoCoordenacao,
     gestor:      visaoCoordenacao,
     cliente:     visaoCoordenacao,
-    auditor:     { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: true,  realizadas: true,  auditoria: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, acessos: false, questionarios: false, cronograma: true },
-    responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, realizadas: false, auditoria: false, checagem: true,  alocacoes: false, giro: true,  evidencias: false, acessos: false, questionarios: false, cronograma: false },
+    auditor:     { epos: false, geral: false, ranking: false, detalhe: false, comparativo: false, gerencial: false, pendentes: true,  realizadas: true,  auditoria: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, acessos: false, questionarios: false, cronograma: true },
+    responsavel: { epos: false, geral: false, ranking: false, detalhe: false, comparativo: false, gerencial: false, pendentes: false, realizadas: false, auditoria: false, checagem: true,  alocacoes: false, giro: true,  evidencias: false, acessos: false, questionarios: false, cronograma: false },
     // Entrou no sistema, mas a APSIS ainda nao liberou o acesso. Nao alcanca
     // tela nenhuma: quem cai aqui vai para a pagina que explica isso.
-    sem_acesso: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, realizadas: false, auditoria: false, checagem: false, alocacoes: false, giro: false, evidencias: false, acessos: false, questionarios: false, cronograma: false }
+    sem_acesso: { epos: false, geral: false, ranking: false, detalhe: false, comparativo: false, gerencial: false, pendentes: false, realizadas: false, auditoria: false, checagem: false, alocacoes: false, giro: false, evidencias: false, acessos: false, questionarios: false, cronograma: false }
   };
 
   function copiaPreset(papel) {
     var base = papeisPreset[papel] || {};
     var out = {};
-    paginas.forEach(function (p) { out[p.key] = !!base[p.key]; });
+    telasSistema.forEach(function (t) { out[t.key] = !!base[t.key]; });
     return out;
   }
 
@@ -361,6 +402,7 @@
     epos: epos,
     evidencias: evidencias,
     paginas: paginas,
+    telasSistema: telasSistema,
     papeisPreset: papeisPreset,
     usuarios: usuarios,
     anexosRecebidos: anexosRecebidos

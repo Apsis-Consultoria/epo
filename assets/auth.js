@@ -52,7 +52,9 @@
     "auditoria": "auditoria",
     "checagem": "checagem",
     "questionarios": "questionarios",
-    "epo-detalhe": "ranking",
+    // O detalhe da EPO andava pendurado na permissao do ranking. Tem chave
+    // propria: e uma tela, aparece na matriz como as outras.
+    "epo-detalhe": "detalhe",
     "alocacoes": "alocacoes",
     "contagem-giro": "giro",
     "evidencias": "evidencias",
@@ -74,7 +76,11 @@
   function primeiraPermitida(perms) {
     // "realizadas" faltava nesta lista: um cargo que alcancasse SO essa tela
     // caia no fim do laco e era mandado para a tela de sem acesso.
-    var ordem = ["geral", "epos", "cronograma", "pendentes", "realizadas", "auditoria", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "questionarios", "acessos"];
+    // Todas as 16 telas guardadas entram aqui. Chave que ficasse fora fazia um
+    // cargo que alcanca SO aquela tela cair no fim do laco e ser mandado para a
+    // pagina de sem acesso. O detalhe da EPO fica no fim de proposito: ele
+    // sempre depende de escolher uma unidade antes, nao serve de porta de entrada.
+    var ordem = ["geral", "epos", "cronograma", "pendentes", "realizadas", "auditoria", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "questionarios", "acessos", "detalhe"];
     var mapaInverso = {};
     Object.keys(MAPA_PAGINAS).forEach(function (arq) { mapaInverso[MAPA_PAGINAS[arq]] = arq; });
     for (var i = 0; i < ordem.length; i++) {

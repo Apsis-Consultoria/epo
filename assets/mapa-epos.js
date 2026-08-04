@@ -298,17 +298,34 @@
       if (camadaPinos) camadaPinos.bringToFront();
     }
 
+    // Centraliza o mapa numa região. Se o contorno não chegou, cerca os pinos
+    // da própria região, para o clique responder de todo jeito.
+    function centralizarRegiao(id) {
+      if (!mapa) return;
+      var forma = formaDaRegiao[id];
+      if (forma) { mapa.fitBounds(forma.getBounds(), { padding: [30, 30] }); return; }
+      var pontos = unidades.filter(function (u) {
+        return u.ponto && u.regiao && u.regiao.id === id;
+      }).map(function (u) { return u.ponto; });
+      if (pontos.length) mapa.fitBounds(pontos, { padding: [40, 40], maxZoom: 8 });
+    }
+
     function renderRegioes() {
       var alvo = noCard("[data-regioes]");
       if (!alvo) return;
       alvo.innerHTML = notasRegiao.map(function (n) {
-        var vazia = n.media === null;
-        var detalhe = !n.quantos
+        // Cinza é falta de EPO, não falta de nota. Antes a linha sem nota vinha
+        // desligada, então a região com unidade cadastrada e nenhuma vistoria
+        // não respondia ao clique: dava para ver que havia 5 EPOs ali e não
+        // dava para chegar nelas.
+        var semEpo = !n.quantos;
+        var detalhe = semEpo
           ? "nenhuma EPO"
           : n.quantos + (n.quantos === 1 ? " EPO" : " EPOs") +
             (n.comNota < n.quantos ? " · " + (n.quantos - n.comNota) + " sem vistoria" : "");
-        return '<button class="reg-linha' + (vazia ? " is-vazia" : "") + '" type="button" ' +
-          'data-regiao="' + n.id + '"' + (vazia ? " disabled" : "") + ">" +
+        var vazia = n.media === null;
+        return '<button class="reg-linha' + (semEpo ? " is-vazia" : "") + '" type="button" ' +
+          'data-regiao="' + n.id + '" title="Centralizar o mapa em ' + esc(n.nome) + '">' +
           htmlSelo(n.selo, 24) +
           '<span class="reg-info"><b>' + esc(n.nome) + "</b><span>" + esc(detalhe) + "</span></span>" +
           '<span class="reg-nota">' + (vazia ? "<small>sem nota</small>" : App.fmtNum(n.media)) + "</span>" +
@@ -317,9 +334,8 @@
 
       alvo.addEventListener("click", function (ev) {
         var b = ev.target.closest("[data-regiao]");
-        if (!b || b.disabled) return;
-        var forma = formaDaRegiao[b.getAttribute("data-regiao")];
-        if (forma && mapa) mapa.fitBounds(forma.getBounds(), { padding: [30, 30] });
+        if (!b) return;
+        centralizarRegiao(b.getAttribute("data-regiao"));
       });
       alvo.addEventListener("mouseover", function (ev) {
         var b = ev.target.closest("[data-regiao]");
@@ -345,9 +361,7 @@
               formaDaRegiao[id] = camada;
               camada.on("mouseover", function () { destacarRegiao(id, true); });
               camada.on("mouseout", function () { destacarRegiao(id, false); });
-              camada.on("click", function () {
-                mapa.fitBounds(camada.getBounds(), { padding: [30, 30] });
-              });
+              camada.on("click", function () { centralizarRegiao(id); });
             }
           });
           camadaRegioes.addTo(mapa);          // entra antes dos pinos

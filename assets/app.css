@@ -1169,8 +1169,9 @@ input[type="submit"],
   transition: background .12s ease;
 }
 .reg-linha:hover { background: var(--surface-2); }
-.reg-linha.is-vazia { cursor: default; opacity: .6; }
-.reg-linha.is-vazia:hover { background: transparent; }
+/* Regiao sem EPO fica apagada, mas continua clicavel: o clique centraliza o
+   mapa nela de todo jeito, e cursor de "nao clique" mentia sobre isso. */
+.reg-linha.is-vazia { opacity: .6; }
 .reg-info { flex: 1; min-width: 0; }
 .reg-info b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); }
 .reg-info span { font-size: 11.5px; color: var(--text-2); }
