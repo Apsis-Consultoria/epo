@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=81">
+  <link rel="stylesheet" href="assets/app.css?v=82">
   <style>
     /* Ajustes locais da tela de evidências recebidas (grade + lista) */
 
@@ -136,11 +136,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=81"></script>
-  <script src="assets/app.js?v=81"></script>
-  <script src="assets/supabase-config.js?v=81"></script>
+  <script src="assets/data.js?v=82"></script>
+  <script src="assets/app.js?v=82"></script>
+  <script src="assets/supabase-config.js?v=82"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=81"></script>
+  <script src="assets/auth.js?v=82"></script>
   <script>
     (function () {
       "use strict";
@@ -508,15 +508,15 @@
           var st = p.auditoria ? p.auditoria.status : null;
           return (
             "<tr>" +
-              "<td>" +
+              '<td class="cartao-titulo">' +
                 '<div style="font-weight:600;">' + esc(p.epoNome) + "</div>" +
                 (p.epoLocal ? '<div class="text-muted" style="font-size:12px;">' + esc(p.epoLocal) + "</div>" : "") +
               "</td>" +
-              "<td>" + esc(p.processoNome) + "</td>" +
-              '<td class="tnum nowrap">' + fmtData(p.data) + "</td>" +
-              "<td>" + badgeAuditoria(st) + "</td>" +
-              "<td>" + badgeEnvio(!!p.alocacao) + "</td>" +
-              '<td style="text-align:right;">' +
+              '<td data-rotulo="Questionário">' + esc(p.processoNome) + "</td>" +
+              '<td class="tnum nowrap" data-rotulo="Data">' + fmtData(p.data) + "</td>" +
+              '<td data-rotulo="Auditoria">' + badgeAuditoria(st) + "</td>" +
+              '<td data-rotulo="Envio da EPO">' + badgeEnvio(!!p.alocacao) + "</td>" +
+              '<td style="text-align:right;" class="cartao-acoes">' +
                 '<button class="btn btn-ghost btn-sm" type="button" data-conferir="' + i + '">' +
                   '<i class="ti ti-zoom-check" aria-hidden="true"></i>Conferir</button>' +
               "</td>" +
@@ -524,7 +524,7 @@
           );
         }).join("");
 
-        var tabela = '<div class="table-wrap"><table class="table">' +
+        var tabela = '<div class="table-wrap"><table class="table tabela-cartao">' +
             "<thead><tr>" +
               "<th>EPO</th><th>Questionário</th><th>Data</th>" +
               "<th>Auditoria</th><th>Envio da EPO</th><th></th>" +

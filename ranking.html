@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=81">
+  <link rel="stylesheet" href="assets/app.css?v=82">
   <style>
     /* Ajustes locais da tela de ranking (linha expansível) */
     .rank-row { cursor: pointer; }
@@ -115,12 +115,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=81"></script>
-  <script src="assets/app.js?v=81"></script>
-  <script src="assets/supabase-config.js?v=81"></script>
+  <script src="assets/data.js?v=82"></script>
+  <script src="assets/app.js?v=82"></script>
+  <script src="assets/supabase-config.js?v=82"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=81"></script>
-  <script src="assets/dados-reais.js?v=81"></script>
+  <script src="assets/auth.js?v=82"></script>
+  <script src="assets/dados-reais.js?v=82"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -347,32 +347,32 @@
         var open = state.open === e.id;
         return "" +
           '<tr class="rank-row' + (open ? " is-open" : "") + '" data-epo="' + esc(e.id) + '">' +
-            '<td style="width:34px;padding-right:0;">' +
+            '<td style="width:34px;padding-right:0;" class="cartao-fora">' +
               '<button type="button" class="rank-toggle" aria-expanded="' + (open ? "true" : "false") + '" aria-label="' + (open ? "Recolher detalhes de " : "Expandir detalhes de ") + esc(e.nome) + '">' +
                 '<i class="ti ti-chevron-right" aria-hidden="true"></i>' +
               "</button>" +
             "</td>" +
-            '<td class="rank">' + pos + "</td>" +
-            "<td>" +
+            '<td class="rank cartao-fora">' + pos + "</td>" +
+            '<td class="cartao-titulo">' +
               '<div class="stack" style="line-height:1.3;">' +
-                '<span style="font-weight:600;">' + esc(e.nome) + "</span>" +
+                '<span style="font-weight:600;">' + pos + ". " + esc(e.nome) + "</span>" +
                 '<span class="text-muted" style="font-size:12px;">' + esc(e.cidade) + " · " + esc(e.uf) + "</span>" +
               "</div>" +
             "</td>" +
-            "<td>" +
+            '<td data-rotulo="Tier">' +
               '<span class="badge ' + meta.cls + '"><i class="ti ti-circle-filled" aria-hidden="true"></i>' + esc(meta.label) + "</span>" +
             "</td>" +
-            "<td style=\"min-width:160px;\">" +
+            "<td style=\"min-width:160px;\" data-rotulo=\"Pontuação\">" +
               '<div class="score-row">' +
                 '<span class="score-bar"><span class="score-fill tier-' + e.tier + '" style="width:' + e.score + '%;"></span></span>' +
                 '<span class="score-num">' + e.score + "</span>" +
               "</div>" +
             "</td>" +
-            '<td class="num">' + App.fmtDias(e.tempoCiclo) + "</td>" +
-            '<td class="num">' + App.fmtPct(e.conformidade) + "</td>" +
-            '<td class="num">' + App.fmtNum(e.ncs) + "</td>" +
-            '<td class="num">' + App.fmtNum(e.equipamentos) + "</td>" +
-            '<td class="num">' +
+            '<td class="num" data-rotulo="Tempo de ciclo">' + App.fmtDias(e.tempoCiclo) + "</td>" +
+            '<td class="num" data-rotulo="Conformidade">' + App.fmtPct(e.conformidade) + "</td>" +
+            '<td class="num" data-rotulo="NCs">' + App.fmtNum(e.ncs) + "</td>" +
+            '<td class="num" data-rotulo="Equipamentos">' + App.fmtNum(e.equipamentos) + "</td>" +
+            '<td class="num cartao-acoes">' +
               '<a class="btn btn-ghost btn-sm" href="epo-detalhe.html?id=' + encodeURIComponent(e.id) + '">' +
                 "Ver detalhe<i class=\"ti ti-arrow-right\" aria-hidden=\"true\"></i>" +
               "</a>" +
@@ -402,7 +402,7 @@
 
         body.innerHTML =
           '<div class="table-wrap">' +
-            '<table class="table">' +
+            '<table class="table tabela-cartao">' +
               "<thead><tr>" +
                 '<th style="width:34px;"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Expandir</span></th>' +
                 '<th style="width:44px;">#</th>' +

@@ -689,10 +689,10 @@ img { max-width: 100%; display: block; }
 /* -------------------------------------------------------------- Atalhos
    A tela principal era so leitura: quem entrava tinha de procurar no menu
    lateral onde fazer cada coisa. */
-/* Uma linha so. Em grade eles quebravam para a segunda linha e a faixa
-   virava um bloco; aqui encolhem juntos e cabem sempre. */
-.atalhos { display: flex; flex-wrap: nowrap; gap: 10px; overflow-x: auto; }
-.atalhos > .atalho { flex: 1 1 0; min-width: 0; }
+/* Nunca rola de lado. Botao que so aparece rolando e botao escondido: quando
+   nao cabem na largura, quebram para a linha de baixo. */
+.atalhos { display: flex; flex-wrap: wrap; gap: 10px; }
+.atalhos > .atalho { flex: 1 1 200px; min-width: 0; }
 .atalho {
   display: flex; align-items: center; gap: 12px;
   padding: 13px 14px;
@@ -728,9 +728,9 @@ img { max-width: 100%; display: block; }
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden;
 }
-/* Tela estreita: a descricao sai e a faixa rola de lado, em vez de quebrar. */
+/* Tela estreita: a descricao sai, e os atalhos quebram em quantas linhas
+   precisarem. */
 @media (max-width: 1300px) { .atalho-ds { display: none; } }
-@media (max-width: 900px) { .atalhos > .atalho { flex: 0 0 180px; } }
 
 /* Secao de menu sem tela propria: rotulo, nao link. */
 .nowrap { white-space: nowrap; }
@@ -1695,10 +1695,12 @@ input[type="submit"],
   .link-mini { min-height: 32px; display: inline-flex; align-items: center; }
   button.chip, .chip[role="button"] { height: 34px; padding: 0 12px; font-size: 12.5px; }
 
-  /* Atalho legivel: o nome usa duas linhas em vez de ser cortado, e a faixa
-     continua em uma linha so, rolando de lado, como no computador. */
-  .atalhos > .atalho { flex: 0 0 200px; }
-  .atalho { align-items: flex-start; }
+  /* Celular: um atalho acima do outro, largura inteira. Em uma linha unica
+     rolando de lado, os de tras ficavam escondidos - so quem soubesse arrastar
+     a faixa descobria que existiam. */
+  .atalhos { flex-direction: column; }
+  .atalhos > .atalho { flex: 1 1 auto; width: 100%; }
+  .atalho { align-items: center; }
 
   /* Cabecalho de caixa: a acao desce para baixo do titulo em vez de empurrar
      a pagina para fora da tela. */
@@ -1794,6 +1796,11 @@ input[type="submit"],
   .table.tabela-cartao tbody td.cartao-acoes::before { content: none; }
   .table.tabela-cartao tbody td.cartao-acoes > * { width: 100%; }
   .table.tabela-cartao tbody td.cartao-acoes .btn { flex: 1 1 auto; justify-content: center; }
+  /* Celula que so faz sentido em tabela: a seta de expandir (o cartao inteiro
+     abre no toque) e a posicao, que passa a vir junto do nome. */
+  .table.tabela-cartao tbody td.cartao-fora { display: none; }
   /* Empilhada, a tabela nao precisa mais de rolagem lateral. */
   .table-wrap:has(> .table.tabela-cartao) { overflow-x: visible; }
+  /* Painel expandido: cartao proprio, sem virar lista de rotulos. */
+  .table.tabela-cartao tbody tr.rank-detail > td { display: block; padding: 0; }
 }
