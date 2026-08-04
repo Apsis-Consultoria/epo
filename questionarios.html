@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=94">
+  <link rel="stylesheet" href="assets/app.css?v=98">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -137,11 +137,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=94"></script>
-  <script src="assets/app.js?v=94"></script>
-  <script src="assets/supabase-config.js?v=94"></script>
+  <script src="assets/data.js?v=98"></script>
+  <script src="assets/app.js?v=98"></script>
+  <script src="assets/supabase-config.js?v=98"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=94"></script>
+  <script src="assets/auth.js?v=98"></script>
   <script>
     (function () {
       "use strict";
@@ -1336,14 +1336,34 @@
               return { erro: false, n: (r && r.count) || 0 };
             }, function () { return { erro: true, n: 0 }; });
         }
+        // Respostas de auditoria nas perguntas deste topico: e isto que decide
+        // entre apagar e desativar. Auditoria e pedido podem existir sem resposta
+        // nenhuma (o caso do topico criado para teste), e ai nao ha resultado a
+        // preservar.
+        function respostasDoTopico() {
+          return db.from("itens_checklist").select("id").eq("processo_id", id)
+            .then(function (r) {
+              if (r.error) return { erro: true, n: 0 };
+              var ids = (r.data || []).map(function (x) { return x.id; });
+              if (!ids.length) return { erro: false, n: 0 };
+              return db.from("respostas").select("id", { count: "exact", head: true })
+                .in("item_id", ids)
+                .then(function (rr) {
+                  if (rr && rr.error) return { erro: true, n: 0 };
+                  return { erro: false, n: (rr && rr.count) || 0 };
+                }, function () { return { erro: true, n: 0 }; });
+            }, function () { return { erro: true, n: 0 }; });
+        }
+
         return Promise.all([
           quantos("itens_checklist", "processo_id"),
           quantos("alocacoes", "processo_id"),
-          quantos("auditorias", "processo_id")
+          quantos("auditorias", "processo_id"),
+          respostasDoTopico()
         ]).then(function (n) {
           return {
-            perguntas: n[0].n, pedidos: n[1].n, auditorias: n[2].n,
-            incerto: n[0].erro || n[1].erro || n[2].erro
+            perguntas: n[0].n, pedidos: n[1].n, auditorias: n[2].n, respostas: n[3].n,
+            incerto: n[0].erro || n[1].erro || n[2].erro || n[3].erro
           };
         });
       }
@@ -1376,13 +1396,15 @@
             App.toast("Não foi possível conferir o histórico deste tópico agora. Tente de novo em alguns instantes.");
             return;
           }
-          if (uso.pedidos || uso.auditorias) {
-            var partes = [];
-            if (uso.auditorias) partes.push(uso.auditorias + (uso.auditorias === 1 ? " auditoria" : " auditorias"));
-            if (uso.pedidos) partes.push(uso.pedidos + (uso.pedidos === 1 ? " relatório pedido" : " relatórios pedidos"));
+          // Com resposta de auditoria, o topico nao e apagado: desativar tira
+          // ele das auditorias novas e mantem o que ja foi respondido. Sem
+          // resposta nenhuma - o topico criado para teste - ele e apagado.
+          if (uso.respostas) {
             return App.confirmar({
-              titulo: "Este tópico está em uso",
-              texto: "O tópico " + t.nome + " tem " + partes.join(" e ") + ".\n\n" +
+              titulo: "Este tópico já foi respondido",
+              texto: "O tópico " + t.nome + " tem " +
+                uso.respostas + (uso.respostas === 1 ? " resposta" : " respostas") +
+                " de auditoria.\n\n" +
                 "Desativar tira ele das auditorias novas e mantém o histórico.",
               confirmar: "Desativar tópico",
               cancelar: "Deixar como está"
@@ -1391,11 +1413,19 @@
             });
           }
 
-          var aviso = "";
+          var junto = [];
           if (uso.perguntas) {
-            aviso += uso.perguntas + (uso.perguntas === 1 ? " pergunta" : " perguntas") + " deste tópico também sai" +
-              (uso.perguntas === 1 ? "" : "em") + ".\n\n";
+            junto.push(uso.perguntas + (uso.perguntas === 1 ? " pergunta" : " perguntas"));
           }
+          if (uso.pedidos) {
+            junto.push(uso.pedidos + (uso.pedidos === 1 ? " questionário pedido" : " questionários pedidos"));
+          }
+          if (uso.auditorias) {
+            junto.push(uso.auditorias +
+              (uso.auditorias === 1 ? " preenchimento sem resposta" : " preenchimentos sem resposta"));
+          }
+          var aviso = "";
+          if (junto.length) aviso += junto.join(", ") + " também vão ser apagados.\n\n";
           aviso += "Essa ação não tem volta.";
 
           return App.confirmar({
@@ -1412,28 +1442,27 @@
               App.toast("Tópico " + t.nome + " excluído.");
               return;
             }
-            // As perguntas saem primeiro: o banco não deixa apagar o tópico
-            // enquanto elas existirem.
-            // Se as perguntas saem e o topico fica, o resultado e um topico
-            // vazio - que some das listas de pedido e de auditoria, e as
-            // perguntas nao voltam. Por isso o primeiro passo tambem e checado.
-            return db.from("itens_checklist").delete().eq("processo_id", id)
-              .then(function (r) {
-                if (r && r.error) throw r.error;
-                return db.from("processos").delete().eq("id", id).select("id");
-              })
+            // Uma chamada so: a ordem das dependencias (link, rascunho, pedido,
+            // anexo, pergunta, topico) tem de valer inteira ou nao valer. A
+            // funcao recusa sozinha se aparecer resposta de auditoria no meio do
+            // caminho, entao nao existe jeito de apagar resultado por aqui.
+            return db.rpc("questionario_apagar", { p_processo: id })
               .then(function (r) {
                 if (r.error) throw r.error;
-                if (!r.data || !r.data.length) {
-                  App.toast("Seu acesso não permite excluir tópicos. Fale com a coordenação da APSIS.");
-                  return carregar();
-                }
                 App.toast("Tópico " + t.nome + " excluído.");
                 return carregar();
               })
               .catch(function (e) {
                 console.error("apagarTopico", e);
-                App.toast("Não foi possível excluir o tópico. Tente novamente.");
+                var msg = String((e && e.message) || "");
+                if (/resposta/i.test(msg)) {
+                  App.toast("Este tópico tem resposta de auditoria: desative em vez de apagar.");
+                } else if (/permite/i.test(msg)) {
+                  App.toast("Seu acesso não permite excluir tópicos. Fale com a coordenação da APSIS.");
+                } else {
+                  App.toast("Não foi possível excluir o tópico. Tente novamente.");
+                }
+                return carregar();
               });
           });
         });

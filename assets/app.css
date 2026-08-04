@@ -707,15 +707,19 @@ img { max-width: 100%; display: block; }
 /* Contagem no canto de baixo, a direita: quantos itens esperam naquela tela.
    Numero no canto e o que se ve sem ler - o mesmo lugar em todos os atalhos. */
 .atalho { position: relative; }
+/* O numero fica no canto de baixo, a direita - e no FLUXO, nao sobreposto.
+   Solto por cima (position absolute) ele passava por cima do nome em duas linhas
+   assim que a contagem chegava a tres digitos, e reservar espaco a mao sempre
+   errava por algum digito. No fluxo, o texto para onde o numero comeca, sozinho. */
 .atalho-conta {
-  position: absolute; right: 10px; bottom: 8px;
+  margin-left: auto; align-self: flex-end; flex: 0 0 auto;
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 22px; height: 20px; padding: 0 6px;
+  min-width: 22px; height: 22px; padding: 0 6px;
   border-radius: 999px;
-  background: var(--primary-tint); color: var(--apsis-green);
+  background: var(--accent-600); color: #fff;
   font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
-.atalho-conta.vazia { background: var(--surface-2); color: var(--text-muted); }
 
 /* Atalho de tela que ainda nao entrou no ar: cinza, sem clique e sem promessa
    de que leva a algum lugar. */
@@ -734,7 +738,10 @@ img { max-width: 100%; display: block; }
   color: var(--apsis-green);
 }
 .atalho-ico i { font-size: 19px; }
-.atalho > span:last-child { min-width: 0; }
+/* Deixa o bloco de texto encolher. A contagem fica de fora: ela e o ultimo
+   filho tambem, e estava recebendo min-width 0 daqui - com isso o circulo saia
+   mais estreito que alto, virando uma pastilha torta. */
+.atalho > span:not(.atalho-conta):last-child { min-width: 0; }
 /* Oito atalhos em uma linha dao pouco mais de 170px cada, e em uma linha de
    texto o nome saia cortado no meio da palavra: "Questionarios pen...",
    "Contagem Logistic...". O nome usa duas linhas; a FAIXA continua sendo uma
@@ -1617,15 +1624,28 @@ input[type="submit"],
 /* Caixa das datas que a Claro nao aprovou: cabecalho em laranja, que e a cor
    de atencao do sistema. E a caixa que pede acao da APSIS - a outra, de
    "esperando aprovacao", esta com a Claro e nao depende de ninguem aqui. */
+/* Contagem das duas caixas: pastilha, e nao numero solto. Antes o numero da
+   caixa laranja recebia fundo sem forma nenhuma e saia como um risco colado na
+   borda do cartao. */
+.card-header .cx-conta {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 24px; padding: 0 8px;
+  border-radius: 999px;
+  background: var(--surface-2); color: var(--text-2);
+  font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+
+/* Caixa das datas que a Claro nao aprovou: faixa laranja dentro do cartao.
+   Antes esta faixa saia do cartao por margem negativa, e o que acontecia era o
+   cabecalho encostando na borda e a contagem sendo cortada. */
 .card-header.cx-recusadas {
   background: var(--warning-bg);
-  border-bottom: 1px solid var(--accent-200, var(--border));
-  margin: -16px -16px 0;
-  padding: 12px 16px;
-  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  align-items: center;
 }
 .card-header.cx-recusadas .title { color: var(--accent-600); }
-.card-header.cx-recusadas .acc-count {
+.card-header.cx-recusadas .cx-conta {
   background: var(--accent-600); color: #fff;
 }
 

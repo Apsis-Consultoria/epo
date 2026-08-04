@@ -27,7 +27,7 @@
     // Uma tela so para evidencia. Cada lado anexa na propria caixa, na mesma
     // tela onde ve o que os outros mandaram. Antes havia uma tela separada so
     // para enviar, e quem enviava nao via o resto.
-    { key: "checagem",    label: "Evidências recebidas", icon: "ti-photo-check",  href: "checagem.html" },
+    { key: "checagem",    label: "Evidências",       icon: "ti-photo-check",      href: "checagem.html" },
     { key: "giro",        label: "Contagem Logística Reversa", icon: "ti-packages", href: "contagem-giro.html" },
     // Reenvio, acessos e arquivos são bastidores: quem opera o dia a dia
     // não passa por eles. Ficam como subtópicos de Configurações.
