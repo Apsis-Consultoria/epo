@@ -52,7 +52,12 @@
         altoGiro: { equipamentos: 0, fontes: 0, controles: 0 }
       },
       historico: [],
-      processos: []
+      processos: [],
+      // Ranking, Comparativo, Detalhe da EPO e Painel gerencial leem a nota
+      // por questionario daqui, no formato { data, label, score, secoes: [...] }.
+      // Este carregador nunca montava esta lista, entao as quatro telas diziam
+      // "sem vistoria registrada" mesmo com auditoria enviada no banco.
+      vistorias: []
     };
   }
 
@@ -116,12 +121,26 @@
     }
   }
 
+  var MESES = ["jan", "fev", "mar", "abr", "mai", "jun",
+               "jul", "ago", "set", "out", "nov", "dez"];
+
+  function rotuloDoMes(iso) {
+    if (!iso) return "";
+    var p = String(iso).slice(0, 10).split("-");
+    if (p.length < 2) return "";
+    var m = Number(p[1]);
+    if (!m || m < 1 || m > 12) return "";
+    return MESES[m - 1] + "/" + String(p[0]).slice(2);
+  }
+
   function lerCadastro(db) {
     var unidades = [];
+    var auditorias = [];
     var regras = (window.APP && window.APP.tierRules) || null;
 
     return db.from("epos")
-      .select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo, cod_fornecedor")
+      .select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo, cod_fornecedor, " +
+              "responsavel_nome, responsavel_email")
       .order("nome")
       .then(function (r) {
         // Erro de leitura virando lista vazia esconderia o problema. Sobe, e
@@ -130,14 +149,28 @@
         unidades = (r.data || []).map(unidadeVazia);
         if (!unidades.length) return { data: [], error: null };
         return db.from("auditorias")
-          .select("epo_id, processo_id, score, tier, status, data_visita, criado_em")
+          .select("id, epo_id, processo_id, score, tier, status, data_visita, criado_em")
           .in("status", ["enviada", "validada"])
           .order("criado_em", { ascending: false });
       })
       .then(function (r) {
         if (r && r.error) throw new Error(r.error.message || "falha ao ler as auditorias");
+        auditorias = (r && r.data) ? r.data : [];
+        return db.from("processos")
+          .select("id, nome, slug, icone, peso, descricao")
+          .order("peso", { ascending: false });
+      })
+      .then(function (r) {
+        var procsDb = (r && !r.error && r.data) ? r.data : [];
+        var nomeDoProc = {};
+        procsDb.forEach(function (p) {
+          // A cor de cada questionario no ranking e escolhida pelo slug, e nao
+          // pelo id: sem o slug, todo questionario cairia na cor de reserva.
+          nomeDoProc[p.id] = { nome: p.nome, slug: p.slug || p.id };
+        });
+
         var porEpo = {};
-        (r && r.data ? r.data : []).forEach(function (a) {
+        auditorias.forEach(function (a) {
           if (!porEpo[a.epo_id]) porEpo[a.epo_id] = {};
           // A consulta vem da mais recente para a mais antiga: a primeira de
           // cada par unidade e questionario e a que vale.
@@ -148,26 +181,50 @@
           var doEpo = porEpo[u.id];
           if (!doEpo) return;
           var notas = [];
+          var secoes = [];
+          var maisRecente = "";
           Object.keys(doEpo).forEach(function (pid) {
             var a = doEpo[pid];
+            var info = nomeDoProc[pid] || { nome: "Questionário", slug: pid };
             if (a.score != null) notas.push(Number(a.score));
             u.processos.push({ id: pid, score: a.score, tier: a.tier,
                                dataVisita: a.data_visita });
+            // Questionario sem nota (todos os itens "nao se aplica") fica fora
+            // da barra: mostrar 0% ali diria que a unidade foi mal.
+            if (a.score != null) {
+              secoes.push({ processoId: info.slug, nome: info.nome,
+                            pct: Math.round(Number(a.score)), itens: [] });
+            }
+            var d = a.data_visita || "";
+            if (d > maisRecente) maisRecente = d;
           });
           u.score = media(notas);
           u.tier = tierDaNota(u.score, regras);
           u.conformidade = u.score;
+
+          // Uma vistoria por unidade: a foto do que ja foi enviado. As telas
+          // leem sempre a ultima da lista, entao uma basta enquanto nao houver
+          // ciclos separados.
+          if (secoes.length) {
+            secoes.sort(function (x, y) { return y.pct - x.pct; });
+            u.vistorias = [{
+              data: maisRecente || null,
+              label: rotuloDoMes(maisRecente),
+              score: u.score,
+              tier: u.tier,
+              conformidade: u.score,
+              ncs: 0,
+              tempoCiclo: null,
+              tempos: u.tempos,
+              secoes: secoes
+            }];
+          }
         });
-        return null;
-      })
-      .then(function () {
-        return db.from("processos").select("id, nome, icone, peso, descricao").order("peso", { ascending: false });
-      })
-      .then(function (r) {
-        var procs = (r && !r.error && r.data) ? r.data.map(function (p) {
+
+        var procs = procsDb.map(function (p) {
           return { id: p.id, nome: p.nome, icone: p.icone || "ti-clipboard-check",
                    peso: p.peso, descricao: p.descricao || "", itens: [] };
-        }) : [];
+        });
         aplicar(unidades, procs);
         return true;
       });

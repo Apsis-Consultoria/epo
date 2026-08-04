@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=74">
+  <link rel="stylesheet" href="assets/app.css?v=76">
   <style>
     /* ---------------- Matriz de telas por cargo ---------------- */
     .matrix-wrap { width: 100%; overflow: auto; border-top: 1px solid var(--border); }
@@ -123,11 +123,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=74"></script>
-  <script src="assets/app.js?v=74"></script>
-  <script src="assets/supabase-config.js?v=74"></script>
+  <script src="assets/data.js?v=76"></script>
+  <script src="assets/app.js?v=76"></script>
+  <script src="assets/supabase-config.js?v=76"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=74"></script>
+  <script src="assets/auth.js?v=76"></script>
   <script>
     (function () {
       "use strict";
@@ -174,7 +174,6 @@
       var mexidas = {};         // papel|tela -> bool, só o que mudou
       var liberados = [];
       var contas = [];
-      var clientes = [];
       var meuPapel = DEMO ? "admin" : "";
       var busca = "";
       var carregando = true;
@@ -329,7 +328,6 @@
         if (DEMO) {
           permissoes = permissoesDoPadrao();
           liberados = catalogoSemConexao();
-          clientes = [{ id: "claro", nome: "Claro" }];
           contas = [];
           carregando = false;
           return Promise.resolve();
@@ -347,7 +345,7 @@
               });
             }
             return db.from("acessos_autorizados")
-              .select("id, email, nome, papel, cliente_id, ativo, observacao, " +
+              .select("id, email, nome, papel, ativo, observacao, " +
                       "convidado_em, primeiro_acesso_em, criado_em")
               .order("criado_em", { ascending: false });
           })
@@ -356,12 +354,7 @@
               throw new Error((r && r.error && r.error.message) || "falha ao ler os acessos");
             }
             liberados = r.data || [];
-            return db.from("clientes").select("id, nome").order("nome");
-          })
-          .then(function (r) {
-            if (!r || r.error) throw new Error("falha ao ler os clientes");
-            clientes = r.data || [];
-            return db.from("perfis").select("user_id, nome, papel, cliente_id").order("papel");
+            return db.from("perfis").select("user_id, nome, papel").order("papel");
           })
           .then(function (r) {
             contas = (r && !r.error && r.data) ? r.data : [];
@@ -525,12 +518,6 @@
                " às " + p(d.getHours()) + "h" + p(d.getMinutes());
       }
 
-      function nomeCliente(id) {
-        var achado = "";
-        clientes.forEach(function (c) { if (c.id === id) achado = c.nome; });
-        return achado;
-      }
-
       function visiveis() {
         var q = busca.toLowerCase();
         if (!q) return liberados;
@@ -588,7 +575,10 @@
         alvo.innerHTML =
           '<div class="table-wrap"><table class="table">' +
             "<thead><tr>" +
-              "<th>Pessoa</th><th>O que é</th><th>Cliente</th><th>Situação</th>" +
+              // Nao existe coluna de cliente: o unico cliente do sistema e a
+              // Claro, e o cargo ja diz se a pessoa e da APSIS ou da Claro.
+              // A coluna mostrava "-" ou "Claro" e nada mais.
+              "<th>Pessoa</th><th>O que é</th><th>Situação</th>" +
               '<th class="num">Ações</th>' +
             "</tr></thead><tbody>" +
             lista.map(function (a) {
@@ -613,7 +603,6 @@
                   "<span>" + esc(a.email) + "</span></div></td>" +
                 '<td><span class="badge ' + (BADGE_PAPEL[a.papel] || "badge-baixa") + '">' +
                   esc(PAPEL_LABEL[a.papel] || a.papel) + "</span></td>" +
-                "<td>" + esc(nomeCliente(a.cliente_id) || "-") + "</td>" +
                 "<td>" + situacao(a) + "</td>" +
                 '<td class="num"><span class="acc-acoes">' + b.join("") + "</span></td>" +
               "</tr>";
@@ -637,7 +626,7 @@
         var podeApagar = souAdmin();
         $("lista-contas").innerHTML =
           '<div class="table-wrap"><table class="table">' +
-            "<thead><tr><th>Pessoa</th><th>O que é hoje</th><th>Cliente</th>" +
+            "<thead><tr><th>Pessoa</th><th>O que é hoje</th>" +
               (podeApagar ? '<th class="num">Ações</th>' : "") +
             "</tr></thead><tbody>" +
             contas.map(function (c) {
@@ -645,7 +634,7 @@
                 '<td><div class="pessoa-cel"><b>' + esc(c.nome || "sem nome") + "</b></div></td>" +
                 '<td><span class="badge ' + (BADGE_PAPEL[c.papel] || "badge-baixa") + '">' +
                   esc(PAPEL_LABEL[c.papel] || c.papel) + "</span></td>" +
-                "<td>" + esc(nomeCliente(c.cliente_id) || "-") + "</td>" +
+
                 (podeApagar
                   ? '<td class="num"><span class="acc-acoes">' +
                       botao("apagar-conta", c.user_id, "", "btn-ghost btn-icon btn-apagar",

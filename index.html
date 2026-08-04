@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=74">
+  <link rel="stylesheet" href="assets/app.css?v=76">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
@@ -119,14 +119,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=74"></script>
-  <script src="assets/app.js?v=74"></script>
-  <script src="assets/geo-br.js?v=74"></script>
-  <script src="assets/mapa-epos.js?v=74"></script>
-  <script src="assets/supabase-config.js?v=74"></script>
+  <script src="assets/data.js?v=76"></script>
+  <script src="assets/app.js?v=76"></script>
+  <script src="assets/geo-br.js?v=76"></script>
+  <script src="assets/mapa-epos.js?v=76"></script>
+  <script src="assets/supabase-config.js?v=76"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=74"></script>
-  <script src="assets/dados-reais.js?v=74"></script>
+  <script src="assets/auth.js?v=76"></script>
+  <script src="assets/dados-reais.js?v=76"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -240,10 +240,6 @@
       }
 
       var reversaMedia = kpis.reversaQualidadeMedia;
-      var cicloNum = Number(kpis.tempoMedioCiclo).toLocaleString("pt-BR", {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1
-      });
 
       var dist = kpis.distribuicao;
 
@@ -286,8 +282,6 @@
                 dist.ouro + " ouro · " + dist.prata + " prata · " + dist.bronze + " bronze · " + dist.critico + " crítico", "ti-award") +
             kpi("ti-player-pause", "is-warning", "Equipamentos parados", App.fmtNum(kpis.equipParados),
                 "de " + App.fmtNum(totalEquip) + " no total", "ti-stack-2") +
-            kpi("ti-clock", "", "Tempo médio de ciclo", App.fmtDias(kpis.tempoMedioCiclo),
-                "meta " + App.fmtDias(10), "ti-target") +
             kpi("ti-circle-check", "is-success", "Conformidade média", App.fmtPct(kpis.conformidadeMedia),
                 "meta " + App.fmtPct(85), "ti-target") +
             kpi("ti-alert-triangle", "is-danger", "Não-conformidades", App.fmtNum(kpis.ncTotal),
