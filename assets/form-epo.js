@@ -425,6 +425,12 @@
     if (String(e && e.code) === "23505" || /unique|duplicad/i.test(msg)) {
       return "Já existe unidade com este código e base. Procure por ela na tabela.";
     }
+    // A recusa de alcance vinha crua, em inglês: "new row violates
+    // row-level security policy". Quem leu isso foi a equipe de campo.
+    if (String(e && e.code) === "42501" || /row-level security|policy/i.test(msg)) {
+      return "Seu acesso não permite cadastrar ou alterar unidades. " +
+             "Fale com a coordenação da APSIS.";
+    }
     return null;
   }
 

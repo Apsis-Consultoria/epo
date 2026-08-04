@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=69">
+  <link rel="stylesheet" href="assets/app.css?v=70">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -56,13 +56,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=69"></script>
-  <script src="assets/app.js?v=69"></script>
-  <script src="assets/geo-br.js?v=69"></script>
-  <script src="assets/form-epo.js?v=69"></script>
-  <script src="assets/supabase-config.js?v=69"></script>
+  <script src="assets/data.js?v=70"></script>
+  <script src="assets/app.js?v=70"></script>
+  <script src="assets/geo-br.js?v=70"></script>
+  <script src="assets/form-epo.js?v=70"></script>
+  <script src="assets/supabase-config.js?v=70"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=69"></script>
+  <script src="assets/auth.js?v=70"></script>
   <script>
     (function () {
       "use strict";
@@ -87,6 +87,10 @@
       // Excluir EPO é da coordenação. Quem não tem esse alcance não vê o botão,
       // em vez de clicar e nada acontecer.
       var podeApagar = DEMO;
+      // Cadastrar e editar seguem a mesma regra do servidor: coordenação e
+      // gerência da Claro. A equipe de campo via o botão, preenchia os 15
+      // campos e só no salvar recebia a recusa - em inglês.
+      var podeCadastrar = DEMO;
       var pedidos = [];       // relatórios já pedidos { epoId, procId, email, status }
       var editandoId = null;  // null = criando
       // Aberto por "Nova auditoria": a EPO vem de lista suspensa e o objetivo
@@ -195,6 +199,12 @@
         else FormEpo.limpar();
       }
 
+      function aplicarAlcance() {
+        var btn = document.getElementById("btn-nova-epo");
+        if (btn) btn.classList.toggle("is-hidden", !podeCadastrar);
+      }
+      aplicarAlcance();
+
       document.getElementById("btn-nova-epo").addEventListener("click", function () {
         editandoId = null;
         mostrarEscolha(false);
@@ -287,8 +297,10 @@
                     'title="Reenviar o link de acesso para o responsável">' +
                     '<i class="ti ti-mail-forward" aria-hidden="true"></i>Reenviar acesso</button>'
                   : "") +
-                '<button class="btn btn-ghost btn-sm" type="button" data-editar="' + esc(e.id) + '">' +
-                '<i class="ti ti-pencil" aria-hidden="true"></i>Editar</button>' +
+                (podeCadastrar
+                  ? '<button class="btn btn-ghost btn-sm" type="button" data-editar="' + esc(e.id) + '">' +
+                    '<i class="ti ti-pencil" aria-hidden="true"></i>Editar</button>'
+                  : "") +
                 (podeApagar
                   ? '<button class="btn btn-ghost btn-sm btn-apagar" type="button" data-apagar="' + esc(e.id) + '" ' +
                     'title="Excluir a EPO"><i class="ti ti-trash" aria-hidden="true"></i>Excluir</button>'
@@ -786,8 +798,14 @@
 
         if (window.Auth && Auth.perfil) {
           Auth.perfil().then(function (p) {
-            var pode = !!p && (p.papel === "admin" || p.papel === "gestor");
-            if (pode !== podeApagar) { podeApagar = pode; renderLista(); }
+            var papel = (p && p.papel) || "";
+            var apaga = papel === "admin" || papel === "gestor";
+            var cadastra = apaga || papel === "cliente";
+            var mudou = apaga !== podeApagar || cadastra !== podeCadastrar;
+            podeApagar = apaga;
+            podeCadastrar = cadastra;
+            aplicarAlcance();
+            if (mudou) renderLista();
           });
         }
 
