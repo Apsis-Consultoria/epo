@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=82">
+  <link rel="stylesheet" href="assets/app.css?v=83">
 
   <style>
     /* Sem tabela de proposito. O compilado e uma pilha de blocos: no celular
@@ -88,12 +88,66 @@
       font-size: 11px; font-weight: 600; color: var(--danger);
     }
 
+    /* ---------------------------------------------------------------- Correcao
+       A tela mostra o que a equipe de campo enviou, e e nela que a coordenacao
+       corrige. Os controles ficam dentro do painel aberto, nunca no cabecalho:
+       o cabecalho ja e um botao, e botao dentro de botao nao vale. */
+    .rz-barra {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      padding: 10px 15px; border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .rz-barra .rz-rastro {
+      flex: 1 1 100%; font-size: 12px; color: var(--text-2);
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .rz-barra .rz-rastro i { font-size: 14px; }
+
+    .rz-opcoes { display: flex; gap: 8px; margin-top: 9px; }
+    .rz-opt {
+      flex: 1 1 0; min-height: 38px; padding: 8px 10px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface); color: var(--text-2);
+      font: 600 12.5px Inter, sans-serif; cursor: pointer;
+    }
+    .rz-opt:hover { border-color: var(--border-strong); color: var(--text); }
+    .rz-opt.is-sel { color: #fff; }
+    .rz-opt-conforme.is-sel, .rz-opt-presente.is-sel {
+      background: var(--success); border-color: var(--success);
+    }
+    .rz-opt-nao_conforme.is-sel, .rz-opt-ausente.is-sel {
+      background: var(--danger); border-color: var(--danger);
+    }
+    .rz-opt-na.is-sel { background: var(--text-2); border-color: var(--text-2); }
+
+    .rz-campo { display: block; margin-top: 9px; }
+    .rz-campo > span {
+      display: block; font-size: 11.5px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .3px; color: var(--text-muted); margin-bottom: 4px;
+    }
+    .rz-campo textarea {
+      width: 100%; min-height: 54px; resize: vertical;
+      padding: 9px 11px; font: 400 13px Inter, sans-serif; color: var(--text);
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .rz-campo textarea:focus {
+      outline: none; border-color: var(--apsis-green);
+      box-shadow: 0 0 0 3px var(--primary-tint);
+    }
+    .rz-resp-edit { background: var(--surface); }
+
     /* Celular: o cabecalho da auditoria empilha em vez de espremer a nota. */
     @media (max-width: 620px) {
       .rz-aud-cab { flex-wrap: wrap; }
       .rz-aud-corpo { flex: 1 1 100%; order: 2; }
       .rz-aud-fim { order: 1; margin-left: auto; }
       .rz-resp { padding: 12px 13px; }
+      /* Um botao acima do outro, largura inteira: tres opcoes lado a lado num
+         celular dao 90px cada e o rotulo sai cortado. */
+      .rz-opcoes { flex-direction: column; }
+      .rz-opt { flex: 1 1 auto; width: 100%; min-height: 42px; }
+      .rz-barra .btn { flex: 1 1 100%; justify-content: center; }
     }
   </style>
 </head>
@@ -106,11 +160,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=82"></script>
-  <script src="assets/app.js?v=82"></script>
-  <script src="assets/supabase-config.js?v=82"></script>
+  <script src="assets/data.js?v=83"></script>
+  <script src="assets/app.js?v=83"></script>
+  <script src="assets/supabase-config.js?v=83"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=82"></script>
+  <script src="assets/auth.js?v=83"></script>
   <script>
     (function () {
       "use strict";
@@ -123,10 +177,30 @@
 
       var linhas = [];        // uma por auditoria enviada
       var respostas = {};     // auditoria_id -> [ { pergunta, status, ... } ]
+      var rastro = {};        // auditoria_id -> [ correcoes registradas ]
       var abertas = {};       // auditoria_id -> aberta
       var busca = "";
       var carregando = true;
       var falha = "";
+
+      // A tela existe para ler o compilado e corrigir o que veio errado do
+      // campo. Corrigir e da coordenacao: e o que o servidor aceita depois que
+      // a auditoria foi enviada, entao o botao aparece so para quem ele aceita.
+      var meuPapel = "";
+      var podeCorrigir = false;
+      var editando = null;    // auditoria em correcao
+      var edicao = {};        // resposta_id -> o que mudou nela
+      var salvando = false;
+
+      var OPCOES_PADRAO = [
+        { v: "conforme", t: "Conforme" },
+        { v: "nao_conforme", t: "Não conforme" },
+        { v: "na", t: "Não se aplica" }
+      ];
+      var OPCOES_PRESENCA = [
+        { v: "presente", t: "Presente" },
+        { v: "ausente", t: "Ausente" }
+      ];
 
       var MARCA = {
         conforme:     { cls: "ok",  icone: "ti-check",  texto: "Conforme" },
@@ -179,9 +253,56 @@
         return soma / v.length;
       }
 
+      // Questionario de carregadores responde presente/ausente; o resto,
+      // conforme/nao conforme/nao se aplica. Em vez de perguntar o tipo do
+      // questionario, olha-se o que as respostas usam: e a mesma informacao,
+      // sem depender do catalogo.
+      function opcoesDe(lista) {
+        var presenca = false;
+        (lista || []).forEach(function (r) {
+          if (r.status === "presente" || r.status === "ausente") presenca = true;
+        });
+        return presenca ? OPCOES_PRESENCA : OPCOES_PADRAO;
+      }
+
+      // Mesma conta do preenchimento: "nao se aplica" fica fora, e sem nada
+      // avaliavel nao ha nota. Se a conta fosse diferente daqui para la, a
+      // mesma auditoria teria duas notas.
+      function notaDe(lista) {
+        var presenca = opcoesDe(lista) === OPCOES_PRESENCA;
+        var bons = 0, ruins = 0;
+        (lista || []).forEach(function (r) {
+          if (!r.status) return;
+          if (presenca) {
+            if (r.status === "presente") bons += 1;
+            else if (r.status === "ausente") ruins += 1;
+            return;
+          }
+          if (r.status === "na") return;
+          if (r.status === "conforme") bons += 1; else ruins += 1;
+        });
+        var avaliaveis = bons + ruins;
+        if (!avaliaveis) return { score: null, tier: null };
+        var pts = (bons / avaliaveis) * 100;
+        return { score: Math.round(pts * 100) / 100, tier: App.tierOf(pts) };
+      }
+
       // ------------------------------------------------------------------
       // Leitura
       // ------------------------------------------------------------------
+      function descobrirPapel() {
+        if (DEMO) {
+          meuPapel = (Auth.papelDemo && Auth.papelDemo()) || "admin";
+          podeCorrigir = meuPapel === "admin" || meuPapel === "gestor";
+          return Promise.resolve();
+        }
+        if (!window.Auth || !Auth.perfil) return Promise.resolve();
+        return Auth.perfil().then(function (p) {
+          meuPapel = (p && p.papel) || "";
+          podeCorrigir = meuPapel === "admin" || meuPapel === "gestor";
+        }, function () { podeCorrigir = false; });
+      }
+
       function carregar() {
         carregando = true; falha = "";
         if (DEMO) {
@@ -238,6 +359,7 @@
             var lista = (r.data || []).map(function (x) {
               var it = x.itens_checklist || {};
               return {
+                id: x.id,
                 pergunta: it.pergunta || "Pergunta",
                 ordem: it.ordem == null ? 999 : it.ordem,
                 grave: !!it.grave,
@@ -250,6 +372,20 @@
             respostas[audId] = lista;
             return lista;
           });
+      }
+
+      // Correcao ja registrada nesta auditoria. Sem isto, auditoria corrigida
+      // ficaria igual a auditoria intacta na tela.
+      function carregarRastro(audId) {
+        if (rastro[audId] || DEMO) { rastro[audId] = rastro[audId] || []; return Promise.resolve(rastro[audId]); }
+        return Auth.cliente.from("auditoria_historico")
+          .select("campo, de, para, quando")
+          .eq("auditoria_id", audId)
+          .order("quando", { ascending: false })
+          .then(function (r) {
+            rastro[audId] = (r && !r.error && r.data) ? r.data : [];
+            return rastro[audId];
+          }, function () { rastro[audId] = []; return rastro[audId]; });
       }
 
       // ------------------------------------------------------------------
@@ -289,6 +425,61 @@
         );
       }
 
+      function htmlRespostaEdit(r, opcoes) {
+        var e = edicao[r.id] || {};
+        var st = e.status != null ? e.status : r.status;
+        var obs = e.observacao != null ? e.observacao : r.observacao;
+        var just = e.justificativa != null ? e.justificativa : r.justificativa;
+        return (
+          '<div class="rz-resp rz-resp-edit">' +
+            '<div class="rz-resp-corpo">' +
+              '<span class="rz-pergunta">' + esc(r.pergunta) +
+                (r.grave
+                  ? '<span class="rz-grave"><i class="ti ti-alert-triangle" aria-hidden="true"></i>item grave</span>'
+                  : "") +
+              "</span>" +
+              '<div class="rz-opcoes" role="group">' +
+                opcoes.map(function (o) {
+                  return '<button type="button" class="rz-opt rz-opt-' + o.v +
+                    (st === o.v ? " is-sel" : "") + '" data-marcar="' + esc(r.id) +
+                    '" data-valor="' + o.v + '" aria-pressed="' +
+                    (st === o.v ? "true" : "false") + '">' + esc(o.t) + "</button>";
+                }).join("") +
+              "</div>" +
+              '<label class="rz-campo"><span>Observação</span>' +
+                '<textarea data-resp="' + esc(r.id) + '" data-campo="observacao" rows="2">' +
+                  esc(obs) + "</textarea></label>" +
+              '<label class="rz-campo"><span>Justificativa</span>' +
+                '<textarea data-resp="' + esc(r.id) + '" data-campo="justificativa" rows="2">' +
+                  esc(just) + "</textarea></label>" +
+            "</div>" +
+          "</div>"
+        );
+      }
+
+      function htmlBarra(l) {
+        var linhaRastro = "";
+        var reg = rastro[l.id];
+        if (reg && reg.length) {
+          linhaRastro = '<span class="rz-rastro">' +
+            '<i class="ti ti-history" aria-hidden="true"></i>Corrigida em ' +
+            esc(fmtData(reg[0].quando)) + "</span>";
+        }
+        if (!podeCorrigir) {
+          return linhaRastro ? '<div class="rz-barra">' + linhaRastro + "</div>" : "";
+        }
+        var acoes = editando === l.id
+          ? '<button class="btn btn-primary btn-sm" type="button" data-salvar="' + esc(l.id) + '"' +
+              (salvando ? " disabled" : "") + ">" +
+              '<i class="ti ti-device-floppy" aria-hidden="true"></i>' +
+              (salvando ? "Salvando..." : "Salvar correções") + "</button>" +
+            '<button class="btn btn-ghost btn-sm" type="button" data-cancelar="' + esc(l.id) + '"' +
+              (salvando ? " disabled" : "") + ">Cancelar</button>"
+          : '<button class="btn btn-ghost btn-sm" type="button" data-corrigir="' + esc(l.id) + '">' +
+              '<i class="ti ti-pencil" aria-hidden="true"></i>Corrigir respostas</button>';
+        return '<div class="rz-barra">' + acoes + linhaRastro + "</div>";
+      }
+
       function htmlAuditoria(l) {
         var aberta = !!abertas[l.id];
         var tm = l.tier ? App.tierMeta(l.tier) : null;
@@ -305,15 +496,23 @@
           meta += '<span class="m"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i>Validada</span>';
         }
 
-        var corpo = respostas[l.id]
-          ? (respostas[l.id].length
-              ? respostas[l.id].map(htmlResposta).join("")
-              : '<div class="rz-resp"><div class="rz-resp-corpo">' +
-                '<span class="rz-pergunta muted">Nenhuma resposta registrada nesta auditoria.</span>' +
-                "</div></div>")
-          : '<div class="rz-resp"><div class="rz-resp-corpo">' +
+        var lista = respostas[l.id];
+        var corpo;
+        if (!lista) {
+          corpo = '<div class="rz-resp"><div class="rz-resp-corpo">' +
             '<span class="rz-pergunta muted">Carregando as respostas...</span>' +
             "</div></div>";
+        } else if (!lista.length) {
+          corpo = '<div class="rz-resp"><div class="rz-resp-corpo">' +
+            '<span class="rz-pergunta muted">Nenhuma resposta registrada nesta auditoria.</span>' +
+            "</div></div>";
+        } else if (editando === l.id) {
+          var opcoes = opcoesDe(lista);
+          corpo = lista.map(function (r) { return htmlRespostaEdit(r, opcoes); }).join("");
+        } else {
+          corpo = lista.map(htmlResposta).join("");
+        }
+        corpo = (lista ? htmlBarra(l) : "") + corpo;
 
         return (
           '<article class="rz-aud' + (aberta ? " is-open" : "") + '" data-aud="' + esc(l.id) + '">' +
@@ -417,23 +616,192 @@
       });
 
       elLista.addEventListener("click", function (ev) {
+        // Marcar a resposta NAO repinta a lista: repintar aqui apagaria o que
+        // esta sendo digitado nas caixas de texto ao lado e tiraria o foco.
+        var opt = ev.target.closest("[data-marcar]");
+        if (opt) {
+          var rid = opt.getAttribute("data-marcar");
+          var valor = opt.getAttribute("data-valor");
+          if (!edicao[rid]) edicao[rid] = {};
+          edicao[rid].status = valor;
+          opt.parentNode.querySelectorAll(".rz-opt").forEach(function (b) {
+            var sel = b.getAttribute("data-valor") === valor;
+            b.classList.toggle("is-sel", sel);
+            b.setAttribute("aria-pressed", sel ? "true" : "false");
+          });
+          return;
+        }
+
+        var abrirCorrecao = ev.target.closest("[data-corrigir]");
+        if (abrirCorrecao) {
+          editando = abrirCorrecao.getAttribute("data-corrigir");
+          edicao = {};
+          render();
+          return;
+        }
+
+        var cancelar = ev.target.closest("[data-cancelar]");
+        if (cancelar) {
+          if (salvando) return;
+          editando = null;
+          edicao = {};
+          render();
+          return;
+        }
+
+        var salvar = ev.target.closest("[data-salvar]");
+        if (salvar) {
+          salvarCorrecoes(salvar.getAttribute("data-salvar"));
+          return;
+        }
+
         var btn = ev.target.closest("[data-abrir]");
         if (!btn) return;
         var id = btn.getAttribute("data-abrir");
         abertas[id] = !abertas[id];
-        if (!abertas[id]) { render(); return; }
+        // Fechar o painel em correcao desfaz a correcao: o contrario seria
+        // guardar mudanca que ninguem ve mais.
+        if (!abertas[id]) {
+          if (editando === id) { editando = null; edicao = {}; }
+          render();
+          return;
+        }
         render();
         if (respostas[id]) return;
-        carregarRespostas(id).then(render, function (e) {
+        Promise.all([carregarRespostas(id), carregarRastro(id)]).then(render, function (e) {
           respostas[id] = [];
           if (window.console && console.warn) console.warn("respostas", e);
           render();
         });
       });
 
+      // Texto digitado vai para o rascunho da correcao sem repintar a tela.
+      elLista.addEventListener("input", function (ev) {
+        var ta = ev.target;
+        if (!ta || !ta.getAttribute || !ta.getAttribute("data-resp")) return;
+        var rid = ta.getAttribute("data-resp");
+        if (!edicao[rid]) edicao[rid] = {};
+        edicao[rid][ta.getAttribute("data-campo")] = ta.value;
+      });
+
       // ------------------------------------------------------------------
+      // Gravar a correcao
+      //
+      // Uma auditoria enviada e um resultado ja comunicado: a correcao grava
+      // resposta por resposta, refaz a nota pela mesma conta do preenchimento
+      // e, se a auditoria estava validada, tira a validacao - a conferencia
+      // valia para a resposta anterior, nao para esta.
+      // ------------------------------------------------------------------
+      function salvarCorrecoes(audId) {
+        if (salvando) return;
+        var l = null;
+        linhas.forEach(function (x) { if (String(x.id) === String(audId)) l = x; });
+        var lista = respostas[audId] || [];
+        if (!l || !lista.length) return;
+
+        var mudou = [];
+        lista.forEach(function (r) {
+          var e = edicao[r.id];
+          if (!e) return;
+          var novo = {
+            status: e.status != null ? e.status : r.status,
+            observacao: e.observacao != null ? e.observacao : r.observacao,
+            justificativa: e.justificativa != null ? e.justificativa : r.justificativa
+          };
+          if (novo.status === r.status &&
+              novo.observacao === r.observacao &&
+              novo.justificativa === r.justificativa) return;
+          mudou.push({ r: r, novo: novo });
+        });
+
+        if (!mudou.length) {
+          App.toast("Nada foi alterado.");
+          editando = null; edicao = {};
+          render();
+          return;
+        }
+
+        if (DEMO) {
+          App.toast("Sem conexao com os dados agora: nada foi gravado.");
+          return;
+        }
+
+        salvando = true;
+        render();
+
+        var db = Auth.cliente;
+        var cadeia = Promise.resolve();
+        var recusou = false;
+
+        mudou.forEach(function (m) {
+          cadeia = cadeia.then(function () {
+            if (recusou) return null;
+            return db.from("respostas")
+              .update({
+                status: m.novo.status,
+                observacao: m.novo.observacao || null,
+                justificativa: m.novo.justificativa || null
+              })
+              .eq("id", m.r.id)
+              .select("id")
+              .then(function (r) {
+                if (r.error) throw r.error;
+                // Sem linha alterada, o acesso nao alcanca esta auditoria: o
+                // servidor responde sucesso vazio, e a tela mostraria a
+                // correcao com o banco intacto.
+                if (!r.data || !r.data.length) { recusou = true; return null; }
+                m.r.status = m.novo.status;
+                m.r.observacao = m.novo.observacao;
+                m.r.justificativa = m.novo.justificativa;
+                return null;
+              });
+          });
+        });
+
+        cadeia
+          .then(function () {
+            if (recusou) return null;
+            var n = notaDe(lista);
+            var campos = { score: n.score, tier: n.tier };
+            if (l.validada) campos.status = "enviada";
+            return db.from("auditorias").update(campos).eq("id", audId).select("id")
+              .then(function (r) {
+                if (r.error) throw r.error;
+                if (!r.data || !r.data.length) { recusou = true; return null; }
+                l.score = n.score;
+                l.tier = n.tier;
+                if (campos.status) l.validada = false;
+                return null;
+              });
+          })
+          .then(function () {
+            salvando = false;
+            if (recusou) {
+              App.toast("Seu acesso nao permite corrigir esta auditoria. Fale com a coordenacao da APSIS.");
+              editando = null; edicao = {};
+              render();
+              return null;
+            }
+            editando = null; edicao = {};
+            rastro[audId] = null;
+            App.toast(mudou.length === 1
+              ? "Resposta corrigida."
+              : mudou.length + " respostas corrigidas.");
+            return carregarRastro(audId).then(render);
+          })
+          .catch(function (e) {
+            salvando = false;
+            if (window.console && console.error) console.error("corrigir", e);
+            App.toast("Nao foi possivel gravar a correcao agora. Tente novamente.");
+            render();
+          });
+      }
+
+      // ------------------------------------------------------------------
+      // O papel sai na frente: sem ele, o botao de corrigir apareceria (ou
+      // nao) errado no primeiro desenho.
       render();
-      carregar().then(render, function (e) {
+      descobrirPapel().then(carregar).then(render, function (e) {
         carregando = false;
         falha = (e && e.message) || "Não foi possível carregar as auditorias agora.";
         render();
