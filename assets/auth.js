@@ -186,7 +186,7 @@
   }
 
   function perfilDe(user) {
-    return client.from("perfis").select("nome, papel, cliente_id, senha_provisoria")
+    return client.from("perfis").select("nome, papel, cliente_id")
       .eq("user_id", user.id).maybeSingle()
       .then(function (r) {
         // Sem linha de perfil, a conta NAO tem acesso. Antes esta linha
@@ -237,7 +237,14 @@
     promessaPermissoes = client.from("permissoes_papel")
       .select("papel, tela, permitido")
       .then(function (r) {
-        if (r.error || !r.data || !r.data.length) return null;
+        if (r.error || !r.data || !r.data.length) {
+          // Leitura vazia NAO fica guardada. Na tela de entrada esta consulta
+          // roda antes de haver sessao, e o servidor nao mostra a matriz a quem
+          // nao entrou: guardar esse vazio fazia o destino pos-entrada ser
+          // decidido pelo padrao escrito no codigo, e nao pela matriz.
+          promessaPermissoes = null;
+          return null;
+        }
         var mapa = {};
         r.data.forEach(function (x) {
           if (!mapa[x.papel]) mapa[x.papel] = {};
@@ -245,7 +252,7 @@
         });
         return mapa;
       })
-      .catch(function () { return null; });
+      .catch(function () { promessaPermissoes = null; return null; });
     return promessaPermissoes;
   }
 
@@ -288,8 +295,11 @@
         if (!p) return null;
         var simulado = verComo();
         if (simulado && PAPEIS_QUE_SIMULAM.indexOf(p.papel) < 0) simulado = "";
-        permsAtuais = permissoesDe(simulado || p.papel, gravadas);
-        return permsAtuais;
+        var perms = permissoesDe(simulado || p.papel, gravadas);
+        // Sem a matriz, o que se tem e o padrao do codigo: serve para nao travar
+        // a tela, mas nao vale guardar como se fosse a decisao gravada.
+        if (gravadas) permsAtuais = perms;
+        return perms;
       })
       .catch(function () { return null; });
   }
@@ -307,7 +317,6 @@
   function telaInicial() {
     return perfil().then(function (pf) {
       if (pf && pf.papel === "sem_acesso") return "sem-acesso.html";
-      if (pf && pf.senha_provisoria) return "definir-senha.html";
       return telas().then(function (p) { return primeiraPermitida(p); });
     }, function () {
       return telas().then(function (p) { return primeiraPermitida(p); });
@@ -394,37 +403,36 @@
   // Cliente Claro e responsável da EPO: e-mail e senha. A primeira senha é
   // definida pelo próprio dono do e-mail, pelo link que ele recebe.
   // captchaToken so vai quando a tela tiver um: com o captcha desligado ele e
-  // vazio e a chamada fica identica a de antes.
-  function entrarComSenha(email, senha, captchaToken) {
-    if (!client) return Promise.reject(new Error("Login indisponível no momento."));
-    var opcoes = { email: email, password: senha };
-    if (captchaToken) opcoes.options = { captchaToken: captchaToken };
-    return client.auth.signInWithPassword(opcoes);
-  }
-
-  // Manda o link para definir ou redefinir a senha. Serve para o "esqueci minha
-  // senha" e para quem nunca definiu a dele.
+  // ------------------------------------------------- Entrada por codigo
+  // A Gerencia Claro e o responsavel da EPO nao tem senha neste sistema:
+  // informam o e-mail, recebem um codigo de seis digitos e digitam. Nao ha senha
+  // para criar, guardar, esquecer nem redefinir, e nenhum link fica valendo numa
+  // caixa de e-mail.
   //
-  // O envio e feito por funcao nossa, e nao pelo servico de e-mail da
-  // plataforma: o e-mail daquele servico chegava com o nome dela, e o link
-  // nascia num formato que a pagina de definir senha nem sempre conseguia
-  // trocar por sessao. Devolve { enviado, espere }: quando o pedido e recusado
-  // pelo freio de um por minuto, a tela diz quanto falta em vez de afirmar que
-  // enviou.
-  function pedirLinkDeSenha(email, captchaToken) {
+  // Em dois passos, cada um com a sua funcao de servidor:
+  //   1) pedirCodigoDeEntrada - o servidor gera o codigo, guarda so o resumo
+  //      criptografico e envia por e-mail. A tela nunca sabe o codigo;
+  //   2) entrarComCodigo - o servidor confere o que a pessoa digitou e devolve
+  //      uma credencial de uso unico, que ESTA tela troca por sessao. A sessao
+  //      nasce no navegador de quem esta entrando, e nao no servidor.
+  function pedirCodigoDeEntrada(email, captchaToken) {
     if (!client || !client.functions || !client.functions.invoke) {
-      return Promise.reject(new Error("Login indisponível no momento."));
+      return Promise.reject(new Error("Entrada indisponível no momento."));
     }
     function daResposta(d) {
       d = d || {};
-      return { enviado: !!d.enviado, espere: Number(d.espere || 0) };
+      return {
+        enviado: !!d.enviado,
+        espere: Number(d.espere || 0),
+        para: d.para || "",
+        minutos: Number(d.minutos || 0)
+      };
     }
-    // O captcha do Supabase nao alcanca este caminho: o pedido de link nao passa
-    // pelo servico de autenticacao, e sim pela nossa funcao. O token vai no
-    // corpo e e conferido la.
+    // O captcha do servico de autenticacao nao alcanca este caminho: o pedido
+    // passa pela nossa funcao. O token vai no corpo e e conferido la.
     var corpo = { email: email };
     if (captchaToken) corpo.captcha = captchaToken;
-    return client.functions.invoke("enviar-link-senha", { body: corpo })
+    return client.functions.invoke("enviar-codigo-entrada", { body: corpo })
       .then(function (r) {
         if (!r.error) return daResposta(r.data);
         // O corpo da recusa traz o que aconteceu; a mensagem do erro, nao.
@@ -435,6 +443,45 @@
         return daResposta(null);
       });
   }
+
+  function entrarComCodigo(email, codigo) {
+    if (!client || !client.functions || !client.functions.invoke) {
+      return Promise.reject(new Error("Entrada indisponível no momento."));
+    }
+    function daResposta(d) {
+      d = d || {};
+      return { ok: !!d.ok, motivo: d.motivo || "", credencial: d.credencial || "" };
+    }
+    return client.functions.invoke("confirmar-codigo-entrada",
+                                   { body: { email: email, codigo: codigo } })
+      .then(function (r) {
+        if (!r.error) return daResposta(r.data);
+        var ctx = r.error.context;
+        if (ctx && typeof ctx.json === "function") {
+          return ctx.json().then(daResposta, function () { return daResposta(null); });
+        }
+        return daResposta(null);
+      })
+      .then(function (d) {
+        if (!d.ok || !d.credencial) {
+          return { ok: false, motivo: d.motivo ||
+            "Código incorreto ou expirado. Peça um código novo." };
+        }
+        // A credencial serve UMA vez e vale poucos minutos. Quem a troca por
+        // sessao e este navegador, entao a sessao funciona mesmo que o codigo
+        // tenha sido pedido em outro aparelho.
+        return client.auth.verifyOtp({ token_hash: d.credencial, type: "magiclink" })
+          .then(function (r2) {
+            if (r2 && r2.error) {
+              if (window.console && console.warn) console.warn("verifyOtp", r2.error);
+              return { ok: false, motivo:
+                "Não foi possível abrir a sessão agora. Peça um código novo." };
+            }
+            return { ok: true };
+          });
+      });
+  }
+
 
   function sair() {
     try {
@@ -623,11 +670,9 @@
           location.replace("sem-acesso.html");
           return "sem-acesso";
         }
-        // Recebeu acesso e ainda não escolheu a senha: define primeiro.
-        if (p.senha_provisoria) {
-          location.replace("definir-senha.html");
-          return "definir-senha";
-        }
+        // Nao existe mais tela de definir senha: quem nao entra pela conta
+        // Microsoft entra por codigo no e-mail, e o codigo ja e a prova. A marca
+        // de "senha ainda nao definida" deixou de mandar para lugar nenhum.
         var mapa = (window.APP && window.APP.papeisPreset) || {};
         var podeSimular = PAPEIS_QUE_SIMULAM.indexOf(p.papel) >= 0;
         var simulado = verComo();
@@ -686,8 +731,8 @@
     perfil: perfil,
     entrarMicrosoft: entrarMicrosoft,
     formasDeEntrar: formasDeEntrar,
-    entrarComSenha: entrarComSenha,
-    pedirLinkDeSenha: pedirLinkDeSenha,
+    pedirCodigoDeEntrada: pedirCodigoDeEntrada,
+    entrarComCodigo: entrarComCodigo,
     entrarDemo: entrarDemo,
     telas: telas,
     podeTela: podeTela,

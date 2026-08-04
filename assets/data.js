@@ -304,7 +304,7 @@
   // Coordenação APSIS e gerência da Claro veem o sistema inteiro.
   var visaoCoordenacao = {
     epos: true,  geral: true,  ranking: true,  comparativo: true,  gerencial: true,
-    pendentes: true,  realizadas: true, auditoria: true,  envio: true,  checagem: true,  alocacoes: true,
+    pendentes: true,  realizadas: true, auditoria: true,   checagem: true,  alocacoes: true,
     giro: true,  evidencias: true,   acessos: true,  questionarios: true,
     cronograma: true
   };
@@ -315,11 +315,11 @@
     admin:       visaoCoordenacao,
     gestor:      visaoCoordenacao,
     cliente:     visaoCoordenacao,
-    auditor:     { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: true,  realizadas: true,  auditoria: true,  envio: false, checagem: false, alocacoes: false, giro: true,  evidencias: false, acessos: false, questionarios: false, cronograma: true },
-    responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, realizadas: false, auditoria: false, envio: false, checagem: true,  alocacoes: false, giro: true,  evidencias: false, acessos: false, questionarios: false, cronograma: false },
+    auditor:     { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: true,  realizadas: true,  auditoria: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, acessos: false, questionarios: false, cronograma: true },
+    responsavel: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, realizadas: false, auditoria: false, checagem: true,  alocacoes: false, giro: true,  evidencias: false, acessos: false, questionarios: false, cronograma: false },
     // Entrou no sistema, mas a APSIS ainda nao liberou o acesso. Nao alcanca
     // tela nenhuma: quem cai aqui vai para a pagina que explica isso.
-    sem_acesso: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, realizadas: false, auditoria: false, envio: false, checagem: false, alocacoes: false, giro: false, evidencias: false, acessos: false, questionarios: false, cronograma: false }
+    sem_acesso: { epos: false, geral: false, ranking: false, comparativo: false, gerencial: false, pendentes: false, realizadas: false, auditoria: false, checagem: false, alocacoes: false, giro: false, evidencias: false, acessos: false, questionarios: false, cronograma: false }
   };
 
   function copiaPreset(papel) {

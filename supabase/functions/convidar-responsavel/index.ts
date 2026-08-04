@@ -1,23 +1,23 @@
-// Acesso por convite.
+// Aviso de acesso liberado.
 // Serve para duas pessoas: o responsavel da unidade, cujo e-mail vem no
-// relatorio pedido, e quem a APSIS liberou na lista de acessos autorizados
-// (gerente da Claro, coordenacao, consultor). Nos dois casos esta funcao cria
-// a conta e manda um e-mail com um link para A PROPRIA PESSOA definir a senha.
-// Depois disso ela entra sempre com e-mail e senha.
+// relatorio pedido ou da lista de responsaveis dela, e quem a APSIS liberou na
+// lista de acessos autorizados (gerente da Claro, coordenacao, consultor). Nos
+// dois casos esta funcao garante que a conta de entrada existe e manda um e-mail
+// dizendo que o acesso esta liberado e onde entrar.
+//
+// NAO existe senha neste sistema. Quem nao e da APSIS entra informando o e-mail
+// na tela de entrada e digitando o codigo de seis digitos que chega nele na hora
+// (funcoes enviar-codigo-entrada e confirmar-codigo-entrada); a equipe da APSIS
+// entra pela conta Microsoft.
 //
 // Regras:
 // - so admin, gestor ou cliente podem chamar (papel lido em perfis);
-// - senha nunca e gerada nem enviada por aqui: quem define e o proprio dono do
-//   e-mail, abrindo o link;
-// - o link NUNCA volta na resposta, nem em log: vai direto para o e-mail;
-// - conta que ja existe recebe link de redefinicao, sem perder nada.
-//
-// Como o e-mail sai, na ordem:
-//   1. Microsoft Graph, com o mesmo app do Azure que ja leva os arquivos para a
-//      pasta oficial (precisa da permissao de aplicacao Mail.Send e do segredo
-//      AZURE_REMETENTE com a caixa que assina a mensagem);
-//   2. se o Graph nao puder enviar, cai no envio do proprio projeto.
-// Sem nenhum dos dois, devolve ok:false com o motivo e nada e prometido na tela.
+// - nenhuma credencial vai neste e-mail: antes ia um link de definir senha, que e
+//   uma credencial numa caixa de e-mail, valida por horas;
+// - o e-mail sai pelo Microsoft Graph, com o mesmo app do Azure que leva os
+//   arquivos para a pasta oficial (permissao de aplicacao Mail.Send e o segredo
+//   AZURE_REMETENTE com a caixa que assina a mensagem). Sem ele, devolve ok:false
+//   com o motivo e nada e prometido na tela.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { montarEmail, saudacaoDe, escapar, VERDE } from "../_shared/email-apsis.ts";
 import { enviarPeloGraph } from "../_shared/enviar-email.ts";
@@ -86,19 +86,20 @@ function origemValida(origem: string | null) {
   }
 }
 
-// A pagina onde o responsavel escolhe a senha dele.
-function destinoDaSenha(origem: string | null) {
+// A tela de entrada. Antes isto apontava para a pagina de escolher senha, que
+// deixou de existir: quem nao e da APSIS entra com um codigo que chega no e-mail.
+function destinoDaEntrada(origem: string | null) {
   const base = origemValida(origem);
   if (base) {
     // mantem a pasta do app quando ele nao esta na raiz do dominio
     try {
       const caminho = new URL(APP_URL).pathname.replace(/[^/]*$/, "");
-      return base + (base.indexOf("localhost") >= 0 ? "/" : caminho) + "definir-senha.html";
+      return base + (base.indexOf("localhost") >= 0 ? "/" : caminho) + "login.html";
     } catch (_e) {
-      return base + "/definir-senha.html";
+      return base + "/login.html";
     }
   }
-  return APP_URL.replace(/[^/]*$/, "") + "definir-senha.html";
+  return APP_URL.replace(/[^/]*$/, "") + "login.html";
 }
 
 // O desenho vem de _shared/email-apsis.ts, o mesmo do e-mail do codigo de
@@ -110,28 +111,39 @@ function destinoDaSenha(origem: string | null) {
 // sempre.
 function corpoDoEmail(link: string, contexto: string, novaConta: boolean,
                       nome: string, email: string) {
+  // Nao existe mais senha neste sistema: quem nao e da APSIS entra com um codigo
+  // que chega no e-mail no momento em que pede. Este aviso, entao, nao manda
+  // ninguem definir senha nenhuma - diz que o acesso esta liberado e onde entrar.
+  //
+  // O parametro "link" continua na assinatura porque quem chama ainda o passa; e
+  // o endereco da tela de entrada, e nao uma credencial.
   const abertura = novaConta
-    ? "Você recebeu acesso ao sistema de <b>Auditoria de EPOs</b> da Apsis Consultoria" +
+    ? "Voce recebeu acesso ao sistema de <b>Auditoria de EPOs</b> da Apsis Consultoria" +
       (contexto ? " como <b>" + escapar(contexto) + "</b>" : "") + "."
-    : "Recebemos um pedido para você definir uma nova senha no sistema de " +
-      "<b>Auditoria de EPOs</b> da Apsis Consultoria.";
+    : "O seu acesso ao sistema de <b>Auditoria de EPOs</b> da Apsis Consultoria " +
+      "continua liberado" + (contexto ? " como <b>" + escapar(contexto) + "</b>" : "") + ".";
 
   return montarEmail({
-    titulo: novaConta ? "Acesso à Auditoria de EPOs" : "Nova senha da Auditoria de EPOs",
-    subtitulo: "Auditoria de unidades EPO · Apsis Consultoria",
+    titulo: novaConta ? "Acesso a Auditoria de EPOs" : "Seu acesso a Auditoria de EPOs",
+    subtitulo: "Auditoria de unidades EPO - Apsis Consultoria",
     saudacao: saudacaoDe(nome),
-    paragrafos: [abertura],
+    paragrafos: [
+      abertura,
+      "Para entrar, informe o seu e-mail na tela de entrada. Um <b>codigo de seis " +
+      "digitos</b> chega neste endereco na hora, e voce digita na tela. Nao ha senha " +
+      "para criar nem para lembrar."
+    ],
     quadro: {
-      rotulo: "Seus dados de acesso",
+      rotulo: "Como entrar",
       linhas: [
-        ["E-mail", '<span style="color:' + VERDE + ';">' + escapar(email) + "</span>"],
-        ["Senha", '<span style="color:#6b7280;">você escolhe no botão abaixo</span>']
+        ["Seu e-mail", '<span style="color:' + VERDE + ';">' + escapar(email) + "</span>"],
+        ["Sua chave", '<span style="color:#6b7280;">o codigo que chega aqui quando voce pedir</span>']
       ]
     },
-    botao: { texto: novaConta ? "Definir minha senha" : "Definir nova senha", href: link },
-    aviso: "&#128274; <b>Dica de segurança:</b> não compartilhe a sua senha com ninguém. " +
-           "O link deste e-mail é pessoal e tem validade; se expirar, peça outro ao seu " +
-           "contato na Apsis."
+    botao: { texto: "Ir para a tela de entrada", href: link },
+    aviso: "&#128274; <b>Dica de seguranca:</b> o codigo e so seu, serve uma vez e vale " +
+           "poucos minutos. A APSIS nunca vai pedir o seu codigo por telefone ou por " +
+           "e-mail."
   });
 }
 
@@ -239,11 +251,11 @@ Deno.serve(async (req: Request) => {
     if (!error && data) existente = { id: String(data) };
   } catch (_e) { existente = null; }
 
-  const destino = destinoDaSenha(req.headers.get("Origin"));
+  const destino = destinoDaEntrada(req.headers.get("Origin"));
   const novaConta = !existente;
 
   if (novaConta) {
-    // Conta criada sem senha: quem define e o proprio dono do e-mail.
+    // Conta criada sem senha - e sem senha ela fica: a entrada e por codigo.
     const criada = await admin.auth.admin.createUser({
       email: email,
       email_confirm: true,
@@ -255,69 +267,36 @@ Deno.serve(async (req: Request) => {
     if (criada.data && criada.data.user) existente = { id: criada.data.user.id };
   }
 
-  // Link de uso unico para definir a senha. Nao volta na resposta.
-  //
-  // Sempre "recovery", nunca "invite". O tipo invite serve para e-mail que
-  // ainda NAO tem conta: ele mesmo cria. Como a conta acabou de ser criada
-  // acima, pedir invite recebia 422 "A user with this email address has
-  // already been registered", a funcao devolvia 502 e nenhum e-mail saia -
-  // ou seja, todo primeiro acesso falhava, sempre.
-  const gerado = await admin.auth.admin.generateLink({
-    type: "recovery",
-    email: email,
-    options: { redirectTo: destino }
-  });
-  if (gerado.error || !gerado.data || !gerado.data.properties) {
-    return json({
-      ok: false,
-      motivo: "nao foi possivel gerar o link de acesso: " +
-        String((gerado.error && gerado.error.message) || "erro desconhecido")
-    }, 502);
-  }
-  const link = (gerado.data.properties as Record<string, string>).action_link;
+  // Nenhuma credencial vai neste e-mail. Antes ia um link de definir senha, que
+  // e uma credencial numa caixa de e-mail: valia por horas, e quem tivesse
+  // acesso a caixa entrava. Agora o e-mail so avisa que o acesso esta liberado, e
+  // a chave (o codigo de seis digitos) e pedida na hora de entrar, por quem esta
+  // entrando.
+  const link = destino;
 
   const assunto = novaConta
     ? "Seu acesso à Auditoria de EPOs" + (contexto ? " - " + contexto : "")
-    : "Nova senha da Auditoria de EPOs";
+    : "Seu acesso à Auditoria de EPOs";
   const html = corpoDoEmail(link, contexto, novaConta, nomeDaPessoa, email);
 
   // 1) Microsoft Graph, com a credencial que ja existe
   let envio = await enviarPeloGraph(email, assunto, html);
 
-  // 2) sem Graph, tenta o envio do proprio projeto
+  // 2) sem Graph, nao existe reserva.
+  //
+  // Antes caia no envio do proprio servico de contas, que manda um link de
+  // redefinir senha - e nao ha mais senha para redefinir, nem esse e-mail chega
+  // com o nome da APSIS. Falhando o Graph, a tela recebe ok:false com o motivo e
+  // ninguem promete nada a quem esta esperando.
   if (!envio.ok) {
-    console.warn("envio pelo Graph falhou:", envio.motivo);
-    // Aqui vale a mesma regra do link: a conta ja existe neste ponto, entao
-    // convidar recusaria com "already registered". Redefinir senha serve para
-    // os dois casos, porque conta nova nasce sem senha.
-    const pelaPlataforma = await comoUsuario.auth.resetPasswordForEmail(
-      email, { redirectTo: destino });
-    if (!pelaPlataforma.error) {
-      envio = { ok: true, motivo: "enviado pelo servico de e-mail do projeto" };
-    } else {
-      envio = {
-        ok: false,
-        motivo: "nao foi possivel enviar o e-mail. Graph: " + envio.motivo +
-          " | plataforma: " + String(pelaPlataforma.error.message || "")
-      };
-    }
+    console.warn("envio do aviso de acesso falhou:", envio.motivo);
   }
 
   // Marca que a senha ainda nao foi definida por ele, para a tela cobrar - mas
   // SO para quem nunca definiu.
   //
-  // Antes marcava sempre. Quem ja tinha senha e recebia um reenvio (ou tinha a
-  // unidade dele editada, porque salvar a unidade reenvia o acesso) voltava a
-  // ser tratado como primeiro acesso: entrava com a senha certa e a tela o
-  // jogava para "defina a sua senha", toda vez, sem dizer por que. Foi assim
-  // que um responsavel ficou com senha_trocada_em preenchido e a marca de
-  // provisoria de volta em true.
-  if (envio.ok && existente) {
-    await admin.from("perfis")
-      .update({ senha_provisoria: true })
-      .eq("user_id", existente.id)
-      .is("senha_trocada_em", null);
-  }
+  // A marca de "senha ainda nao definida" saiu junto com a senha: nao ha mais
+  // tela para onde mandar quem nao definiu, porque nao ha mais o que definir.
 
   if (envio.ok && alocacaoId) {
     await admin.from("alocacoes")

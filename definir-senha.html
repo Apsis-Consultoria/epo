@@ -3,224 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Definir senha - Auditoria EPO's</title>
+  <title>Entrar - Auditoria EPO's</title>
   <link rel="icon" type="image/png" href="assets/brand/logo-apsis.png" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="assets/portal.css?v=99" />
+  <!--
+    Esta tela existia para a pessoa escolher uma senha. Nao existe mais senha
+    neste sistema: a Gerencia Claro e o responsavel da EPO entram com um codigo
+    que chega no e-mail, e a equipe da APSIS entra pela conta Microsoft.
+
+    O arquivo continua aqui porque o endereco dele foi para dentro de e-mails ja
+    enviados: quem clicar num link antigo cai na tela de entrada em vez de numa
+    pagina que nao existe.
+  -->
+  <script>location.replace("login.html");</script>
 </head>
 <body>
-  <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
-    <img src="assets/brand/login-1.png" alt="" aria-hidden="true" onerror="this.style.display='none'"
-      class="absolute inset-0 w-full h-full object-cover opacity-60" />
-    <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(7,19,13,.94), rgba(7,19,13,.65), rgba(7,19,13,.85));"></div>
-
-    <div class="relative z-10 min-h-screen flex items-center justify-center px-5 py-10">
-      <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl px-7 py-8">
-        <img src="assets/brand/logo-apsis-transp.png" alt="APSIS" onerror="this.style.display='none'"
-          class="h-16 object-contain mx-auto mb-4" />
-
-        <h1 class="text-xl font-bold text-center" style="color: rgb(26,71,49); font-family: Sora, 'Segoe UI', sans-serif;">
-          Defina a sua senha
-        </h1>
-        <p id="quem" class="text-gray-500 text-sm text-center mt-1 mb-6"></p>
-
-        <!-- Formulário -->
-        <div id="form-senha" class="hidden">
-          <label class="block text-left text-xs font-semibold text-gray-500 mb-1" for="s1">Nova senha</label>
-          <input id="s1" type="password" autocomplete="new-password" placeholder="pelo menos 8 caracteres"
-            class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
-
-          <label class="block text-left text-xs font-semibold text-gray-500 mb-1 mt-4" for="s2">Repita a senha</label>
-          <input id="s2" type="password" autocomplete="new-password" placeholder="a mesma senha"
-            class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
-
-          <label class="flex items-center gap-2 mt-3 text-xs text-gray-500 cursor-pointer" for="ver">
-            <input id="ver" type="checkbox" /> Mostrar a senha
-          </label>
-
-          <button id="btn-salvar" class="w-full mt-5 font-semibold py-3.5 px-6 rounded-xl text-white transition-colors disabled:opacity-60"
-            style="background: rgb(26,71,49);">
-            Salvar e entrar
-          </button>
-
-          <a id="btn-voltar" href="login.html" class="hidden w-full mt-3 text-center text-sm font-semibold underline"
-            style="color: rgb(26,71,49);">
-            Ir para a tela de entrada
-          </a>
-
-          <p class="text-xs text-gray-400 mt-4 leading-relaxed">
-            A senha é só sua. A APSIS não tem acesso a ela e nunca vai pedir a sua senha por e-mail
-            ou por telefone.
-          </p>
-        </div>
-
-        <!-- Link vencido / aberto fora de hora -->
-        <div id="sem-link" class="hidden text-center">
-          <p class="text-sm text-gray-600 leading-relaxed">
-            Este endereço só funciona a partir do link que você recebeu por e-mail, e o link tem validade.
-          </p>
-          <p class="text-sm text-gray-600 leading-relaxed mt-3">
-            Na tela de entrada, use <b>Esqueci a minha senha</b> para receber um link novo.
-          </p>
-          <a href="login.html" class="inline-block mt-6 text-sm font-semibold underline" style="color: rgb(26,71,49);">
-            Ir para a tela de entrada
-          </a>
-        </div>
-
-        <p id="msg" class="text-xs text-center mt-4 hidden"></p>
-      </div>
-    </div>
-  </div>
-
-  <script src="assets/supabase-config.js?v=99"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script>
-    (function () {
-      "use strict";
-      var $ = function (id) { return document.getElementById(id); };
-
-      function msg(texto, erro) {
-        var el = $("msg");
-        el.textContent = texto;
-        el.classList.remove("hidden");
-        el.style.color = erro ? "#dc2626" : "#16a34a";
-      }
-
-      var pronto = window.supabase && window.SUPABASE_URL && window.SUPABASE_KEY;
-      if (!pronto) { $("sem-link").classList.remove("hidden"); return; }
-
-      // O link do e-mail traz a credencial no endereço; o cliente troca por uma
-      // sessão curta, que só serve para definir a senha.
-      var db = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY, {
-        auth: { detectSessionInUrl: true, flowType: "pkce" }
-      });
-
-      function mostrarFormulario(email) {
-        $("quem").textContent = email
-          ? "Para entrar com " + email
-          : "Escolha a senha que você vai usar para entrar";
-        $("form-senha").classList.remove("hidden");
-        $("s1").focus();
-      }
-
-      // O link do e-mail serve UMA vez. Enquanto ele fica no endereco, qualquer
-      // recarga tenta usar de novo e a resposta e "link invalido ou expirado" -
-      // e a sessao cai junto. Foi o que aconteceu no primeiro acesso de verdade:
-      // a senha foi salva e, um segundo depois, a sessao tinha ido embora.
-      function limparEndereco() {
-        if (!location.hash && !location.search) return;
-        try {
-          history.replaceState(null, "", location.pathname);
-        } catch (e) { /* navegador antigo: segue com o endereco como esta */ }
-      }
-
-      // Pode chegar como sessão pronta (link novo) ou como erro no endereço.
-      function conferirSessao() {
-        var hash = location.hash || "";
-
-        // Caminho novo: o e-mail traz ?codigo=..., e a troca por sessao
-        // acontece AQUI, no clique. O link pronto de antes consumia o codigo
-        // no primeiro GET, e leitor de e-mail que abre link para "pre-ver" ja
-        // o gastava antes do clique de verdade; alem disso, o formato antigo
-        // so funcionava no navegador que tinha pedido o link.
-        var codigo = new URLSearchParams(location.search).get("codigo");
-        if (codigo) {
-          db.auth.verifyOtp({ type: "recovery", token_hash: codigo }).then(function (r) {
-            if (r.error || !r.data || !r.data.session) {
-              if (window.console && console.warn) console.warn("verifyOtp", r.error);
-              $("sem-link").classList.remove("hidden");
-              return;
-            }
-            limparEndereco();
-            mostrarFormulario(r.data.session.user && r.data.session.user.email);
-          }, function (e) {
-            console.error("verifyOtp", e);
-            $("sem-link").classList.remove("hidden");
-          });
-          return;
-        }
-
-        if (/error/i.test(hash) || /error/i.test(location.search)) {
-          $("sem-link").classList.remove("hidden");
-          return;
-        }
-        db.auth.getSession().then(function (r) {
-          var s = r && r.data && r.data.session;
-          if (s) { limparEndereco(); mostrarFormulario(s.user && s.user.email); return; }
-          // o cliente às vezes só resolve o endereço no próximo tique
-          db.auth.onAuthStateChange(function (_ev, sessao) {
-            if (sessao) { limparEndereco(); mostrarFormulario(sessao.user && sessao.user.email); }
-          });
-          setTimeout(function () {
-            db.auth.getSession().then(function (r2) {
-              var s2 = r2 && r2.data && r2.data.session;
-              if (s2) { limparEndereco(); mostrarFormulario(s2.user && s2.user.email); }
-              else $("sem-link").classList.remove("hidden");
-            });
-          }, 1400);
-        });
-      }
-
-      $("ver").addEventListener("change", function () {
-        var t = this.checked ? "text" : "password";
-        $("s1").type = t;
-        $("s2").type = t;
-      });
-
-      $("btn-salvar").addEventListener("click", function () {
-        var a = $("s1").value;
-        var b = $("s2").value;
-        if (a.length < 8) { msg("A senha precisa ter pelo menos 8 caracteres.", true); return; }
-        if (a !== b) { msg("As duas senhas não são iguais.", true); return; }
-
-        var btn = this;
-        btn.disabled = true;
-        btn.textContent = "Salvando...";
-
-        db.auth.updateUser({ password: a }).then(function (r) {
-          if (r.error) {
-            btn.disabled = false;
-            btn.textContent = "Salvar e entrar";
-            console.error("definirSenha", r.error);
-            msg("Não foi possível salvar a senha. Peça um link novo na tela de entrada.", true);
-            return;
-          }
-          // Avisa o sistema de que a senha agora e escolhida por ele. Isto NAO
-          // pode ser engolido: sem a marca, o sistema manda a pessoa de volta
-          // para esta tela toda vez que ela entrar, sem dizer por que.
-          return db.rpc("marcar_senha_trocada").then(function (rm) {
-            if (rm && rm.error) throw rm.error;
-            if (rm && rm.data === false) throw new Error("sessao do link expirou");
-            msg("Senha salva. Entrando...");
-            // Esta tela nao carrega a camada de acesso do sistema (tem cliente
-            // proprio, para tratar o codigo do link sem dois clientes brigando
-            // pela mesma sessao). Entao entra pela visao geral, e quem nao a
-            // alcanca e encaminhado por ela para a tela dele.
-            setTimeout(function () { location.replace("index.html"); }, 700);
-          });
-        }, function (e) {
-          btn.disabled = false;
-          btn.textContent = "Salvar e entrar";
-          console.error("definirSenha", e);
-          // A senha pode ter sido gravada e a marca nao: dizer "tente nova
-          // senha" mandaria a pessoa repetir algo que talvez ja tenha dado
-          // certo. O caminho seguro e entrar; se a senha nao pegou, a tela de
-          // entrada oferece o link de novo.
-          msg("A senha pode ter sido salva, mas a sessão do link expirou. " +
-              "Volte para a tela de entrada e faça login com a senha que você acabou de escolher.", true);
-          var volta = $("btn-voltar");
-          if (volta) volta.classList.remove("hidden");
-        });
-      });
-
-      [$("s1"), $("s2")].forEach(function (el) {
-        el.addEventListener("keydown", function (ev) {
-          if (ev.key === "Enter") $("btn-salvar").click();
-        });
-      });
-
-      conferirSessao();
-    })();
-  </script>
+  <p style="font:400 14px Inter,system-ui,sans-serif;padding:24px;">
+    Este sistema não usa mais senha. Na tela de entrada, informe o seu e-mail e
+    você recebe um código para entrar.
+    <a href="login.html">Ir para a tela de entrada</a>
+  </p>
 </body>
 </html>

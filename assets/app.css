@@ -1772,6 +1772,11 @@ input[type="submit"],
   .link-mini { min-height: 32px; display: inline-flex; align-items: center; }
   button.chip, .chip[role="button"] { height: 34px; padding: 0 12px; font-size: 12.5px; }
 
+  /* Os quatro cartoes de indicador da visao geral nao aparecem no celular:
+     empilhados, sao quatro telas de rolagem antes dos atalhos, que e o que a
+     pessoa veio usar. Os numeros continuam no Ranking e no Painel gerencial. */
+  .kpi-grid.kpi-geral { display: none; }
+
   /* Celular: um atalho acima do outro, largura inteira. Em uma linha unica
      rolando de lado, os de tras ficavam escondidos - so quem soubesse arrastar
      a faixa descobria que existiam. */

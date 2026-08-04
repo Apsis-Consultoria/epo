@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/portal.css?v=99" />
+  <link rel="stylesheet" href="assets/portal.css?v=103" />
   <style>
     /* Ajustes de proporção do painel de login (sobrepõem o portal.css) */
     .login-col { padding-top: 3vh; }
@@ -74,45 +74,41 @@
           </div>
           <button id="btn-cliente" class="w-full flex items-center justify-center gap-3 font-semibold py-3.5 px-6 rounded-xl shadow-sm transition-colors text-white" style="background: rgb(26, 71, 49);" onmouseover="this.style.background='rgb(20, 56, 39)'" onmouseout="this.style.background='rgb(26, 71, 49)'">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><path d="M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/><path d="M3 21v-1a5 5 0 0 1 5-5h2"/><path d="m15 19 2 2 4-4"/></svg>
-            Entrar com e-mail e senha
+            Receber código por e-mail
           </button>
 
-          <!-- Cliente Claro e responsável da EPO: e-mail e senha.
-               A senha é definida pelo próprio dono do e-mail, pelo link que
-               recebe quando a EPO é cadastrada. -->
+          <!-- Gerência Claro e responsável da EPO: código no e-mail, sem senha.
+               Informa o e-mail, recebe um código de seis dígitos e digita. Não há
+               senha para criar, guardar, esquecer nem redefinir. -->
           <div id="painel-cliente" class="w-full hidden">
-            <div id="etapa-senha">
-              <p id="painel-titulo" class="text-left text-sm font-semibold text-slate-600 mb-3"></p>
+            <div id="etapa-email">
+              <p class="text-left text-sm font-semibold text-slate-600 mb-3">
+                Informe o seu e-mail. Você recebe um código para entrar.
+              </p>
               <label class="block text-left text-xs font-semibold text-gray-500 mb-1" for="cli-email">E-mail</label>
               <input id="cli-email" type="email" placeholder="o e-mail cadastrado na sua EPO" autocomplete="email"
                 class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
-
-              <div id="campo-senha">
-                <label class="block text-left text-xs font-semibold text-gray-500 mb-1 mt-3" for="cli-senha">Senha</label>
-                <input id="cli-senha" type="password" placeholder="a senha que você definiu" autocomplete="current-password"
-                  class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
-                <!-- Discreto e colado no campo que ele socorre. No modo de pedir
-                     o link este bloco inteiro some, junto com o campo. -->
-                <button id="btn-redefinir" class="block ml-auto mt-2 text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2">
-                  Esqueci a minha senha
-                </button>
-              </div>
-
-              <button id="btn-entrar-senha" class="w-full mt-4 font-semibold py-3 px-6 rounded-xl text-white transition-colors disabled:opacity-60" style="background: rgb(26, 71, 49);">
-                Entrar
-              </button>
-              <button id="btn-esqueci" class="w-full mt-4 font-semibold py-3 px-6 rounded-xl text-white transition-colors disabled:opacity-60" style="background: rgb(244, 129, 38);">
-                Enviar o link para definir a senha
+              <button id="btn-enviar-codigo" class="w-full mt-4 font-semibold py-3 px-6 rounded-xl text-white transition-colors disabled:opacity-60" style="background: rgb(26, 71, 49);">
+                Receber o código
               </button>
               <div id="captcha-caixa" class="hidden mt-3 flex justify-center"></div>
               <button id="btn-fechar-painel" class="w-full mt-2 text-xs text-gray-400 underline">Voltar</button>
             </div>
-            <div id="etapa-enviado" class="hidden text-left">
-              <p class="text-sm text-gray-600 leading-relaxed">
-                Se esse e-mail estiver cadastrado, você recebe em instantes um link para
-                <b>definir a sua senha</b>. Confira a caixa de entrada e o spam.
-              </p>
-              <button id="btn-voltar-senha" class="w-full mt-3 text-xs text-gray-400 underline">Voltar</button>
+
+            <div id="etapa-codigo" class="hidden text-left">
+              <p id="codigo-titulo" class="text-sm text-gray-600 leading-relaxed mb-3"></p>
+              <label class="block text-left text-xs font-semibold text-gray-500 mb-1" for="cli-codigo">Código</label>
+              <input id="cli-codigo" type="text" inputmode="numeric" autocomplete="one-time-code"
+                maxlength="6" placeholder="000000"
+                class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none"
+                style="border-width:1.5px; letter-spacing:.35em; font-size:20px; font-weight:600; text-align:center;" />
+              <button id="btn-entrar-codigo" class="w-full mt-4 font-semibold py-3 px-6 rounded-xl text-white transition-colors disabled:opacity-60" style="background: rgb(26, 71, 49);">
+                Entrar
+              </button>
+              <button id="btn-outro-codigo" class="w-full mt-3 text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2">
+                Enviar outro código
+              </button>
+              <button id="btn-voltar-email" class="w-full mt-2 text-xs text-gray-400 underline">Trocar o e-mail</button>
             </div>
           </div>
 
@@ -144,9 +140,9 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=99"></script>
+  <script src="assets/supabase-config.js?v=103"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=99"></script>
+  <script src="assets/auth.js?v=103"></script>
   <script>
     (function () {
       "use strict";
@@ -244,33 +240,26 @@
         }).catch(msFalhou);
       });
 
-      // O painel serve para os dois caminhos: entrar com a senha e pedir o link
-      // para definir uma nova. O que muda e qual botao aparece - antes o pedido
-      // de link era um texto cinza pequeno dentro do painel da senha, e quem
-      // precisava redefinir nao achava.
-      // Escolher um caminho tira o outro da frente: com o painel do e-mail
-      // aberto, os dois botoes de escolha nao servem para mais nada e ficavam
-      // acima do formulario, empurrando os campos para baixo.
+      // O painel do e-mail: dois passos, um por vez. Primeiro o e-mail, depois o
+      // codigo que chegou nele. Nao existe senha neste caminho - nao ha o que
+      // criar, guardar, esquecer nem redefinir.
+      //
+      // Escolher este caminho tira os dois botoes de escolha da frente: com o
+      // painel aberto eles nao servem para mais nada e empurravam os campos para
+      // baixo.
       function mostrarEscolha(mostrar) {
         ["btn-ms", "sep-ou", "btn-cliente"].forEach(function (id) {
           $(id).classList.toggle("hidden", !mostrar);
         });
       }
 
-      function abrirPainel(modo) {
-        var pedindoLink = modo === "link";
+      function abrirPainel() {
         carregarCaptcha();
         montarCaptcha();
         mostrarEscolha(false);
         $("painel-cliente").classList.remove("hidden");
-        $("etapa-enviado").classList.add("hidden");
-        $("etapa-senha").classList.remove("hidden");
-        $("painel-titulo").textContent = pedindoLink
-          ? "Vamos enviar um link para você definir uma senha nova."
-          : "Entre com o e-mail cadastrado e a sua senha.";
-        $("campo-senha").classList.toggle("hidden", pedindoLink);
-        $("btn-entrar-senha").classList.toggle("hidden", pedindoLink);
-        $("btn-esqueci").classList.toggle("hidden", !pedindoLink);
+        $("etapa-codigo").classList.add("hidden");
+        $("etapa-email").classList.remove("hidden");
         $("cli-msg").classList.add("hidden");
         $("cli-email").focus();
       }
@@ -281,103 +270,118 @@
         mostrarEscolha(true);
       }
 
-      $("btn-cliente").addEventListener("click", function () {
-        if (!$("painel-cliente").classList.contains("hidden") &&
-            !$("btn-entrar-senha").classList.contains("hidden")) { fecharPainel(); return; }
-        abrirPainel("senha");
-      });
-
-      // So aparece com o painel da senha aberto: o clique troca para o modo
-      // de pedir o link, com o e-mail que a pessoa ja digitou.
-      $("btn-redefinir").addEventListener("click", function () {
-        abrirPainel("link");
-      });
-
+      $("btn-cliente").addEventListener("click", abrirPainel);
       $("btn-fechar-painel").addEventListener("click", fecharPainel);
+      $("btn-voltar-email").addEventListener("click", abrirPainel);
 
-      function entrarComSenha() {
-        var email = ($("cli-email").value || "").trim().toLowerCase();
-        var senha = $("cli-senha").value || "";
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg("Informe um e-mail válido.", true); return; }
-        if (!senha) { msg("Digite a sua senha.", true); return; }
+      function emailDigitado() {
+        return ($("cli-email").value || "").trim().toLowerCase();
+      }
+
+      function emailValido(e) {
+        return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
+      }
+
+      // Esta tela nao carrega o app.js, entao a limpeza do texto e daqui mesmo.
+      // O endereco encoberto vem do servidor, mas o que vai para dentro de HTML
+      // se limpa de qualquer forma.
+      function limpar(t) {
+        return String(t == null ? "" : t)
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      // ------------------------------------------------------------ 1) pedir
+      function pedirCodigo(botao) {
+        var email = emailDigitado();
+        if (!emailValido(email)) { msg("Informe um e-mail válido.", true); return; }
         if (faltaCaptcha()) return;
 
-        var btn = $("btn-entrar-senha");
+        var rotulo = botao.textContent;
+        botao.disabled = true;
+        botao.textContent = "Enviando...";
+        function liberar() { botao.disabled = false; botao.textContent = rotulo; }
+
+        Auth.pedirCodigoDeEntrada(email, captchaToken).then(function (r) {
+          liberar();
+          renovarCaptcha();
+          // O servico deixa pedir um codigo por minuto para o mesmo endereco.
+          // Dizer "enviamos" quando ele recusou faz a pessoa esperar um e-mail
+          // que nao vem.
+          if (r && !r.enviado) {
+            if (r.espere) {
+              msg("Você pediu um código agora há pouco. Aguarde " + r.espere +
+                  " segundos e peça de novo.", true);
+            } else {
+              msg("Não foi possível enviar o código agora. Tente de novo em alguns instantes.", true);
+            }
+            return;
+          }
+          // A mesma resposta vale para e-mail com e sem acesso, de proposito:
+          // esta tela nao conta quem tem conta no sistema.
+          $("codigo-titulo").innerHTML =
+            "Se esse e-mail tiver acesso, o código chega em instantes" +
+            (r && r.para ? " em <b>" + limpar(r.para) + "</b>" : "") +
+            ". Confira a caixa de entrada e o spam." +
+            (r && r.minutos ? " Ele vale por " + r.minutos + " minutos." : "");
+          $("etapa-email").classList.add("hidden");
+          $("etapa-codigo").classList.remove("hidden");
+          $("cli-msg").classList.add("hidden");
+          $("cli-codigo").value = "";
+          $("cli-codigo").focus();
+        }, function (e) {
+          liberar();
+          renovarCaptcha();
+          console.error("pedirCodigoDeEntrada", e);
+          msg("Não foi possível enviar o código agora. Tente de novo em alguns instantes.", true);
+        });
+      }
+
+      $("btn-enviar-codigo").addEventListener("click", function () { pedirCodigo(this); });
+      $("btn-outro-codigo").addEventListener("click", function () { pedirCodigo(this); });
+      $("cli-email").addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") $("btn-enviar-codigo").click();
+      });
+
+      // ------------------------------------------------------------ 2) entrar
+      function entrarComCodigo() {
+        var email = emailDigitado();
+        var codigo = ($("cli-codigo").value || "").replace(/[^0-9]/g, "");
+        if (codigo.length < 4) { msg("Digite o código de seis dígitos que chegou no seu e-mail.", true); return; }
+
+        var btn = $("btn-entrar-codigo");
+        if (btn.disabled) return;
         btn.disabled = true;
         btn.textContent = "Entrando...";
-        Auth.entrarComSenha(email, senha, captchaToken).then(function (r) {
-          if (r && r.error) {
-            btn.disabled = false;
-            btn.textContent = "Entrar";
-            renovarCaptcha();
-            // A mensagem é a mesma para e-mail errado e senha errada, de propósito.
-            msg("E-mail ou senha não conferem. Se é o seu primeiro acesso, " +
-                "use “Esqueci a minha senha” para receber um link.", true);
+        function liberar() { btn.disabled = false; btn.textContent = "Entrar"; }
+
+        Auth.entrarComCodigo(email, codigo).then(function (r) {
+          if (r && !r.ok) {
+            liberar();
+            // O motivo vem do servidor: codigo errado, expirado, ou tentado
+            // cinco vezes. Cada um pede uma acao diferente de quem esta na tela.
+            msg(r.motivo || "Código incorreto ou expirado. Peça um código novo.", true);
             return;
           }
           Auth.telaInicial().then(function (d) { location.replace(d); },
                                  function () { location.replace("index.html"); });
         }, function (e) {
-          btn.disabled = false;
-          btn.textContent = "Entrar";
-          renovarCaptcha();
-          console.error("entrarComSenha", e);
+          liberar();
+          console.error("entrarComCodigo", e);
           msg("Não foi possível entrar agora. Tente novamente em alguns instantes.", true);
         });
       }
 
-      $("btn-entrar-senha").addEventListener("click", entrarComSenha);
-      $("cli-senha").addEventListener("keydown", function (ev) {
-        if (ev.key === "Enter") entrarComSenha();
+      $("btn-entrar-codigo").addEventListener("click", entrarComCodigo);
+      $("cli-codigo").addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") entrarComCodigo();
       });
-      $("cli-email").addEventListener("keydown", function (ev) {
-        if (ev.key !== "Enter") return;
-        if ($("campo-senha").classList.contains("hidden")) $("btn-esqueci").click();
-        else $("cli-senha").focus();
-      });
-
-      // Primeiro acesso e esqueci a senha são o mesmo caminho: link por e-mail.
-      $("btn-esqueci").addEventListener("click", function () {
-        var email = ($("cli-email").value || "").trim().toLowerCase();
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg("Informe o seu e-mail primeiro.", true); return; }
-        if (faltaCaptcha()) return;
-        var btn = this;
-        var rotulo = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = "Enviando...";
-
-        function liberar() { btn.disabled = false; btn.textContent = rotulo; }
-
-        Auth.pedirLinkDeSenha(email, captchaToken).then(function (r) {
-          liberar();
-          renovarCaptcha();
-          // O servico deixa pedir um link por minuto para o mesmo endereco.
-          // Quando recusa, dizer "enviamos" faz a pessoa esperar um e-mail que
-          // nao vem: foi o que aconteceu.
-          if (r && !r.enviado) {
-            if (r.espere) {
-              msg("Você pediu um link agora há pouco. Aguarde " + r.espere +
-                  " segundos e tente de novo.", true);
-            } else {
-              msg("Não foi possível enviar o link agora. Tente de novo em alguns instantes.", true);
-            }
-            return;
-          }
-          $("etapa-senha").classList.add("hidden");
-          $("etapa-enviado").classList.remove("hidden");
-          // O id e cli-msg. Com "msg", $() devolvia null e o clique em
-          // "Esqueci a senha" terminava em erro no meio do caminho.
-          $("cli-msg").classList.add("hidden");
-        }, function (e) {
-          liberar();
-          renovarCaptcha();
-          console.error("pedirLinkDeSenha", e);
-          msg("Não foi possível enviar o link agora. Tente de novo em alguns instantes.", true);
-        });
-      });
-
-      $("btn-voltar-senha").addEventListener("click", function () {
-        abrirPainel("senha");
+      // So numero, e entra sozinho aos seis digitos: quem recebe o codigo no
+      // celular cola e nao precisa procurar o botao.
+      $("cli-codigo").addEventListener("input", function () {
+        var limpo = (this.value || "").replace(/[^0-9]/g, "").slice(0, 6);
+        if (limpo !== this.value) this.value = limpo;
+        if (limpo.length === 6) entrarComCodigo();
       });
 
     })();
