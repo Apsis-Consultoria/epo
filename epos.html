@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=89">
+  <link rel="stylesheet" href="assets/app.css?v=93">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -56,13 +56,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=89"></script>
-  <script src="assets/app.js?v=89"></script>
-  <script src="assets/geo-br.js?v=89"></script>
-  <script src="assets/form-epo.js?v=89"></script>
-  <script src="assets/supabase-config.js?v=89"></script>
+  <script src="assets/data.js?v=93"></script>
+  <script src="assets/app.js?v=93"></script>
+  <script src="assets/geo-br.js?v=93"></script>
+  <script src="assets/form-epo.js?v=93"></script>
+  <script src="assets/supabase-config.js?v=93"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=89"></script>
+  <script src="assets/auth.js?v=93"></script>
   <script>
     (function () {
       "use strict";
@@ -97,6 +97,10 @@
       // Aberto por "Nova auditoria": a EPO vem de lista suspensa e o objetivo
       // e marcar questionario, nao cadastrar unidade.
       var modoAuditoria = false;
+      // Modo "novo cronograma": a unidade vem de lista suspensa, os dados dela
+      // aparecem preenchidos e o que se preenche aqui e a data. Com a data
+      // salva, a unidade entra no cronograma.
+      var modoCronograma = false;
       var demoSeq = 0;
 
       // ------------------------------------------------------------------
@@ -186,17 +190,27 @@
       // A data prevista vem do cronograma, que e onde ela vive. Antes esta
       // tela mostrava a data guardada no pedido de questionario, e o roadmap
       // mostrava outra: eram dois campos com o mesmo nome em telas diferentes.
+      // Responsaveis por unidade, para o formulario abrir com a lista dela.
+      var respsPorEpo = {};
+
       function preencherForm(epo) {
-        document.getElementById("epo-modal-title").textContent = modoAuditoria
-          ? "Nova auditoria"
-          : (epo ? "Editar unidade" : "Nova unidade");
+        document.getElementById("epo-modal-title").textContent = modoCronograma
+          ? "Novo cronograma"
+          : (modoAuditoria ? "Nova auditoria"
+                           : (epo ? "Editar unidade" : "Nova unidade"));
         var btnSalvar = document.getElementById("epo-modal-save");
         if (btnSalvar) {
           btnSalvar.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>' +
-            (modoAuditoria ? "Pedir questionários" : "Salvar EPO");
+            (modoCronograma ? "Salvar data"
+                            : (modoAuditoria ? "Pedir questionários" : "Salvar EPO"));
         }
         sincronizarForm();
-        if (epo) FormEpo.preencher(epo, { item: itemDoCronograma(epo.id) });
+        if (epo) {
+          FormEpo.preencher(epo, {
+            item: itemDoCronograma(epo.id),
+            responsaveis: respsPorEpo[String(epo.id)] || []
+          });
+        }
         else FormEpo.limpar();
       }
 
@@ -319,12 +333,17 @@
       //                     escolher, para marcar os questionarios ali mesmo.
       var editarParam = App.getParam("editar");
       var auditoriaParam = App.getParam("auditoria") === "1";
+      //   ?cronograma=1  -> abre no modo "novo cronograma": mesma lista suspensa,
+      //                     e o que se salva ali e a data da visita.
+      var cronogramaParam = App.getParam("cronograma") === "1";
       var epoParam = App.getParam("epo");
       var escolhaWrap = document.getElementById("f-escolha-wrap");
       var escolhaSel = document.getElementById("f-escolha");
 
       function mostrarEscolha(ligado) {
-        modoAuditoria = !!ligado;
+        // No modo cronograma a lista suspensa tambem aparece, mas o que se pede
+        // ali e a data - e nao os questionarios.
+        modoAuditoria = !!ligado && !modoCronograma;
         if (!escolhaWrap) return;
         if (ligado) escolhaWrap.classList.remove("is-hidden");
         else escolhaWrap.classList.add("is-hidden");
@@ -364,6 +383,14 @@
       }
 
       function abrirEdicaoDoLink() {
+        if (cronogramaParam) {
+          cronogramaParam = false;
+          modoCronograma = true;
+          carregarNoForm(epoParam && epoPorId(epoParam) ? epoParam : "");
+          abrirModal();
+          escolhaSel.focus();
+          return;
+        }
         if (auditoriaParam) {
           auditoriaParam = false;
           modoAuditoria = true;
@@ -380,7 +407,9 @@
         editandoId = epo.id;
         preencherForm(epo);
         abrirModal();
-        var campo = document.getElementById("f-email");
+        // O campo unico de e-mail deu lugar a lista de responsaveis: o foco vai
+        // para o primeiro e-mail dela.
+        var campo = document.querySelector("#f-resps .resp-email");
         if (campo) campo.focus();
       }
 
@@ -665,7 +694,15 @@
         var dados = FormEpo.ler();
         // Codigo do fornecedor: obrigatorio para unidade nova. Na edicao fica
         // opcional, senao unidade antiga cadastrada sem codigo trava a edicao.
-        var erro = FormEpo.validar(dados, editandoId, !editandoId && !modoAuditoria);
+        // No modo cronograma o que se veio fazer aqui e marcar a data. Estes dois
+        // avisos vem ANTES da conferencia geral: sem unidade escolhida, o
+        // formulario esta vazio e a primeira reclamacao seria "informe o nome da
+        // EPO" - que nao e o que a pessoa tem de fazer.
+        if (modoCronograma) {
+          if (!editandoId) { App.toast("Escolha a unidade na lista."); return; }
+          if (!dados.visita) { App.toast("Informe a data da visita."); return; }
+        }
+        var erro = FormEpo.validar(dados, editandoId, !editandoId && !modoAuditoria && !modoCronograma);
         if (erro) { App.toast(erro); return; }
 
         var anterior = null;
@@ -855,7 +892,8 @@
               };
             });
             return db.from("epos")
-              .select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo, cod_fornecedor, base")
+              .select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo, cod_fornecedor, base, " +
+                      "responsavel_nome, responsavel_email")
               .order("nome");
           })
           .then(function (r) {
@@ -866,6 +904,25 @@
               e.base = e.base || "";
               return e;
             });
+            // Responsaveis de cada unidade. Falhar aqui nao derruba a tela: o
+            // formulario abre com o responsavel principal que a unidade guarda.
+            return db.from("epo_responsaveis")
+              .select("epo_id, nome, email")
+              .order("criado_em")
+              .then(function (rr) {
+                respsPorEpo = {};
+                if (rr && !rr.error) {
+                  (rr.data || []).forEach(function (x) {
+                    var k = String(x.epo_id);
+                    if (!respsPorEpo[k]) respsPorEpo[k] = [];
+                    respsPorEpo[k].push({ nome: x.nome || "", email: x.email || "" });
+                  });
+                } else if (rr && rr.error && window.console) {
+                  console.warn("responsaveis", rr.error);
+                }
+                return null;
+              })
+              .then(function () {
             // A data prevista de cada unidade. Falhar aqui nao derruba a tela:
             // o cadastro aparece, e o formulario abre com a data em branco.
             return db.from("cronograma_itens")
@@ -890,6 +947,7 @@
                   console.warn("cronogramaItens", rc.error);
                 }
                 return null;
+              });
               });
           })
           .then(function () {

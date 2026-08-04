@@ -170,6 +170,10 @@ Deno.serve(async (req: Request) => {
   let nomeDaPessoa = "";
   const alocacaoId = String(corpo.alocacao_id || "").trim();
   const acessoId = String(corpo.acesso_id || "").trim();
+  // Responsavel convidado pela LISTA da unidade (uma unidade pode ter mais de
+  // um). Aqui vem o e-mail direto, e a unidade so serve para o e-mail dizer de
+  // qual unidade se trata.
+  const epoId = String(corpo.epo_id || "").trim();
 
   if (acessoId) {
     if (PAPEIS_OK_ACESSO.indexOf(papel) < 0) {
@@ -210,6 +214,18 @@ Deno.serve(async (req: Request) => {
     const epo = l.epos ? l.epos.nome : "";
     const proc = l.processos ? l.processos.nome : "";
     contexto = [epo, proc].filter(Boolean).join(" - ");
+  }
+
+  if (epoId && !alocacaoId && !acessoId) {
+    const { data: uni } = await admin.from("epos").select("nome").eq("id", epoId).maybeSingle();
+    if (uni && (uni as Record<string, string>).nome) {
+      contexto = String((uni as Record<string, string>).nome);
+    }
+    const { data: quem } = await admin.from("epo_responsaveis")
+      .select("nome").eq("epo_id", epoId).ilike("email", email).maybeSingle();
+    if (quem && (quem as Record<string, string>).nome) {
+      nomeDaPessoa = String((quem as Record<string, string>).nome);
+    }
   }
 
   if (!/^\S+@\S+\.\S+$/.test(email)) return json({ ok: false, motivo: "e-mail invalido" }, 400);

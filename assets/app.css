@@ -1209,6 +1209,25 @@ input[type="submit"],
 .evid-box.origem-apsis .evid-box-titulo { color: var(--success); }
 .evid-box.origem-epo   { border-left-color: var(--border-strong); background: var(--surface-2); }
 
+/* Responsaveis da unidade: uma linha por pessoa (nome, e-mail, tirar). */
+.resp-linha {
+  display: grid; grid-template-columns: 1fr 1.3fr auto;
+  gap: 8px; align-items: center; margin-bottom: 8px;
+}
+.resp-linha .input { margin: 0; }
+.resp-linha .resp-tirar { color: var(--text-muted); }
+.resp-linha .resp-tirar:hover { color: var(--danger); border-color: var(--danger); }
+@media (max-width: 720px) {
+  /* No celular: nome e o botao de tirar na primeira linha, e-mail na segunda,
+     com a largura inteira. Lado a lado os tres dariam 100px cada. As posicoes
+     vao escritas uma a uma - deixando o navegador escolher, o botao caia numa
+     terceira linha e a coluna dele ficava com zero de largura. */
+  .resp-linha { grid-template-columns: 1fr auto; }
+  .resp-linha .resp-nome  { grid-column: 1; grid-row: 1; }
+  .resp-linha .resp-tirar { grid-column: 2; grid-row: 1; }
+  .resp-linha .resp-email { grid-column: 1 / -1; grid-row: 2; }
+}
+
 /* Selo de origem, para usar solto ao lado de um arquivo */
 .origem-selo {
   display: inline-flex; align-items: center; gap: 4px;
@@ -1841,4 +1860,52 @@ input[type="submit"],
   .table-wrap:has(> .table.tabela-cartao) { overflow-x: visible; }
   /* Painel expandido: cartao proprio, sem virar lista de rotulos. */
   .table.tabela-cartao tbody tr.rank-detail > td { display: block; padding: 0; }
+}
+
+/* =========================================================================
+   Papel.
+
+   A tela e feita para monitor: menu lateral fixo, barra de cima, tabela que
+   rola de lado. Impressa como esta, sai o menu ocupando um terco da folha e a
+   tabela cortada na largura. Aqui a folha fica com o conteudo e nada mais.
+   ========================================================================= */
+@media print {
+  .sidebar, .topbar, .bottombar, .sidebar-overlay,
+  .cron-toolbar, .card-header-action, .atalhos,
+  #aviso, .page-intro { display: none !important; }
+
+  html, body { background: #fff; }
+  .app-shell { display: block; }
+  .app-main { margin: 0; }
+  .page { padding: 0; max-width: none; }
+
+  .card, .kpi-card, .card-header, .table, .table-wrap {
+    box-shadow: none !important;
+    border-color: #ccc !important;
+    background: #fff !important;
+  }
+  .card { break-inside: avoid; page-break-inside: avoid; margin-bottom: 12px; }
+
+  /* Tabela por inteiro: sem rolagem lateral e sem cartao. Linha nao quebra no
+     meio, e o cabecalho se repete em cada folha. */
+  .table-wrap { overflow: visible !important; }
+  .table { width: 100% !important; font-size: 10.5px; }
+  .table thead { display: table-header-group; }
+  .table tbody tr { break-inside: avoid; page-break-inside: avoid; }
+  .table.tabela-cartao { display: table !important; }
+  .table.tabela-cartao thead { display: table-header-group !important; }
+  .table.tabela-cartao tbody { display: table-row-group !important; }
+  .table.tabela-cartao tbody tr { display: table-row !important; border: 0 !important; }
+  .table.tabela-cartao tbody td {
+    display: table-cell !important; padding: 5px 6px !important;
+  }
+  .table.tabela-cartao tbody td::before { content: none !important; }
+  .table.tabela-cartao tbody td.cartao-fora { display: table-cell !important; }
+
+  /* Botao nao existe no papel. */
+  .btn, button, .acc-acoes, .cel-acoes { display: none !important; }
+  /* Selo continua, porque e informacao: sai em cinza para nao gastar tinta. */
+  .badge { border: 1px solid #999 !important; background: #fff !important; color: #000 !important; }
+
+  @page { size: A4 landscape; margin: 12mm; }
 }

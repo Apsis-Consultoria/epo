@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=89">
+  <link rel="stylesheet" href="assets/app.css?v=93">
 </head>
 <body>
   <div class="app-shell">
@@ -20,14 +20,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=89"></script>
-  <script src="assets/app.js?v=89"></script>
-  <script src="assets/supabase-config.js?v=89"></script>
+  <script src="assets/data.js?v=93"></script>
+  <script src="assets/app.js?v=93"></script>
+  <script src="assets/supabase-config.js?v=93"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=89"></script>
-  <script src="assets/geo-br.js?v=89"></script>
-  <script src="assets/cronograma-planilha.js?v=89"></script>
-  <script src="assets/form-epo.js?v=89"></script>
+  <script src="assets/auth.js?v=93"></script>
+  <script src="assets/geo-br.js?v=93"></script>
+  <script src="assets/cronograma-planilha.js?v=93"></script>
+  <script src="assets/form-epo.js?v=93"></script>
   <script>
     (function () {
       "use strict";
@@ -142,8 +142,16 @@
       // data e combinada, aprovada e corrigida.
       // ------------------------------------------------------------------
       var acoes =
-        '<button class="btn btn-primary btn-sm is-hidden" id="btn-nova" type="button">' +
+        // Entra uma unidade JA CADASTRADA no cronograma: escolhe-se na lista, os
+        // dados dela aparecem preenchidos e o que se preenche e a data. Antes a
+        // unidade caia no cronograma so por ter sido cadastrada, sem data, e a
+        // lista enchia de linha que ninguem tinha agendado.
+        '<a class="btn btn-primary btn-sm is-hidden" id="btn-novo-cron" href="epos.html?cronograma=1">' +
+          '<i class="ti ti-calendar-plus" aria-hidden="true"></i>Novo cronograma</a>' +
+        '<button class="btn btn-ghost btn-sm is-hidden" id="btn-nova" type="button">' +
           '<i class="ti ti-building-plus" aria-hidden="true"></i>Nova EPO</button>' +
+        '<button class="btn btn-ghost btn-sm is-hidden" id="btn-imprimir" type="button">' +
+          '<i class="ti ti-printer" aria-hidden="true"></i>Imprimir</button>' +
         '<button class="btn btn-ghost btn-sm is-hidden" id="btn-modelo" type="button">' +
           '<i class="ti ti-download" aria-hidden="true"></i>Baixar modelo</button>' +
         '<button class="btn btn-ghost btn-sm is-hidden" id="btn-planilha" type="button">' +
@@ -1143,6 +1151,9 @@
 
       function renderBotoes() {
         $("btn-nova").classList.toggle("is-hidden", !podeMontar);
+        $("btn-novo-cron").classList.toggle("is-hidden", !podeMontar);
+        // Imprimir e leitura: quem ve a tela pode levar o cronograma no papel.
+        $("btn-imprimir").classList.remove("is-hidden");
         $("btn-modelo").classList.toggle("is-hidden", !podeMontar);
         $("btn-planilha").classList.toggle("is-hidden", !podeMontar);
 
@@ -1608,7 +1619,10 @@
 
         if (DEMO) { encerrar("Sem conexao com os dados agora: nada foi gravado."); return; }
 
-        FormEpo.salvarTudo({ db: Auth.cliente, dados: d, epoId: null, ciclo: CICLO })
+        // Salvo de dentro do cronograma: a unidade entra na lista mesmo sem
+        // data, porque e essa a lista de quem ainda precisa de data.
+        FormEpo.salvarTudo({ db: Auth.cliente, dados: d, epoId: null, ciclo: CICLO,
+                             incluirNoCronograma: true })
           .then(function (r) {
             formListas = null;          // o pedido novo tem de aparecer na proxima abertura
             encerrar(null);
@@ -1623,6 +1637,60 @@
       }
 
       $("btn-nova").addEventListener("click", abrirNova);
+
+      // ------------------------------------------------------------------
+      // Imprimir
+      //
+      // A tela inteira em papel: o ciclo, os numeros, as caixas e a tabela com
+      // todas as unidades. Antes so dava para imprimir a pagina como ela esta na
+      // tela, com menu, barra de cima e a tabela cortada na largura.
+      //
+      // A folha de impressao (assets/app.css, @media print) tira o menu e a
+      // barra, solta a tabela e evita quebrar linha no meio. Aqui a tabela e
+      // aberta por inteiro antes de chamar a impressao: paginacao ou filtro
+      // deixariam de fora justamente o que se quer no papel.
+      // ------------------------------------------------------------------
+      $("btn-imprimir").addEventListener("click", function () {
+        var antes = { busca: filtro.busca, uf: filtro.uf, situacao: filtro.situacao };
+        filtro.busca = ""; filtro.uf = ""; filtro.situacao = "";
+        if ($("f-busca")) $("f-busca").value = "";
+        if ($("f-uf")) $("f-uf").value = "";
+        if ($("f-situacao")) $("f-situacao").value = "";
+        render();
+
+        var titulo = document.title;
+        document.title = "Cronograma " + CICLO + " - Auditoria de EPOs";
+        document.body.classList.add("imprimindo");
+
+        var voltar = function () {
+          document.body.classList.remove("imprimindo");
+          document.title = titulo;
+          filtro.busca = antes.busca;
+          filtro.uf = antes.uf;
+          filtro.situacao = antes.situacao;
+          if ($("f-busca")) $("f-busca").value = antes.busca;
+          if ($("f-uf")) $("f-uf").value = antes.uf;
+          if ($("f-situacao")) $("f-situacao").value = antes.situacao;
+          render();
+        };
+
+        // Depois de imprimir (ou cancelar), a tela volta ao filtro de antes.
+        if (window.matchMedia) {
+          var mm = window.matchMedia("print");
+          var ouvir = function (ev) {
+            if (ev.matches) return;
+            voltar();
+            if (mm.removeEventListener) mm.removeEventListener("change", ouvir);
+          };
+          if (mm.addEventListener) mm.addEventListener("change", ouvir);
+        }
+        window.addEventListener("afterprint", function uma() {
+          voltar();
+          window.removeEventListener("afterprint", uma);
+        });
+
+        window.print();
+      });
       $("nova-fechar").addEventListener("click", fecharNova);
       $("nova-cancelar").addEventListener("click", fecharNova);
       $("nova-salvar").addEventListener("click", salvarNova);
