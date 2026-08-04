@@ -7,7 +7,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=111">
+  <link rel="stylesheet" href="assets/carregando.css?v=112">
+  <link rel="stylesheet" href="assets/app.css?v=112">
   <style>
     /* Ajustes locais - tela de auditorias pendentes (escolher EPO e questionário) */
 
@@ -152,6 +153,10 @@
   </style>
 </head>
 <body>
+  <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
+    <img src="assets/brand/logo-apsis-transp.png" alt="APSIS" onerror="this.style.display='none'" />
+    <span class="barra" aria-hidden="true"></span>
+  </div>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar"></aside>
     <div class="app-main">
@@ -160,11 +165,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=111"></script>
-  <script src="assets/app.js?v=111"></script>
-  <script src="assets/supabase-config.js?v=111"></script>
+  <script src="assets/data.js?v=112"></script>
+  <script src="assets/app.js?v=112"></script>
+  <script src="assets/supabase-config.js?v=112"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=111"></script>
+  <script src="assets/auth.js?v=112"></script>
   <script>
     (function () {
       "use strict";
@@ -289,8 +294,11 @@
             '<i class="ti ti-search" aria-hidden="true"></i>' +
             '<input class="input" id="pd-q" type="search" placeholder="Buscar por EPO, cidade ou questionário" autocomplete="off" aria-label="Buscar por EPO, cidade ou questionário">' +
           "</div>" +
-          '<p class="pd-resumo" id="pd-resumo"></p>' +
-          '<div id="pd-lista"></div>' +
+          '<div class="row-between wrap" style="gap:12px;">' +
+            '<p class="pd-resumo" id="pd-resumo"></p>' +
+            App.vistaHtml("pendentes", "lista") +
+          "</div>" +
+          '<div id="pd-lista" class="blocos-vista"></div>' +
           '<div id="pd-epos" class="is-hidden"></div>' +
         "</section>" +
         '<section id="pd-nivel2" class="is-hidden">' +
@@ -308,6 +316,11 @@
       var elEpos = document.getElementById("pd-epos");
       var elLista = document.getElementById("pd-lista");
       var elResumo = document.getElementById("pd-resumo");
+
+      // Grade ou lista: um bloco de EPO por linha, ou vários lado a lado.
+      App.vistaLigar("pendentes", "lista", function (v) {
+        elLista.classList.toggle("vista-grade", v === "grade");
+      });
       var elHead = document.getElementById("pd-head");
       var elRel = document.getElementById("pd-rel");
 

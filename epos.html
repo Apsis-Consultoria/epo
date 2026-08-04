@@ -9,7 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=111">
+  <link rel="stylesheet" href="assets/carregando.css?v=112">
+  <link rel="stylesheet" href="assets/app.css?v=112">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -48,6 +49,10 @@
   </style>
 </head>
 <body>
+  <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
+    <img src="assets/brand/logo-apsis-transp.png" alt="APSIS" onerror="this.style.display='none'" />
+    <span class="barra" aria-hidden="true"></span>
+  </div>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar"></aside>
     <div class="app-main">
@@ -56,14 +61,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=111"></script>
-  <script src="assets/app.js?v=111"></script>
-  <script src="assets/geo-br.js?v=111"></script>
-  <script src="assets/cronograma-planilha.js?v=111"></script>
-  <script src="assets/form-epo.js?v=111"></script>
-  <script src="assets/supabase-config.js?v=111"></script>
+  <script src="assets/data.js?v=112"></script>
+  <script src="assets/app.js?v=112"></script>
+  <script src="assets/geo-br.js?v=112"></script>
+  <script src="assets/cronograma-planilha.js?v=112"></script>
+  <script src="assets/form-epo.js?v=112"></script>
+  <script src="assets/supabase-config.js?v=112"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=111"></script>
+  <script src="assets/auth.js?v=112"></script>
   <script>
     (function () {
       "use strict";
@@ -130,6 +135,9 @@
               '<input class="input" id="epo-filtro" type="search" placeholder="Filtrar por nome, cidade ou endereço" aria-label="Filtrar por nome, cidade ou endereço" autocomplete="off">' +
             "</div>" +
             '<span class="dica">Ordenado por nome</span>' +
+            '<span style="margin-left:auto;">' +
+              App.vistaHtml("epos", "lista") +
+            "</span>" +
           "</div>" +
           '<div class="table-wrap">' +
             '<table class="table tabela-cartao">' +
@@ -142,7 +150,7 @@
                 "<th>Situação</th>" +
                 '<th class="num"></th>' +
               "</tr></thead>" +
-              '<tbody id="epo-body"><tr><td class="epo-loading" colspan="7">Carregando EPOs...</td></tr></tbody>' +
+              '<tbody id="epo-body"><tr class="linha-aviso"><td class="epo-loading" colspan="7">Carregando EPOs...</td></tr></tbody>' +
             "</table>" +
           "</div>" +
         "</div>";
@@ -286,7 +294,7 @@
 
         if (!epos.length) {
           tbody.innerHTML =
-            '<tr><td colspan="7"><div class="empty">' +
+            '<tr class="linha-aviso"><td colspan="7"><div class="empty">' +
             '<i class="ti ti-building-warehouse" aria-hidden="true"></i>' +
             "<p>Nenhuma EPO cadastrada ainda. Comece em <b>Nova Unidade</b>.</p>" +
             "</div></td></tr>";
@@ -294,7 +302,7 @@
         }
         if (!lista.length) {
           tbody.innerHTML =
-            '<tr><td colspan="7"><div class="empty">' +
+            '<tr class="linha-aviso"><td colspan="7"><div class="empty">' +
             '<i class="ti ti-search-off" aria-hidden="true"></i>' +
             "<p>Nenhuma EPO com esse filtro.</p>" +
             "</div></td></tr>";
@@ -425,6 +433,12 @@
       }
 
       document.getElementById("epo-filtro").addEventListener("input", renderLista);
+
+      // Grade ou lista: muda o arranjo da mesma tabela, sem redesenhar nada.
+      App.vistaLigar("epos", "lista", function (v) {
+        var t = document.querySelector(".table.tabela-cartao");
+        if (t) t.classList.toggle("vista-grade", v === "grade");
+      });
 
       document.getElementById("epo-body").addEventListener("click", function (ev) {
         // Reenviar o link de acesso do responsável
@@ -968,7 +982,7 @@
           .catch(function (e) {
             console.error("carregarEpos", e);
             document.getElementById("epo-body").innerHTML =
-              '<tr><td colspan="7"><div class="empty">' +
+              '<tr class="linha-aviso"><td colspan="7"><div class="empty">' +
               '<i class="ti ti-alert-triangle" aria-hidden="true"></i>' +
               "<p>Não foi possível carregar as EPOs agora. Atualize a página em alguns instantes.</p>" +
               "</div></td></tr>";

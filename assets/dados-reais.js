@@ -269,6 +269,8 @@
       return promessa;
     }
 
+    // A tela de carregamento espera por esta leitura: sem isso a visao geral, o
+    // ranking, o comparativo e o painel apareciam vazios e se preenchiam depois.
     promessa = window.Auth.sessao()
       .then(function (s) {
         if (!s) { aplicar([], null); return false; }
@@ -279,6 +281,7 @@
         aplicar([], null);
         return false;
       });
+    if (window.App && App.aguardar) App.aguardar(promessa);
     return promessa;
   }
 

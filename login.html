@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/portal.css?v=111" />
+  <link rel="stylesheet" href="assets/carregando.css?v=112">
+  <link rel="stylesheet" href="assets/portal.css?v=112" />
   <style>
     /* Ajustes de proporção do painel de login (sobrepõem o portal.css) */
     .login-col { padding-top: 3vh; }
@@ -22,6 +23,10 @@
   </style>
 </head>
 <body>
+  <div class="tela-carregando no-escuro" id="tela-carregando" role="status" aria-label="Carregando">
+    <img src="assets/brand/logo-apsis-transp.png" alt="APSIS" onerror="this.style.display='none'" />
+    <span class="barra" aria-hidden="true"></span>
+  </div>
   <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
     <svg class="absolute inset-0 w-full h-full" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
       <defs>
@@ -140,9 +145,9 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=111"></script>
+  <script src="assets/supabase-config.js?v=112"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=111"></script>
+  <script src="assets/auth.js?v=112"></script>
   <script>
     (function () {
       "use strict";
@@ -210,6 +215,22 @@
         el.style.color = erro ? "#dc2626" : "#16a34a";
       }
 
+      // A tela de carregamento sai quando esta entrada vai FICAR na tela. Quem
+      // ja tem sessao valida e mandado para dentro, e nesse caso ela nao sai:
+      // sem isso a entrada aparecia por um instante e era trocada, o que parecia
+      // defeito para quem so quis abrir o sistema.
+      var saiuCarregando = false;
+      function mostrarEntrada() {
+        if (saiuCarregando) return;
+        saiuCarregando = true;
+        var el = $("tela-carregando");
+        if (!el) return;
+        el.classList.add("saindo");
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 260);
+      }
+      // Nada pode prender a pessoa atras do logo, nem falha de rede.
+      setTimeout(mostrarEntrada, 7000);
+
       // Já logado? Vai direto para o app.
       if (window.Auth && Auth.pronto) {
         // Ja entrou antes: vai direto para a tela dele, e nao para a visao
@@ -226,13 +247,14 @@
               });
             } catch (e) {}
             msg("Sessão encerrada neste navegador. Informe o seu e-mail para receber um código.");
+            mostrarEntrada();
           };
           Auth.cliente.auth.signOut({ scope: "local" }).then(limparTudo, limparTudo);
           return;
         }
 
         Auth.sessao().then(function (s) {
-          if (!s) return;
+          if (!s) { mostrarEntrada(); return; }
           // Sessao que ainda pede o codigo do segundo fator NAO entra sozinha.
           //
           // Era um laco fechado: a entrada via a sessao e mandava para dentro, o
@@ -246,6 +268,7 @@
             if (m && m.precisa) {
               function avisar() {
                 msg("A sua sessão anterior expirou. Informe o seu e-mail para receber um código.", true);
+                mostrarEntrada();
               }
               // Se o servidor recusar a saida (token velho), a sessao sai daqui
               // de dentro: guardada, ela seria encontrada outra vez no proximo
@@ -261,9 +284,13 @@
                                    function () { location.replace("index"); });
           }, function () {
             // Sem resposta sobre o segundo fator, nao arrisca o laco: fica aqui.
-            Auth.cliente.auth.signOut({ scope: "local" }).then(function () {}, function () {});
+            Auth.cliente.auth.signOut({ scope: "local" })
+              .then(mostrarEntrada, mostrarEntrada);
           });
-        });
+        }, mostrarEntrada);
+      } else {
+        // Sem a biblioteca de dados: a entrada aparece do mesmo jeito.
+        mostrarEntrada();
       }
 
       // SSO Microsoft (Entra ID)

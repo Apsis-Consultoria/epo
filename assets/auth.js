@@ -752,6 +752,24 @@
   }
   limparEndereco();
 
+  // Libera a tela de carregamento.
+  //
+  // Quem controla a espera e o app.js, porque as telas pedem para ele esperar
+  // por leituras. Mas duas telas nao carregam app.js - a confirmacao do codigo
+  // e a de sem acesso - e nelas a saida precisa acontecer daqui, senao a pessoa
+  // fica olhando o logo para sempre.
+  function liberarTela() {
+    if (window.App && App.telaPronta) { App.telaPronta(); return; }
+    var el = document.getElementById("tela-carregando");
+    if (!el) return;
+    el.classList.add("saindo");
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 260);
+  }
+  // Rede lenta ou erro nao previsto nao podem prender ninguem atras do logo.
+  setTimeout(liberarTela, 7000);
+
   // Guard automático (todas as páginas do app; login fica de fora)
   var arq = arquivoAtual();
   if (MAPA_PAGINAS[arq]) {
@@ -767,11 +785,37 @@
           if (window.console && console.error) console.error("guard", e);
         });
       }
+      // A tela de carregamento so sai depois desta decisao: e aqui que o menu
+      // e filtrado. Sair antes mostraria, por um instante, itens que aquele
+      // cargo nao alcanca.
+      //
+      // Nos desvios (sem sessao, sem permissao, falta o codigo) a tela NAO
+      // aparece: a pagina esta de saida, e mostrar o conteudo por um quadro
+      // antes de trocar e o piscar que se quer tirar.
+      if (r && r.then) {
+        var DESVIOS = ["sem-sessao", "sem-permissao", "precisa-codigo", "sem-acesso"];
+        r.then(function (saida) {
+          if (DESVIOS.indexOf(saida) < 0) liberarTela();
+        }, function () {
+          // Falhou: melhor a tela como estiver do que ninguem preso no logo.
+          liberarTela();
+        });
+      } else {
+        liberarTela();
+      }
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", rodar);
     } else {
       rodar();
+    }
+  } else {
+    // Tela sem guard (entrada, sem acesso, confirmacao do codigo): nao ha
+    // permissao para esperar, entao ela aparece assim que o documento existe.
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", liberarTela);
+    } else {
+      liberarTela();
     }
   }
 

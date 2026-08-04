@@ -7,7 +7,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=111">
+  <link rel="stylesheet" href="assets/carregando.css?v=112">
+  <link rel="stylesheet" href="assets/app.css?v=112">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -34,6 +35,17 @@
       display: flex; justify-content: space-between; font-size: 11px;
       color: var(--text-muted); font-variant-numeric: tabular-nums; margin-top: 6px;
     }
+
+    /* Faixa colada na tabela: contagem a esquerda, filtro a direita, na
+       mesma altura dos botoes das linhas logo abaixo. */
+    .qt-barra {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 14px; flex-wrap: wrap;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12.5px; color: var(--text-2);
+    }
+    .qt-barra .checkbox { font-size: 12.5px; }
 
     /* ------ Nível 1: tópicos ------ */
     .qt-topico-cel { display: flex; align-items: flex-start; gap: 11px; min-width: 0; }
@@ -129,6 +141,10 @@
   </style>
 </head>
 <body>
+  <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
+    <img src="assets/brand/logo-apsis-transp.png" alt="APSIS" onerror="this.style.display='none'" />
+    <span class="barra" aria-hidden="true"></span>
+  </div>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar"></aside>
     <div class="app-main">
@@ -137,18 +153,18 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=111"></script>
-  <script src="assets/app.js?v=111"></script>
-  <script src="assets/supabase-config.js?v=111"></script>
+  <script src="assets/data.js?v=112"></script>
+  <script src="assets/app.js?v=112"></script>
+  <script src="assets/supabase-config.js?v=112"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=111"></script>
+  <script src="assets/auth.js?v=112"></script>
   <script>
     (function () {
       "use strict";
 
       var acoesTopo =
         '<button class="btn btn-primary btn-sm" id="btn-novo-topico" type="button">' +
-          '<i class="ti ti-folder-plus" aria-hidden="true"></i>Novo tópico' +
+          '<i class="ti ti-folder-plus" aria-hidden="true"></i>Novo questionário' +
         "</button>";
 
       Layout.mount("questionarios", "Questionários", acoesTopo);
@@ -297,31 +313,35 @@
           '<div class="card mb-0">' +
             '<div class="card-header">' +
               '<div class="section-title">' +
-                '<span class="title">Tópicos</span>' +
+                '<span class="title">Questionários</span>' +
                 '<span class="subtitle">' +
-                  "Cada tópico é um questionário completo, com o peso dele na nota final. " +
+                  "Cada questionário tem o peso dele na nota final. " +
                   "Altere o texto de uma pergunta, ajuste a evidência sugerida, mude a ordem, " +
                   "inclua o que passou a ser cobrado e desative o que saiu de uso." +
                 "</span>" +
               "</div>" +
-              '<div class="card-header-action row wrap" style="gap:12px;">' +
-                '<span id="qt-conta-topicos" style="font-size:13px;color:var(--text-2);"></span>' +
-                '<label class="checkbox" for="qt-ver-inativos" style="font-size:12.5px;">' +
-                  '<input type="checkbox" id="qt-ver-inativos">' +
-                  "<span>Mostrar desativados</span>" +
-                "</label>" +
-              "</div>" +
+            "</div>" +
+            // A contagem e o "Mostrar desativados" ficavam no alto do cartao,
+            // longe das linhas que eles governam: quem mexia no filtro tinha
+            // que procurar o efeito do outro lado da tela. Agora vem colados
+            // na tabela, na mesma faixa.
+            '<div class="qt-barra">' +
+              '<span id="qt-conta-topicos"></span>' +
+              '<label class="checkbox" for="qt-ver-inativos">' +
+                '<input type="checkbox" id="qt-ver-inativos">' +
+                "<span>Mostrar desativados</span>" +
+              "</label>" +
             "</div>" +
             '<div class="table-wrap">' +
               '<table class="table tabela-cartao">' +
                 "<thead><tr>" +
-                  "<th>Tópico</th>" +
+                  "<th>Questionário</th>" +
                   "<th>Perguntas</th>" +
                   "<th>Peso na nota</th>" +
                   "<th>Situação</th>" +
                   '<th class="num"></th>' +
                 "</tr></thead>" +
-                '<tbody id="qt-corpo"><tr><td class="qt-carregando" colspan="5">Carregando tópicos...</td></tr></tbody>' +
+                '<tbody id="qt-corpo"><tr><td class="qt-carregando" colspan="5">Carregando questionários...</td></tr></tbody>' +
               "</table>" +
             "</div>" +
             '<div id="qt-soma"></div>' +
@@ -330,7 +350,7 @@
 
         '<section id="qt-nivel2" class="is-hidden">' +
           '<button class="btn btn-ghost btn-sm" id="qt-voltar" type="button" style="margin-bottom:14px;">' +
-            '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar aos tópicos' +
+            '<i class="ti ti-arrow-left" aria-hidden="true"></i>Voltar aos questionários' +
           "</button>" +
           '<div class="qt-head" id="qt-head"></div>' +
           '<div class="card mb-0">' +
@@ -357,20 +377,20 @@
         '<div class="modal-overlay" id="modal-topico" role="dialog" aria-modal="true" aria-labelledby="mt-titulo">' +
           '<div class="modal modal-largo">' +
             '<div class="modal-header">' +
-              '<h2 class="modal-title" id="mt-titulo">Novo tópico</h2>' +
+              '<h2 class="modal-title" id="mt-titulo">Novo questionário</h2>' +
               '<button class="modal-close" id="mt-fechar" type="button" aria-label="Fechar">' +
                 '<i class="ti ti-x" aria-hidden="true"></i>' +
               "</button>" +
             "</div>" +
             '<div class="modal-body">' +
               '<div class="field">' +
-                '<label for="mt-nome">Nome do tópico</label>' +
+                '<label for="mt-nome">Nome do questionário</label>' +
                 '<input class="input" id="mt-nome" type="text" autocomplete="off" placeholder="Ex.: Logística Reversa">' +
               "</div>" +
               '<div class="field">' +
                 '<label for="mt-desc">Descrição</label>' +
                 '<input class="input" id="mt-desc" type="text" autocomplete="off" ' +
-                  'placeholder="Uma linha explicando o que o tópico cobra">' +
+                  'placeholder="Uma linha explicando o que o questionário cobra">' +
               "</div>" +
               '<div class="campo-linha">' +
                 '<div class="field">' +
@@ -394,7 +414,7 @@
                 "</select>" +
                 '<div class="nota-campo">' +
                   '<i class="ti ti-info-circle" aria-hidden="true"></i>' +
-                  "<span>Tópico inativo deixa de ser oferecido em auditorias novas. O que já foi " +
+                  "<span>Questionário inativo deixa de ser oferecido em auditorias novas. O que já foi " +
                   "auditado nele continua guardado.</span>" +
                 "</div>" +
               "</div>" +
@@ -402,7 +422,7 @@
             '<div class="modal-footer">' +
               '<button class="btn btn-ghost" id="mt-cancelar" type="button">Cancelar</button>' +
               '<button class="btn btn-primary" id="mt-salvar" type="button">' +
-                '<i class="ti ti-check" aria-hidden="true"></i>Salvar tópico' +
+                '<i class="ti ti-check" aria-hidden="true"></i>Salvar questionário' +
               "</button>" +
             "</div>" +
           "</div>" +
@@ -656,7 +676,7 @@
         elSoma.innerHTML =
           '<div class="qt-soma ' + (ok ? "is-ok" : "is-fora") + '">' +
             '<i class="ti ' + (ok ? "ti-circle-check" : "ti-alert-triangle") + '" aria-hidden="true"></i>' +
-            "<span>Soma dos pesos dos tópicos ativos: <b>" + App.fmtPct(soma) + "</b>. " +
+            "<span>Soma dos pesos dos questionários ativos: <b>" + App.fmtPct(soma) + "</b>. " +
             (ok
               ? "É o esperado para a nota fechar em 100."
               : "A nota final é calculada sobre esses pesos; o esperado é que somem 100%.") +
@@ -675,13 +695,13 @@
           return;
         }
         if (!carregou) {
-          elCorpo.innerHTML = '<tr><td class="qt-carregando" colspan="5">Carregando tópicos...</td></tr>';
+          elCorpo.innerHTML = '<tr><td class="qt-carregando" colspan="5">Carregando questionários...</td></tr>';
           return;
         }
         var visiveis = topicos.filter(function (t) { return mostrarInativos || t.ativo !== false; });
         var inativos = topicos.length - topicos.filter(function (t) { return t.ativo !== false; }).length;
         document.getElementById("qt-conta-topicos").textContent =
-          (visiveis.length ? visiveis.length + (visiveis.length === 1 ? " tópico" : " tópicos") : "") +
+          (visiveis.length ? visiveis.length + (visiveis.length === 1 ? " questionário" : " questionários") : "") +
           (!mostrarInativos && inativos
             ? " · " + inativos + (inativos === 1 ? " desativado" : " desativados") + " fora da lista"
             : "");
@@ -690,10 +710,10 @@
           elCorpo.innerHTML =
             '<tr><td colspan="5"><div class="empty">' +
               '<i class="ti ti-folder-off" aria-hidden="true"></i>' +
-              "<div>Nenhum tópico cadastrado ainda.</div>" +
+              "<div>Nenhum questionário cadastrado ainda.</div>" +
               (podeEditar
                 ? '<div class="qt-vazio-acao"><button class="btn btn-primary btn-sm" type="button" data-novo-topico="1">' +
-                    '<i class="ti ti-folder-plus" aria-hidden="true"></i>Novo tópico</button></div>'
+                    '<i class="ti ti-folder-plus" aria-hidden="true"></i>Novo questionário</button></div>'
                 : "") +
             "</div></td></tr>";
           elSoma.innerHTML = "";
@@ -781,7 +801,7 @@
           elPerguntas.innerHTML =
             '<div class="empty">' +
               '<i class="ti ti-help-off" aria-hidden="true"></i>' +
-              "<div>Este tópico ainda não tem perguntas" +
+              "<div>Este questionário ainda não tem perguntas" +
                 (!mostrarInativos && perguntas.length ? " ativas" : "") + ".</div>" +
               (podeEditar
                 ? '<div class="qt-vazio-acao"><button class="btn btn-primary btn-sm" type="button" data-nova-pergunta="1">' +
@@ -995,7 +1015,7 @@
 
       function abrirTopico(t) {
         editandoTopico = t ? t.id : null;
-        document.getElementById("mt-titulo").textContent = t ? "Editar tópico" : "Novo tópico";
+        document.getElementById("mt-titulo").textContent = t ? "Editar questionário" : "Novo questionário";
         document.getElementById("mt-nome").value = (t && t.nome) || "";
         document.getElementById("mt-desc").value = (t && t.descricao) || "";
         document.getElementById("mt-icone").value = (t && t.icone) || "ti-clipboard-list";
@@ -1010,7 +1030,7 @@
 
       function salvarTopico() {
         var nome = document.getElementById("mt-nome").value.trim();
-        if (!nome) { App.toast("Informe o nome do tópico."); return; }
+        if (!nome) { App.toast("Informe o nome do questionário."); return; }
 
         var peso = numero(document.getElementById("mt-peso").value, 0);
         if (peso < 0 || peso > 100) { App.toast("O peso vai de 0 a 100."); return; }
@@ -1048,7 +1068,7 @@
           fecharTopico();
           terminar();
           renderNivel1();
-          App.toast("Tópico " + nome + (anterior ? " atualizado." : " criado."));
+          App.toast("Questionário " + nome + (anterior ? " atualizado." : " criado."));
           return;
         }
 
@@ -1076,12 +1096,12 @@
           }
           fecharTopico();
           terminar();
-          App.toast("Tópico " + nome + (anterior ? " atualizado." : " criado."));
+          App.toast("Questionário " + nome + (anterior ? " atualizado." : " criado."));
           return carregar();
         }).catch(function (e) {
           console.error("salvarTopico", e);
           terminar();
-          App.toast("Não foi possível salvar o tópico. Confira os dados e tente novamente.");
+          App.toast("Não foi possível salvar o questionário. Confira os dados e tente novamente.");
         });
       }
 
@@ -1372,18 +1392,18 @@
         if (DEMO) {
           t.ativo = false;
           renderNivel1();
-          App.toast("Tópico " + t.nome + " desativado.");
+          App.toast("Questionário " + t.nome + " desativado.");
           return Promise.resolve();
         }
         return db.from("processos").update({ ativo: false }).eq("id", t.id)
           .then(function (r) {
             if (r.error) throw r.error;
-            App.toast("Tópico " + t.nome + " desativado.");
+            App.toast("Questionário " + t.nome + " desativado.");
             return carregar();
           })
           .catch(function (e) {
             console.error("desativarTopico", e);
-            App.toast("Não foi possível desativar o tópico. Tente novamente.");
+            App.toast("Não foi possível desativar o questionário. Tente novamente.");
           });
       }
 
@@ -1393,7 +1413,7 @@
 
         usoDoTopico(id).then(function (uso) {
           if (uso.incerto) {
-            App.toast("Não foi possível conferir o histórico deste tópico agora. Tente de novo em alguns instantes.");
+            App.toast("Não foi possível conferir o histórico deste questionário agora. Tente de novo em alguns instantes.");
             return;
           }
           // Com resposta de auditoria, o topico nao e apagado: desativar tira
@@ -1401,12 +1421,12 @@
           // resposta nenhuma - o topico criado para teste - ele e apagado.
           if (uso.respostas) {
             return App.confirmar({
-              titulo: "Este tópico já foi respondido",
-              texto: "O tópico " + t.nome + " tem " +
+              titulo: "Este questionário já foi respondido",
+              texto: "O questionário " + t.nome + " tem " +
                 uso.respostas + (uso.respostas === 1 ? " resposta" : " respostas") +
                 " de auditoria.\n\n" +
                 "Desativar tira ele das auditorias novas e mantém o histórico.",
-              confirmar: "Desativar tópico",
+              confirmar: "Desativar questionário",
               cancelar: "Deixar como está"
             }).then(function (ok) {
               if (ok) return desativarTopico(t);
@@ -1429,7 +1449,7 @@
           aviso += "Essa ação não tem volta.";
 
           return App.confirmar({
-            titulo: "Excluir o tópico " + t.nome + "?",
+            titulo: "Excluir o questionário " + t.nome + "?",
             texto: aviso,
             confirmar: "Excluir",
             cancelar: "Cancelar",
@@ -1439,7 +1459,7 @@
             if (DEMO) {
               topicos = topicos.filter(function (x) { return String(x.id) !== String(id); });
               renderNivel1();
-              App.toast("Tópico " + t.nome + " excluído.");
+              App.toast("Questionário " + t.nome + " excluído.");
               return;
             }
             // Uma chamada so: a ordem das dependencias (link, rascunho, pedido,
@@ -1449,18 +1469,18 @@
             return db.rpc("questionario_apagar", { p_processo: id })
               .then(function (r) {
                 if (r.error) throw r.error;
-                App.toast("Tópico " + t.nome + " excluído.");
+                App.toast("Questionário " + t.nome + " excluído.");
                 return carregar();
               })
               .catch(function (e) {
                 console.error("apagarTopico", e);
                 var msg = String((e && e.message) || "");
                 if (/resposta/i.test(msg)) {
-                  App.toast("Este tópico tem resposta de auditoria: desative em vez de apagar.");
+                  App.toast("Este questionário tem resposta de auditoria: desative em vez de apagar.");
                 } else if (/permite/i.test(msg)) {
-                  App.toast("Seu acesso não permite excluir tópicos. Fale com a coordenação da APSIS.");
+                  App.toast("Seu acesso não permite excluir questionários. Fale com a coordenação da APSIS.");
                 } else {
-                  App.toast("Não foi possível excluir o tópico. Tente novamente.");
+                  App.toast("Não foi possível excluir o questionário. Tente novamente.");
                 }
                 return carregar();
               });

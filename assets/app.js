@@ -354,10 +354,126 @@
   }
 
   // -----------------------------------------------------------------------
+  // Tela de carregamento
+  //
+  // Ela sai quando duas coisas aconteceram: o guard decidiu (e portanto o menu
+  // já está filtrado e o nome de quem entrou já está no lugar) e tudo que a
+  // tela pediu para esperar terminou. Antes disso, a pessoa não vê nada, para
+  // não ver por um instante itens de menu que não são dela.
+  //
+  // Quem redireciona NÃO chama telaPronta: a tela está de saída, e mostrar o
+  // conteúdo por um quadro antes de trocar de página é exatamente o piscar que
+  // se quer tirar.
+  // -----------------------------------------------------------------------
+  var esperas = [];
+  var guardDecidiu = false;
+  var jaSaiu = false;
+
+  function tentarSair() {
+    if (jaSaiu || !guardDecidiu || esperas.length) return;
+    jaSaiu = true;
+    var el = document.getElementById("tela-carregando");
+    if (!el) return;
+    el.classList.add("saindo");
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 260);
+  }
+
+  // A tela avisa que precisa de mais um dado antes de aparecer.
+  function aguardar(promessa) {
+    if (!promessa || !promessa.then || jaSaiu) return promessa;
+    esperas.push(promessa);
+    var fim = function () {
+      var i = esperas.indexOf(promessa);
+      if (i >= 0) esperas.splice(i, 1);
+      tentarSair();
+    };
+    promessa.then(fim, fim);
+    return promessa;
+  }
+
+  function telaPronta() {
+    guardDecidiu = true;
+    tentarSair();
+  }
+
+  // Rede lenta, erro sem tratamento ou promessa que nunca resolve não podem
+  // deixar a pessoa olhando o logo para sempre: tela presa atrás do
+  // carregamento é pior que tela incompleta.
+  setTimeout(function () {
+    guardDecidiu = true;
+    esperas = [];
+    tentarSair();
+  }, 7000);
+
+  // -----------------------------------------------------------------------
+  // Grade ou lista
+  //
+  // Três telas mostram a mesma coisa de duas formas: EPOs, Comparativo e
+  // Auditorias pendentes. O controle é um só e a escolha fica guardada por
+  // tela, porque quem prefere grade em uma prefere lista em outra.
+  // -----------------------------------------------------------------------
+  var VISTAS = [
+    { id: "lista", rot: "Lista", ico: "ti-list" },
+    { id: "grade", rot: "Grade", ico: "ti-layout-grid" }
+  ];
+
+  function vistaAtual(chave, padrao) {
+    try {
+      var v = localStorage.getItem("epoVista:" + chave);
+      return (v === "grade" || v === "lista") ? v : (padrao || "lista");
+    } catch (e) { return padrao || "lista"; }
+  }
+
+  function vistaHtml(chave, padrao) {
+    var atual = vistaAtual(chave, padrao);
+    return '<div class="vista-alt" role="group" aria-label="Forma de visualizar">' +
+      VISTAS.map(function (v) {
+        return '<button type="button" class="vista-bt' + (v.id === atual ? " is-on" : "") + '"' +
+          ' data-vista="' + v.id + '" aria-pressed="' + (v.id === atual) + '"' +
+          ' title="Ver em ' + v.rot.toLowerCase() + '">' +
+          '<i class="ti ' + v.ico + '" aria-hidden="true"></i>' +
+          '<span class="vista-txt">' + v.rot + "</span>" +
+          "</button>";
+      }).join("") +
+      "</div>";
+  }
+
+  // Liga o controle e aplica a escolha guardada de uma vez.
+  function vistaLigar(chave, padrao, aplicar) {
+    var grupo = document.querySelector('.vista-alt[data-vista-chave="' + chave + '"]') ||
+                document.querySelector(".vista-alt");
+    var usar = function (v) {
+      try { localStorage.setItem("epoVista:" + chave, v); } catch (e) {}
+      if (grupo) {
+        Array.prototype.forEach.call(grupo.querySelectorAll("[data-vista]"), function (b) {
+          var on = b.getAttribute("data-vista") === v;
+          b.classList.toggle("is-on", on);
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+      }
+      aplicar(v);
+    };
+    if (grupo) {
+      grupo.addEventListener("click", function (ev) {
+        var b = ev.target.closest("[data-vista]");
+        if (b) usar(b.getAttribute("data-vista"));
+      });
+    }
+    usar(vistaAtual(chave, padrao));
+  }
+
+  // -----------------------------------------------------------------------
   // window.App
   // -----------------------------------------------------------------------
   window.App = {
     NAV: NAV,
+    telaPronta: telaPronta,
+    aguardar: aguardar,
+    vistaHtml: vistaHtml,
+    vistaLigar: vistaLigar,
+    vistaAtual: vistaAtual,
     tierOf: tierOf,
     tierMeta: tierMeta,
     fmtDias: fmtDias,
