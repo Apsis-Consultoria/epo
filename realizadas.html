@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auditorias realizadas - Auditoria de EPOs</title>
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/app.css?v=78">
+
+  <style>
+    /* Sem tabela de proposito. O compilado e uma pilha de blocos: no celular
+       uma tabela com pergunta, resposta, observacao e justificativa viraria
+       rolagem lateral, escondendo justamente o texto que importa ler. */
+    .rz-busca { position: relative; flex: 1 1 260px; max-width: 420px; }
+    .rz-busca i {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); font-size: 17px; pointer-events: none;
+    }
+    .rz-busca .input { padding-left: 36px; }
+
+    .rz-epo { margin-bottom: 22px; }
+    .rz-epo-cab {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding-bottom: 10px; margin-bottom: 12px;
+      border-bottom: 1.5px solid var(--border);
+    }
+    .rz-epo-info { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; }
+    .rz-epo-info .nm { font-size: 15.5px; font-weight: 600; color: var(--text); }
+    .rz-epo-info .loc { font-size: 12.5px; color: var(--text-2); }
+    .rz-nota-media {
+      display: inline-flex; align-items: baseline; gap: 5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .rz-nota-media b { font-size: 19px; font-weight: 700; color: var(--text); }
+    .rz-nota-media span { font-size: 11.5px; color: var(--text-2); }
+
+    .rz-aud {
+      border: 1.5px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); margin-bottom: 10px; overflow: hidden;
+    }
+    .rz-aud-cab {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 13px 15px; background: transparent; border: 0;
+      font-family: inherit; text-align: left; cursor: pointer;
+    }
+    .rz-aud-cab:hover { background: var(--surface-2); }
+    .rz-ico {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; flex: none; border-radius: 9px;
+      background: var(--primary-tint); color: var(--apsis-green); font-size: 18px;
+    }
+    .rz-aud-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .rz-aud-corpo .nm { font-size: 14.5px; font-weight: 600; color: var(--text); }
+    .rz-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--text-2); }
+    .rz-meta .m { display: inline-flex; align-items: center; gap: 4px; }
+    .rz-meta .m i { font-size: 14px; }
+    .rz-aud-fim { display: flex; align-items: center; gap: 10px; flex: none; }
+    .rz-nota { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .rz-seta { color: var(--text-muted); transition: transform .18s ease; }
+    .rz-aud.is-open .rz-seta { transform: rotate(90deg); }
+
+    .rz-respostas { display: none; border-top: 1px solid var(--border); padding: 4px 0; }
+    .rz-aud.is-open .rz-respostas { display: block; }
+    .rz-resp {
+      display: flex; gap: 11px; padding: 12px 15px;
+      border-bottom: 1px solid var(--border);
+    }
+    .rz-resp:last-child { border-bottom: 0; }
+    .rz-marca {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; flex: none; border-radius: 50%; font-size: 14px; margin-top: 1px;
+    }
+    .rz-marca.ok  { background: var(--success-bg); color: var(--success); }
+    .rz-marca.nao { background: var(--danger-bg);  color: var(--danger); }
+    .rz-marca.na  { background: var(--surface-2);  color: var(--text-muted); }
+    .rz-resp-corpo { flex: 1; min-width: 0; }
+    .rz-pergunta { font-size: 13.5px; color: var(--text); line-height: 1.45; }
+    .rz-nota-texto {
+      display: block; margin-top: 5px; font-size: 12.5px; color: var(--text-2);
+      line-height: 1.5; word-break: break-word;
+    }
+    .rz-nota-texto b { color: var(--text); font-weight: 600; }
+    .rz-grave {
+      display: inline-flex; align-items: center; gap: 4px; margin-left: 6px;
+      font-size: 11px; font-weight: 600; color: var(--danger);
+    }
+
+    /* Celular: o cabecalho da auditoria empilha em vez de espremer a nota. */
+    @media (max-width: 620px) {
+      .rz-aud-cab { flex-wrap: wrap; }
+      .rz-aud-corpo { flex: 1 1 100%; order: 2; }
+      .rz-aud-fim { order: 1; margin-left: auto; }
+      .rz-resp { padding: 12px 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="app-main">
+      <header class="topbar" id="topbar"></header>
+      <main class="page" id="page"></main>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=78"></script>
+  <script src="assets/app.js?v=78"></script>
+  <script src="assets/supabase-config.js?v=78"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/auth.js?v=78"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      Layout.mount("realizadas", "Auditorias realizadas");
+
+      var esc = App.escapeHtml;
+      var DEMO = (window.Auth && Auth.modoDemo()) || !(window.Auth && Auth.pronto);
+      var page = document.getElementById("page");
+
+      var linhas = [];        // uma por auditoria enviada
+      var respostas = {};     // auditoria_id -> [ { pergunta, status, ... } ]
+      var abertas = {};       // auditoria_id -> aberta
+      var busca = "";
+      var carregando = true;
+      var falha = "";
+
+      var MARCA = {
+        conforme:     { cls: "ok",  icone: "ti-check",  texto: "Conforme" },
+        nao_conforme: { cls: "nao", icone: "ti-x",      texto: "Não conforme" },
+        na:           { cls: "na",  icone: "ti-minus",  texto: "Não se aplica" },
+        presente:     { cls: "ok",  icone: "ti-check",  texto: "Presente" },
+        ausente:      { cls: "nao", icone: "ti-x",      texto: "Ausente" }
+      };
+
+      page.innerHTML =
+        '<div class="card">' +
+          '<div class="card-header">' +
+            '<div class="section-title"><span class="title">Respostas enviadas</span></div>' +
+            '<div class="card-header-action">' +
+              '<div class="rz-busca">' +
+                '<i class="ti ti-search" aria-hidden="true"></i>' +
+                '<input class="input" id="rz-q" type="search" autocomplete="off" ' +
+                  'placeholder="Buscar por EPO, cidade ou questionário" ' +
+                  'aria-label="Buscar por EPO, cidade ou questionário">' +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+          '<p class="rz-resumo muted" id="rz-resumo" style="font-size:12.5px;margin:0 0 14px;"></p>' +
+          '<div id="rz-lista"></div>' +
+        "</div>";
+
+      var elLista = document.getElementById("rz-lista");
+      var elResumo = document.getElementById("rz-resumo");
+
+      function fmtData(iso) {
+        if (!iso) return "";
+        var p = String(iso).slice(0, 10).split("-");
+        if (p.length !== 3) return "";
+        return p[2] + "/" + p[1] + "/" + p[0];
+      }
+
+      function local(cidade, uf) {
+        return [cidade, uf].filter(Boolean).join("/");
+      }
+
+      function fmtNota(n) {
+        return n == null ? "sem nota" : String(Math.round(Number(n)));
+      }
+
+      function media(lista) {
+        var v = lista.filter(function (x) { return x != null && !isNaN(x); });
+        if (!v.length) return null;
+        var soma = 0;
+        v.forEach(function (x) { soma += Number(x); });
+        return soma / v.length;
+      }
+
+      // ------------------------------------------------------------------
+      // Leitura
+      // ------------------------------------------------------------------
+      function carregar() {
+        carregando = true; falha = "";
+        if (DEMO) {
+          linhas = [];
+          carregando = false;
+          return Promise.resolve();
+        }
+        var db = Auth.cliente;
+        return db.from("auditorias")
+          .select("id, epo_id, processo_id, score, tier, status, data_visita, enviada_em, " +
+                  "resp_epo, epos!inner(nome, cidade, uf), processos!inner(nome, icone)")
+          .in("status", ["enviada", "validada"])
+          .order("enviada_em", { ascending: false })
+          .then(function (r) {
+            if (!r || r.error) {
+              throw new Error((r && r.error && r.error.message) ||
+                              "nao foi possivel ler as auditorias");
+            }
+            linhas = (r.data || []).map(function (a) {
+              var e = a.epos || {};
+              var p = a.processos || {};
+              return {
+                id: a.id, epoId: a.epo_id,
+                epoNome: e.nome || "EPO", cidade: e.cidade || "", uf: e.uf || "",
+                processoNome: p.nome || "Questionário",
+                processoIcone: p.icone || "ti-clipboard-check",
+                score: a.score == null ? null : Number(a.score),
+                tier: a.tier || null,
+                dataVisita: a.data_visita || "",
+                enviadaEm: a.enviada_em || "",
+                respEpo: a.resp_epo || "",
+                validada: a.status === "validada"
+              };
+            });
+            carregando = false;
+          });
+      }
+
+      // As respostas de uma auditoria so sao lidas quando alguem abre: com
+      // muitas auditorias, trazer tudo de uma vez deixaria a tela pesada sem
+      // ninguem ter pedido.
+      function carregarRespostas(audId) {
+        if (respostas[audId]) return Promise.resolve(respostas[audId]);
+        if (DEMO) { respostas[audId] = []; return Promise.resolve([]); }
+        return Auth.cliente.from("respostas")
+          .select("id, status, observacao, justificativa, " +
+                  "itens_checklist!inner(pergunta, ordem, grave, evidencia_esperada)")
+          .eq("auditoria_id", audId)
+          .then(function (r) {
+            if (!r || r.error) {
+              throw new Error((r && r.error && r.error.message) ||
+                              "nao foi possivel ler as respostas");
+            }
+            var lista = (r.data || []).map(function (x) {
+              var it = x.itens_checklist || {};
+              return {
+                pergunta: it.pergunta || "Pergunta",
+                ordem: it.ordem == null ? 999 : it.ordem,
+                grave: !!it.grave,
+                status: x.status,
+                observacao: x.observacao || "",
+                justificativa: x.justificativa || ""
+              };
+            });
+            lista.sort(function (a, b) { return a.ordem - b.ordem; });
+            respostas[audId] = lista;
+            return lista;
+          });
+      }
+
+      // ------------------------------------------------------------------
+      // Desenho
+      // ------------------------------------------------------------------
+      function visiveis() {
+        var q = busca.toLowerCase();
+        if (!q) return linhas;
+        return linhas.filter(function (l) {
+          return (l.epoNome + " " + l.cidade + " " + l.uf + " " + l.processoNome)
+            .toLowerCase().indexOf(q) >= 0;
+        });
+      }
+
+      function htmlResposta(r) {
+        var m = MARCA[r.status] || { cls: "na", icone: "ti-help", texto: r.status || "" };
+        var extra = "";
+        if (r.observacao) {
+          extra += '<span class="rz-nota-texto"><b>Observação:</b> ' + esc(r.observacao) + "</span>";
+        }
+        if (r.justificativa) {
+          extra += '<span class="rz-nota-texto"><b>Justificativa:</b> ' + esc(r.justificativa) + "</span>";
+        }
+        return (
+          '<div class="rz-resp">' +
+            '<span class="rz-marca ' + m.cls + '" title="' + esc(m.texto) + '">' +
+              '<i class="ti ' + m.icone + '" aria-hidden="true"></i></span>' +
+            '<div class="rz-resp-corpo">' +
+              '<span class="rz-pergunta">' + esc(r.pergunta) +
+                (r.grave
+                  ? '<span class="rz-grave"><i class="ti ti-alert-triangle" aria-hidden="true"></i>item grave</span>'
+                  : "") +
+              "</span>" +
+              extra +
+            "</div>" +
+          "</div>"
+        );
+      }
+
+      function htmlAuditoria(l) {
+        var aberta = !!abertas[l.id];
+        var tm = l.tier ? App.tierMeta(l.tier) : null;
+        var meta = "";
+        if (l.dataVisita) {
+          meta += '<span class="m"><i class="ti ti-calendar-event" aria-hidden="true"></i>Visita ' +
+            esc(fmtData(l.dataVisita)) + "</span>";
+        }
+        if (l.respEpo) {
+          meta += '<span class="m"><i class="ti ti-user-check" aria-hidden="true"></i>' +
+            esc(l.respEpo) + "</span>";
+        }
+        if (l.validada) {
+          meta += '<span class="m"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i>Validada</span>';
+        }
+
+        var corpo = respostas[l.id]
+          ? (respostas[l.id].length
+              ? respostas[l.id].map(htmlResposta).join("")
+              : '<div class="rz-resp"><div class="rz-resp-corpo">' +
+                '<span class="rz-pergunta muted">Nenhuma resposta registrada nesta auditoria.</span>' +
+                "</div></div>")
+          : '<div class="rz-resp"><div class="rz-resp-corpo">' +
+            '<span class="rz-pergunta muted">Carregando as respostas...</span>' +
+            "</div></div>";
+
+        return (
+          '<article class="rz-aud' + (aberta ? " is-open" : "") + '" data-aud="' + esc(l.id) + '">' +
+            '<button class="rz-aud-cab" type="button" data-abrir="' + esc(l.id) + '"' +
+              ' aria-expanded="' + (aberta ? "true" : "false") + '">' +
+              '<span class="rz-ico"><i class="ti ' + esc(l.processoIcone) + '" aria-hidden="true"></i></span>' +
+              '<span class="rz-aud-corpo">' +
+                '<span class="nm">' + esc(l.processoNome) + "</span>" +
+                (meta ? '<span class="rz-meta">' + meta + "</span>" : "") +
+              "</span>" +
+              '<span class="rz-aud-fim">' +
+                (tm ? '<span class="badge ' + tm.cls + '">' + tm.label + "</span>" : "") +
+                '<span class="rz-nota">' + esc(fmtNota(l.score)) + "</span>" +
+                '<i class="ti ti-chevron-right rz-seta" aria-hidden="true"></i>' +
+              "</span>" +
+            "</button>" +
+            '<div class="rz-respostas">' + corpo + "</div>" +
+          "</article>"
+        );
+      }
+
+      function render() {
+        if (falha) {
+          elResumo.textContent = "";
+          elLista.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-alert-triangle" aria-hidden="true"></i><p>' + esc(falha) + "</p></div>";
+          return;
+        }
+        if (carregando) {
+          elResumo.textContent = "";
+          elLista.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-loader-2" aria-hidden="true"></i><p>Carregando as auditorias enviadas...</p></div>';
+          return;
+        }
+        if (!linhas.length) {
+          elResumo.textContent = "";
+          elLista.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-clipboard-off" aria-hidden="true"></i>' +
+            "<p>Nenhuma auditoria enviada até agora.</p>" +
+            '<p class="muted" style="font-size:12.5px;">' +
+              "As respostas aparecem aqui quando a equipe de campo envia um questionário preenchido." +
+            "</p></div>";
+          return;
+        }
+
+        var lista = visiveis();
+        if (!lista.length) {
+          elResumo.textContent = "";
+          elLista.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-search-off" aria-hidden="true"></i>' +
+            '<p>Nada encontrado para "' + esc(busca) + '".</p></div>';
+          return;
+        }
+
+        // Agrupado por EPO: e assim que a coordenacao le o compilado, unidade
+        // por unidade, e nao auditoria solta.
+        var grupos = [];
+        var indice = {};
+        lista.forEach(function (l) {
+          var k = String(l.epoId);
+          if (!indice[k]) {
+            indice[k] = { id: l.epoId, nome: l.epoNome, cidade: l.cidade, uf: l.uf, itens: [] };
+            grupos.push(indice[k]);
+          }
+          indice[k].itens.push(l);
+        });
+        grupos.sort(function (a, b) { return a.nome.localeCompare(b.nome, "pt-BR"); });
+
+        elResumo.textContent =
+          lista.length + (lista.length === 1 ? " auditoria enviada" : " auditorias enviadas") +
+          " em " + grupos.length + (grupos.length === 1 ? " EPO" : " EPOs");
+
+        elLista.innerHTML = grupos.map(function (g) {
+          var notas = g.itens.map(function (x) { return x.score; });
+          var m = media(notas);
+          return (
+            '<section class="rz-epo">' +
+              '<header class="rz-epo-cab">' +
+                '<div class="rz-epo-info">' +
+                  '<span class="nm">' + esc(g.nome) + "</span>" +
+                  '<span class="loc">' + esc(local(g.cidade, g.uf)) + "</span>" +
+                "</div>" +
+                '<span class="rz-nota-media">' +
+                  "<b>" + esc(fmtNota(m)) + "</b><span>nota média</span>" +
+                "</span>" +
+                '<span class="badge badge-success">' + g.itens.length +
+                  (g.itens.length === 1 ? " enviada" : " enviadas") + "</span>" +
+              "</header>" +
+              g.itens.map(htmlAuditoria).join("") +
+            "</section>"
+          );
+        }).join("");
+      }
+
+      // ------------------------------------------------------------------
+      // Eventos
+      // ------------------------------------------------------------------
+      document.getElementById("rz-q").addEventListener("input", function () {
+        busca = this.value || "";
+        render();
+      });
+
+      elLista.addEventListener("click", function (ev) {
+        var btn = ev.target.closest("[data-abrir]");
+        if (!btn) return;
+        var id = btn.getAttribute("data-abrir");
+        abertas[id] = !abertas[id];
+        if (!abertas[id]) { render(); return; }
+        render();
+        if (respostas[id]) return;
+        carregarRespostas(id).then(render, function (e) {
+          respostas[id] = [];
+          if (window.console && console.warn) console.warn("respostas", e);
+          render();
+        });
+      });
+
+      // ------------------------------------------------------------------
+      render();
+      carregar().then(render, function (e) {
+        carregando = false;
+        falha = (e && e.message) || "Não foi possível carregar as auditorias agora.";
+        render();
+      });
+    })();
+  </script>
+</body>
+</html>

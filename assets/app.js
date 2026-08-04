@@ -23,6 +23,7 @@
     { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar.html" },
     { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial.html" },
     { key: "pendentes",   label: "Auditorias pendentes", icon: "ti-clipboard-list", href: "pendentes.html" },
+    { key: "realizadas",  label: "Auditorias realizadas", icon: "ti-clipboard-check", href: "realizadas.html" },
     // Uma tela so para evidencia. Cada lado anexa na propria caixa, na mesma
     // tela onde ve o que os outros mandaram. Antes havia uma tela separada so
     // para enviar, e quem enviava nao via o resto.

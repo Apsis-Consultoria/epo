@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=76">
+  <link rel="stylesheet" href="assets/app.css?v=78">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -70,14 +70,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=76"></script>
-  <script src="assets/app.js?v=76"></script>
-  <script src="assets/geo-br.js?v=76"></script>
-  <script src="assets/mapa-epos.js?v=76"></script>
-  <script src="assets/supabase-config.js?v=76"></script>
+  <script src="assets/data.js?v=78"></script>
+  <script src="assets/app.js?v=78"></script>
+  <script src="assets/geo-br.js?v=78"></script>
+  <script src="assets/mapa-epos.js?v=78"></script>
+  <script src="assets/supabase-config.js?v=78"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=76"></script>
-  <script src="assets/dados-reais.js?v=76"></script>
+  <script src="assets/auth.js?v=78"></script>
+  <script src="assets/dados-reais.js?v=78"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -193,17 +193,19 @@
         var fontesCls = e.reversa.pctFontes >= e.reversa.metaFontes ? "delta-up" : "delta-down";
         return (
           "<tr>" +
-            '<td class="rank">' + (i + 1) + "</td>" +
-            '<td><span style="font-weight:600;">' + esc(e.nome) + '</span> <span class="text-muted" style="font-size:12px;">' + esc(e.cidade) + "/" + esc(e.uf) + "</span></td>" +
-            '<td><span class="badge ' + meta.cls + '"><i class="ti ti-circle-filled" aria-hidden="true"></i>' + esc(meta.label) + "</span></td>" +
-            '<td style="min-width:150px;">' +
+            '<td class="rank cartao-titulo">' +
+              '<span style="font-weight:600;">' + (i + 1) + ". " + esc(e.nome) + "</span> " +
+              '<span class="text-muted" style="font-size:12px;">' + esc(e.cidade) + "/" + esc(e.uf) + "</span>" +
+            "</td>" +
+            '<td data-rotulo="Selo"><span class="badge ' + meta.cls + '"><i class="ti ti-circle-filled" aria-hidden="true"></i>' + esc(meta.label) + "</span></td>" +
+            '<td data-rotulo="Pontuação" style="min-width:150px;">' +
               '<div class="score-row">' +
                 '<span class="score-bar"><span class="score-fill tier-' + e.tier + '" style="width:' + e.score + '%;"></span></span>' +
                 '<span class="score-num">' + e.score + "</span>" +
               "</div>" +
             "</td>" +
-            '<td class="num">' + App.fmtDias(e.tempoCiclo) + "</td>" +
-            '<td class="num"><span class="' + fontesCls + '" style="font-weight:600;">' + App.fmtPct(e.reversa.pctFontes) + "</span></td>" +
+            '<td class="num" data-rotulo="Tempo de ciclo">' + App.fmtDias(e.tempoCiclo) + "</td>" +
+            '<td class="num" data-rotulo="% fontes"><span class="' + fontesCls + '" style="font-weight:600;">' + App.fmtPct(e.reversa.pctFontes) + "</span></td>" +
           "</tr>"
         );
       }).join("");
@@ -217,9 +219,8 @@
             "</div>" +
           "</div>" +
           '<div class="table-wrap">' +
-            '<table class="table">' +
+            '<table class="table tabela-cartao">' +
               "<thead><tr>" +
-                '<th style="width:44px;">#</th>' +
                 "<th>EPO</th>" +
                 "<th>Selo</th>" +
                 "<th>Pontuação</th>" +

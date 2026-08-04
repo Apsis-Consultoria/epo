@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=76">
+  <link rel="stylesheet" href="assets/app.css?v=78">
 
   <style>
     /* Ajustes locais desta tela (componentes não previstos no design system). */
@@ -90,11 +90,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=76"></script>
-  <script src="assets/app.js?v=76"></script>
-  <script src="assets/supabase-config.js?v=76"></script>
+  <script src="assets/data.js?v=78"></script>
+  <script src="assets/app.js?v=78"></script>
+  <script src="assets/supabase-config.js?v=78"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=76"></script>
+  <script src="assets/auth.js?v=78"></script>
   <script>
     (function () {
       "use strict";
@@ -202,13 +202,12 @@
             '<div class="card-header-action row wrap" id="dist-chips"></div>' +
           '</div>' +
           '<div class="table-wrap">' +
-            '<table class="table">' +
+            '<table class="table tabela-cartao">' +
               '<thead><tr>' +
-                '<th style="width:44px">#</th>' +
                 '<th>EPO</th>' +
                 '<th>Localização</th>' +
                 '<th style="width:210px">Nota</th>' +
-                '<th>Tier</th>' +
+                '<th>Selo</th>' +
               '</tr></thead>' +
               '<tbody id="preview-body"></tbody>' +
             '</table>' +
@@ -276,16 +275,18 @@
           dist[tier] += 1;
           var meta = App.tierMeta(tier);
           return '<tr>' +
-            '<td class="rank">' + (i + 1) + '</td>' +
-            '<td>' + App.escapeHtml(e.nome) + '</td>' +
-            '<td class="muted">' + App.escapeHtml(e.cidade) + ' · ' + App.escapeHtml(e.uf) + '</td>' +
-            '<td>' +
+            '<td class="rank cartao-titulo">' +
+              '<b>' + (i + 1) + '. ' + App.escapeHtml(e.nome) + '</b>' +
+            '</td>' +
+            '<td class="muted" data-rotulo="Localização">' +
+              App.escapeHtml(e.cidade) + ' · ' + App.escapeHtml(e.uf) + '</td>' +
+            '<td data-rotulo="Nota">' +
               '<div class="score-row">' +
                 '<div class="score-bar"><div class="score-fill tier-' + tier + '" style="width:' + e.score + '%"></div></div>' +
                 '<span class="score-num">' + e.score + '</span>' +
               '</div>' +
             '</td>' +
-            '<td><span class="badge ' + meta.cls + '">' + meta.label + '</span></td>' +
+            '<td data-rotulo="Selo"><span class="badge ' + meta.cls + '">' + meta.label + '</span></td>' +
           '</tr>';
         }).join("");
         previewBody.innerHTML = rows;

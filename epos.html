@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=76">
+  <link rel="stylesheet" href="assets/app.css?v=78">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -56,13 +56,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=76"></script>
-  <script src="assets/app.js?v=76"></script>
-  <script src="assets/geo-br.js?v=76"></script>
-  <script src="assets/form-epo.js?v=76"></script>
-  <script src="assets/supabase-config.js?v=76"></script>
+  <script src="assets/data.js?v=78"></script>
+  <script src="assets/app.js?v=78"></script>
+  <script src="assets/geo-br.js?v=78"></script>
+  <script src="assets/form-epo.js?v=78"></script>
+  <script src="assets/supabase-config.js?v=78"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=76"></script>
+  <script src="assets/auth.js?v=78"></script>
   <script>
     (function () {
       "use strict";
@@ -119,7 +119,7 @@
             '<span class="dica">Ordenado por nome</span>' +
           "</div>" +
           '<div class="table-wrap">' +
-            '<table class="table">' +
+            '<table class="table tabela-cartao">' +
               "<thead><tr>" +
                 "<th>EPO</th>" +
                 "<th>Cidade / UF</th>" +
@@ -281,17 +281,17 @@
             // O código do fornecedor é o que distingue unidades de mesmo
             // nome: a relação da Claro repete razão social em cidades
             // diferentes, e sem ele as linhas ficam iguais na tela.
-            '<td class="epo-nome-cel"><b>' + esc(e.nome) + "</b>" +
+            '<td class="epo-nome-cel cartao-titulo"><b>' + esc(e.nome) + "</b>" +
               (e.codigo ? "<span>Cód. " + esc(e.codigo) +
                 (e.base ? " · " + esc(e.base) : "") + "</span>" : "") +
               (e.cep ? "<span>CEP " + esc(e.cep) + "</span>" : "") + "</td>" +
-            "<td>" + esc([e.cidade, e.uf].filter(Boolean).join(" · ") || "-") + "</td>" +
-            "<td>" + esc(e.endereco || "-") + "</td>" +
-            "<td>" + marcaDoPonto(e) + "</td>" +
-            "<td>" + celulaQuestionarios(e) + "</td>" +
-            '<td><span class="badge ' + (e.ativo === false ? "badge-baixa" : "badge-success") + '">' +
+            '<td data-rotulo="Cidade / UF">' + esc([e.cidade, e.uf].filter(Boolean).join(" · ") || "-") + "</td>" +
+            '<td data-rotulo="Endereço">' + esc(e.endereco || "-") + "</td>" +
+            '<td data-rotulo="No mapa">' + marcaDoPonto(e) + "</td>" +
+            '<td data-rotulo="Questionários">' + celulaQuestionarios(e) + "</td>" +
+            '<td data-rotulo="Situação"><span class="badge ' + (e.ativo === false ? "badge-baixa" : "badge-success") + '">' +
               (e.ativo === false ? "Inativa" : "Ativa") + "</span></td>" +
-            '<td class="num">' +
+            '<td class="num cartao-acoes">' +
               '<span class="acoes-cel">' +
                 (pedidoComEmail(e.id)
                   ? '<button class="btn btn-ghost btn-sm" type="button" data-acesso="' + esc(e.id) + '" ' +

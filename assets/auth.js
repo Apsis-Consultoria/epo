@@ -43,6 +43,7 @@
     "comparar.html": "comparativo",
     "gerencial.html": "gerencial",
     "pendentes.html": "pendentes",
+    "realizadas.html": "realizadas",
     "auditoria.html": "auditoria",
     "checagem.html": "checagem",
     "questionarios.html": "questionarios",

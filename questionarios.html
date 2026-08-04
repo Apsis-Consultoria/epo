@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=76">
+  <link rel="stylesheet" href="assets/app.css?v=78">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -115,11 +115,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=76"></script>
-  <script src="assets/app.js?v=76"></script>
-  <script src="assets/supabase-config.js?v=76"></script>
+  <script src="assets/data.js?v=78"></script>
+  <script src="assets/app.js?v=78"></script>
+  <script src="assets/supabase-config.js?v=78"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=76"></script>
+  <script src="assets/auth.js?v=78"></script>
   <script>
     (function () {
       "use strict";
@@ -251,7 +251,7 @@
               "</div>" +
             "</div>" +
             '<div class="table-wrap">' +
-              '<table class="table">' +
+              '<table class="table tabela-cartao">' +
                 "<thead><tr>" +
                   "<th>Tópico</th>" +
                   "<th>Perguntas</th>" +
@@ -420,7 +420,7 @@
         var n = t.nPerguntas || 0;
         return (
           '<tr' + (t.ativo === false ? ' class="qt-inativo"' : "") + ">" +
-            "<td>" +
+            '<td class="cartao-titulo">' +
               '<span class="qt-topico-cel">' +
                 '<span class="qt-ico"><i class="ti ' + esc(t.icone || "ti-clipboard-list") + '" aria-hidden="true"></i></span>' +
                 "<span>" +
@@ -429,14 +429,14 @@
                 "</span>" +
               "</span>" +
             "</td>" +
-            "<td>" +
+            '<td data-rotulo="Perguntas">' +
               '<span class="qt-conta"><i class="ti ti-help-circle" aria-hidden="true"></i>' +
                 "<b>" + n + "</b> " + (n === 1 ? "pergunta" : "perguntas") +
               "</span>" +
             "</td>" +
-            '<td class="qt-peso">' + (ehItensObrigatorios(t) ? "-" : App.fmtPct(t.peso)) + "</td>" +
-            "<td>" + badgeSituacao(t.ativo) + "</td>" +
-            '<td class="num">' +
+            '<td class="qt-peso" data-rotulo="Peso na nota">' + (ehItensObrigatorios(t) ? "-" : App.fmtPct(t.peso)) + "</td>" +
+            '<td data-rotulo="Situação">' + badgeSituacao(t.ativo) + "</td>" +
+            '<td class="num cartao-acoes">' +
               '<span class="qt-acoes">' +
                 '<button class="btn btn-ghost btn-sm" type="button" data-abrir="' + esc(t.id) + '">' +
                   '<i class="ti ti-list-details" aria-hidden="true"></i>Perguntas' +
@@ -524,7 +524,7 @@
             '<td style="width:38px;">' +
               (p.ativo === false ? "" : '<span class="qt-num">' + numero + "</span>") +
             "</td>" +
-            '<td><span class="qt-pergunta">' + esc(p.pergunta) + "</span>" +
+            '<td class="cartao-titulo"><span class="qt-pergunta">' + esc(p.pergunta) + "</span>" +
               (p.requer_foto || p.grave
                 ? '<span class="qt-marcas" style="margin-top:6px;">' +
                     (p.requer_foto ? '<span class="badge"><i class="ti ti-camera" aria-hidden="true"></i>Exige foto</span>' : "") +
@@ -532,13 +532,13 @@
                   "</span>"
                 : "") +
             "</td>" +
-            "<td>" +
+            '<td data-rotulo="Evidência">' +
               (p.evidencia_esperada
                 ? '<span class="qt-evid">' + esc(p.evidencia_esperada) + "</span>"
                 : '<span class="qt-evid is-vazia">sem sugestão</span>') +
             "</td>" +
-            "<td>" + badgeSituacao(p.ativo) + "</td>" +
-            '<td class="num">' +
+            '<td data-rotulo="Situação">' + badgeSituacao(p.ativo) + "</td>" +
+            '<td class="num cartao-acoes">' +
               '<span class="qt-acoes">' +
                 (podeEditar
                   ? (p.ativo === false
@@ -602,7 +602,7 @@
         var total = visiveis.length;
         var totalAtivas = perguntas.filter(function (p) { return p.ativo !== false; }).length;
         elPerguntas.innerHTML =
-          '<div class="table-wrap"><table class="table">' +
+          '<div class="table-wrap"><table class="table tabela-cartao">' +
             "<thead><tr>" +
               "<th></th><th>Pergunta</th><th>Evidência esperada</th><th>Situação</th><th></th>" +
             "</tr></thead>" +

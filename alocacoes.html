@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=76">
+  <link rel="stylesheet" href="assets/app.css?v=78">
   <style>
     /* Ajustes locais da tela de cadastro de EPO e pedido de relatórios */
 
@@ -135,11 +135,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=76"></script>
-  <script src="assets/app.js?v=76"></script>
-  <script src="assets/supabase-config.js?v=76"></script>
+  <script src="assets/data.js?v=78"></script>
+  <script src="assets/app.js?v=78"></script>
+  <script src="assets/supabase-config.js?v=78"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=76"></script>
+  <script src="assets/auth.js?v=78"></script>
   <script>
     (function () {
       "use strict";
@@ -198,7 +198,7 @@
             '<span class="dica">Agrupado por EPO</span>' +
           "</div>" +
           '<div class="table-wrap">' +
-            '<table class="table">' +
+            '<table class="table tabela-cartao">' +
               "<thead><tr>" +
                 "<th>EPO</th>" +
                 "<th>Questionário</th>" +
@@ -480,17 +480,17 @@
 
           return (
             "<tr" + (inicio ? ' class="grupo-inicio"' : "") + ">" +
-              "<td>" + celEpo + "</td>" +
-              "<td>" +
+              '<td class="cartao-titulo">' + celEpo + "</td>" +
+              '<td data-rotulo="Questionário">' +
                 '<span class="aloc-proc"><i class="ti ' + esc(a.procIcone || "ti-clipboard-list") + '" aria-hidden="true"></i>' + esc(a.procNome) + "</span>" +
               "</td>" +
-              '<td class="aloc-email">' + esc(a.email || "-") + "</td>" +
-              "<td>" + badgeStatus(a.status) + "</td>" +
-              '<td class="aloc-data">' + esc(fmtDataDia(a.visitaPrevista)) + "</td>" +
-              '<td class="aloc-data">' + esc(a.conviteEnviadoEm ? fmtDataDia(a.conviteEnviadoEm) : "-") + "</td>" +
-              '<td class="aloc-data">' + esc(fmtDataHora(a.criadoEm)) + "</td>" +
-              '<td class="num"><span class="aloc-anexos"><i class="ti ti-paperclip" aria-hidden="true"></i>' + App.fmtNum(a.anexos) + "</span></td>" +
-              '<td class="num"><span class="acoes-cel">' + acoesLinha + "</span></td>" +
+              '<td class="aloc-email" data-rotulo="Responsável">' + esc(a.email || "-") + "</td>" +
+              '<td data-rotulo="Status">' + badgeStatus(a.status) + "</td>" +
+              '<td class="aloc-data" data-rotulo="Visita">' + esc(fmtDataDia(a.visitaPrevista)) + "</td>" +
+              '<td class="aloc-data" data-rotulo="Convite">' + esc(a.conviteEnviadoEm ? fmtDataDia(a.conviteEnviadoEm) : "-") + "</td>" +
+              '<td class="aloc-data" data-rotulo="Criado em">' + esc(fmtDataHora(a.criadoEm)) + "</td>" +
+              '<td class="num" data-rotulo="Anexos"><span class="aloc-anexos"><i class="ti ti-paperclip" aria-hidden="true"></i>' + App.fmtNum(a.anexos) + "</span></td>" +
+              '<td class="num cartao-acoes"><span class="acoes-cel">' + acoesLinha + "</span></td>" +
             "</tr>"
           );
         }).join("");
