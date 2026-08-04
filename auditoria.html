@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=73">
+  <link rel="stylesheet" href="assets/app.css?v=74">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -337,11 +337,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=73"></script>
-  <script src="assets/app.js?v=73"></script>
-  <script src="assets/supabase-config.js?v=73"></script>
+  <script src="assets/data.js?v=74"></script>
+  <script src="assets/app.js?v=74"></script>
+  <script src="assets/supabase-config.js?v=74"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=73"></script>
+  <script src="assets/auth.js?v=74"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -689,7 +689,12 @@
           score01: score01,
           pts: score01 * 100,
           counts: counts,
-          answered: counts.conforme + counts.nao + counts.na
+          answered: counts.conforme + counts.nao + counts.na,
+          // Item "nao se aplica" nao entra na nota. Se TODOS forem assim, nao
+          // ha o que avaliar: nota nenhuma. Antes a nota saia 0 e o selo,
+          // Critico, e uma visita sem nada avaliavel puxava a media da unidade
+          // para baixo como se tivesse ido mal.
+          avaliaveis: ans
         };
       }
 
@@ -1469,7 +1474,7 @@
 
       function renderResumo() {
         var r = computeScore();
-        var tier = r.answered > 0 ? App.tierOf(r.pts) : null;
+        var tier = r.avaliaveis > 0 ? App.tierOf(r.pts) : null;
         var meta = tier ? App.tierMeta(tier) : null;
         var totalItens = processo.itens.length;
 
@@ -1518,7 +1523,8 @@
           '<p class="wiz-eyebrow">' + esc(processo.nome) + " · Resumo</p>" +
           '<h1 class="wiz-question">Auditoria pronta para envio</h1>' +
           '<div class="wiz-summary-card">' +
-            '<div class="wiz-summary-score tnum">' + fmtNota(r.pts) + "</div>" +
+            '<div class="wiz-summary-score tnum">' +
+              (r.avaliaveis > 0 ? fmtNota(r.pts) : "sem nota") + "</div>" +
             '<div class="wiz-summary-tier">' + (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : '<span class="badge">Sem avaliação</span>') + "</div>" +
             '<div class="wiz-summary-grid">' + statsHtml + "</div>" +
           "</div>" +
@@ -1683,7 +1689,23 @@
           document.getElementById("f-resp-epo").addEventListener("input", function (ev) { state.assin.respEpo = ev.target.value; });
         } else if (step.type === "resumo") {
           document.getElementById("btn-rascunho").addEventListener("click", function () {
-            App.toast("Rascunho salvo.");
+            // Antes este botao apenas dizia "Rascunho salvo" e nao gravava nada:
+            // quem fechava a tela confiando nele perdia tudo.
+            if (!envioReal) { App.toast("Sem conexão com os dados agora: nada foi gravado."); return; }
+            var b = this;
+            b.disabled = true;
+            Auth.sessao().then(function (sess) {
+              b.disabled = false;
+              if (!sess) {
+                App.toast("Sua sessão expirou. Entre novamente nesta aba para não perder o preenchimento.");
+                return;
+              }
+              mostrarEnvio(true);
+              enviarReal(sess, false);
+            }, function () {
+              b.disabled = false;
+              App.toast("Não foi possível confirmar o seu acesso agora. Tente de novo.");
+            });
           });
         }
       }
@@ -1744,7 +1766,7 @@
         }
 
         var r = computeScore();
-        var tier = r.answered > 0 ? App.tierOf(r.pts) : null;
+        var tier = r.avaliaveis > 0 ? App.tierOf(r.pts) : null;
         var meta = tier ? App.tierMeta(tier) : null;
 
         main.innerHTML =
@@ -1755,7 +1777,8 @@
               "Enviada para conferência: a equipe APSIS vai comparar suas respostas e evidências com as do responsável da EPO." + "</p>" +
             '<div class="wiz-done-score">' +
               (meta ? '<span class="badge ' + meta.cls + '">' + meta.label + "</span>" : "") +
-              '<strong class="tnum">' + fmtNota(r.pts) + " / 100</strong>" +
+              '<strong class="tnum">' +
+                (r.avaliaveis > 0 ? fmtNota(r.pts) + " / 100" : "sem nota") + "</strong>" +
             "</div>" +
             '<div class="wiz-done-actions">' +
               '<a class="wiz-btn wiz-btn-next" href="' + urlSeletor() + '"><i class="ti ti-clipboard-list" aria-hidden="true"></i>Outras auditorias pendentes</a>' +
@@ -1791,7 +1814,12 @@
 
       var MAPA_STATUS_DB = { conforme: "conforme", nao: "nao_conforme", na: "na", presente: "presente", ausente: "ausente" };
 
-      function enviarReal(sess) {
+      // selar = true envia de verdade; false grava e deixa como rascunho, que e
+      // o que o botao "Salvar rascunho" precisa fazer - ele apenas mostrava
+      // "Rascunho salvo" e nao gravava nada.
+      function enviarReal(sess, selar) {
+        selar = selar !== false;
+        var cabecalho = null;
         // O pedido veio na URL e nao pode ser lido: gravar assim deixaria a
         // auditoria sem vinculo e a pendencia aberta para sempre.
         if (alocParam && alocFalhou) {
@@ -1853,6 +1881,31 @@
               throw semEpo;
             }
             var sc = computeScore();
+            cabecalho = {
+              epo_id: epoDb.id,
+              processo_id: procDb.id,
+              alocacao_id: aloc ? aloc.id : null,
+              auditor_id: sess.user.id,
+              data_visita: state.data || new Date().toISOString().slice(0, 10),
+              score: sc.avaliaveis > 0 ? Math.round(sc.pts * 100) / 100 : null,
+              tier: sc.avaliaveis > 0 ? App.tierOf(sc.pts) : null,
+              resp_epo: (state.assin.respEpo || "").trim() || null
+            };
+            // Cada tentativa criava uma auditoria nova. Envio que falhava no
+            // meio deixava rascunho para tras, e a mesma visita aparecia tres
+            // vezes no banco - com notas diferentes entre elas. O rascunho de
+            // quem esta preenchendo, para esta unidade e este questionario, e
+            // reaproveitado.
+            var q = db.from("auditorias").select("id")
+              .eq("epo_id", epoDb.id).eq("processo_id", procDb.id)
+              .eq("auditor_id", sess.user.id).eq("status", "rascunho");
+            q = aloc ? q.eq("alocacao_id", aloc.id) : q.is("alocacao_id", null);
+            return q.order("criado_em", { ascending: false }).limit(1);
+          })
+          .then(function (r) {
+            if (r.error) throw r.error;
+            var antigo = r.data && r.data[0] ? r.data[0].id : null;
+            if (!antigo) {
             // A auditoria nasce como RASCUNHO e so e selada depois que resposta,
             // tempo e evidencia estiverem gravados.
             //
@@ -1862,17 +1915,21 @@
             // gravava o cabecalho e TODAS as respostas eram recusadas - ficava
             // uma auditoria com nota e sem uma resposta sequer. Nunca apareceu
             // porque so admin testou ate agora.
-            return db.from("auditorias").insert({
-              epo_id: epoDb.id,
-              processo_id: procDb.id,
-              alocacao_id: aloc ? aloc.id : null,
-              auditor_id: sess.user.id,
-              data_visita: state.data || new Date().toISOString().slice(0, 10),
-              status: "rascunho",
-              score: Math.round(sc.pts * 100) / 100,
-              tier: sc.answered > 0 ? App.tierOf(sc.pts) : null,
-              resp_epo: (state.assin.respEpo || "").trim() || null
-            }).select("id").single();
+              cabecalho.status = "rascunho";
+              return db.from("auditorias").insert(cabecalho).select("id").single();
+            }
+            // Reaproveitando: atualiza o cabecalho e apaga as respostas antigas,
+            // senao a auditoria ficaria com as respostas das duas tentativas.
+            audId = antigo;
+            return db.from("auditorias").update(cabecalho).eq("id", antigo).select("id")
+              .then(function (ru) {
+                if (ru.error) throw ru.error;
+                return db.from("respostas").delete().eq("auditoria_id", antigo);
+              })
+              .then(function (rd) {
+                if (rd && rd.error) throw rd.error;
+                return { data: { id: antigo }, error: null };
+              });
           })
           .then(function (r) {
             if (r.error) throw r.error;
@@ -1962,10 +2019,20 @@
             return p;
           })
           .then(function () {
+            // Pedido de rascunho: para aqui. Fica gravado e recuperavel.
+            if (!selar) return null;
             // Tudo gravado: agora a auditoria e selada. Falhando o selo, ela
             // fica como rascunho - recuperavel, e melhor do que selada e vazia.
+            // A nota vai de novo aqui: a do insert e a do momento em que o
+            // cabecalho nasceu, e entre um e outro a pessoa ainda responde.
+            var sc = computeScore();
             return db.from("auditorias")
-              .update({ status: "enviada", enviada_em: new Date().toISOString() })
+              .update({
+                status: "enviada",
+                enviada_em: new Date().toISOString(),
+                score: sc.avaliaveis > 0 ? Math.round(sc.pts * 100) / 100 : null,
+                tier: sc.avaliaveis > 0 ? App.tierOf(sc.pts) : null
+              })
               .eq("id", audId).select("id")
               .then(function (rs) {
                 if (rs.error) throw rs.error;
@@ -1977,9 +2044,32 @@
                   naoSelou.avisoParaTela = true;
                   throw naoSelou;
                 }
+              })
+              .then(function () {
+                // O pedido tem de sair de pendente. Sem isto a auditoria ficava
+                // enviada e a tela de EPOs continuava contando "10 pedidos, 10
+                // pendentes", porque quem conta pendencia e o pedido, nao a
+                // auditoria. Falhar aqui nao desfaz o envio: a auditoria esta
+                // gravada, e o aviso diz que a pendencia continua aberta.
+                if (!aloc || !aloc.id) return null;
+                return db.from("alocacoes")
+                  .update({ status: "enviada", enviada_em: new Date().toISOString() })
+                  .eq("id", aloc.id).select("id")
+                  .then(function (rp) {
+                    if (rp.error || !rp.data || !rp.data.length) {
+                      console.warn("pedido nao saiu de pendente", rp.error);
+                      App.toast("Auditoria enviada. A pendência pode levar alguns instantes para sair da lista.");
+                    }
+                  }, function (e) { console.warn("pedido nao saiu de pendente", e); });
               });
           })
           .then(function () {
+            if (!selar) {
+              mostrarEnvio(false);
+              App.toast("Rascunho salvo. Você pode continuar depois pela lista de pendentes.");
+              nextBtn.disabled = false;
+              return;
+            }
             // encaminha as evidencias para a pasta oficial, em segundo plano
             if (audId && db.functions) {
               db.functions.invoke("sincronizar-sharepoint", { body: { auditoria_id: audId } })
