@@ -38,8 +38,6 @@
       nomes: ["cidade_epo", "cidade epo", "cidade", "municipio"] },
     { campo: "uf",         rotulo: "UF", larg: 6,
       nomes: ["uf_epo", "uf", "estado"] },
-    { campo: "regional",   rotulo: "Regional", larg: 10,
-      nomes: ["regional", "regiao"] },
     { campo: "endereco",   rotulo: "Endereco", larg: 42,
       nomes: ["endereco_epo", "endereco", "logradouro"] },
     { campo: "cep",        rotulo: "CEP", larg: 12,
@@ -203,7 +201,7 @@
       var lista = (unidades || []).slice();
 
       lista.sort(function (a, b) {
-        var ra = texto(a.regional), rb = texto(b.regional);
+        var ra = texto(a.uf), rb = texto(b.uf);
         if (ra !== rb) return ra < rb ? -1 : 1;
         return texto(a.nome).localeCompare(texto(b.nome), "pt-BR");
       });
@@ -211,7 +209,7 @@
       lista.forEach(function (u) {
         linhas.push([
           texto(u.cod), texto(u.base), texto(u.nome), texto(u.cidade), texto(u.uf),
-          texto(u.regional), texto(u.endereco), texto(u.cep),
+          texto(u.endereco), texto(u.cep),
           paraBrasil(u.prevIniIso), paraBrasil(u.prevFimIso),
           texto(u.semana), texto(u.observacao)
         ]);
@@ -392,12 +390,6 @@
       return null;
     }
 
-    var regional = texto(pegar(bruta, mapa, "regional")).toUpperCase();
-    if (regional && UFS.indexOf(regional) < 0) {
-      erros.push({ linha: numero, motivo: 'a regional "' + regional + '" nao e uma sigla de estado' });
-      return null;
-    }
-
     var dIni = lerData(pegar(bruta, mapa, "data"));
     if (dIni && dIni.erro) {
       erros.push({ linha: numero, motivo: dIni.erro });
@@ -424,7 +416,6 @@
       nome: nome,
       cidade: cidade,
       uf: uf,
-      regional: regional,
       endereco: texto(pegar(bruta, mapa, "endereco")),
       cep: texto(pegar(bruta, mapa, "cep")),
       data: dIni ? dIni.iso : "",

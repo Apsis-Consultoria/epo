@@ -4,8 +4,8 @@
    A tela de EPOs e a tela de Cronograma tinham cada uma o seu formulario de
    cadastro, com perguntas diferentes:
 
-     - em EPOs faltavam codigo do fornecedor, base, regional, data final e
-       semana de referencia;
+     - em EPOs faltavam codigo do fornecedor, base, data final e semana de
+       referencia;
      - no Cronograma faltavam situacao, questionarios, e-mail do responsavel
        e a coordenada do endereco.
 
@@ -117,16 +117,12 @@
             '<select class="select" id="f-uf">' + opcoesUf(null) + "</select>" +
           "</div>" +
         "</div>" +
-        '<div class="field-row">' +
-          '<div class="field">' +
-            '<label for="f-regional">Regional</label>' +
-            '<select class="select" id="f-regional">' + opcoesUf("igual ao UF") + "</select>" +
-            '<span class="hint">Pode diferir do UF: Colatina fica no ES e é atendida pelo Rio.</span>' +
-          "</div>" +
-          '<div class="field cep">' +
-            '<label for="f-cep">CEP</label>' +
-            '<input class="input" id="f-cep" type="text" inputmode="numeric" placeholder="00000-000" autocomplete="off" maxlength="9">' +
-          "</div>" +
+        // Nao existe campo de regional: o estado da unidade e o UF, e tudo o
+        // que agrupa por estado usa ele. Ter os dois abria a porta para a
+        // mesma unidade contar num estado no mapa e em outro no cronograma.
+        '<div class="field">' +
+          '<label for="f-cep">CEP</label>' +
+          '<input class="input" id="f-cep" type="text" inputmode="numeric" placeholder="00000-000" autocomplete="off" maxlength="9">' +
         "</div>" +
         '<div class="nota-modal">' +
           '<i class="ti ti-map-pin" aria-hidden="true"></i>' +
@@ -313,7 +309,6 @@
     setVal("f-endereco", epo && epo.endereco);
     setVal("f-cidade", epo && epo.cidade);
     setVal("f-uf", (epo && epo.uf) || "SP");
-    setVal("f-regional", (epo && epo.regional && epo.regional !== epo.uf) ? epo.regional : "");
     setVal("f-cep", epo && epo.cep);
 
     // O pedido mais recente manda, e os anteriores so preenchem o que ele
@@ -351,7 +346,6 @@
     ["f-cod","f-base","f-nome","f-endereco","f-cidade","f-cep",
      "f-email","f-visita","f-ate","f-semana","f-obs"].forEach(function (id) { setVal(id, ""); });
     setVal("f-uf", "SP");
-    setVal("f-regional", "");
     setVal("f-ativo", "1");
     renderProcs(null);
   }
@@ -369,7 +363,6 @@
       endereco: txt("f-endereco"),
       cidade: txt("f-cidade"),
       uf: val("f-uf") || "SP",
-      regional: val("f-regional") || "",
       cep: txt("f-cep"),
       email: txt("f-email").toLowerCase(),
       visita: val("f-visita") || "",
@@ -440,7 +433,8 @@
         nome: d.nome,
         cidade: d.cidade,
         uf: d.uf,
-        regional: d.regional || null,
+        // A regional acompanha o UF: e o mesmo estado, gravado uma vez.
+        regional: d.uf || null,
         endereco: d.endereco || null,
         cep: d.cep || null,
         cod_fornecedor: d.cod || null,

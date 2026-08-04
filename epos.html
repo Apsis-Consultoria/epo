@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=71">
+  <link rel="stylesheet" href="assets/app.css?v=72">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -56,13 +56,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=71"></script>
-  <script src="assets/app.js?v=71"></script>
-  <script src="assets/geo-br.js?v=71"></script>
-  <script src="assets/form-epo.js?v=71"></script>
-  <script src="assets/supabase-config.js?v=71"></script>
+  <script src="assets/data.js?v=72"></script>
+  <script src="assets/app.js?v=72"></script>
+  <script src="assets/geo-br.js?v=72"></script>
+  <script src="assets/form-epo.js?v=72"></script>
+  <script src="assets/supabase-config.js?v=72"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=71"></script>
+  <script src="assets/auth.js?v=72"></script>
   <script>
     (function () {
       "use strict";
@@ -687,13 +687,13 @@
             epoDemo.nome = dados.nome; epoDemo.cidade = dados.cidade; epoDemo.uf = dados.uf;
             epoDemo.endereco = dados.endereco; epoDemo.cep = dados.cep;
             epoDemo.cod = dados.cod; epoDemo.base = dados.base;
-            epoDemo.regional = dados.regional; epoDemo.ativo = dados.ativo;
+            epoDemo.ativo = dados.ativo;
           } else {
             demoSeq += 1;
             epoDemo = {
               id: "demo-epo-" + demoSeq, nome: dados.nome, cidade: dados.cidade,
               uf: dados.uf, endereco: dados.endereco, cep: dados.cep,
-              cod: dados.cod, base: dados.base, regional: dados.regional,
+              cod: dados.cod, base: dados.base,
               ativo: dados.ativo, lat: null, lng: null
             };
             epos.push(epoDemo);
@@ -746,7 +746,7 @@
         epos = (window.APP.epos || []).map(function (e) {
           return {
             id: e.id, nome: e.nome, cidade: e.cidade, uf: e.uf,
-            regional: e.regional || "", cod: e.cod || "", codigo: e.cod || "",
+            cod: e.cod || "", codigo: e.cod || "",
             base: e.base || "",
             endereco: e.endereco || "", cep: e.cep || "",
             lat: e.lat == null ? null : e.lat, lng: e.lng == null ? null : e.lng,
@@ -855,7 +855,7 @@
               };
             });
             return db.from("epos")
-              .select("id, nome, cidade, uf, regional, endereco, cep, lat, lng, ativo, cod_fornecedor, base")
+              .select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo, cod_fornecedor, base")
               .order("nome");
           })
           .then(function (r) {

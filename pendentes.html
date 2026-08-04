@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=71">
+  <link rel="stylesheet" href="assets/app.css?v=72">
   <style>
     /* Ajustes locais - tela de auditorias pendentes (escolher EPO e questionário) */
 
@@ -23,6 +23,25 @@
     .pd-resumo { font-size: 12.5px; color: var(--text-muted); margin: 0 0 14px; }
 
     /* ------ Nível 1: cartões de EPO ------ */
+    /* Lista das auditorias a preencher: uma linha por auditoria, com a acao
+       na propria linha. Nao e grade de cartoes porque o que importa aqui e
+       varrer de cima para baixo o que falta. */
+    .pd-lista { display: flex; flex-direction: column; gap: 10px; }
+    .pd-item {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 13px 15px;
+    }
+    .pd-item-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .pd-item-corpo .nm { font-size: 14.5px; font-weight: 600; color: var(--text); }
+    .pd-item-corpo .loc { font-size: 12.5px; color: var(--text-2); }
+    .pd-item-fim { display: flex; align-items: center; gap: 8px; flex: none; }
+    @media (max-width: 760px) {
+      .pd-item { flex-wrap: wrap; }
+      .pd-item-fim { width: 100%; flex-wrap: wrap; }
+      .pd-item-fim .btn { flex: 1 1 auto; justify-content: center; }
+    }
+
     .pd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
     .pd-card {
       display: flex; align-items: flex-start; gap: 12px; width: 100%;
@@ -128,11 +147,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=71"></script>
-  <script src="assets/app.js?v=71"></script>
-  <script src="assets/supabase-config.js?v=71"></script>
+  <script src="assets/data.js?v=72"></script>
+  <script src="assets/app.js?v=72"></script>
+  <script src="assets/supabase-config.js?v=72"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=71"></script>
+  <script src="assets/auth.js?v=72"></script>
   <script>
     (function () {
       "use strict";
@@ -246,17 +265,14 @@
       // ------------------------------------------------------------------
       page.innerHTML =
         avisoDemo() +
-        '<p class="page-intro">' +
-          "Escolha a EPO e depois o questionário que você vai preencher. A lista mostra apenas os relatórios " +
-          "pedidos por quem criou a EPO no sistema, com os anexos que o responsável já enviou." +
-        "</p>" +
         '<section id="pd-nivel1">' +
           '<div class="pd-busca">' +
             '<i class="ti ti-search" aria-hidden="true"></i>' +
-            '<input class="input" id="pd-q" type="search" placeholder="Buscar EPO por nome ou cidade" autocomplete="off" aria-label="Buscar EPO por nome ou cidade">' +
+            '<input class="input" id="pd-q" type="search" placeholder="Buscar por EPO, cidade ou questionário" autocomplete="off" aria-label="Buscar por EPO, cidade ou questionário">' +
           "</div>" +
           '<p class="pd-resumo" id="pd-resumo"></p>' +
-          '<div id="pd-epos"></div>' +
+          '<div id="pd-lista"></div>' +
+          '<div id="pd-epos" class="is-hidden"></div>' +
         "</section>" +
         '<section id="pd-nivel2" class="is-hidden">' +
           '<button class="btn btn-ghost btn-sm" id="pd-voltar" type="button" style="margin-bottom:14px;">' +
@@ -271,6 +287,7 @@
       var elNivel1 = document.getElementById("pd-nivel1");
       var elNivel2 = document.getElementById("pd-nivel2");
       var elEpos = document.getElementById("pd-epos");
+      var elLista = document.getElementById("pd-lista");
       var elResumo = document.getElementById("pd-resumo");
       var elHead = document.getElementById("pd-head");
       var elRel = document.getElementById("pd-rel");
@@ -363,10 +380,73 @@
         );
       }
 
+      // A tela abre com a LISTA das auditorias que ainda nao foram preenchidas,
+      // e nao com a escolha da EPO. Antes eram dois passos: escolher a unidade
+      // e depois o questionario - quem queria ver o que falta preencher tinha
+      // de abrir uma EPO por vez para descobrir.
+      function pendentesDaLista() {
+        var q = (busca || "").toLowerCase();
+        return linhas.filter(function (l) {
+          if (concluido(l)) return false;
+          if (!q) return true;
+          return ((l.epo_nome || "") + " " + (l.cidade || "") + " " +
+                  (l.processo_nome || "")).toLowerCase().indexOf(q) >= 0;
+        }).sort(function (a, b) {
+          // A visita mais proxima primeiro; sem data marcada, vai para o fim.
+          var da = a.visita_prevista || "9999-12-31";
+          var db2 = b.visita_prevista || "9999-12-31";
+          if (da !== db2) return da < db2 ? -1 : 1;
+          var na = (a.epo_nome || "").localeCompare(b.epo_nome || "", "pt-BR");
+          if (na) return na;
+          return (a.processo_ordem || 0) - (b.processo_ordem || 0);
+        });
+      }
+
+      function linhaPendente(l) {
+        var meta = "";
+        if (l.visita_prevista) {
+          meta += '<span class="m"><i class="ti ti-calendar-event" aria-hidden="true"></i>Visita ' +
+            esc(fmtData(l.visita_prevista)) + "</span>";
+        }
+        if (l.responsavel_email) {
+          meta += '<span class="m"><i class="ti ti-mail" aria-hidden="true"></i>' +
+            esc(l.responsavel_email) + "</span>";
+        }
+        var n = nAnexos(l);
+        meta += '<span class="m"><i class="ti ti-paperclip" aria-hidden="true"></i>' +
+          esc(textoAnexos(n)) + "</span>";
+
+        var situacao = l.status_auditoria === "rascunho"
+          ? '<span class="badge badge-media">Começada</span>'
+          : '<span class="badge badge-alta">A preencher</span>';
+
+        return (
+          '<article class="pd-item">' +
+            '<span class="pd-icon"><i class="ti ' +
+              esc(l.processo_icone || "ti-clipboard-list") + '" aria-hidden="true"></i></span>' +
+            '<div class="pd-item-corpo">' +
+              '<span class="nm">' + esc(l.processo_nome || "Questionário") + "</span>" +
+              '<span class="loc">' + esc(l.epo_nome || "EPO") +
+                (local(l.cidade, l.uf) ? " · " + esc(local(l.cidade, l.uf)) : "") + "</span>" +
+              (meta ? '<div class="pd-meta">' + meta + "</div>" : "") +
+            "</div>" +
+            '<div class="pd-item-fim">' + situacao +
+              '<a class="btn btn-primary btn-sm" href="' + esc(linkPreencher(l)) + '">' +
+                '<i class="ti ti-clipboard-check" aria-hidden="true"></i>Preencher' +
+              "</a>" +
+              '<button class="btn btn-ghost btn-sm" type="button" data-epo="' + esc(l.epo_id) + '"' +
+                ' title="Ver todos os questionários desta EPO">' +
+                '<i class="ti ti-list-search" aria-hidden="true"></i>Ver a EPO' +
+              "</button>" +
+            "</div>" +
+          "</article>"
+        );
+      }
+
       function renderNivel1() {
         if (erro) {
           elResumo.textContent = "";
-          elEpos.innerHTML =
+          elLista.innerHTML =
             '<div class="empty"><i class="ti ti-alert-triangle" aria-hidden="true"></i>' +
               "<div>" + esc(erro) + "</div>" +
             "</div>";
@@ -375,23 +455,19 @@
 
         if (!carregou) {
           elResumo.textContent = "";
-          elEpos.innerHTML =
+          elLista.innerHTML =
             '<div class="empty"><i class="ti ti-loader-2" aria-hidden="true"></i>' +
-              "<div>Carregando relatórios pedidos...</div>" +
+              "<div>Carregando as auditorias pedidas...</div>" +
             "</div>";
           return;
         }
 
-        if (!grupos.length) {
+        if (!linhas.length) {
           elResumo.textContent = "";
-          elEpos.innerHTML =
+          elLista.innerHTML =
             '<div class="empty">' +
               '<i class="ti ti-clipboard-off" aria-hidden="true"></i>' +
-              "<div>Nenhum relatório pedido até agora.</div>" +
-              '<div class="text-muted" style="font-size:12.5px;margin-top:6px;">' +
-                "Os relatórios aparecem aqui quando o gestor cria a EPO e escolhe quais serão pedidos, " +
-                "com o responsável de cada um." +
-              "</div>" +
+              "<div>Nenhuma auditoria pedida até agora.</div>" +
               '<div class="pd-vazio-acao">' +
                 '<button class="btn btn-primary btn-sm" type="button" data-nova="1">' +
                   '<i class="ti ti-clipboard-plus" aria-hidden="true"></i>Nova auditoria' +
@@ -401,28 +477,24 @@
           return;
         }
 
-        var lista = filtrar();
-        var totalRel = 0;
-        var totalPend = 0;
-        lista.forEach(function (g) {
-          totalRel += g.relatorios.length;
-          totalPend += g.pendentes;
-        });
+        var lista = pendentesDaLista();
+        var feitas = linhas.filter(concluido).length;
         elResumo.textContent =
-          lista.length + (lista.length === 1 ? " EPO" : " EPOs") + " · " +
-          totalRel + (totalRel === 1 ? " relatório pedido" : " relatórios pedidos") + " · " +
-          totalPend + (totalPend === 1 ? " a preencher" : " a preencher");
+          lista.length + (lista.length === 1 ? " auditoria a preencher" : " auditorias a preencher") +
+          (feitas ? " · " + feitas + (feitas === 1 ? " já enviada" : " já enviadas") : "");
 
         if (!lista.length) {
-          elEpos.innerHTML =
+          elLista.innerHTML =
             '<div class="empty">' +
-              '<i class="ti ti-search-off" aria-hidden="true"></i>' +
-              "<div>Nenhuma EPO encontrada para \"" + esc(busca) + "\".</div>" +
+              '<i class="ti ' + (busca ? "ti-search-off" : "ti-checks") + '" aria-hidden="true"></i>' +
+              "<div>" + (busca
+                ? 'Nada a preencher para "' + esc(busca) + '".'
+                : "Nada a preencher: todas as auditorias pedidas já foram enviadas.") + "</div>" +
             "</div>";
           return;
         }
 
-        elEpos.innerHTML = '<div class="pd-grid">' + lista.map(cardEpo).join("") + "</div>";
+        elLista.innerHTML = '<div class="pd-lista">' + lista.map(linhaPendente).join("") + "</div>";
       }
 
       // ------------------------------------------------------------------
@@ -585,6 +657,10 @@
       function mostrarNivel2(id) {
         epoAberta = id;
         elNivel1.classList.add("is-hidden");
+        // O nivel 2 continua existindo para ver TODOS os questionarios de uma
+        // unidade, inclusive os ja enviados: e o unico lugar que mostra o que
+        // cada lado anexou. So deixou de ser a porta de entrada.
+
         elNivel2.classList.remove("is-hidden");
         renderNivel2();
         window.scrollTo(0, 0);
@@ -804,7 +880,9 @@
         renderNivel1();
       });
 
-      elEpos.addEventListener("click", function (ev) {
+      // O ouvinte fica no nivel 1 inteiro, e nao no antigo contentor das EPOs:
+      // a lista de auditorias e outro elemento, e o clique nela nao chegava.
+      elNivel1.addEventListener("click", function (ev) {
         if (ev.target.closest("[data-nova]")) { irParaCadastroDaEpo(); return; }
         var btn = ev.target.closest("[data-epo]");
         if (!btn) return;

@@ -32,7 +32,7 @@
       cidade: e.cidade || "",
       uf: e.uf || "",
       cod: e.cod_fornecedor || "",
-      regional: e.regional || e.uf || "",
+      regional: e.uf || "",
       endereco: e.endereco || "",
       cep: e.cep || "",
       lat: e.lat,
@@ -121,7 +121,7 @@
     var regras = (window.APP && window.APP.tierRules) || null;
 
     return db.from("epos")
-      .select("id, nome, cidade, uf, regional, endereco, cep, lat, lng, ativo, cod_fornecedor")
+      .select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo, cod_fornecedor")
       .order("nome")
       .then(function (r) {
         // Erro de leitura virando lista vazia esconderia o problema. Sobe, e

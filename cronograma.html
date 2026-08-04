@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/app.css?v=71">
+  <link rel="stylesheet" href="assets/app.css?v=72">
 </head>
 <body>
   <div class="app-shell">
@@ -20,14 +20,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=71"></script>
-  <script src="assets/app.js?v=71"></script>
-  <script src="assets/supabase-config.js?v=71"></script>
+  <script src="assets/data.js?v=72"></script>
+  <script src="assets/app.js?v=72"></script>
+  <script src="assets/supabase-config.js?v=72"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=71"></script>
-  <script src="assets/geo-br.js?v=71"></script>
-  <script src="assets/cronograma-planilha.js?v=71"></script>
-  <script src="assets/form-epo.js?v=71"></script>
+  <script src="assets/auth.js?v=72"></script>
+  <script src="assets/geo-br.js?v=72"></script>
+  <script src="assets/cronograma-planilha.js?v=72"></script>
+  <script src="assets/form-epo.js?v=72"></script>
   <script>
     (function () {
       "use strict";
@@ -124,7 +124,7 @@
       var podeAprovar = false;        // gerente da Claro
       var podeRegistrar = false;      // quem marca o que aconteceu
       var escala = "semana";
-      var filtro = { busca: "", regional: "", situacao: "" };
+      var filtro = { busca: "", uf: "", situacao: "" };
       var grupoFechado = {};
       // { id, modo: "sugerir" | "registrar", onde: "caixa" | "tabela" }
       // O "onde" evita que o mesmo formulario apareca duas vezes, na caixa
@@ -190,7 +190,7 @@
                 ' placeholder="Filtrar por unidade, codigo ou cidade"' +
                 ' aria-label="Filtrar por unidade, codigo ou cidade">' +
             "</div>" +
-            '<select class="select" id="f-regional" aria-label="Regional" style="max-width:200px;"></select>' +
+            '<select class="select" id="f-uf" aria-label="Estado" style="max-width:200px;"></select>' +
             '<select class="select" id="f-situacao" aria-label="Situacao" style="max-width:240px;">' +
               '<option value="">Todas as situacoes</option>' +
               '<option value="sem_data">Sem data definida</option>' +
@@ -271,7 +271,6 @@
           base: epo.base || linha.base || "",
           cidade: epo.cidade || linha.cidade || "",
           uf: epo.uf || linha.uf || "",
-          regional: epo.regional || linha.regional || epo.uf || linha.uf || "",
           semana: linha.semana_referencia || linha.semana || "",
           observacao: linha.observacao || "",
           motivo: linha.motivo || "",
@@ -342,7 +341,7 @@
                   "semana_referencia, data_proposta_inicio, data_proposta_fim, " +
                   "data_realizada_inicio, data_realizada_fim, auditoria_id, motivo, " +
                   "observacao, confirmada_em, " +
-                  "epos!inner(id, nome, cidade, uf, regional, cod_fornecedor, base, ativo)")
+                  "epos!inner(id, nome, cidade, uf, cod_fornecedor, base, ativo)")
           .eq("ciclo", CICLO)
           .then(function (r) {
             if (!r || r.error) {
@@ -357,7 +356,7 @@
 
       function ordenar() {
         itens.sort(function (a, b) {
-          if (a.regional !== b.regional) return a.regional < b.regional ? -1 : 1;
+          if (a.uf !== b.uf) return a.uf < b.uf ? -1 : 1;
           if (a.prevIni != null && b.prevIni != null && a.prevIni !== b.prevIni) {
             return a.prevIni - b.prevIni;
           }
@@ -386,7 +385,7 @@
       function visiveis() {
         var busca = filtro.busca.toLowerCase();
         return itens.filter(function (it) {
-          if (filtro.regional && it.regional !== filtro.regional) return false;
+          if (filtro.uf && it.uf !== filtro.uf) return false;
           if (filtro.situacao && it.situacao !== filtro.situacao) return false;
           if (!busca) return true;
           return (it.nome + " " + it.cod + " " + it.cidade + " " + it.uf)
@@ -621,11 +620,11 @@
       }
 
       function renderFiltrosSelect() {
-        var sel = $("f-regional");
+        var sel = $("f-uf");
         if (sel.getAttribute("data-pronto") === "1") return;
         var conta = {};
         itens.forEach(function (it) {
-          var r = it.regional || "Sem regional";
+          var r = it.uf || "Sem estado";
           conta[r] = (conta[r] || 0) + 1;
         });
         var chaves = Object.keys(conta).sort();
@@ -639,7 +638,7 @@
       function agruparPorRegional(lista) {
         var ordem = [], mapa = {};
         lista.forEach(function (it) {
-          var r = it.regional || "Sem regional";
+          var r = it.uf || "Sem estado";
           if (!mapa[r]) { mapa[r] = { reg: r, itens: [], realizadas: 0 }; ordem.push(r); }
           mapa[r].itens.push(it);
           if (it.situacao === "realizada") mapa[r].realizadas += 1;
@@ -931,9 +930,7 @@
             (it.cod ? "<span>Cod. " + esc(it.cod) +
               (it.base ? " / " + esc(it.base) : "") + "</span>" : "") + "</div></td>" +
           "<td>" + esc(it.cidade) + (it.uf ? " / " + esc(it.uf) : "") +
-            (it.regional && it.regional !== it.uf
-              ? '<br><span class="muted" style="font-size:11.5px;">regional ' +
-                esc(it.regional) + "</span>" : "") + "</td>" +
+"</td>" +
           "<td>" + celulaPrevista(it) + "</td>" +
           "<td>" + celulaAprovacao(it) + "</td>" +
           "<td>" + celulaRealizado(it) + "</td>" +
@@ -1202,7 +1199,7 @@
         Object.keys(linha).forEach(function (k) { copia[k] = linha[k]; });
         copia.epos = {
           id: antigo.epoId, nome: antigo.nome, cidade: antigo.cidade, uf: antigo.uf,
-          regional: antigo.regional, cod_fornecedor: antigo.cod, base: antigo.base
+          cod_fornecedor: antigo.cod, base: antigo.base
         };
         return copia;
       }
@@ -1397,8 +1394,7 @@
               '<p class="muted" style="margin:10px 0 0;font-size:12.5px;">' +
                 (it.cod ? "Cod. " + esc(it.cod) + ", " : "") + esc(it.cidade) +
                 (it.uf ? "/" + esc(it.uf) : "") +
-                (it.regional && it.regional !== it.uf
-                  ? ", regional " + esc(it.regional) : "") + "</p>" +
+"</p>" +
               '<p class="muted" style="margin-top:14px;font-size:12px;">' +
                 "A Claro ve esta mesma tela e responde por aqui.</p>" +
             "</div>" +
@@ -1736,7 +1732,6 @@
           if (l.nome && l.nome !== atual.nome) difs.push("nome");
           if (l.cidade && l.cidade !== atual.cidade) difs.push("cidade");
           if (l.uf && l.uf !== atual.uf) difs.push("UF");
-          if (l.regional && l.regional !== atual.regional) difs.push("regional");
           if (l.endereco) difs.push("endereco");
           if (l.cep) difs.push("CEP");
 
@@ -1986,8 +1981,8 @@
           renderTabela();
         }, 180);
       });
-      $("f-regional").addEventListener("change", function () {
-        filtro.regional = this.value; renderTabela();
+      $("f-uf").addEventListener("change", function () {
+        filtro.uf = this.value; renderTabela();
       });
       $("f-situacao").addEventListener("change", function () {
         filtro.situacao = this.value; renderTabela();
