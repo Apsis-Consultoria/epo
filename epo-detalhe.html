@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="assets/app.css?v=109">
+  <link rel="stylesheet" href="assets/app.css?v=110">
   <style>
     /* Ajustes locais desta tela (pequenos; reutiliza o design system) */
     .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-weight: 500; margin-bottom: 16px; transition: color .15s ease; }
@@ -77,11 +77,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=109"></script>
-  <script src="assets/app.js?v=109"></script>
-  <script src="assets/supabase-config.js?v=109"></script>
+  <script src="assets/data.js?v=110"></script>
+  <script src="assets/app.js?v=110"></script>
+  <script src="assets/supabase-config.js?v=110"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=109"></script>
+  <script src="assets/auth.js?v=110"></script>
   <script>
     (function () {
       "use strict";
@@ -123,11 +123,19 @@
         return;
       }
 
-      var tier = epo.tier || App.tierOf(epo.score);
+      // Sem nota nao ha selo. Antes o tierOf(null) devolvia "critico", e a
+      // unidade que nunca foi visitada abria com selo vermelho de reprovada.
+      var semNota = epo.score === null || epo.score === undefined || isNaN(epo.score);
+      var tier = epo.tier || (semNota ? "nenhum" : App.tierOf(epo.score));
       var meta = App.tierMeta(tier);
 
-      // Posição no ranking (por score desc)
-      var ordenadas = (APP.epos || []).slice().sort(function (a, b) { return b.score - a.score; });
+      // Posição no ranking (por score desc). Quem nao tem nota vai para o fim:
+      // subtracao com nulo nao ordena.
+      var ordenadas = (APP.epos || []).slice().sort(function (a, b) {
+        var na = a.score == null ? -1 : Number(a.score);
+        var nb = b.score == null ? -1 : Number(b.score);
+        return nb - na;
+      });
       var posicao = ordenadas.findIndex(function (e) { return e.id === epo.id; }) + 1;
       var total = ordenadas.length;
 
@@ -174,10 +182,11 @@
             '<div class="epo-head-score stack stack-sm">' +
               '<span class="kpi-label">Pontuação</span>' +
               '<div class="row" style="gap:8px; align-items:baseline;">' +
-                '<span class="epo-score-num">' + epo.score + "</span>" +
+                '<span class="epo-score-num">' + App.fmtScore(epo.score) + "</span>" +
                 '<span class="text-muted">/ 100</span>' +
               "</div>" +
-              '<div class="score-bar"><div class="score-fill tier-' + tier + '" style="width:' + epo.score + '%;"></div></div>' +
+              '<div class="score-bar"><div class="score-fill tier-' + tier +
+                '" style="width:' + App.larguraScore(epo.score) + '%;"></div></div>' +
             "</div>" +
           "</div>" +
         "</div>";

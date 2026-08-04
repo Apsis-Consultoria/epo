@@ -80,11 +80,30 @@
     ouro:    { label: "Ouro",    cls: "badge-ouro",    color: "var(--ouro)" },
     prata:   { label: "Prata",   cls: "badge-prata",   color: "var(--prata)" },
     bronze:  { label: "Bronze",  cls: "badge-bronze",  color: "var(--bronze)" },
-    critico: { label: "Crítico", cls: "badge-critico", color: "var(--critico)" }
+    critico: { label: "Crítico", cls: "badge-critico", color: "var(--critico)" },
+    // Unidade recem cadastrada nao tem selo. Isto NAO e um selo ruim: e a
+    // ausencia de nota.
+    nenhum:  { label: "Sem vistoria", cls: "badge-neutro", color: "var(--text-muted)" }
   };
 
+  // Sem tier, o selo caia em "Critico": a unidade que nunca foi visitada
+  // aparecia reprovada em vermelho na visao geral, no ranking e no detalhe.
+  // Falta de nota agora se le como falta de nota.
   function tierMeta(tier) {
-    return TIER_META[tier] || TIER_META.critico;
+    return TIER_META[tier] || TIER_META.nenhum;
+  }
+
+  // Nota na tela. Sem nota sai o traco, nunca a palavra "null".
+  function fmtScore(n) {
+    if (n === null || n === undefined || isNaN(n)) return "-";
+    return String(Math.round(Number(n)));
+  }
+
+  // Largura da barra de nota: sem nota, barra vazia em vez de "width:null%".
+  function larguraScore(n) {
+    if (n === null || n === undefined || isNaN(n)) return 0;
+    var v = Number(n);
+    return v < 0 ? 0 : (v > 100 ? 100 : v);
   }
 
   // -----------------------------------------------------------------------
@@ -343,6 +362,8 @@
     tierMeta: tierMeta,
     fmtDias: fmtDias,
     fmtPct: fmtPct,
+    fmtScore: fmtScore,
+    larguraScore: larguraScore,
     fmtNum: fmtNum,
     epoById: epoById,
     processoById: processoById,

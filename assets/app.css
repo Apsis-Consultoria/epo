@@ -443,6 +443,8 @@ img { max-width: 100%; display: block; }
 .badge-prata   { background: var(--prata-bg);   color: var(--prata-text); }
 .badge-bronze  { background: var(--bronze-bg);  color: var(--bronze-text); }
 .badge-critico { background: var(--critico-bg); color: var(--critico-text); }
+/* Ausencia de nota: cinza neutro, para nao ser lido como selo ruim. */
+.badge-neutro  { background: var(--surface-2);   color: var(--text-2); }
 
 .badge-alta  { background: var(--danger-bg);  color: var(--danger); }
 .badge-media { background: var(--warning-bg); color: var(--warning); }
@@ -473,6 +475,9 @@ img { max-width: 100%; display: block; }
 .score-fill.tier-prata   { background: var(--prata); }
 .score-fill.tier-bronze  { background: var(--bronze); }
 .score-fill.tier-critico { background: var(--critico); }
+/* Sem nota a barra fica vazia, e a cor nem aparece. Fica declarada para o
+   caso de a largura vir de outro lugar: cinza, nunca vermelho. */
+.score-fill.tier-nenhum  { background: var(--border-strong); }
 
 .score-row { display: flex; align-items: center; gap: 10px; }
 .score-row .score-bar { flex: 1; }

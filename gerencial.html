@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=109">
+  <link rel="stylesheet" href="assets/app.css?v=110">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -70,14 +70,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=109"></script>
-  <script src="assets/app.js?v=109"></script>
-  <script src="assets/geo-br.js?v=109"></script>
-  <script src="assets/mapa-epos.js?v=109"></script>
-  <script src="assets/supabase-config.js?v=109"></script>
+  <script src="assets/data.js?v=110"></script>
+  <script src="assets/app.js?v=110"></script>
+  <script src="assets/geo-br.js?v=110"></script>
+  <script src="assets/mapa-epos.js?v=110"></script>
+  <script src="assets/supabase-config.js?v=110"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=109"></script>
-  <script src="assets/dados-reais.js?v=109"></script>
+  <script src="assets/auth.js?v=110"></script>
+  <script src="assets/dados-reais.js?v=110"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -136,18 +136,31 @@
       itensGlobais.sort(function (a, b) { return a.media - b.media; });
       var piores = itensGlobais.slice(0, 8);
 
-      var procMedias = processos.map(function (p) {
-        var m = mapaProc[p.id] || { soma: 0, n: 1 };
-        return { id: p.id, nome: p.nome, media: Math.round(m.soma / Math.max(m.n, 1)) };
+      // Só entra o questionário que tem item medido. Dividir por Math.max(n, 1)
+      // fazia o questionário sem vistoria nenhuma sair com 0%, e 0% aqui se lê
+      // como "reprovou em tudo" quando o certo é "ainda não foi medido".
+      var procMedias = processos.filter(function (p) {
+        return mapaProc[p.id] && mapaProc[p.id].n > 0;
+      }).map(function (p) {
+        var m = mapaProc[p.id];
+        return { id: p.id, nome: p.nome, media: Math.round(m.soma / m.n) };
       });
       procMedias.sort(function (a, b) { return a.media - b.media; });
 
-      // Score médio da carteira + demais campos do resumo
-      var scoreMedio = epos.reduce(function (acc, e) { return acc + e.score; }, 0) / (epos.length || 1);
+      // Score médio da carteira + demais campos do resumo. A média é só entre
+      // quem tem nota: unidade recém cadastrada tem score nulo, e nulo somado
+      // virava zero, derrubando a média da carteira inteira.
+      var comNota = epos.filter(function (e) {
+        return e.score !== null && e.score !== undefined && isFinite(e.score);
+      });
+      var scoreMedio = comNota.length
+        ? comNota.reduce(function (acc, e) { return acc + Number(e.score); }, 0) / comNota.length
+        : null;
+      var auditadas = epos.filter(function (e) { return e.vistorias && e.vistorias.length; });
       var criticas = epos.filter(function (e) { return e.tier === "critico"; });
-      var ultimaLabel = (epos[0] && epos[0].vistorias && epos[0].vistorias.length)
-        ? epos[0].vistorias[epos[0].vistorias.length - 1].label
-        : "jul/2026";
+      var ultimaLabel = (auditadas[0] && auditadas[0].vistorias.length)
+        ? auditadas[0].vistorias[auditadas[0].vistorias.length - 1].label
+        : "";
 
       var pctFontesMedio = (kpis.reversaQualidadeMedia || {}).pctFontes || 0;
       var metaFontes = 75;
@@ -200,8 +213,9 @@
             '<td data-rotulo="Selo"><span class="badge ' + meta.cls + '"><i class="ti ti-circle-filled" aria-hidden="true"></i>' + esc(meta.label) + "</span></td>" +
             '<td data-rotulo="Pontuação" style="min-width:150px;">' +
               '<div class="score-row">' +
-                '<span class="score-bar"><span class="score-fill tier-' + e.tier + '" style="width:' + e.score + '%;"></span></span>' +
-                '<span class="score-num">' + e.score + "</span>" +
+                '<span class="score-bar"><span class="score-fill tier-' + (e.tier || "nenhum") +
+                  '" style="width:' + App.larguraScore(e.score) + '%;"></span></span>' +
+                '<span class="score-num">' + App.fmtScore(e.score) + "</span>" +
               "</div>" +
             "</td>" +
             '<td class="num" data-rotulo="Tempo de ciclo">' + App.fmtDias(e.tempoCiclo) + "</td>" +
@@ -262,17 +276,18 @@
           '<div class="card-header">' +
             '<div class="section-title">' +
               '<span class="title">Maiores ofensores por processo</span>' +
-              '<span class="subtitle">Média de conformidade dos itens na última vistoria das ' + epos.length + " EPOs</span>" +
+              '<span class="subtitle">Média de conformidade dos itens na última vistoria de ' +
+                auditadas.length + (auditadas.length === 1 ? " EPO" : " EPOs") + "</span>" +
             "</div>" +
           "</div>" +
           '<div class="grid-2">' +
             "<div>" +
               '<p class="muted" style="font-size:12px;font-weight:500;margin-bottom:6px;">Conformidade média por processo (pior primeiro)</p>' +
-              htmlProcs +
+              (htmlProcs || '<p class="muted" style="font-size:13px;">Nenhuma vistoria enviada ainda.</p>') +
             "</div>" +
             "<div>" +
               '<p class="muted" style="font-size:12px;font-weight:500;margin-bottom:6px;">Os 8 itens que mais ofendem (todas as EPOs)</p>' +
-              htmlPiores +
+              (htmlPiores || '<p class="muted" style="font-size:13px;">Nenhuma vistoria enviada ainda.</p>') +
             "</div>" +
           "</div>" +
         "</div>";
@@ -283,7 +298,8 @@
           '<div class="card-header">' +
             '<div class="section-title">' +
               '<span class="title">Evolução da carteira</span>' +
-              '<span class="subtitle">Score médio mensal das ' + epos.length + " EPOs auditadas</span>" +
+              '<span class="subtitle">Score médio mensal de ' +
+                auditadas.length + (auditadas.length === 1 ? " EPO auditada" : " EPOs auditadas") + "</span>" +
             "</div>" +
           "</div>" +
           '<div class="chart-box"><canvas id="chartEvolucao" aria-label="Gráfico de evolução do score médio da carteira" role="img"></canvas></div>' +
@@ -294,8 +310,8 @@
       var htmlPrintHeader =
         '<div class="print-header">' +
           "<h1>APSIS - Auditoria de EPOs | Painel gerencial</h1>" +
-          "<p>Período: " + esc(ultimaLabel) +
-          " &middot; Emitido em " + esc(hoje) + "</p>" +
+          "<p>" + (ultimaLabel ? "Período: " + esc(ultimaLabel) + " &middot; " : "") +
+          "Emitido em " + esc(hoje) + "</p>" +
         "</div>";
 
       // Modal Pipefy -----------------------------------------------------------
@@ -309,9 +325,10 @@
             '<div class="modal-body">' +
               '<p class="muted" style="margin-bottom:10px;">Campos que serão enviados na atividade:</p>' +
               '<div class="pipefy-fields">' +
-                '<div class="pipefy-field"><span class="pf-label">Período</span><span class="pf-value">' + esc(ultimaLabel) + "</span></div>" +
+                '<div class="pipefy-field"><span class="pf-label">Período</span><span class="pf-value">' + esc(ultimaLabel || "-") + "</span></div>" +
                 '<div class="pipefy-field"><span class="pf-label">Nº de auditorias</span><span class="pf-value">' + App.fmtNum(kpis.eposAuditadas) + "</span></div>" +
-                '<div class="pipefy-field"><span class="pf-label">Score médio</span><span class="pf-value">' + fmt1(scoreMedio) + "</span></div>" +
+                '<div class="pipefy-field"><span class="pf-label">Score médio</span><span class="pf-value">' +
+                  (scoreMedio === null ? "-" : fmt1(scoreMedio)) + "</span></div>" +
                 '<div class="pipefy-field"><span class="pf-label">EPOs críticas</span><span class="pf-value">' +
                   (criticas.length ? esc(criticas.map(function (e) { return e.nome; }).join(", ")) : "Nenhuma") +
                 "</span></div>" +

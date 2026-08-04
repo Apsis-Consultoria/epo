@@ -77,6 +77,7 @@
     "serra|es": [-20.1288, -40.3078],
     "vila velha|es": [-20.3297, -40.2925],
     "cariacica|es": [-20.2632, -40.4164],
+    "colatina|es": [-19.5397, -40.6303],
     "belo horizonte|mg": [-19.9167, -43.9345],
     "contagem|mg": [-19.9317, -44.0536],
     "betim|mg": [-19.9678, -44.1983],
@@ -84,6 +85,7 @@
     "uberaba|mg": [-19.7472, -47.9381],
     "juiz de fora|mg": [-21.7642, -43.3496],
     "montes claros|mg": [-16.7282, -43.8578],
+    "governador valadares|mg": [-18.8511, -41.9494],
     "rio de janeiro|rj": [-22.9068, -43.1729],
     "niteroi|rj": [-22.8832, -43.1034],
     "duque de caxias|rj": [-22.7856, -43.3117],
@@ -103,6 +105,10 @@
     "piracicaba|sp": [-22.7253, -47.6492],
     "bauru|sp": [-22.3145, -49.0606],
     "sao jose do rio preto|sp": [-20.8113, -49.3758],
+    "mogi das cruzes|sp": [-23.5228, -46.1883],
+    "suzano|sp": [-23.5425, -46.3108],
+    "sao carlos|sp": [-22.0175, -47.8908],
+    "santa barbara d'oeste|sp": [-22.7539, -47.4139],
     // Sul
     "curitiba|pr": [-25.4284, -49.2733],
     "londrina|pr": [-23.3045, -51.1696],
@@ -119,7 +125,9 @@
     "caxias do sul|rs": [-29.1678, -51.1794],
     "canoas|rs": [-29.9177, -51.1836],
     "pelotas|rs": [-31.7654, -52.3376],
-    "santa maria|rs": [-29.6842, -53.8069]
+    "santa maria|rs": [-29.6842, -53.8069],
+    "novo hamburgo|rs": [-29.6783, -51.1306],
+    "santa cruz do sul|rs": [-29.7175, -52.4258]
   };
 
   // Regiões do IBGE. O código (codarea) é o mesmo do desenho em
