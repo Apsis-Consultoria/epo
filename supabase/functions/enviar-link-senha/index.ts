@@ -26,6 +26,31 @@ const APP_URL = (Deno.env.get("APP_URL") || "https://apsis-consultoria.github.io
 
 const ESPERA_SEGUNDOS = 60;
 
+// Segredo do Turnstile. Vazio = captcha desligado nesta funcao, e o pedido
+// segue valendo apenas pelo freio de um por minuto.
+const CAPTCHA_SEGREDO = (Deno.env.get("TURNSTILE_SECRET") || "").trim();
+
+// O captcha do servico de autenticacao NAO alcanca esta funcao: o pedido de
+// link nao passa por la. Sem conferir aqui, o captcha da tela seria enfeite
+// neste caminho - bastaria chamar o endereco direto, sem token.
+async function captchaValido(token: string, ip: string) {
+  if (!CAPTCHA_SEGREDO) return true;          // desligado
+  if (!token) return false;
+  try {
+    const form = new FormData();
+    form.append("secret", CAPTCHA_SEGREDO);
+    form.append("response", token);
+    if (ip) form.append("remoteip", ip);
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify",
+                          { method: "POST", body: form });
+    const j = await r.json();
+    return !!(j && j.success);
+  } catch (_e) {
+    // Sem resposta do verificador nao se libera: negar e o lado seguro.
+    return false;
+  }
+}
+
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -95,6 +120,11 @@ Deno.serve(async (req: Request) => {
   try { corpo = await req.json(); } catch (_e) { corpo = {}; }
   const email = String(corpo.email || "").trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(email)) return json({ enviado: false, espere: 0 }, 400);
+
+  const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim();
+  if (!await captchaValido(String(corpo.captcha || ""), ip)) {
+    return json({ enviado: false, espere: 0, captcha: false }, 400);
+  }
 
   const admin = createClient(PROJETO_URL, SERVICE, { auth: { persistSession: false } });
 

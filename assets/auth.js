@@ -342,9 +342,13 @@
 
   // Cliente Claro e responsável da EPO: e-mail e senha. A primeira senha é
   // definida pelo próprio dono do e-mail, pelo link que ele recebe.
-  function entrarComSenha(email, senha) {
+  // captchaToken so vai quando a tela tiver um: com o captcha desligado ele e
+  // vazio e a chamada fica identica a de antes.
+  function entrarComSenha(email, senha, captchaToken) {
     if (!client) return Promise.reject(new Error("Login indisponível no momento."));
-    return client.auth.signInWithPassword({ email: email, password: senha });
+    var opcoes = { email: email, password: senha };
+    if (captchaToken) opcoes.options = { captchaToken: captchaToken };
+    return client.auth.signInWithPassword(opcoes);
   }
 
   // Manda o link para definir ou redefinir a senha. Serve para o "esqueci minha
@@ -356,7 +360,7 @@
   // trocar por sessao. Devolve { enviado, espere }: quando o pedido e recusado
   // pelo freio de um por minuto, a tela diz quanto falta em vez de afirmar que
   // enviou.
-  function pedirLinkDeSenha(email) {
+  function pedirLinkDeSenha(email, captchaToken) {
     if (!client || !client.functions || !client.functions.invoke) {
       return Promise.reject(new Error("Login indisponível no momento."));
     }
@@ -364,7 +368,12 @@
       d = d || {};
       return { enviado: !!d.enviado, espere: Number(d.espere || 0) };
     }
-    return client.functions.invoke("enviar-link-senha", { body: { email: email } })
+    // O captcha do Supabase nao alcanca este caminho: o pedido de link nao passa
+    // pelo servico de autenticacao, e sim pela nossa funcao. O token vai no
+    // corpo e e conferido la.
+    var corpo = { email: email };
+    if (captchaToken) corpo.captcha = captchaToken;
+    return client.functions.invoke("enviar-link-senha", { body: corpo })
       .then(function (r) {
         if (!r.error) return daResposta(r.data);
         // O corpo da recusa traz o que aconteceu; a mensagem do erro, nao.

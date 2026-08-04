@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/portal.css?v=79" />
+  <link rel="stylesheet" href="assets/portal.css?v=80" />
   <style>
     /* Ajustes de proporção do painel de login (sobrepõem o portal.css) */
     .login-col { padding-top: 3vh; }
@@ -104,6 +104,7 @@
               <button id="btn-esqueci" class="w-full mt-4 font-semibold py-3 px-6 rounded-xl text-white transition-colors disabled:opacity-60" style="background: rgb(244, 129, 38);">
                 Enviar o link para definir a senha
               </button>
+              <div id="captcha-caixa" class="hidden mt-3 flex justify-center"></div>
               <button id="btn-fechar-painel" class="w-full mt-2 text-xs text-gray-400 underline">Voltar</button>
             </div>
             <div id="etapa-enviado" class="hidden text-left">
@@ -143,13 +144,68 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=79"></script>
+  <script src="assets/supabase-config.js?v=80"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=79"></script>
+  <script src="assets/auth.js?v=80"></script>
   <script>
     (function () {
       "use strict";
       var $ = function (id) { return document.getElementById(id); };
+
+      // ---------------------------------------------------------------- captcha
+      // Protege os dois caminhos de fora da APSIS: entrar com e-mail e senha, e
+      // pedir o link de senha. A conta Microsoft nao passa por aqui.
+      //
+      // Sem chave do site configurada, nada disso roda e a tela segue igual a
+      // antes: e assim que o captcha fica desligado sem quebrar a entrada.
+      var CAPTCHA_KEY = (window.CAPTCHA_SITE_KEY || "").trim();
+      var captchaId = null;
+      var captchaToken = "";
+
+      function captchaLigado() { return !!CAPTCHA_KEY; }
+
+      function carregarCaptcha() {
+        if (!captchaLigado() || window.turnstile || document.getElementById("turnstile-js")) return;
+        var tag = document.createElement("script");
+        tag.id = "turnstile-js";
+        tag.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+        tag.async = true;
+        tag.defer = true;
+        tag.onload = montarCaptcha;
+        document.head.appendChild(tag);
+      }
+
+      function montarCaptcha() {
+        if (!captchaLigado() || !window.turnstile || captchaId !== null) return;
+        var caixa = $("captcha-caixa");
+        if (!caixa) return;
+        caixa.classList.remove("hidden");
+        captchaId = window.turnstile.render(caixa, {
+          sitekey: CAPTCHA_KEY,
+          callback: function (t) { captchaToken = t || ""; },
+          "expired-callback": function () { captchaToken = ""; },
+          "error-callback": function () { captchaToken = ""; }
+        });
+      }
+
+      // Token do Turnstile serve UMA vez: depois de cada tentativa o desafio e
+      // refeito, senao a segunda tentativa vai com um token ja gasto e o
+      // servidor recusa sem dizer por que.
+      function renovarCaptcha() {
+        captchaToken = "";
+        if (captchaLigado() && window.turnstile && captchaId !== null) {
+          try { window.turnstile.reset(captchaId); } catch (e) { /* segue sem token */ }
+        }
+      }
+
+      // Com o captcha ligado, agir sem token seria recusa do servidor com
+      // mensagem crua. Melhor dizer o que falta.
+      function faltaCaptcha() {
+        if (!captchaLigado()) return false;
+        if (captchaToken) return false;
+        msg("Conclua a verificação de segurança abaixo e tente de novo.", true);
+        return true;
+      }
 
       function msg(texto, erro) {
         var el = $("cli-msg");
@@ -188,6 +244,8 @@
       // precisava redefinir nao achava.
       function abrirPainel(modo) {
         var pedindoLink = modo === "link";
+        carregarCaptcha();
+        montarCaptcha();
         $("painel-cliente").classList.remove("hidden");
         $("etapa-enviado").classList.add("hidden");
         $("etapa-senha").classList.remove("hidden");
@@ -225,14 +283,16 @@
         var senha = $("cli-senha").value || "";
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg("Informe um e-mail válido.", true); return; }
         if (!senha) { msg("Digite a sua senha.", true); return; }
+        if (faltaCaptcha()) return;
 
         var btn = $("btn-entrar-senha");
         btn.disabled = true;
         btn.textContent = "Entrando...";
-        Auth.entrarComSenha(email, senha).then(function (r) {
+        Auth.entrarComSenha(email, senha, captchaToken).then(function (r) {
           if (r && r.error) {
             btn.disabled = false;
             btn.textContent = "Entrar";
+            renovarCaptcha();
             // A mensagem é a mesma para e-mail errado e senha errada, de propósito.
             msg("E-mail ou senha não conferem. Se é o seu primeiro acesso, " +
                 "use “Esqueci a minha senha” para receber um link.", true);
@@ -242,6 +302,7 @@
         }, function (e) {
           btn.disabled = false;
           btn.textContent = "Entrar";
+          renovarCaptcha();
           console.error("entrarComSenha", e);
           msg("Não foi possível entrar agora. Tente novamente em alguns instantes.", true);
         });
@@ -261,6 +322,7 @@
       $("btn-esqueci").addEventListener("click", function () {
         var email = ($("cli-email").value || "").trim().toLowerCase();
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg("Informe o seu e-mail primeiro.", true); return; }
+        if (faltaCaptcha()) return;
         var btn = this;
         var rotulo = btn.textContent;
         btn.disabled = true;
@@ -268,8 +330,9 @@
 
         function liberar() { btn.disabled = false; btn.textContent = rotulo; }
 
-        Auth.pedirLinkDeSenha(email).then(function (r) {
+        Auth.pedirLinkDeSenha(email, captchaToken).then(function (r) {
           liberar();
+          renovarCaptcha();
           // O servico deixa pedir um link por minuto para o mesmo endereco.
           // Quando recusa, dizer "enviamos" faz a pessoa esperar um e-mail que
           // nao vem: foi o que aconteceu.
@@ -289,6 +352,7 @@
           $("cli-msg").classList.add("hidden");
         }, function (e) {
           liberar();
+          renovarCaptcha();
           console.error("pedirLinkDeSenha", e);
           msg("Não foi possível enviar o link agora. Tente de novo em alguns instantes.", true);
         });
