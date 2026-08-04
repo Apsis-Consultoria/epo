@@ -911,9 +911,12 @@ img { max-width: 100%; display: block; }
    formulário passou a ser um só para EPOs e Cronograma: estilo em uma tela
    deixava o mesmo formulário desmontado na outra. */
 .modal.modal-largo { max-width: 940px; }
-.modal.modal-xl { max-width: 1180px; }
+.modal.modal-xl { max-width: 1320px; }
 .modal-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-.modal-cols.tres { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+/* A terceira coluna e mais larga que as outras duas: e nela que ficam os
+   responsaveis, e e-mail e o campo mais comprido do formulario. Com as tres
+   iguais, o campo do e-mail sobrava em 130px e mostrava metade do endereco. */
+.modal-cols.tres { grid-template-columns: 1fr 1fr 1.45fr; gap: 20px; }
 .modal-col + .modal-col { border-left: 1px solid var(--border); padding-left: 22px; }
 .col-titulo {
   display: flex; align-items: center; gap: 7px;
@@ -1216,24 +1219,24 @@ input[type="submit"],
 .evid-box.origem-apsis .evid-box-titulo { color: var(--success); }
 .evid-box.origem-epo   { border-left-color: var(--border-strong); background: var(--surface-2); }
 
-/* Responsaveis da unidade: uma linha por pessoa (nome, e-mail, tirar). */
+/* Responsaveis da unidade: uma pessoa por bloco. Nome e o botao de tirar na
+   primeira linha, e-mail na segunda com a largura inteira da coluna.
+   Os tres lado a lado sobravam 130px para o e-mail, e o endereco aparecia pela
+   metade: e o campo mais comprido do formulario e o que menos pode ser adivinhado
+   por quem confere. As posicoes vao escritas uma a uma - deixando o navegador
+   escolher, o botao caia numa terceira linha com zero de largura. */
 .resp-linha {
-  display: grid; grid-template-columns: 1fr 1.3fr auto;
-  gap: 8px; align-items: center; margin-bottom: 8px;
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 8px; align-items: center;
+  padding-bottom: 10px; margin-bottom: 10px;
+  border-bottom: 1px dashed var(--border);
 }
+.resp-linha:last-of-type { border-bottom: 0; padding-bottom: 0; }
 .resp-linha .input { margin: 0; }
-.resp-linha .resp-tirar { color: var(--text-muted); }
+.resp-linha .resp-nome  { grid-column: 1; grid-row: 1; }
+.resp-linha .resp-tirar { grid-column: 2; grid-row: 1; color: var(--text-muted); }
+.resp-linha .resp-email { grid-column: 1 / -1; grid-row: 2; }
 .resp-linha .resp-tirar:hover { color: var(--danger); border-color: var(--danger); }
-@media (max-width: 720px) {
-  /* No celular: nome e o botao de tirar na primeira linha, e-mail na segunda,
-     com a largura inteira. Lado a lado os tres dariam 100px cada. As posicoes
-     vao escritas uma a uma - deixando o navegador escolher, o botao caia numa
-     terceira linha e a coluna dele ficava com zero de largura. */
-  .resp-linha { grid-template-columns: 1fr auto; }
-  .resp-linha .resp-nome  { grid-column: 1; grid-row: 1; }
-  .resp-linha .resp-tirar { grid-column: 2; grid-row: 1; }
-  .resp-linha .resp-email { grid-column: 1 / -1; grid-row: 2; }
-}
 
 /* Selo de origem, para usar solto ao lado de um arquivo */
 .origem-selo {
