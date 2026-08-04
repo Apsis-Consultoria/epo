@@ -145,7 +145,8 @@
           '<div id="f-resps"></div>' +
           '<button class="btn btn-ghost btn-sm" type="button" id="f-resp-add">' +
             '<i class="ti ti-plus" aria-hidden="true"></i>Adicionar responsável</button>' +
-          '<span class="hint">Cada um recebe um e-mail para definir a própria senha e passa a entrar com esse e-mail.</span>' +
+          '<span class="hint">Cada um recebe um aviso de acesso e entra com esse e-mail: ' +
+            'na tela de entrada pede um código, que chega no próprio e-mail.</span>' +
         "</div>" +
         '<div class="field">' +
           '<div class="procs-head">' +
