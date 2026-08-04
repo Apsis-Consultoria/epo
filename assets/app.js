@@ -36,7 +36,6 @@
     // proprios subtopicos nao leva a pessoa a lugar nenhum.
     { key: "config",      label: "Configurações",    icon: "ti-settings",
       children: [
-        { key: "criterios",  label: "Critérios da nota",        href: "criterios-nota.html" },
         { key: "questionarios", label: "Questionários",          href: "questionarios.html" },
         { key: "alocacoes",  label: "Reenvio de checklist",     href: "alocacoes.html" },
         { key: "acessos",    label: "Gerenciamento de acessos", href: "acessos.html" },

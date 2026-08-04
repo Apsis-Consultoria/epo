@@ -7,11 +7,33 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=93">
+  <link rel="stylesheet" href="assets/app.css?v=94">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
     .is-hidden { display: none; }
+
+    /* Faixa dos selos (0 a 100). Vinha da tela de Critérios da nota, que virou
+       a primeira seção desta. */
+    .tier-band {
+      display: flex; height: 48px; border-radius: var(--radius-sm);
+      overflow: hidden; border: 1px solid var(--border);
+    }
+    .tier-band-seg {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 1px; min-width: 0; padding: 0 8px;
+      text-align: center; white-space: nowrap; overflow: hidden;
+      font-size: 12px; font-weight: 600; transition: flex-basis .3s ease;
+    }
+    .tier-band-seg small { font-size: 11px; font-weight: 500; opacity: .85; }
+    .tier-band-seg.critico { background: var(--critico-bg); color: var(--critico-text); }
+    .tier-band-seg.bronze  { background: var(--bronze-bg);  color: var(--bronze-text); }
+    .tier-band-seg.prata   { background: var(--prata-bg);   color: var(--prata-text); }
+    .tier-band-seg.ouro    { background: var(--ouro-bg);    color: var(--ouro-text); }
+    .tier-scale {
+      display: flex; justify-content: space-between; font-size: 11px;
+      color: var(--text-muted); font-variant-numeric: tabular-nums; margin-top: 6px;
+    }
 
     /* ------ Nível 1: tópicos ------ */
     .qt-topico-cel { display: flex; align-items: flex-start; gap: 11px; min-width: 0; }
@@ -115,11 +137,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=93"></script>
-  <script src="assets/app.js?v=93"></script>
-  <script src="assets/supabase-config.js?v=93"></script>
+  <script src="assets/data.js?v=94"></script>
+  <script src="assets/app.js?v=94"></script>
+  <script src="assets/supabase-config.js?v=94"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=93"></script>
+  <script src="assets/auth.js?v=94"></script>
   <script>
     (function () {
       "use strict";
@@ -238,6 +260,39 @@
       // Estrutura fixa
       // ------------------------------------------------------------------
       page.innerHTML =
+        // A tela de Criterios da nota virou esta secao: e a mesma decisao (o que
+        // se pergunta, quanto cada pergunta pesa e onde ficam os cortes do selo),
+        // e estava partida em duas telas.
+        '<section class="card" id="qt-criterios" style="margin-bottom:20px;">' +
+          '<div class="card-header">' +
+            '<div class="section-title">' +
+              '<span class="title">Critérios da nota</span>' +
+              '<span class="subtitle">Nota mínima de cada selo, na escala de 0 a 100. ' +
+                'O peso de cada pergunta fica na edição dela.</span>' +
+            "</div>" +
+            '<div class="card-header-action">' +
+              '<button class="btn btn-primary btn-sm is-hidden" id="qt-cortes-salvar" type="button">' +
+                '<i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar critérios</button>' +
+            "</div>" +
+          "</div>" +
+          '<div class="grid-3">' +
+            '<div class="field mb-0">' +
+              '<label for="qt-ouro">Ouro - nota mínima</label>' +
+              '<input class="input" id="qt-ouro" type="number" min="1" max="100" step="1" inputmode="numeric">' +
+            "</div>" +
+            '<div class="field mb-0">' +
+              '<label for="qt-prata">Prata - nota mínima</label>' +
+              '<input class="input" id="qt-prata" type="number" min="1" max="100" step="1" inputmode="numeric">' +
+            "</div>" +
+            '<div class="field mb-0">' +
+              '<label for="qt-bronze">Bronze - nota mínima</label>' +
+              '<input class="input" id="qt-bronze" type="number" min="1" max="100" step="1" inputmode="numeric">' +
+            "</div>" +
+          "</div>" +
+          '<div class="tier-band" id="qt-band" role="img" aria-label="Faixas de classificação por nota" style="margin-top:14px;"></div>' +
+          '<div class="tier-scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>' +
+        "</section>" +
+
         '<section id="qt-nivel1">' +
           '<div class="card mb-0">' +
             '<div class="card-header">' +
@@ -379,6 +434,11 @@
                   '<label for="mp-ordem">Ordem</label>' +
                   '<input class="input" id="mp-ordem" type="number" min="0" step="1" inputmode="numeric">' +
                 "</div>" +
+                '<div class="field curto">' +
+                  '<label for="mp-peso">Peso</label>' +
+                  '<input class="input" id="mp-peso" type="number" min="0.5" max="100" step="0.5" inputmode="decimal">' +
+                  '<span class="hint">1 = peso normal. 2 pesa o dobro de uma pergunta de peso 1.</span>' +
+                "</div>" +
                 '<div class="field">' +
                   '<label for="mp-ativo">Situação</label>' +
                   '<select class="select" id="mp-ativo">' +
@@ -408,6 +468,129 @@
             "</div>" +
           "</div>" +
         "</div>";
+
+      // ------------------------------------------------------------------
+      // Criterios da nota: os cortes de cada selo.
+      //
+      // Antes esta parte vivia em tela separada e nao gravava nada - mexer nos
+      // cortes e recarregar devolvia o que estava escrito no codigo. Agora fica
+      // guardado com as outras metas do cliente e vale para o sistema todo.
+      // ------------------------------------------------------------------
+      var CORTES = [
+        { chave: "tier_ouro",   campo: "qt-ouro",   padrao: 85 },
+        { chave: "tier_prata",  campo: "qt-prata",  padrao: 70 },
+        { chave: "tier_bronze", campo: "qt-bronze", padrao: 55 }
+      ];
+      var cortes = { tier_ouro: 85, tier_prata: 70, tier_bronze: 55 };
+
+      function pintarBanda() {
+        var el = document.getElementById("qt-band");
+        if (!el) return;
+        var o = cortes.tier_ouro, pr = cortes.tier_prata, br = cortes.tier_bronze;
+        // Uma faixa por selo, na proporcao da escala de 0 a 100.
+        function seg(cls, largura, rotulo, faixa) {
+          if (largura <= 0) return "";
+          return '<span class="tier-band-seg ' + cls + '" style="flex:0 0 ' + largura + '%;">' +
+            rotulo + "<small>" + faixa + "</small></span>";
+        }
+        el.innerHTML =
+          seg("critico", br, "Crítico", "0 a " + (br - 1)) +
+          seg("bronze", pr - br, "Bronze", br + " a " + (pr - 1)) +
+          seg("prata", o - pr, "Prata", pr + " a " + (o - 1)) +
+          seg("ouro", 100 - o, "Ouro", o + " a 100");
+      }
+
+      function mostrarCortes() {
+        CORTES.forEach(function (c) {
+          var el = document.getElementById(c.campo);
+          if (el) el.value = cortes[c.chave];
+        });
+        pintarBanda();
+      }
+
+      function lerCortes() {
+        var out = {};
+        CORTES.forEach(function (c) {
+          var el = document.getElementById(c.campo);
+          var v = el ? Number(el.value) : NaN;
+          out[c.chave] = (isNaN(v) || v < 1 || v > 100) ? cortes[c.chave] : Math.round(v);
+        });
+        return out;
+      }
+
+      function carregarCortes() {
+        if (DEMO || !db) { mostrarCortes(); return Promise.resolve(); }
+        return db.from("metas").select("chave, valor")
+          .in("chave", ["tier_ouro", "tier_prata", "tier_bronze"])
+          .then(function (r) {
+            if (r && !r.error) {
+              (r.data || []).forEach(function (m) {
+                var v = Number(m.valor);
+                if (!isNaN(v)) cortes[m.chave] = Math.round(v);
+              });
+            }
+            mostrarCortes();
+            return null;
+          }, function () { mostrarCortes(); return null; });
+      }
+
+      function salvarCortes() {
+        var novos = lerCortes();
+        // Ordem: ouro acima de prata, prata acima de bronze. Fora dessa ordem os
+        // cortes se cruzam e o selo passa a depender de qual comparacao roda
+        // primeiro.
+        if (!(novos.tier_ouro > novos.tier_prata && novos.tier_prata > novos.tier_bronze)) {
+          App.toast("O corte do ouro tem de ser maior que o da prata, e o da prata maior que o do bronze.");
+          return;
+        }
+        var btn = document.getElementById("qt-cortes-salvar");
+        var original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true"></i>Salvando...';
+        function terminar() { btn.disabled = false; btn.innerHTML = original; }
+
+        if (DEMO) {
+          cortes = novos;
+          mostrarCortes();
+          terminar();
+          App.toast("Sem conexão com os dados agora: nada foi gravado.");
+          return;
+        }
+
+        db.from("clientes").select("id").order("id").limit(1)
+          .then(function (r) {
+            if (r.error || !r.data || !r.data.length) {
+              throw new Error((r.error && r.error.message) || "cliente não encontrado");
+            }
+            var cid = r.data[0].id;
+            return db.from("metas").upsert(
+              Object.keys(novos).map(function (k) {
+                return { cliente_id: cid, chave: k, valor: novos[k] };
+              }),
+              { onConflict: "cliente_id,chave" }
+            ).select("chave");
+          })
+          .then(function (r) {
+            if (r.error) throw r.error;
+            // Sem linha devolvida, o acesso nao alcanca a escrita: dizer "salvo"
+            // aqui seria mentira.
+            if (!r.data || !r.data.length) {
+              App.toast("Seu acesso não permite alterar os critérios. Fale com a coordenação da APSIS.");
+              terminar();
+              return null;
+            }
+            cortes = novos;
+            mostrarCortes();
+            terminar();
+            App.toast("Critérios salvos. As notas passam a usar estes cortes.");
+            return null;
+          })
+          .catch(function (e) {
+            terminar();
+            if (window.console && console.error) console.error("cortes", e);
+            App.toast("Não foi possível salvar os critérios agora. Tente novamente.");
+          });
+      }
 
       var elNivel1 = document.getElementById("qt-nivel1");
       var elNivel2 = document.getElementById("qt-nivel2");
@@ -725,6 +908,14 @@
               podeApagar = apaga;
               if (topicoAberto) renderNivel2(); else renderNivel1();
             }
+            // Os criterios sao editaveis por quem edita o questionario: e a
+            // mesma tela e o mesmo alcance no servidor.
+            var btnCortes = document.getElementById("qt-cortes-salvar");
+            if (btnCortes) btnCortes.classList.toggle("is-hidden", !pode);
+            CORTES.forEach(function (c) {
+              var el = document.getElementById(c.campo);
+              if (el) el.disabled = !pode;
+            });
           }, function () {});
         }
 
@@ -765,7 +956,7 @@
           return Promise.resolve();
         }
         return db.from("itens_checklist")
-          .select("id, processo_id, pergunta, evidencia_esperada, requer_foto, grave, ordem, ativo")
+          .select("id, processo_id, pergunta, evidencia_esperada, requer_foto, grave, ordem, ativo, peso")
           .eq("processo_id", topicoId)
           .then(function (r) {
             if (r.error) throw r.error;
@@ -905,6 +1096,7 @@
         document.getElementById("mp-pergunta").value = (p && p.pergunta) || "";
         document.getElementById("mp-evid").value = (p && p.evidencia_esperada) || "";
         document.getElementById("mp-ordem").value = p ? numero(p.ordem, 0) : (perguntas.length + 1);
+        document.getElementById("mp-peso").value = p ? numero(p.peso, 1) : 1;
         document.getElementById("mp-ativo").value = (p && p.ativo === false) ? "0" : "1";
         document.getElementById("mp-foto").checked = !!(p && p.requer_foto);
         document.getElementById("mp-grave").checked = !!(p && p.grave);
@@ -927,6 +1119,9 @@
           requer_foto: document.getElementById("mp-foto").checked,
           grave: document.getElementById("mp-grave").checked,
           ordem: Math.max(0, Math.round(numero(document.getElementById("mp-ordem").value, 0))),
+          // Peso da pergunta na nota. Fora da faixa o banco recusaria com a
+          // mensagem dele, em ingles: o limite fica aqui tambem.
+          peso: Math.min(100, Math.max(0.5, numero(document.getElementById("mp-peso").value, 1))),
           ativo: document.getElementById("mp-ativo").value === "1"
         };
 
@@ -1308,6 +1503,20 @@
       });
       document.getElementById("mt-salvar").addEventListener("click", salvarTopico);
       document.getElementById("mp-salvar").addEventListener("click", salvarPergunta);
+
+      document.getElementById("qt-cortes-salvar").addEventListener("click", salvarCortes);
+      CORTES.forEach(function (c) {
+        var el = document.getElementById(c.campo);
+        if (!el) return;
+        el.addEventListener("input", function () {
+          var v = Number(this.value);
+          if (!isNaN(v) && v >= 1 && v <= 100) {
+            cortes[c.chave] = Math.round(v);
+            pintarBanda();
+          }
+        });
+      });
+      carregarCortes();
 
       ovTopico.addEventListener("click", function (ev) { if (ev.target === ovTopico) fecharTopico(); });
       ovPergunta.addEventListener("click", function (ev) { if (ev.target === ovPergunta) fecharPergunta(); });

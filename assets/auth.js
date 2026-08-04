@@ -51,7 +51,6 @@
     "alocacoes.html": "alocacoes",
     "contagem-giro.html": "giro",
     "evidencias.html": "evidencias",
-    "criterios-nota.html": "criterios",
     "acessos.html": "acessos"
   };
 
@@ -59,7 +58,7 @@
   function primeiraPermitida(perms) {
     // "realizadas" faltava nesta lista: um cargo que alcancasse SO essa tela
     // caia no fim do laco e era mandado para a tela de sem acesso.
-    var ordem = ["geral", "epos", "cronograma", "pendentes", "realizadas", "auditoria", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "criterios", "questionarios", "acessos"];
+    var ordem = ["geral", "epos", "cronograma", "pendentes", "realizadas", "auditoria", "checagem", "giro", "ranking", "comparativo", "gerencial", "alocacoes", "evidencias", "questionarios", "acessos"];
     var mapaInverso = {};
     Object.keys(MAPA_PAGINAS).forEach(function (arq) { mapaInverso[MAPA_PAGINAS[arq]] = arq; });
     for (var i = 0; i < ordem.length; i++) {

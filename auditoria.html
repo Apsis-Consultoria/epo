@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=93">
+  <link rel="stylesheet" href="assets/app.css?v=94">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -337,11 +337,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=93"></script>
-  <script src="assets/app.js?v=93"></script>
-  <script src="assets/supabase-config.js?v=93"></script>
+  <script src="assets/data.js?v=94"></script>
+  <script src="assets/app.js?v=94"></script>
+  <script src="assets/supabase-config.js?v=94"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=93"></script>
+  <script src="assets/auth.js?v=94"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -598,7 +598,7 @@
             processo.icone = r.data.icone || processo.icone;
             if (r.data.peso !== null && r.data.peso !== undefined) processo.peso = Number(r.data.peso);
             return Auth.cliente.from("itens_checklist")
-              .select("id, pergunta, evidencia_esperada, requer_foto, grave, ordem")
+              .select("id, pergunta, evidencia_esperada, requer_foto, grave, ordem, peso")
               .eq("processo_id", procDbId).eq("ativo", true).order("ordem");
           })
           .then(function (r) {
@@ -613,7 +613,10 @@
                 item: it.pergunta,
                 evidencia: it.evidencia_esperada || "",
                 requerFoto: !!it.requer_foto,
-                grave: !!it.grave
+                grave: !!it.grave,
+                // Quanto a pergunta pesa na nota. Sem valor, 1: com todos os
+                // pesos iguais a media ponderada da o mesmo que a simples.
+                peso: (it.peso === null || it.peso === undefined) ? 1 : Number(it.peso)
               };
             });
             return processo.itens;
@@ -663,28 +666,45 @@
         return temAnexo(r) || justOk(r);
       }
 
+      // Peso da pergunta, com 1 como padrao.
+      function pesoDe(it) {
+        var p = it && it.peso;
+        p = (p === null || p === undefined) ? 1 : Number(p);
+        return (isNaN(p) || p <= 0) ? 1 : p;
+      }
+
       function computeScore() {
         var itens = processo.itens;
+        // A nota e media PONDERADA pelo peso de cada pergunta. Com todos os pesos
+        // em 1 (o padrao) o resultado e identico a media simples de antes: nenhuma
+        // nota ja calculada muda por causa disto. So muda quando alguem decide
+        // que uma pergunta pesa mais.
         if (isCarregadores) {
           var c = { presente: 0, ausente: 0, semResposta: 0 };
+          var pPres = 0, pAus = 0;
           itens.forEach(function (it) {
             var r = state.respostas[it.id];
             if (!r || !r.status) { c.semResposta++; return; }
-            if (r.status === "presente") c.presente++; else c.ausente++;
+            if (r.status === "presente") { c.presente++; pPres += pesoDe(it); }
+            else { c.ausente++; pAus += pesoDe(it); }
           });
           var answered = c.presente + c.ausente;
-          var s01 = answered > 0 ? c.presente / answered : 0;
+          var somaP = pPres + pAus;
+          var s01 = somaP > 0 ? pPres / somaP : 0;
           return { score01: s01, pts: s01 * 100, counts: c, answered: answered };
         }
         var counts = { conforme: 0, nao: 0, na: 0, semResposta: 0 };
+        var pOk = 0, pNao = 0;
         itens.forEach(function (it) {
           var r = state.respostas[it.id];
           if (!r || !r.status) { counts.semResposta++; return; }
           if (r.status === "na") { counts.na++; return; }
-          if (r.status === "conforme") counts.conforme++; else counts.nao++;
+          if (r.status === "conforme") { counts.conforme++; pOk += pesoDe(it); }
+          else { counts.nao++; pNao += pesoDe(it); }
         });
         var ans = counts.conforme + counts.nao;
-        var score01 = ans > 0 ? counts.conforme / ans : 0;
+        var somaPesos = pOk + pNao;
+        var score01 = somaPesos > 0 ? pOk / somaPesos : 0;
         return {
           score01: score01,
           pts: score01 * 100,

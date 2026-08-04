@@ -133,11 +133,33 @@
     return MESES[m - 1] + "/" + String(p[0]).slice(2);
   }
 
+  // Cortes do selo, como estao gravados na tela de Questionarios. Antes so
+  // existiam escritos no codigo: mexer nos cortes nao mudava selo nenhum.
+  function lerCortes(db) {
+    return db.from("metas").select("chave, valor")
+      .in("chave", ["tier_ouro", "tier_prata", "tier_bronze"])
+      .then(function (r) {
+        if (!r || r.error || !r.data || !r.data.length) return null;
+        var mapa = {};
+        r.data.forEach(function (m) {
+          var v = Number(m.valor);
+          if (!isNaN(v)) mapa[m.chave] = v;
+        });
+        if (!window.APP || !window.APP.tierRules) return null;
+        if (mapa.tier_ouro != null) window.APP.tierRules.ouroMin = mapa.tier_ouro;
+        if (mapa.tier_prata != null) window.APP.tierRules.prataMin = mapa.tier_prata;
+        if (mapa.tier_bronze != null) window.APP.tierRules.bronzeMin = mapa.tier_bronze;
+        return null;
+      }, function () { return null; });
+  }
+
   function lerCadastro(db) {
     var unidades = [];
     var auditorias = [];
-    var regras = (window.APP && window.APP.tierRules) || null;
+    var regras = null;
 
+    return lerCortes(db).then(function () {
+    regras = (window.APP && window.APP.tierRules) || null;
     return db.from("epos")
       .select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo, cod_fornecedor, " +
               "responsavel_nome, responsavel_email")
@@ -228,6 +250,7 @@
         aplicar(unidades, procs);
         return true;
       });
+    });
   }
 
   var promessa = null;
