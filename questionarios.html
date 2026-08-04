@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="assets/app.css?v=88">
+  <link rel="stylesheet" href="assets/app.css?v=89">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -115,11 +115,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=88"></script>
-  <script src="assets/app.js?v=88"></script>
-  <script src="assets/supabase-config.js?v=88"></script>
+  <script src="assets/data.js?v=89"></script>
+  <script src="assets/app.js?v=89"></script>
+  <script src="assets/supabase-config.js?v=89"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=88"></script>
+  <script src="assets/auth.js?v=89"></script>
   <script>
     (function () {
       "use strict";
@@ -142,7 +142,14 @@
       var topicos = [];         // [{ id, slug, nome, descricao, icone, peso, ordem, tipo, ativo, nPerguntas }]
       var perguntas = [];       // perguntas do tópico aberto
       var topicoAberto = null;  // id do tópico no nível 2
-      var podeEditar = DEMO;    // só a coordenação edita o catálogo
+      // Quem edita o catalogo e quem a matriz de acessos libera para esta tela -
+      // exatamente o que o servidor aceita gravar. Antes era uma lista fixa de
+      // dois cargos escrita aqui: a Gerencia Claro tinha a tela liberada, abria,
+      // e nao conseguia mudar nada, sem nenhuma explicacao.
+      var podeEditar = DEMO;
+      // Apagar e outra coisa: leva embora resposta de auditoria. Fica com a
+      // coordenacao da APSIS, que e o que a funcao de apagar exige.
+      var podeApagar = DEMO;
       var carregou = false;
       var erro = "";
       // A tela abre com o catalogo em uso. O que foi desativado fica atras de um
@@ -445,9 +452,11 @@
                   ? '<button class="btn btn-ghost btn-sm" type="button" data-editar-topico="' + esc(t.id) + '">' +
                       '<i class="ti ti-pencil" aria-hidden="true"></i>Editar' +
                     "</button>" +
-                    '<button class="btn btn-ghost btn-sm btn-apagar" type="button" data-apagar-topico="' + esc(t.id) + '">' +
-                      '<i class="ti ti-trash" aria-hidden="true"></i>Excluir' +
-                    "</button>"
+                    (podeApagar
+                      ? '<button class="btn btn-ghost btn-sm btn-apagar" type="button" data-apagar-topico="' + esc(t.id) + '">' +
+                          '<i class="ti ti-trash" aria-hidden="true"></i>Excluir' +
+                        "</button>"
+                      : "")
                   : "") +
               "</span>" +
             "</td>" +
@@ -552,9 +561,11 @@
                     '<button class="btn btn-ghost btn-sm" type="button" data-editar-pergunta="' + esc(p.id) + '">' +
                       '<i class="ti ti-pencil" aria-hidden="true"></i>Editar' +
                     "</button>" +
-                    '<button class="btn btn-ghost btn-sm btn-apagar" type="button" data-apagar-pergunta="' + esc(p.id) + '">' +
-                      '<i class="ti ti-trash" aria-hidden="true"></i>Excluir' +
-                    "</button>"
+                    (podeApagar
+                      ? '<button class="btn btn-ghost btn-sm btn-apagar" type="button" data-apagar-pergunta="' + esc(p.id) + '">' +
+                          '<i class="ti ti-trash" aria-hidden="true"></i>Excluir' +
+                        "</button>"
+                      : "")
                   : "") +
               "</span>" +
             "</td>" +
@@ -702,13 +713,19 @@
         }
 
         if (Auth.perfil) {
-          Auth.perfil().then(function (p) {
-            var pode = !!p && (p.papel === "admin" || p.papel === "gestor");
-            if (pode !== podeEditar) {
+          Promise.all([
+            Auth.podeTela ? Auth.podeTela("questionarios") : Promise.resolve(false),
+            Auth.perfil()
+          ]).then(function (r) {
+            var pode = !!r[0];
+            var papel = (r[1] && r[1].papel) || "";
+            var apaga = papel === "admin" || papel === "gestor";
+            if (pode !== podeEditar || apaga !== podeApagar) {
               podeEditar = pode;
+              podeApagar = apaga;
               if (topicoAberto) renderNivel2(); else renderNivel1();
             }
-          });
+          }, function () {});
         }
 
         return db.from("processos").select("id, slug, nome, descricao, icone, peso, ordem, tipo, ativo")

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <link rel="stylesheet" href="assets/app.css?v=88">
+  <link rel="stylesheet" href="assets/app.css?v=89">
 
   <style>
     /* Ajustes locais só desta tela - tudo via tokens do design system. */
@@ -119,14 +119,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=88"></script>
-  <script src="assets/app.js?v=88"></script>
-  <script src="assets/geo-br.js?v=88"></script>
-  <script src="assets/mapa-epos.js?v=88"></script>
-  <script src="assets/supabase-config.js?v=88"></script>
+  <script src="assets/data.js?v=89"></script>
+  <script src="assets/app.js?v=89"></script>
+  <script src="assets/geo-br.js?v=89"></script>
+  <script src="assets/mapa-epos.js?v=89"></script>
+  <script src="assets/supabase-config.js?v=89"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=88"></script>
-  <script src="assets/dados-reais.js?v=88"></script>
+  <script src="assets/auth.js?v=89"></script>
+  <script src="assets/dados-reais.js?v=89"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -173,14 +173,31 @@
         return nome.replace(/^EPO\s+/i, "").trim().slice(0, 2).toUpperCase();
       }
 
-      function atalho(href, icone, titulo, desc) {
+      // O quarto argumento e a chave da contagem que aparece no canto de baixo,
+      // a direita: o numero e preenchido quando a leitura volta.
+      function atalho(href, icone, titulo, desc, contaChave) {
         return '<a class="atalho" href="' + href + '">' +
           '<span class="atalho-ico"><i class="ti ' + icone + '" aria-hidden="true"></i></span>' +
           "<span>" +
             '<span class="atalho-nm">' + titulo + "</span>" +
             '<span class="atalho-ds">' + desc + "</span>" +
           "</span>" +
+          (contaChave
+            ? '<span class="atalho-conta vazia" data-conta="' + contaChave + '" hidden>0</span>'
+            : "") +
         "</a>";
+      }
+
+      // Tela que ainda nao entrou no ar: nao e link, nao tem clique, e diz o que
+      // e. Antes o atalho levava para uma tela que a operacao nao usa ainda.
+      function atalhoEmBreve(icone, titulo) {
+        return '<div class="atalho is-inativo" aria-disabled="true">' +
+          '<span class="atalho-ico"><i class="ti ' + icone + '" aria-hidden="true"></i></span>' +
+          "<span>" +
+            '<span class="atalho-nm">' + titulo + "</span>" +
+            '<span class="atalho-ds">Em breve</span>' +
+          "</span>" +
+        "</div>";
       }
 
       function epoRow(e, atencaoMode) {
@@ -260,15 +277,16 @@
               atalho("epos.html?auditoria=1", "ti-clipboard-plus",
                      "Nova auditoria", "Escolha a unidade e os questionários") +
               atalho("pendentes.html", "ti-clipboard-list",
-                     "Questionários pendentes", "O que falta preencher em cada unidade") +
+                     "Questionários pendentes", "O que falta preencher em cada unidade",
+                     "pendentes") +
               atalho("epos.html", "ti-building-warehouse",
-                     "EPOs", "Cadastro das unidades") +
+                     "EPOs", "Cadastre ou edite uma unidade") +
               atalho("cronograma.html", "ti-calendar-stats",
-                     "Cronograma", "Datas das visitas e aprovação da Claro") +
+                     "Cronograma", "Datas das visitas e aprovação da Claro",
+                     "cronograma") +
               atalho("checagem.html", "ti-zoom-check",
                      "Evidências recebidas", "O que chegou de cada lado") +
-              atalho("contagem-giro.html", "ti-packages",
-                     "Contagem Logística Reversa", "Conferência do material devolvido") +
+              atalhoEmBreve("ti-packages", "Contagem Logística Reversa") +
               atalho("ranking.html", "ti-trophy",
                      "Ranking", "Classificação das unidades auditadas") +
               atalho("gerencial.html", "ti-report-analytics",
@@ -386,6 +404,46 @@
       }
 
       document.getElementById("page").innerHTML = html;
+
+      /* ------------------------------------------------------------------
+         Contagem no canto dos atalhos.
+
+         Duas perguntas curtas ao cadastro, so de contagem (nao traz linha):
+           - quantos questionarios pedidos ainda nao foram preenchidos;
+           - quantas unidades do cronograma ainda nao foram visitadas.
+         Sem numero, o atalho obriga a abrir a tela para descobrir se ha
+         trabalho esperando.
+         ------------------------------------------------------------------ */
+      (function () {
+        var db = (window.Auth && Auth.pronto && !Auth.modoDemo()) ? Auth.cliente : null;
+        if (!db) return;
+
+        function mostrar(chave, n) {
+          var el = document.querySelector('[data-conta="' + chave + '"]');
+          if (!el) return;
+          el.textContent = App.fmtNum(n);
+          el.classList.toggle("vazia", !n);
+          el.hidden = false;
+        }
+
+        // Pedido sem auditoria enviada = questionario pendente. E a mesma conta
+        // da tela de Auditorias pendentes.
+        db.from("vw_relatorios_pendentes")
+          .select("alocacao_id", { count: "exact", head: true })
+          .not("status_auditoria", "in", '("enviada","validada")')
+          .then(function (r) {
+            if (r && !r.error) mostrar("pendentes", r.count || 0);
+          }, function () {});
+
+        // Unidade que ainda vai ser visitada: sem data, esperando aprovacao, ou
+        // com data aprovada e visita ainda por acontecer.
+        db.from("cronograma_itens")
+          .select("id", { count: "exact", head: true })
+          .in("situacao", ["sem_data", "aguardando_claro", "aguardando_apsis", "confirmada"])
+          .then(function (r) {
+            if (r && !r.error) mostrar("cronograma", r.count || 0);
+          }, function () {});
+      })();
 
       // Atalho para tela que a pessoa nao alcanca sai da caixa: seria clique
       // que abre e volta na hora. Sai depois da pintura, quando a resposta

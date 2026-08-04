@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="assets/app.css?v=88">
+  <link rel="stylesheet" href="assets/app.css?v=89">
   <style>
     .unit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
     .unit-card { text-align: left; width: 100%; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; transition: border-color .15s ease, box-shadow .15s ease; font-family: inherit; }
@@ -18,6 +18,12 @@
     .unit-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
     .unit-score { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
     .unit-vis { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+    /* Unidade sem vistoria: no lugar da nota, o motivo. */
+    .unit-sem {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 13px; color: var(--text-2);
+    }
+    .unit-sem i { font-size: 17px; color: var(--text-muted); }
 
     .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-2); font-weight: 500; background: none; border: 0; cursor: pointer; padding: 0; margin-bottom: 14px; }
     .back-link:hover { color: var(--text); }
@@ -47,12 +53,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=88"></script>
-  <script src="assets/app.js?v=88"></script>
-  <script src="assets/supabase-config.js?v=88"></script>
+  <script src="assets/data.js?v=89"></script>
+  <script src="assets/app.js?v=89"></script>
+  <script src="assets/supabase-config.js?v=89"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=88"></script>
-  <script src="assets/dados-reais.js?v=88"></script>
+  <script src="assets/auth.js?v=89"></script>
+  <script src="assets/dados-reais.js?v=89"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -87,22 +93,43 @@
       // ------------------------------------------------------- Lista de unidades
       function renderLista() {
         clearCharts();
-        var ordenadas = epos.slice().sort(function (a, b) { return b.score - a.score; });
+        // Unidade sem vistoria vai para o fim: com nota nula a comparacao entre
+        // ela e as outras nao existe, e antes ela caia em lugar aleatorio da
+        // ordem (subtracao com nulo nao ordena nada).
+        var ordenadas = epos.slice().sort(function (a, b) {
+          var na = a.score == null ? -1 : Number(a.score);
+          var nb = b.score == null ? -1 : Number(b.score);
+          return nb - na;
+        });
         var cards = ordenadas.map(function (e) {
-          var m = App.tierMeta(e.tier);
           var vis = e.vistorias || [];
           var scores = vis.map(function (v) { return v.score; });
           var ultima = vis.length ? vis[vis.length - 1] : null;
+          var semVistoria = !vis.length || e.score == null;
+          var m = semVistoria ? null : App.tierMeta(e.tier);
+
+          // Sem vistoria, a nota saia escrita como "null" na cara do cartao, e
+          // o selo dizia "Critico" - dois numeros inventados para uma unidade
+          // que ainda nao foi visitada.
+          var meio = semVistoria
+            ? '<div class="unit-sem" style="margin-top:14px;">' +
+                '<i class="ti ti-clipboard-off" aria-hidden="true"></i>' +
+                "Não foi realizada nenhuma vistoria" +
+              "</div>"
+            : '<div class="row-between" style="margin-top:14px; align-items:flex-end;">' +
+                '<span class="unit-score">' + App.fmtNum(Math.round(Number(e.score))) + "</span>" +
+                sparkline(scores) +
+              "</div>" +
+              '<div class="unit-vis">' + vis.length +
+                (vis.length === 1 ? " vistoria" : " vistorias") +
+                " · última em " + (ultima ? fmtData(ultima.data) : "-") + "</div>";
+
           return '<button class="unit-card" data-id="' + e.id + '">' +
             '<div class="row-between">' +
               '<div><div class="unit-name">' + esc(e.nome) + '</div><div class="unit-loc">' + esc(e.cidade) + " · " + esc(e.uf) + "</div></div>" +
-              '<span class="badge ' + m.cls + '">' + m.label + "</span>" +
+              (m ? '<span class="badge ' + m.cls + '">' + m.label + "</span>" : "") +
             "</div>" +
-            '<div class="row-between" style="margin-top:14px; align-items:flex-end;">' +
-              '<span class="unit-score">' + e.score + "</span>" +
-              sparkline(scores) +
-            "</div>" +
-            '<div class="unit-vis">' + vis.length + " vistorias · última em " + (ultima ? fmtData(ultima.data) : "-") + "</div>" +
+            meio +
           "</button>";
         }).join("");
 
