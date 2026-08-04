@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/portal.css?v=83" />
+  <link rel="stylesheet" href="assets/portal.css?v=84" />
   <style>
     /* Ajustes de proporção do painel de login (sobrepõem o portal.css) */
     .login-col { padding-top: 3vh; }
@@ -67,7 +67,7 @@
             <svg width="20" height="20" viewBox="0 0 23 23" aria-hidden="true" class="flex-shrink-0"><rect x="1" y="1" width="10" height="10" fill="#F25022" /><rect x="12" y="1" width="10" height="10" fill="#7FBA00" /><rect x="1" y="12" width="10" height="10" fill="#00A4EF" /><rect x="12" y="12" width="10" height="10" fill="#FFB900" /></svg>
             Entre com a sua conta Microsoft
           </button>
-          <div class="w-full flex items-center gap-3 my-1">
+          <div id="sep-ou" class="w-full flex items-center gap-3 my-1">
             <span class="h-px flex-1 bg-slate-200"></span>
             <span class="text-xs text-gray-400 uppercase tracking-wide">ou</span>
             <span class="h-px flex-1 bg-slate-200"></span>
@@ -144,9 +144,9 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=83"></script>
+  <script src="assets/supabase-config.js?v=84"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=83"></script>
+  <script src="assets/auth.js?v=84"></script>
   <script>
     (function () {
       "use strict";
@@ -242,10 +242,20 @@
       // para definir uma nova. O que muda e qual botao aparece - antes o pedido
       // de link era um texto cinza pequeno dentro do painel da senha, e quem
       // precisava redefinir nao achava.
+      // Escolher um caminho tira o outro da frente: com o painel do e-mail
+      // aberto, os dois botoes de escolha nao servem para mais nada e ficavam
+      // acima do formulario, empurrando os campos para baixo.
+      function mostrarEscolha(mostrar) {
+        ["btn-ms", "sep-ou", "btn-cliente"].forEach(function (id) {
+          $(id).classList.toggle("hidden", !mostrar);
+        });
+      }
+
       function abrirPainel(modo) {
         var pedindoLink = modo === "link";
         carregarCaptcha();
         montarCaptcha();
+        mostrarEscolha(false);
         $("painel-cliente").classList.remove("hidden");
         $("etapa-enviado").classList.add("hidden");
         $("etapa-senha").classList.remove("hidden");
@@ -262,6 +272,7 @@
       function fecharPainel() {
         $("painel-cliente").classList.add("hidden");
         $("cli-msg").classList.add("hidden");
+        mostrarEscolha(true);
       }
 
       $("btn-cliente").addEventListener("click", function () {
