@@ -1,44 +1,80 @@
 /* =========================================================================
-   Tela de carregamento - a mesma do sistema de Unitização da APSIS.
+   Tela de carregamento - a mesma do Portal da Qualidade da APSIS.
 
-   Copiada do que existe lá (index.html do projeto unitizacao): fundo verde
-   APSIS, anel branco girando no meio, e saída por opacidade. Sem logo: a
-   unitização não tem logo nesta tela.
+   Copiada do ApsisLoader.jsx daquele projeto. O desenho e a PROPRIA logo da
+   APSIS sendo montada parte por parte: sete copias da mesma imagem, cada uma
+   recortada numa fatia horizontal, aparecendo em sequencia do apice a base.
+   Segura montada e some, em ciclo. Nada e recriado.
 
-   Por que ela existe: as telas nasciam com o menu inteiro desenhado e só
-   DEPOIS o servidor dizia o que aquele cargo alcança. Entre uma coisa e outra
-   a pessoa via, por um instante, itens de menu que não são dela - e, quando
-   não tinha permissão para a tela, via a tela aparecer e ser trocada por
-   outra. Piscava, e o que piscava era informação de acesso.
+   O fundo e o tamanho vem do uso em tela cheia que o Layout.jsx daquele
+   projeto faz: fundo rgba(240,242,240,.97) e a logo em 170px.
 
-   Fica no HTML de cada tela, e não em JavaScript, porque precisa estar
-   pintada ANTES de qualquer script rodar - é o mesmo motivo do comentário
-   que está no arquivo da unitização. Sai quando a tela está pronta.
+   Aqui e CSS puro em vez de React: o componente gera as sete faixas e as sete
+   animacoes por laco, e aqui elas estao escritas, uma por :nth-child. Os
+   numeros sao os mesmos que o laco produz com BANDS=7, CYCLE=2.6s,
+   BUILD_END=62% e HOLD_END=82%.
 
-   Arquivo próprio, e não dentro de app.css, para entrar antes (é a primeira
-   folha da página) e para a tela de entrada, que usa outra folha, aproveitar
-   a mesma.
+   Por que ela existe: as telas nasciam com o menu inteiro desenhado e so
+   DEPOIS o servidor dizia o que aquele cargo alcanca. Entre uma coisa e outra
+   a pessoa via, por um instante, itens de menu que nao sao dela - e, quando
+   nao tinha permissao para a tela, via a tela aparecer e ser trocada por
+   outra. Piscava, e o que piscava era informacao de acesso.
+
+   Fica no HTML de cada tela, e nao em JavaScript, porque precisa estar
+   pintada ANTES de qualquer script rodar. Sai quando a tela esta pronta.
    ========================================================================= */
 .tela-carregando {
   position: fixed;
   inset: 0;
-  background: #1A4731;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  transition: opacity 0.25s ease;
+  background: rgba(240, 242, 240, .97);
+  transition: opacity .25s ease;
 }
 
-.tela-carregando .giro {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: apsis-gira 0.8s linear infinite;
+/* Sobre a entrada, que tem foto escura por tras. */
+.tela-carregando.no-escuro { background: rgba(7, 19, 13, .97); }
+
+.apsis-loader {
+  position: relative;
+  width: 170px;
+  height: 170px;
+}
+/* No celular a logo de 170px encosta nas bordas. */
+@media (max-width: 480px) {
+  .apsis-loader { width: 130px; height: 130px; }
 }
 
-@keyframes apsis-gira {
-  to { transform: rotate(360deg); }
+.apsis-loader img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  animation-duration: 2.6s;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
 }
+
+/* Cada faixa e a mesma imagem recortada em 1/7 da altura, do apice a base.
+   O recorte e o mesmo inset(i/7 do topo, (6-i)/7 da base) do componente. */
+.apsis-loader img:nth-child(1) { clip-path: inset(0% 0 85.714286% 0);        animation-name: apxl-1; }
+.apsis-loader img:nth-child(2) { clip-path: inset(14.285714% 0 71.428571% 0); animation-name: apxl-2; }
+.apsis-loader img:nth-child(3) { clip-path: inset(28.571429% 0 57.142857% 0); animation-name: apxl-3; }
+.apsis-loader img:nth-child(4) { clip-path: inset(42.857143% 0 42.857143% 0); animation-name: apxl-4; }
+.apsis-loader img:nth-child(5) { clip-path: inset(57.142857% 0 28.571429% 0); animation-name: apxl-5; }
+.apsis-loader img:nth-child(6) { clip-path: inset(71.428571% 0 14.285714% 0); animation-name: apxl-6; }
+.apsis-loader img:nth-child(7) { clip-path: inset(85.714286% 0 0% 0);        animation-name: apxl-7; }
+
+/* Cada faixa entra 5% depois de chegar a vez dela, todas seguram ate 82% e
+   somem juntas no fim do ciclo. */
+@keyframes apxl-1 { 0%        { opacity: 0 }  5% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
+@keyframes apxl-2 { 0%,  9%   { opacity: 0 } 14% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
+@keyframes apxl-3 { 0%, 18%   { opacity: 0 } 23% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
+@keyframes apxl-4 { 0%, 27%   { opacity: 0 } 32% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
+@keyframes apxl-5 { 0%, 35%   { opacity: 0 } 40% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
+@keyframes apxl-6 { 0%, 44%   { opacity: 0 } 49% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
+@keyframes apxl-7 { 0%, 53%   { opacity: 0 } 58% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }

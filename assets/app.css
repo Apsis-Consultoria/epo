@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap');
+/* As fontes de texto vem por <link> no cabecalho de cada tela, e nao por
+   @import daqui. O @import so dispara depois desta folha ser baixada e
+   interpretada: media na tela de EPOs, o pedido das fontes saia em 653ms
+   contra 330ms dos outros arquivos - 320ms de texto sem fonte, de graca. */
 
 /* =========================================================================
    Auditoria de EPOs - design system + componentes (tema Portal APSIS)
