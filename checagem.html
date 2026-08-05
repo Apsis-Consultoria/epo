@@ -10,9 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
   <title>Evidências - Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=116">
-  <link rel="stylesheet" href="assets/carregando.css?v=116">
-  <link rel="stylesheet" href="assets/app.css?v=116">
+  <link rel="stylesheet" href="assets/icones.css?v=119">
+  <link rel="stylesheet" href="assets/carregando.css?v=119">
+  <link rel="stylesheet" href="assets/app.css?v=119">
   <style>
     /* Ajustes locais da tela de evidências recebidas (grade + lista) */
 
@@ -152,11 +152,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=116"></script>
-  <script src="assets/app.js?v=116"></script>
-  <script src="assets/supabase-config.js?v=116"></script>
+  <script src="assets/data.js?v=119"></script>
+  <script src="assets/app.js?v=119"></script>
+  <script src="assets/supabase-config.js?v=119"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=116"></script>
+  <script src="assets/auth.js?v=119"></script>
   <script>
     (function () {
       "use strict";
@@ -331,7 +331,7 @@
         // arquivos ja enviados sumiam desta tela. O que importa aqui e existir
         // arquivo para conferir, e nao o estado do envio.
         var qAloc = Auth.cliente.from("alocacoes")
-          .select("*, epos(nome,cidade,uf), processos(nome,slug,icone), alocacao_anexos(count)")
+          .select("*, epos(nome,cidade,uf), processos(nome,slug,icone), alocacao_anexos(origem)")
           .order("criado_em", { ascending: false });
 
         return Promise.all([qAud, qAloc]).then(function (rs) {
@@ -361,16 +361,35 @@
             var p = par(a.epo_id, a.processo_id, a.epos, a.processos);
             if (!p.auditoria) p.auditoria = a; // já vem ordenado: fica a mais recente
             if (!p.data) p.data = a.data_visita;
+            p.temArquivo = true;
           });
 
+          // Questionario pedido entra aqui DESDE O PEDIDO, mesmo sem nenhum
+          // arquivo. Antes a linha so nascia depois de alguem anexar algo:
+          //
+          //   if (!n && al.status !== "enviada") return;
+          //
+          // e isso travava a tela pelo comeco. Cadastrada a unidade e marcados
+          // os questionarios dela, nao havia caixa nenhuma nesta tela - entao a
+          // gerencia da Claro e a APSIS nao tinham onde por o primeiro
+          // documento, e ninguem podia anexar antes de outra pessoa anexar.
+          //
+          // Quem ve o que continua sendo decidido pelo servidor: a equipe da
+          // APSIS e a gerencia da Claro alcancam as unidades do cliente, e o
+          // responsavel da EPO alcanca so as unidades dele.
           (rs[1].data || []).forEach(function (al) {
-            var n = (al.alocacao_anexos && al.alocacao_anexos[0] && al.alocacao_anexos[0].count) || 0;
-            if (!n && al.status !== "enviada") return;   // nada enviado e nada anexado
+            var anexos = al.alocacao_anexos || [];
             var p = par(al.epo_id, al.processo_id, al.epos, al.processos);
             // Podem existir varias alocacoes para o mesmo par; guardamos todas
             // para ler os anexos de cada uma, senao os arquivos da segunda
             // nunca apareceriam na conferencia.
             p.alocacoes = (p.alocacoes || []).concat([al]);
+            // A coluna da tela fala do envio DA EPO: contar todos os anexos
+            // faria um documento posto pela Claro aparecer como envio da EPO.
+            anexos.forEach(function (ax) {
+              p.temArquivo = true;
+              if ((ax.origem || "epo") === "epo") p.temEpo = true;
+            });
             if (!p.alocacao) p.alocacao = al;
             if (!p.data) p.data = al.enviada_em || al.criado_em;
           });
@@ -509,7 +528,7 @@
             "</span>" +
             '<span class="chk-cartao-tags">' +
               badgeAuditoria(st) +
-              badgeEnvio(!!p.alocacao) +
+              badgeEnvio(!!p.temEpo) +
             "</span>" +
             '<span class="chk-cartao-data">' + fmtData(p.data) + "</span>" +
           "</button>"
@@ -532,7 +551,7 @@
               '<td data-rotulo="Questionário">' + esc(p.processoNome) + "</td>" +
               '<td class="tnum nowrap" data-rotulo="Data">' + fmtData(p.data) + "</td>" +
               '<td data-rotulo="Auditoria">' + badgeAuditoria(st) + "</td>" +
-              '<td data-rotulo="Envio da EPO">' + badgeEnvio(!!p.alocacao) + "</td>" +
+              '<td data-rotulo="Envio da EPO">' + badgeEnvio(!!p.temEpo) + "</td>" +
               '<td style="text-align:right;" class="cartao-acoes">' +
                 '<button class="btn btn-ghost btn-sm" type="button" data-conferir="' + i + '">' +
                   '<i class="ti ti-zoom-check" aria-hidden="true"></i>Conferir</button>' +
@@ -553,8 +572,16 @@
           ? (visaoAtual() === "lista" ? tabela : renderGrade())
           : '<div class="empty">' +
               '<i class="ti ti-zoom-question" aria-hidden="true"></i>' +
-              "<div>Nenhuma evidência para conferir ainda. Os questionários aparecem aqui quando a Claro, a EPO ou o auditor da APSIS envia o primeiro arquivo.</div>" +
+              "<div>Nenhum questionário pedido ainda. Eles aparecem aqui assim que uma unidade é cadastrada com os questionários dela.</div>" +
             "</div>";
+
+        // Agora a lista tem questionario sem arquivo nenhum, e dizer so
+        // "para conferir" seria mentira em cima deles.
+        var semArquivo = pares.filter(function (p) { return !p.temArquivo; }).length;
+        var resumo = pares.length + (pares.length === 1 ? " questionário" : " questionários") +
+          (semArquivo
+            ? " · " + semArquivo + (semArquivo === 1 ? " ainda sem arquivo" : " ainda sem arquivo")
+            : " para conferir");
 
         page.innerHTML =
           avisoDemo() +
@@ -565,8 +592,7 @@
             '<div class="card-header">' +
               '<div class="section-title">' +
                 '<span class="title">Questionários</span>' +
-                '<span class="subtitle">' + pares.length +
-                  (pares.length === 1 ? " questionário para conferir" : " questionários para conferir") + "</span>" +
+                '<span class="subtitle">' + resumo + "</span>" +
               "</div>" +
               '<div class="card-header-action">' + htmlAlternador() + "</div>" +
             "</div>" +

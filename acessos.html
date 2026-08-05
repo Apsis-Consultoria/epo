@@ -10,12 +10,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
   <title>Gerenciamento de acessos - Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=116">
-  <link rel="stylesheet" href="assets/carregando.css?v=116">
-  <link rel="stylesheet" href="assets/app.css?v=116">
+  <link rel="stylesheet" href="assets/icones.css?v=119">
+  <link rel="stylesheet" href="assets/carregando.css?v=119">
+  <link rel="stylesheet" href="assets/app.css?v=119">
   <style>
     /* ---------------- Matriz de telas por cargo ---------------- */
-    .matrix-wrap { width: 100%; overflow: auto; border-top: 1px solid var(--border); }
+    /* A caixa rola por dentro, e nao junto com a pagina. Sem isto o cabecalho
+       era "sticky" mas nunca colava: sticky cola dentro do que ROLA, e o que
+       rolava era a pagina inteira - a caixa ia embora com ela, levando os nomes
+       dos cargos. Com 21 linhas, quem chegava no fim da tabela estava marcando
+       caixinha sem ver de qual cargo era a coluna.
+
+       No celular a tabela deixa de ser tabela (cada tela vira um cartao), e ai
+       a altura maxima e removida: cortaria os cartoes. */
+    .matrix-wrap {
+      width: 100%;
+      overflow: auto;
+      max-height: 70vh;
+      border-top: 1px solid var(--border);
+    }
     .matrix { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
     .matrix thead th {
       position: sticky; top: 0; z-index: 3;
@@ -25,6 +38,9 @@
       padding: 10px 8px;
       border-bottom: 1px solid var(--border);
       white-space: nowrap;
+      /* Com border-collapse separate a borda de baixo rola junto e o cabecalho
+         encosta nas linhas sem separacao. A sombra faz o corte. */
+      box-shadow: 0 1px 0 var(--border);
     }
     /* A tela agora fica na linha e o cargo na coluna. São 16 telas e 5 cargos:
        no sentido anterior a tabela tinha 16 colunas e escondia o nome de quase
@@ -142,7 +158,7 @@
        Cada TELA passa a ser um cartao, e cada cargo uma linha com o nome ao
        lado da caixa - o nome era exatamente o que a rolagem escondia. */
     @media (max-width: 820px) {
-      .matrix-wrap { overflow: visible; border-top: 0; }
+      .matrix-wrap { overflow: visible; border-top: 0; max-height: none; }
       .matrix { display: block; width: 100%; }
       .matrix thead { display: none; }
       .matrix tbody { display: block; }
@@ -195,11 +211,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=116"></script>
-  <script src="assets/app.js?v=116"></script>
-  <script src="assets/supabase-config.js?v=116"></script>
+  <script src="assets/data.js?v=119"></script>
+  <script src="assets/app.js?v=119"></script>
+  <script src="assets/supabase-config.js?v=119"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=116"></script>
+  <script src="assets/auth.js?v=119"></script>
   <script>
     (function () {
       "use strict";

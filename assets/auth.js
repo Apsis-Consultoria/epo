@@ -95,7 +95,24 @@
   // Esconde do menu apenas o que o papel nao alcança. Fora disso o menu
   // mostra o sistema inteiro: tela que desaparece sem motivo passa a
   // impressao de que o sistema perdeu funcao.
-  function filtrarNav(perms) {
+  function filtrarNav(perms, papel) {
+    // Secao marcada como somenteAdmin sai do menu de quem nao e administracao.
+    // Isto e o que se MOSTRA, e nao o alcance: quem guarda o alcance continua
+    // sendo a matriz, do lado do servidor. Serve para a demonstracao ao cliente
+    // nao passar por tela que ainda nao esta em uso.
+    var nav = (window.App && App.NAV) || [];
+    nav.forEach(function (n) {
+      if (!n.somenteAdmin || papel === "admin") return;
+      document.querySelectorAll(
+        '.nav-parent[data-subnav="' + n.key + '"], .nav-sub[data-subnav-panel="' + n.key + '"]'
+      ).forEach(function (el) { el.style.display = "none"; });
+      (n.children || []).forEach(function (c) {
+        document.querySelectorAll('.nav a[href]').forEach(function (a) {
+          if (nomeDaPagina(a.getAttribute("href")) === nomeDaPagina(c.href)) a.style.display = "none";
+        });
+      });
+    });
+
     if (!perms) return;
     // Compara pelo NOME da pagina, e nao pelo texto do href: o menu pode ter
     // "epos", "epos" ou "epos?filtro=x" e as tres sao a mesma tela.
@@ -668,7 +685,7 @@
         email: "",
         papel: papelT
       });
-      if (permsT) filtrarNav(permsT);
+      filtrarNav(permsT, papelT);
       return Promise.resolve("demo");
     }
     if (!client) {
@@ -760,7 +777,7 @@
           simulado: simulado,
           podeSimular: podeSimular
         });
-        filtrarNav(perms);
+        filtrarNav(perms, simulado || p.papel);
         return simulado ? "ver-como" : "ok";
       });
   }

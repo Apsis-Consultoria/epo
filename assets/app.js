@@ -23,12 +23,10 @@
     { key: "comparativo", label: "Comparativo",      icon: "ti-arrows-diff",      href: "comparar" },
     { key: "gerencial",   label: "Painel gerencial", icon: "ti-report-analytics", href: "gerencial" },
     { key: "pendentes",   label: "Auditorias pendentes", icon: "ti-clipboard-list", href: "pendentes" },
-    { key: "realizadas",  label: "Auditorias realizadas", icon: "ti-clipboard-check", href: "realizadas" },
     // Uma tela so para evidencia. Cada lado anexa na propria caixa, na mesma
     // tela onde ve o que os outros mandaram. Antes havia uma tela separada so
     // para enviar, e quem enviava nao via o resto.
     { key: "checagem",    label: "Evidências",       icon: "ti-photo-check",      href: "checagem" },
-    { key: "giro",        label: "Contagem Logística Reversa", icon: "ti-packages", href: "contagem-giro" },
     // Reenvio, acessos e arquivos são bastidores: quem opera o dia a dia
     // não passa por eles. Ficam como subtópicos de Configurações.
     // Configuracoes nao tem tela propria: e so o agrupador que abre as de
@@ -36,10 +34,23 @@
     // proprios subtopicos nao leva a pessoa a lugar nenhum.
     { key: "config",      label: "Configurações",    icon: "ti-settings",
       children: [
-        { key: "questionarios", label: "Questionários",          href: "questionarios" },
+        { key: "questionarios", label: "Checklist",               href: "questionarios" },
         { key: "alocacoes",  label: "Reenvio de checklist",     href: "alocacoes" },
         { key: "acessos",    label: "Gerenciamento de acessos", href: "acessos" },
         { key: "evidencias", label: "Evidências enviadas",      href: "evidencias" }
+      ] },
+    // Telas que existem mas ainda nao estao em uso. Ficam juntas e SO para a
+    // administracao: assim a demonstracao para o cliente mostra o sistema sem
+    // tela pela metade no meio do caminho, e quem cuida do sistema continua
+    // alcancando as duas.
+    //
+    // somenteAdmin nao e permissao: e o que se MOSTRA. Quem guarda o alcance
+    // continua sendo a matriz de acessos, do lado do servidor.
+    { key: "inativas",    label: "Telas inativas",   icon: "ti-player-pause",
+      somenteAdmin: true,
+      children: [
+        { key: "realizadas", label: "Auditorias realizadas",      href: "realizadas" },
+        { key: "giro",       label: "Contagem Logística Reversa", href: "contagem-giro" }
       ] }
   ];
 

@@ -1494,8 +1494,17 @@ input[type="submit"],
 }
 
 .gan-prev { top: 5px; background: var(--surface-2); border-color: var(--border-strong); }
-.gan-prev.s-aguardando_claro { background: var(--warning-bg); border-color: var(--apsis-orange); border-style: dashed; }
-.gan-prev.s-aguardando_apsis { background: var(--surface); border-color: var(--apsis-orange); border-style: dashed; }
+/* Esperando resposta e cinza tracejado: nada foi combinado ainda. Era laranja,
+   e o laranja da legenda nao batia com o cinza que aparecia no roadmap - porque
+   o cinza e o estilo BASE da barra, usado por toda situacao sem regra propria
+   (a unidade que acabou de entrar no ciclo e ainda nao teve data enviada, por
+   exemplo), e essa situacao nao tem linha na legenda. Com as duas cinzas, o
+   desenho e a legenda dizem a mesma coisa nos dois casos.
+
+   O laranja fica para o que e informacao: a data que a Claro sugeriu (hachurada)
+   e a visita feita fora da data (cheia). */
+.gan-prev.s-aguardando_claro { background: var(--surface-2); border-color: var(--border-strong); border-style: dashed; }
+.gan-prev.s-aguardando_apsis { background: var(--surface); border-color: var(--border-strong); border-style: dashed; }
 .gan-prev.s-confirmada       { background: var(--apsis-green); border-color: var(--apsis-green); }
 .gan-prev.s-realizada        { background: var(--border-strong); border-color: var(--border-strong); }
 .gan-prev.s-cancelada        { opacity: .45; }
@@ -1538,7 +1547,7 @@ input[type="submit"],
   display: inline-block; width: 24px; height: 13px; border-radius: 3px;
   border: 1px solid var(--border-strong); background: var(--surface-2);
 }
-.gan-amostra.aguardando { background: var(--warning-bg); border: 1px dashed var(--apsis-orange); }
+.gan-amostra.aguardando { background: var(--surface-2); border: 1px dashed var(--border-strong); }
 .gan-amostra.sugerida   { border-color: var(--apsis-orange);
   background: repeating-linear-gradient(-45deg,
     var(--apsis-orange) 0 2px, var(--warning-bg) 2px 7px); }

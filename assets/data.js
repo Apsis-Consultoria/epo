@@ -285,7 +285,7 @@
     { key: "realizadas",  label: "Auditorias realizadas",    icone: "ti-clipboard-check",  href: "realizadas" },
     { key: "auditoria",   label: "Preenchimento de questionário", icone: "ti-clipboard-check", href: "pendentes" },
     { key: "checagem",    label: "Evidências",               icone: "ti-photo-check",      href: "checagem" },
-    { key: "questionarios", label: "Questionários",          icone: "ti-list-details",     href: "questionarios" },
+    { key: "questionarios", label: "Checklist",               icone: "ti-list-details",     href: "questionarios" },
     { key: "alocacoes",   label: "Reenvio de checklist",     icone: "ti-user-plus",        href: "alocacoes" },
     { key: "giro",        label: "Contagem Logística Reversa", icone: "ti-packages",        href: "contagem-giro" },
     { key: "evidencias",  label: "Evidências enviadas",      icone: "ti-camera",           href: "evidencias" },
@@ -320,7 +320,7 @@
 
     { grupo: "Cadastro",       key: "epos",          label: "EPOs",                       arquivo: "epos",          onde: "menu lateral e atalho da visão geral" },
     { grupo: "Cadastro",       key: "cronograma",    label: "Cronograma",                 arquivo: "cronograma",    onde: "menu lateral e atalho da visão geral" },
-    { grupo: "Cadastro",       key: "questionarios", label: "Questionários",              arquivo: "questionarios", onde: "menu lateral" },
+    { grupo: "Cadastro",       key: "questionarios", label: "Checklist",                  arquivo: "questionarios", onde: "menu lateral" },
 
     { grupo: "Vistoria",       key: "pendentes",     label: "Auditorias pendentes",       arquivo: "pendentes",     onde: "menu lateral e atalho da visão geral" },
     { grupo: "Vistoria",       key: "auditoria",     label: "Preenchimento do questionário", arquivo: "auditoria",  onde: "botão Preencher, em Auditorias pendentes" },
