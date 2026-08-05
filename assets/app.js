@@ -374,7 +374,7 @@
     jaSaiu = true;
     var el = document.getElementById("tela-carregando");
     if (!el) return;
-    el.classList.add("saindo");
+    el.style.opacity = "0";
     setTimeout(function () {
       if (el.parentNode) el.parentNode.removeChild(el);
     }, 260);

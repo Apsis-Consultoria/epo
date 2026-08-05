@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/carregando.css?v=112">
-  <link rel="stylesheet" href="assets/portal.css?v=112" />
+  <link rel="stylesheet" href="assets/carregando.css?v=113">
+  <link rel="stylesheet" href="assets/portal.css?v=113" />
   <style>
     /* Ajustes de proporção do painel de login (sobrepõem o portal.css) */
     .login-col { padding-top: 3vh; }
@@ -23,9 +23,8 @@
   </style>
 </head>
 <body>
-  <div class="tela-carregando no-escuro" id="tela-carregando" role="status" aria-label="Carregando">
-    <img src="assets/brand/logo-apsis-transp.png" alt="APSIS" onerror="this.style.display='none'" />
-    <span class="barra" aria-hidden="true"></span>
+  <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
+    <div class="giro"></div>
   </div>
   <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
     <svg class="absolute inset-0 w-full h-full" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
@@ -145,9 +144,9 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=112"></script>
+  <script src="assets/supabase-config.js?v=113"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=112"></script>
+  <script src="assets/auth.js?v=113"></script>
   <script>
     (function () {
       "use strict";
@@ -225,7 +224,7 @@
         saiuCarregando = true;
         var el = $("tela-carregando");
         if (!el) return;
-        el.classList.add("saindo");
+        el.style.opacity = "0";
         setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 260);
       }
       // Nada pode prender a pessoa atras do logo, nem falha de rede.

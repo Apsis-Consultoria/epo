@@ -1,6 +1,9 @@
 /* =========================================================================
-   Tela de carregamento - logo da APSIS enquanto o sistema decide o que
-   mostrar. É o mesmo desenho dos outros sistemas internos da APSIS.
+   Tela de carregamento - a mesma do sistema de Unitização da APSIS.
+
+   Copiada do que existe lá (index.html do projeto unitizacao): fundo verde
+   APSIS, anel branco girando no meio, e saída por opacidade. Sem logo: a
+   unitização não tem logo nesta tela.
 
    Por que ela existe: as telas nasciam com o menu inteiro desenhado e só
    DEPOIS o servidor dizia o que aquele cargo alcança. Entre uma coisa e outra
@@ -9,79 +12,33 @@
    outra. Piscava, e o que piscava era informação de acesso.
 
    Fica no HTML de cada tela, e não em JavaScript, porque precisa estar
-   pintada ANTES de qualquer script rodar. Sai quando a tela está pronta.
+   pintada ANTES de qualquer script rodar - é o mesmo motivo do comentário
+   que está no arquivo da unitização. Sai quando a tela está pronta.
 
-   Arquivo próprio, e não dentro de app.css, por dois motivos: entra antes
-   (é a primeira folha de estilo da página, então cobre desde o primeiro
-   quadro) e a tela de entrada, que usa outra folha, aproveita a mesma.
+   Arquivo próprio, e não dentro de app.css, para entrar antes (é a primeira
+   folha da página) e para a tela de entrada, que usa outra folha, aproveitar
+   a mesma.
    ========================================================================= */
 .tela-carregando {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  background: #1A4731;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 26px;
-  background: #F4F6F4;
+  z-index: 9999;
+  transition: opacity 0.25s ease;
 }
 
-/* Sobre a entrada, que tem foto de fundo escura. */
-.tela-carregando.no-escuro { background: #07130d; }
-
-.tela-carregando img {
-  width: 168px;
-  max-width: 52vw;
-  height: auto;
-  object-fit: contain;
-  /* Respira devagar. Rápido demais parece alerta, não espera. */
-  animation: apsis-respira 1.6s ease-in-out infinite;
+.tela-carregando .giro {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: apsis-gira 0.8s linear infinite;
 }
 
-/* Barra fina embaixo do logo: a parte laranja atravessa de um lado ao outro,
-   sem fingir uma porcentagem que não existe. */
-.tela-carregando .barra {
-  position: relative;
-  width: 168px;
-  max-width: 52vw;
-  height: 3px;
-  border-radius: 999px;
-  background: #DDE3DE;
-  overflow: hidden;
-}
-.tela-carregando.no-escuro .barra { background: rgba(255, 255, 255, .18); }
-
-.tela-carregando .barra::after {
-  content: "";
-  position: absolute;
-  top: 0; bottom: 0; left: 0;
-  width: 42%;
-  border-radius: 999px;
-  background: #F47920;
-  animation: apsis-atravessa 1.15s ease-in-out infinite;
-}
-
-@keyframes apsis-respira {
-  0%, 100% { opacity: 1;   transform: scale(1); }
-  50%      { opacity: .72; transform: scale(.975); }
-}
-
-@keyframes apsis-atravessa {
-  0%   { left: -45%; }
-  100% { left: 100%; }
-}
-
-/* Quem pediu para o sistema não animar nada vê o logo parado: continua
-   claro que está carregando, sem movimento na tela. */
-@media (prefers-reduced-motion: reduce) {
-  .tela-carregando img { animation: none; opacity: 1; }
-  .tela-carregando .barra::after { animation: none; left: 0; width: 100%; opacity: .5; }
-}
-
-/* Saída suave, para a tela não trocar num corte seco. */
-.tela-carregando.saindo {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .22s ease;
+@keyframes apsis-gira {
+  to { transform: rotate(360deg); }
 }
