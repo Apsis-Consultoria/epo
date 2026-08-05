@@ -158,29 +158,38 @@
     var auditorias = [];
     var regras = null;
 
-    return lerCortes(db).then(function () {
+    // As quatro leituras saem JUNTAS. Elas eram uma atras da outra - cortes,
+    // depois unidades, depois auditorias, depois questionarios - e nenhuma
+    // precisa do resultado da anterior. Eram quatro idas ao servidor em fila,
+    // uma esperando a outra; agora e uma ida so pelo tempo de rede.
+    return Promise.all([
+      lerCortes(db),
+      db.from("epos")
+        .select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo, cod_fornecedor, " +
+                "responsavel_nome, responsavel_email")
+        .order("nome"),
+      db.from("auditorias")
+        .select("id, epo_id, processo_id, score, tier, status, data_visita, criado_em")
+        .in("status", ["enviada", "validada"])
+        .order("criado_em", { ascending: false }),
+      db.from("processos")
+        .select("id, nome, slug, icone, peso, descricao")
+        .order("peso", { ascending: false })
+    ]).then(function (tudo) {
     regras = (window.APP && window.APP.tierRules) || null;
-    return db.from("epos")
-      .select("id, nome, cidade, uf, endereco, cep, lat, lng, ativo, cod_fornecedor, " +
-              "responsavel_nome, responsavel_email")
-      .order("nome")
+    return Promise.resolve(tudo[1])
       .then(function (r) {
         // Erro de leitura virando lista vazia esconderia o problema. Sobe, e
         // quem chamou decide: aqui, abrir vazio com o aviso da propria tela.
         if (r.error) throw new Error(r.error.message || "falha ao ler as unidades");
         unidades = (r.data || []).map(unidadeVazia);
         if (!unidades.length) return { data: [], error: null };
-        return db.from("auditorias")
-          .select("id, epo_id, processo_id, score, tier, status, data_visita, criado_em")
-          .in("status", ["enviada", "validada"])
-          .order("criado_em", { ascending: false });
+        return tudo[2];
       })
       .then(function (r) {
         if (r && r.error) throw new Error(r.error.message || "falha ao ler as auditorias");
         auditorias = (r && r.data) ? r.data : [];
-        return db.from("processos")
-          .select("id, nome, slug, icone, peso, descricao")
-          .order("peso", { ascending: false });
+        return tudo[3];
       })
       .then(function (r) {
         var procsDb = (r && !r.error && r.data) ? r.data : [];

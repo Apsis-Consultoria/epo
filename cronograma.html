@@ -13,8 +13,8 @@
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 
-  <link rel="stylesheet" href="assets/carregando.css?v=114">
-  <link rel="stylesheet" href="assets/app.css?v=114">
+  <link rel="stylesheet" href="assets/carregando.css?v=115">
+  <link rel="stylesheet" href="assets/app.css?v=115">
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
@@ -36,14 +36,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=114"></script>
-  <script src="assets/app.js?v=114"></script>
-  <script src="assets/supabase-config.js?v=114"></script>
+  <script src="assets/data.js?v=115"></script>
+  <script src="assets/app.js?v=115"></script>
+  <script src="assets/supabase-config.js?v=115"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=114"></script>
-  <script src="assets/geo-br.js?v=114"></script>
-  <script src="assets/cronograma-planilha.js?v=114"></script>
-  <script src="assets/form-epo.js?v=114"></script>
+  <script src="assets/auth.js?v=115"></script>
+  <script src="assets/geo-br.js?v=115"></script>
+  <script src="assets/cronograma-planilha.js?v=115"></script>
+  <script src="assets/form-epo.js?v=115"></script>
   <script>
     (function () {
       "use strict";
@@ -162,8 +162,11 @@
         // dados dela aparecem preenchidos e o que se preenche e a data. Antes a
         // unidade caia no cronograma so por ter sido cadastrada, sem data, e a
         // lista enchia de linha que ninguem tinha agendado.
-        '<a class="btn btn-primary btn-sm is-hidden" id="btn-novo-cron" href="epos?cronograma=1">' +
-          '<i class="ti ti-calendar-plus" aria-hidden="true"></i>Novo cronograma</a>' +
+        // Abre a janela AQUI. Antes este botao levava para a tela de EPOs, e
+        // quem estava olhando o cronograma perdia o cronograma de vista para
+        // marcar uma data que e do cronograma.
+        '<button class="btn btn-primary btn-sm is-hidden" id="btn-novo-cron" type="button">' +
+          '<i class="ti ti-calendar-plus" aria-hidden="true"></i>Novo cronograma</button>' +
         '<button class="btn btn-ghost btn-sm is-hidden" id="btn-nova" type="button">' +
           '<i class="ti ti-building-plus" aria-hidden="true"></i>Nova EPO</button>' +
         '<button class="btn btn-ghost btn-sm is-hidden" id="btn-imprimir" type="button">' +
@@ -1609,35 +1612,126 @@
           });
       }
 
-      function abrirNova() {
+      // Duas janelas, um formulario so:
+      //   modoCron = false -> unidade nova, que ja nasce no ciclo
+      //   modoCron = true  -> "Novo cronograma": a unidade JA existe, vem de uma
+      //                       lista suspensa, e o que se preenche aqui e a data
+      var modoCron = false;
+      var epoEscolhida = null;   // id da unidade, no modo cronograma
+      var listaEpos = null;      // cadastro completo, lido na primeira abertura
+
+      function textoDoBotao() {
+        return modoCron ? "Salvar data" : "Cadastrar unidade";
+      }
+
+      function mostrarEscolha(ligado) {
+        var wrap = $("f-escolha-wrap");
+        if (wrap) wrap.classList.toggle("is-hidden", !ligado);
+      }
+
+      // O cronograma so conhece as unidades que JA tem linha. Para escolher
+      // qualquer unidade cadastrada, o cadastro e lido aqui - e so quando esta
+      // janela abre, para nao atrasar o roadmap por causa dela.
+      function carregarEpos() {
+        if (listaEpos) return Promise.resolve(listaEpos);
+        if (DEMO) { listaEpos = []; return Promise.resolve(listaEpos); }
+        return Auth.cliente.from("epos")
+          .select("id, nome, cidade, uf, endereco, cep, ativo, cod_fornecedor, base, " +
+                  "responsavel_nome, responsavel_email")
+          .order("nome")
+          .then(function (r) {
+            listaEpos = (r && !r.error && r.data) ? r.data : [];
+            return listaEpos;
+          }, function () { listaEpos = []; return listaEpos; });
+      }
+
+      function pintarEscolha(selecionada) {
+        var sel = $("f-escolha");
+        if (!sel) return;
+        var ativas = (listaEpos || []).filter(function (e) {
+          return e.ativo !== false || String(e.id) === String(selecionada);
+        });
+        sel.innerHTML =
+          '<option value="">Selecione a unidade...</option>' +
+          ativas.map(function (e) {
+            var loc = [e.cidade, e.uf].filter(Boolean).join("/");
+            return '<option value="' + esc(e.id) + '"' +
+              (String(e.id) === String(selecionada) ? " selected" : "") + ">" +
+              esc(e.nome) + (loc ? " - " + esc(loc) : "") +
+              (e.ativo === false ? " (inativa)" : "") + "</option>";
+          }).join("");
+      }
+
+      // Unidade escolhida: o formulario se preenche com o cadastro dela, e a
+      // linha do cronograma dela, se existir, traz a data que ja esta marcada.
+      function carregarEscolhida(id) {
+        epoEscolhida = id || null;
+        var epo = null;
+        (listaEpos || []).forEach(function (e) {
+          if (String(e.id) === String(id)) epo = e;
+        });
+        var doCron = null;
+        itens.forEach(function (it) {
+          if (epo && String(it.epoId) === String(epo.id)) doCron = it;
+        });
+        FormEpo.preencher(epo ? {
+          id: epo.id, cod: epo.cod_fornecedor, base: epo.base, nome: epo.nome,
+          ativo: epo.ativo, endereco: epo.endereco, cidade: epo.cidade,
+          uf: epo.uf, cep: epo.cep,
+          responsavel_nome: epo.responsavel_nome, responsavel_email: epo.responsavel_email
+        } : null, { item: doCron });
+      }
+
+      function abrirNova(cronograma) {
+        modoCron = !!cronograma;
+        epoEscolhida = null;
         FormEpo.preparar({ processos: [], pedidos: [] });
         FormEpo.limpar();
+        mostrarEscolha(modoCron);
+        $("nova-titulo").textContent = modoCron ? "Novo cronograma" : "Nova EPO";
         $("nova-salvar").disabled = false;
-        $("nova-salvar").textContent = "Cadastrar unidade";
+        $("nova-salvar").textContent = textoDoBotao();
         $("nova-modal").classList.add("is-open");
-        setTimeout(function () { var c = $("f-cod"); if (c) c.focus(); }, 60);
 
         carregarListasDoForm().then(function (l) {
           FormEpo.atualizarListas(l);
           FormEpo.renderProcs(null);
         });
+
+        if (modoCron) {
+          carregarEpos().then(function () {
+            pintarEscolha("");
+            var sel = $("f-escolha");
+            if (sel) sel.focus();
+          });
+        } else {
+          setTimeout(function () { var c = $("f-cod"); if (c) c.focus(); }, 60);
+        }
       }
 
       function fecharNova() { $("nova-modal").classList.remove("is-open"); }
 
       function salvarNova() {
+        if (modoCron && !epoEscolhida) {
+          App.toast("Escolha a unidade que entra no cronograma.");
+          var sel = $("f-escolha");
+          if (sel) sel.focus();
+          return;
+        }
+
         var d = FormEpo.ler();
-        // Aqui o codigo do fornecedor e sempre exigido: e a chave que a planilha
-        // usa para nao duplicar unidade no reenvio.
-        var erro = FormEpo.validar(d, null, true);
+        // No cadastro novo o codigo do fornecedor e sempre exigido: e a chave que
+        // a planilha usa para nao duplicar unidade no reenvio. No modo cronograma
+        // a unidade ja existe com o codigo dela.
+        var erro = FormEpo.validar(d, epoEscolhida, !modoCron);
         if (erro) { App.toast(erro); return; }
 
         var btn = $("nova-salvar");
         btn.disabled = true;
-        btn.textContent = "Cadastrando...";
+        btn.textContent = modoCron ? "Salvando..." : "Cadastrando...";
         function encerrar(msg) {
           btn.disabled = false;
-          btn.textContent = "Cadastrar unidade";
+          btn.textContent = textoDoBotao();
           if (msg) App.toast(msg);
         }
 
@@ -1645,22 +1739,31 @@
 
         // Salvo de dentro do cronograma: a unidade entra na lista mesmo sem
         // data, porque e essa a lista de quem ainda precisa de data.
-        FormEpo.salvarTudo({ db: Auth.cliente, dados: d, epoId: null, ciclo: CICLO,
+        FormEpo.salvarTudo({ db: Auth.cliente, dados: d, epoId: epoEscolhida, ciclo: CICLO,
                              incluirNoCronograma: true })
           .then(function (r) {
             formListas = null;          // o pedido novo tem de aparecer na proxima abertura
+            listaEpos = null;           // o cadastro pode ter mudado aqui
             encerrar(null);
             var frase = FormEpo.resumo(r, d);
-            App.toast(d.nome + " cadastrada." + (frase ? " " + frase + "." : ""));
+            App.toast(d.nome + (modoCron ? " no cronograma." : " cadastrada.") +
+                      (frase ? " " + frase + "." : ""));
             fecharNova();
             return carregar().then(render);
           })
           .catch(function (e) {
-            encerrar((e && e.message) ? e.message : "Nao foi possivel cadastrar agora.");
+            encerrar((e && e.message) ? e.message
+                                      : (modoCron ? "Nao foi possivel salvar agora."
+                                                  : "Nao foi possivel cadastrar agora."));
           });
       }
 
-      $("btn-nova").addEventListener("click", abrirNova);
+      $("btn-nova").addEventListener("click", function () { abrirNova(false); });
+      $("btn-novo-cron").addEventListener("click", function () { abrirNova(true); });
+      (function () {
+        var sel = $("f-escolha");
+        if (sel) sel.addEventListener("change", function () { carregarEscolhida(this.value); });
+      })();
 
       // ------------------------------------------------------------------
       // Imprimir

@@ -242,14 +242,17 @@
   // - quem ganhou relatorio pedido depois de ja ter conta.
   // As duas sao decisoes que a APSIS ja tomou; aqui elas so chegam ao perfil.
   var papelSincronizado = false;
+  // As duas sincronizacoes saem juntas: uma acerta o papel pela lista de
+  // e-mails autorizados, a outra pela lista de responsaveis de unidade, e
+  // nenhuma le o resultado da outra. Em fila eram duas esperas de rede.
   function sincronizarPapel() {
     if (papelSincronizado || !client) return Promise.resolve();
     papelSincronizado = true;
-    return client.rpc("sincronizar_meu_acesso")
-      .then(function () {}, function () {})
-      .then(function () {
-        return client.rpc("sincronizar_papel_responsavel").then(function () {}, function () {});
-      });
+    var quieto = function () {};
+    return Promise.all([
+      client.rpc("sincronizar_meu_acesso").then(quieto, quieto),
+      client.rpc("sincronizar_papel_responsavel").then(quieto, quieto)
+    ]);
   }
 
   // ---------------------------------------------- Telas por cargo
@@ -676,31 +679,57 @@
     }
     return sessao().then(function (s) {
       if (!s) { location.replace("login"); return "sem-sessao"; }
-      // Segundo fator antes de qualquer outra coisa: sem o codigo, o servidor
-      // nao devolve papel nenhum, e a tela abriria vazia sem explicacao.
-      return mfaSituacao().catch(function () {
-        return { precisa: false };
-      }).then(function (m) {
+
+      // O segundo fator continua sendo a primeira coisa DECIDIDA, mas a busca do
+      // papel e da matriz de telas sai junto com ele em vez de esperar na fila.
+      // Quem entrou por codigo no e-mail ou pela conta Microsoft nunca precisa de
+      // um segundo codigo, e nesse caminho - que e o de todo mundo - era uma ida
+      // de rede inteira parada esperando uma resposta que sempre vem igual.
+      //
+      // Nada e APLICADO antes da resposta do segundo fator: se ele for
+      // necessario, a tela e trocada e o que veio junto e descartado.
+      var pSegundoFator = mfaSituacao().catch(function () { return { precisa: false }; });
+      var pQuemE = buscarPerfil(s).then(
+        function (d) { return d; },
+        function (e) { return { erro: e }; });
+
+      return pSegundoFator.then(function (m) {
         if (m && m.precisa) {
           location.replace("confirmar-acesso");
           return "precisa-codigo";
         }
-        return seguirComPerfil(s, pageKey);
+        return pQuemE.then(function (d) {
+          if (d && d.erro) throw d.erro;
+          return aplicarPerfil(s, pageKey, d.perfil, d.gravadas);
+        });
       });
     });
   }
 
-  // pageKey vem junto: ele e parametro de guard, e usar aqui sem receber
-  // dava ReferenceError. A promessa quebrava no meio, entao o nome de quem
-  // entrou nao aparecia, o menu nao era filtrado e a pessoa sem permissao
-  // para a tela deixava de ser redirecionada. So acontecia em sessao de
-  // verdade: em modo de teste o guard nem chega aqui, e foi por isso que
-  // passou.
-  function seguirComPerfil(s, pageKey) {
-    var gravadas = null;
-    return sincronizarPapel()
-      .then(permissoesGravadas)
-      .then(function (g) { gravadas = g; return perfilDe(s.user); })
+  // Busca quem e a pessoa e o que o cargo dela alcanca. So busca: nao mexe na
+  // tela, para poder sair junto com a resposta do segundo fator.
+  //
+  // A matriz de telas sai JUNTO com a sincronizacao do papel, porque nao depende
+  // dela. O perfil, sim, tem de vir depois: e a sincronizacao que acerta o papel
+  // a partir da lista de e-mails autorizados, e ler antes traria o papel velho.
+  function buscarPerfil(s) {
+    return Promise.all([sincronizarPapel(), permissoesGravadas()])
+      .then(function (par) {
+        return perfilDe(s.user).then(function (p) {
+          return { gravadas: par[1], perfil: p };
+        });
+      });
+  }
+
+  // Aplica na tela: nome de quem entrou, desvio por permissao e filtro do menu.
+  //
+  // pageKey vem por parametro. Antes esta funcao usava a variavel sem receber, e
+  // dava ReferenceError: a promessa quebrava no meio, o nome de quem entrou nao
+  // aparecia, o menu nao era filtrado e quem nao tinha permissao para a tela
+  // deixava de ser desviado. So acontecia em sessao de verdade, e foi por isso
+  // que passou.
+  function aplicarPerfil(s, pageKey, p, gravadas) {
+    return Promise.resolve(p)
       .then(function (p) {
         if (p.papel === "sem_acesso") {
           location.replace("sem-acesso");
