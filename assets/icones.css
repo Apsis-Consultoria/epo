@@ -1,0 +1,185 @@
+/* =========================================================================
+   Ícones - só os que este sistema usa.
+
+   Antes cada tela carregava a folha inteira do Tabler direto do CDN: 223 KB,
+   com cerca de 5800 ícones, dos quais este sistema usa 142. E ela ficava no
+   <head> como folha de estilo, ou seja, BLOQUEAVA a pintura da tela: nada
+   aparecia até esses 223 KB chegarem de um servidor de fora e serem
+   interpretados. Pior: a fonte só era pedida depois disso, porque é a folha
+   que a declara - o ícone chegava sempre em terceiro lugar.
+
+   Este arquivo é a mesma coisa com 142 regras em vez de 5800: ~6 KB, vindo do
+   mesmo servidor do site. A declaração da fonte é a primeira coisa aqui, então
+   o navegador começa a baixá-la imediatamente.
+
+   font-display: block em vez do padrão: fonte de ícone não tem letra de
+   reserva que faça sentido. Sem isso o navegador desenha o caractere de
+   substituição da fonte de texto por até 3 segundos - era o quadradinho que
+   aparecia antes do ícone.
+
+   Como acrescentar um ícone: pegue o código dele na folha do Tabler
+   (.ti-NOME:before { content: "\\xxxx" }) e cole aqui embaixo. Ícone usado numa
+   tela e ausente daqui não aparece.
+   ========================================================================= */
+@font-face {
+  font-family: "tabler-icons";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0") format("woff2");
+}
+
+.ti {
+  font-family: "tabler-icons" !important;
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ti-alert-circle:before { content: "\ea05"; }
+.ti-alert-triangle:before { content: "\ea06"; }
+.ti-antenna-bars-5:before { content: "\eccb"; }
+.ti-arrow-back-up:before { content: "\eb77"; }
+.ti-arrow-left:before { content: "\ea19"; }
+.ti-arrow-right:before { content: "\ea1f"; }
+.ti-arrow-up:before { content: "\ea25"; }
+.ti-arrows-diff:before { content: "\f296"; }
+.ti-award:before { content: "\ea2c"; }
+.ti-bell:before { content: "\ea35"; }
+.ti-bell-ringing:before { content: "\ed07"; }
+.ti-building-warehouse:before { content: "\ebe3"; }
+.ti-calendar:before { content: "\ea53"; }
+.ti-calendar-check:before { content: "\f824"; }
+.ti-calendar-event:before { content: "\ea52"; }
+.ti-calendar-off:before { content: "\ee1f"; }
+.ti-calendar-plus:before { content: "\ebba"; }
+.ti-calendar-repeat:before { content: "\fad2"; }
+.ti-calendar-stats:before { content: "\ee20"; }
+.ti-calendar-x:before { content: "\f832"; }
+.ti-camera:before { content: "\ea54"; }
+.ti-camera-off:before { content: "\ecee"; }
+.ti-camera-plus:before { content: "\ec3b"; }
+.ti-chart-bar:before { content: "\ea59"; }
+.ti-chart-bar-off:before { content: "\f3d2"; }
+.ti-chart-histogram:before { content: "\f65c"; }
+.ti-check:before { content: "\ea5e"; }
+.ti-checklist:before { content: "\f074"; }
+.ti-checks:before { content: "\ebaa"; }
+.ti-chevron-down:before { content: "\ea5f"; }
+.ti-chevron-left:before { content: "\ea60"; }
+.ti-chevron-right:before { content: "\ea61"; }
+.ti-chevron-up:before { content: "\ea62"; }
+.ti-circle-check:before { content: "\ea67"; }
+.ti-circle-filled:before { content: "\f671"; }
+.ti-circle-x:before { content: "\ea6a"; }
+.ti-clipboard-check:before { content: "\ea6c"; }
+.ti-clipboard-list:before { content: "\ea6d"; }
+.ti-clipboard-off:before { content: "\f0ce"; }
+.ti-clipboard-plus:before { content: "\efb2"; }
+.ti-clock:before { content: "\ea70"; }
+.ti-clock-hour-4:before { content: "\f319"; }
+.ti-clock-pause:before { content: "\f548"; }
+.ti-cloud-check:before { content: "\f84d"; }
+.ti-cloud-lock:before { content: "\efdb"; }
+.ti-cloud-off:before { content: "\ed3e"; }
+.ti-device-floppy:before { content: "\eb62"; }
+.ti-device-remote:before { content: "\f792"; }
+.ti-device-tv:before { content: "\ea8d"; }
+.ti-device-tv-old:before { content: "\f1d3"; }
+.ti-download:before { content: "\ea96"; }
+.ti-external-link:before { content: "\ea99"; }
+.ti-eye:before { content: "\ea9a"; }
+.ti-eye-check:before { content: "\ee88"; }
+.ti-file:before { content: "\eaa4"; }
+.ti-file-alert:before { content: "\ede6"; }
+.ti-file-check:before { content: "\ea9c"; }
+.ti-file-off:before { content: "\ecf2"; }
+.ti-file-plus:before { content: "\eaa0"; }
+.ti-file-spreadsheet:before { content: "\f03e"; }
+.ti-file-text:before { content: "\eaa2"; }
+.ti-file-type-pdf:before { content: "\fb10"; }
+.ti-file-typography:before { content: "\f041"; }
+.ti-files:before { content: "\edef"; }
+.ti-filter-off:before { content: "\ed2c"; }
+.ti-flame:before { content: "\ec2c"; }
+.ti-folder-off:before { content: "\ed14"; }
+.ti-folder-plus:before { content: "\eaab"; }
+.ti-help:before { content: "\eabf"; }
+.ti-help-circle:before { content: "\f91d"; }
+.ti-help-off:before { content: "\f3f8"; }
+.ti-history:before { content: "\ebea"; }
+.ti-home:before { content: "\eac1"; }
+.ti-home-exclamation:before { content: "\f33c"; }
+.ti-inbox:before { content: "\eac4"; }
+.ti-info-circle:before { content: "\eac5"; }
+.ti-layout-dashboard:before { content: "\f02c"; }
+.ti-layout-grid:before { content: "\edba"; }
+.ti-line-dashed:before { content: "\eea7"; }
+.ti-link:before { content: "\eade"; }
+.ti-list:before { content: "\eb6b"; }
+.ti-list-details:before { content: "\ef40"; }
+.ti-list-search:before { content: "\eea9"; }
+.ti-loader-2:before { content: "\f226"; }
+.ti-lock-access:before { content: "\eeaa"; }
+.ti-logout:before { content: "\eba8"; }
+.ti-mail:before { content: "\eae5"; }
+.ti-mail-forward:before { content: "\eeac"; }
+.ti-map:before { content: "\eae9"; }
+.ti-map-pin:before { content: "\eae8"; }
+.ti-map-pin-check:before { content: "\f94c"; }
+.ti-map-pin-off:before { content: "\ecf3"; }
+.ti-menu-2:before { content: "\ec42"; }
+.ti-minus:before { content: "\eaf2"; }
+.ti-mood-empty:before { content: "\eeb5"; }
+.ti-notes:before { content: "\eb6e"; }
+.ti-numbers:before { content: "\f015"; }
+.ti-package:before { content: "\eaff"; }
+.ti-package-export:before { content: "\f07a"; }
+.ti-package-import:before { content: "\f07b"; }
+.ti-packages:before { content: "\f2c9"; }
+.ti-paperclip:before { content: "\eb02"; }
+.ti-pencil:before { content: "\eb04"; }
+.ti-pencil-plus:before { content: "\f1ec"; }
+.ti-percentage:before { content: "\ecf4"; }
+.ti-photo:before { content: "\eb0a"; }
+.ti-photo-check:before { content: "\f35e"; }
+.ti-player-pause:before { content: "\ed45"; }
+.ti-plug:before { content: "\ebd9"; }
+.ti-plus:before { content: "\eb0b"; }
+.ti-printer:before { content: "\eb0e"; }
+.ti-progress:before { content: "\fa0d"; }
+.ti-refresh:before { content: "\eb13"; }
+.ti-report-analytics:before { content: "\eecb"; }
+.ti-rosette-discount-check:before { content: "\f1f8"; }
+.ti-route:before { content: "\eb17"; }
+.ti-satellite:before { content: "\eed3"; }
+.ti-scan:before { content: "\ebc8"; }
+.ti-school:before { content: "\ecf7"; }
+.ti-search:before { content: "\eb1c"; }
+.ti-search-off:before { content: "\f19c"; }
+.ti-send:before { content: "\eb1e"; }
+.ti-settings:before { content: "\eb20"; }
+.ti-shield-check:before { content: "\eb22"; }
+.ti-stack-2:before { content: "\eef7"; }
+.ti-table-import:before { content: "\eef9"; }
+.ti-target:before { content: "\eb35"; }
+.ti-target-arrow:before { content: "\f51a"; }
+.ti-trash:before { content: "\eb41"; }
+.ti-trending-down:before { content: "\eb42"; }
+.ti-trending-up:before { content: "\eb43"; }
+.ti-trophy:before { content: "\eb45"; }
+.ti-truck-delivery:before { content: "\ec4b"; }
+.ti-truck-loading:before { content: "\f1da"; }
+.ti-truck-return:before { content: "\ec4c"; }
+.ti-user:before { content: "\eb4d"; }
+.ti-user-check:before { content: "\eb49"; }
+.ti-user-off:before { content: "\ecf9"; }
+.ti-user-plus:before { content: "\eb4b"; }
+.ti-x:before { content: "\eb55"; }
+.ti-zoom-check:before { content: "\ef09"; }
+.ti-zoom-question:before { content: "\edeb"; }
