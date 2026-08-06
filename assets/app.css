@@ -156,12 +156,15 @@ img { max-width: 100%; display: block; }
 /* ------------------------------------------------------------ App shell */
 .app-shell { display: flex; min-height: 100vh; }
 
-/* A barra lateral e o cabecalho vermelho do site da Claro, so que de pe:
-   mesmo vermelho de marca, mesmo branco por cima. */
+/* A barra lateral e branca: o vermelho da Claro entra so como destaque - o
+   item aberto, o icone dele, a marca. E a leitura mais limpa da identidade, e
+   faz o vermelho valer mais justamente por aparecer menos.
+   O botao da paleta, na barra de cima, troca para a barra toda vermelha. */
 .sidebar {
   width: var(--sidebar-w);
   flex: 0 0 var(--sidebar-w);
-  background: var(--claro-red);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   height: 100vh;
   position: sticky;
   top: 0;
@@ -173,7 +176,7 @@ img { max-width: 100%; display: block; }
 /* Logo em pílula branca colada à esquerda, arredondada só à direita */
 .sidebar-logo {
   display: block;
-  border-bottom: 1px solid rgba(255, 255, 255, .10);
+  border-bottom: 1px solid var(--border);
   padding: 12px 14px;
 }
 .sidebar-logo-pill {
@@ -206,15 +209,16 @@ img { max-width: 100%; display: block; }
   padding: 10px 12px;
   border-radius: 8px 0 0 8px;
   border-right: 3px solid transparent;
-  color: var(--on-primary-2);
+  color: var(--text-2);
   font-weight: 500;
   font-size: 14px;
   transition: all .18s ease;
 }
-.nav-item i { font-size: 18px; width: 20px; text-align: center; color: var(--on-primary-3); transition: color .18s ease; }
-.nav-item:hover { background: var(--on-primary-hover); color: var(--on-primary); }
-.nav-item.active { background: var(--on-primary-active); border-right-color: var(--on-primary); color: var(--on-primary); }
-.nav-item.active i { color: var(--on-primary); }
+.nav-item i { font-size: 18px; width: 20px; text-align: center; color: var(--text-muted); transition: color .18s ease; }
+.nav-item:hover { background: var(--surface-2); color: var(--text); }
+.nav-item:hover i { color: var(--text-2); }
+.nav-item.active { background: var(--primary-tint); border-right-color: var(--claro-red); color: var(--claro-red); font-weight: 600; }
+.nav-item.active i { color: var(--claro-red); }
 
 /* Pai com submenu (Nova auditoria): botão que expande, não navega */
 .nav-parent {
@@ -239,7 +243,7 @@ img { max-width: 100%; display: block; }
   gap: 1px;
   margin: 2px 0 6px 22px;
   padding-left: 10px;
-  border-left: 1px solid rgba(255, 255, 255, .10);
+  border-left: 1px solid var(--border);
 }
 .nav-sub.is-open { display: flex; }
 .nav-sub-item {
@@ -250,16 +254,16 @@ img { max-width: 100%; display: block; }
   border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--on-primary-3);
+  color: var(--text-muted);
   transition: background .15s ease, color .15s ease;
 }
-.nav-sub-item:hover { color: var(--on-primary); background: var(--on-primary-hover); }
-.nav-sub-item.active { color: var(--on-primary); background: var(--on-primary-active); }
+.nav-sub-item:hover { color: var(--text); background: var(--surface-2); }
+.nav-sub-item.active { color: var(--claro-red); background: var(--primary-tint); }
 
 
 .sidebar-user {
   padding: 12px;
-  border-top: 1px solid rgba(255, 255, 255, .10);
+  border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -267,18 +271,17 @@ img { max-width: 100%; display: block; }
 .sidebar-user-avatar {
   width: 28px; height: 28px; flex: 0 0 28px;
   border-radius: 50%;
-  background: var(--on-primary-active);
-  border: 1px solid var(--on-primary-3);
-  color: var(--on-primary);
+  background: var(--primary-tint);
+  border: 1px solid var(--primary-tint);
+  color: var(--claro-red);
   display: grid; place-items: center;
   font-size: 14px;
 }
-.sidebar-user-label { color: var(--on-primary-3); font-size: 12px; }
+.sidebar-user-label { color: var(--text-muted); font-size: 12px; }
 
 /* Assinatura de quem fez o sistema. E credito, nao marca da tela: fica em
-   letra miuda, e a logo acompanha a altura da letra. O quadradinho branco
-   existe porque a logo da APSIS e colorida e precisa de fundo claro para ser
-   lida - inclusive sobre a barra vermelha. */
+   letra miuda, e a logo acompanha a altura da letra. Sobre o branco ela se le
+   sozinha; o fundo branco so aparece quando a barra fica vermelha. */
 .sidebar-brand {
   margin-top: auto;
   padding: 14px 16px;
@@ -292,18 +295,16 @@ img { max-width: 100%; display: block; }
   flex: 0 0 auto;
   width: 18px; height: 18px;
   border-radius: 3px;
-  background: #fff;
-  padding: 2px;
   display: grid; place-items: center;
 }
 .sidebar-brand-logo img { width: 100%; height: 100%; object-fit: contain; }
-.sidebar-brand-txt { color: var(--on-primary-3); }
+.sidebar-brand-txt { color: var(--text-muted); }
 .sidebar.is-collapsed .sidebar-brand { display: none; }
 
 /* Das duas versoes da logo da Claro, o CSS mostra a que combina com o fundo. */
-.sidebar-logo-pill .logo-claro-cor { display: none; }
-.sidebar.is-branca .sidebar-logo-pill .logo-claro-branca { display: none; }
-.sidebar.is-branca .sidebar-logo-pill .logo-claro-cor { display: block; }
+.sidebar-logo-pill .logo-claro-branca { display: none; }
+.sidebar.is-vermelha .sidebar-logo-pill .logo-claro-branca { display: block; }
+.sidebar.is-vermelha .sidebar-logo-pill .logo-claro-cor { display: none; }
 
 .sidebar-logo-mini { display: none; }
 
@@ -341,7 +342,7 @@ img { max-width: 100%; display: block; }
 .sidebar.is-collapsed .sidebar-logo-pill { display: none; }
 .sidebar.is-collapsed .sidebar-logo-mini {
   display: grid; place-items: center; width: 40px; height: 40px; margin: 0 auto;
-  border-radius: 10px; background: var(--on-primary); color: var(--claro-red); font-weight: 700; font-size: 18px;
+  border-radius: 10px; background: var(--claro-red); color: var(--on-primary); font-weight: 700; font-size: 18px;
 }
 .sidebar.is-collapsed .nav { padding: 16px 6px; }
 .sidebar.is-collapsed .nav-item { justify-content: center; padding: 11px 0; gap: 0; }
@@ -351,48 +352,45 @@ img { max-width: 100%; display: block; }
 .sidebar.is-collapsed .nav-sub { display: none; }
 .sidebar.is-collapsed .nav-caret { display: none; }
 
-/* ------------------------------------------------- Barra lateral branca */
-/* A outra leitura da identidade da Claro: em vez do vermelho preenchendo a
-   barra inteira, a barra fica branca e o vermelho vira so o destaque - o
-   item aberto, o icone dele, a marca. E a leitura mais limpa das duas, e
-   deixa o vermelho valer mais por aparecer menos. O botao da paleta, na
-   barra de cima, alterna entre as duas. */
-.sidebar.is-branca {
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+/* ----------------------------------------------- Barra lateral vermelha */
+/* A outra leitura da identidade: em vez do vermelho so no destaque, ele
+   preenche a barra inteira, como o cabecalho do site da Claro - so que de pe.
+   O botao da paleta, na barra de cima, alterna entre as duas. */
+.sidebar.is-vermelha {
+  background: var(--claro-red);
+  border-right-color: transparent;
 }
-.sidebar.is-branca .sidebar-logo { border-bottom-color: var(--border); }
+.sidebar.is-vermelha .sidebar-logo { border-bottom-color: var(--on-primary-hover); }
 
-.sidebar.is-branca .nav-item { color: var(--text-2); }
-.sidebar.is-branca .nav-item i { color: var(--text-muted); }
-.sidebar.is-branca .nav-item:hover { background: var(--surface-2); color: var(--text); }
-.sidebar.is-branca .nav-item:hover i { color: var(--text-2); }
-.sidebar.is-branca .nav-item.active {
-  background: var(--primary-tint);
-  border-right-color: var(--claro-red);
-  color: var(--claro-red);
-  font-weight: 600;
+.sidebar.is-vermelha .nav-item { color: var(--on-primary-2); }
+.sidebar.is-vermelha .nav-item i { color: var(--on-primary-3); }
+.sidebar.is-vermelha .nav-item:hover { background: var(--on-primary-hover); color: var(--on-primary); }
+.sidebar.is-vermelha .nav-item:hover i { color: var(--on-primary); }
+.sidebar.is-vermelha .nav-item.active {
+  background: var(--on-primary-active);
+  border-right-color: var(--on-primary);
+  color: var(--on-primary);
 }
-.sidebar.is-branca .nav-item.active i { color: var(--claro-red); }
+.sidebar.is-vermelha .nav-item.active i { color: var(--on-primary); }
 
-.sidebar.is-branca .nav-sub { border-left-color: var(--border); }
-.sidebar.is-branca .nav-sub-item { color: var(--text-muted); }
-.sidebar.is-branca .nav-sub-item:hover { color: var(--text); background: var(--surface-2); }
-.sidebar.is-branca .nav-sub-item.active { color: var(--claro-red); background: var(--primary-tint); }
+.sidebar.is-vermelha .nav-sub { border-left-color: var(--on-primary-hover); }
+.sidebar.is-vermelha .nav-sub-item { color: var(--on-primary-3); }
+.sidebar.is-vermelha .nav-sub-item:hover { color: var(--on-primary); background: var(--on-primary-hover); }
+.sidebar.is-vermelha .nav-sub-item.active { color: var(--on-primary); background: var(--on-primary-active); }
 
-.sidebar.is-branca .sidebar-user { border-top-color: var(--border); }
-.sidebar.is-branca .sidebar-user-avatar {
-  background: var(--primary-tint);
-  border-color: var(--primary-tint);
-  color: var(--claro-red);
+.sidebar.is-vermelha .sidebar-user { border-top-color: var(--on-primary-hover); }
+.sidebar.is-vermelha .sidebar-user-avatar {
+  background: var(--on-primary-active);
+  border-color: var(--on-primary-3);
+  color: var(--on-primary);
 }
-.sidebar.is-branca .sidebar-user-label { color: var(--text-muted); }
+.sidebar.is-vermelha .sidebar-user-label { color: var(--on-primary-3); }
 
-.sidebar.is-branca .sidebar-brand-txt { color: var(--text-muted); }
-/* Sobre branco a logo da APSIS ja se le sozinha: o quadradinho sai de cena. */
-.sidebar.is-branca .sidebar-brand-logo { background: transparent; padding: 0; }
+.sidebar.is-vermelha .sidebar-brand-txt { color: var(--on-primary-3); }
+/* Sobre o vermelho a logo da APSIS precisa de fundo claro para ser lida. */
+.sidebar.is-vermelha .sidebar-brand-logo { background: #fff; padding: 2px; }
 
-.sidebar.is-branca .sidebar-logo-mini { background: var(--claro-red); color: #fff; }
+.sidebar.is-vermelha .sidebar-logo-mini { background: var(--on-primary); color: var(--claro-red); }
 
 /* -------------------------------------------- Botao de cor da lateral */
 .topbar-tema {

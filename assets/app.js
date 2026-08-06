@@ -139,7 +139,11 @@
   function abrirEvidencia(url, nome) {
     if (!url) return false;
     var ext = String(nome || url).toLowerCase().split("?")[0].split(".").pop();
-    var noNavegador = /^(pdf|png|jpe?g|gif|webp|bmp|avif|svg|txt)$/.test(ext);
+    // SVG fica de fora de proposito: apesar de parecer imagem, e um arquivo que
+    // pode trazer script dentro, e abrir numa aba e executa-lo. Quem envia
+    // evidencia e gente de fora da APSIS; nao vale rodar o arquivo dela para
+    // depois mostrar o desenho. SVG cai na lista de baixar, como planilha.
+    var noNavegador = /^(pdf|png|jpe?g|gif|webp|bmp|avif|txt)$/.test(ext);
     if (noNavegador) {
       window.open(url, "_blank", "noopener");
       return true;
@@ -358,12 +362,21 @@
     window.open(documentoDe(nome), "_blank", "noopener");
   }
 
+  // Nome de unidade, observacao, nome de arquivo: tudo que vem de fora passa por
+  // aqui antes de virar HTML.
+  //
+  // O apostrofo e o acento grave entraram na lista depois: ha atributo escrito com
+  // aspas simples no sistema, e um valor com apostrofo fechava a aspas e o resto do
+  // texto virava atributo. O acento grave e o mesmo caso no navegador antigo, que
+  // aceitava crase como delimitador de atributo. Escapar os cinco custa nada.
   function escapeHtml(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+      .replace(/`/g, "&#96;");
   }
 
   // -----------------------------------------------------------------------
@@ -654,7 +667,7 @@
         (actionsHTML || "") +
         // Botao de comparar os dois tratamentos da barra lateral: vermelho da
         // marca ou branco. Fica aqui para a escolha ser feita olhando a tela.
-        '<button class="topbar-tema" id="topbar-tema" type="button" aria-pressed="false" aria-label="Deixar o menu branco" title="Deixar o menu branco"><i class="ti ti-palette" aria-hidden="true"></i></button>' +
+        '<button class="topbar-tema" id="topbar-tema" type="button" aria-pressed="false" aria-label="Deixar o menu vermelho" title="Deixar o menu vermelho"><i class="ti ti-palette" aria-hidden="true"></i></button>' +
         '<button class="topbar-bell" type="button" aria-label="Notificações"><i class="ti ti-bell" aria-hidden="true"></i><span class="dot"></span></button>' +
         '<button class="avatar-btn" id="user-menu-btn" type="button" aria-label="Conta" aria-haspopup="true"><i class="ti ti-user" aria-hidden="true"></i></button>' +
         '<div class="user-menu" id="user-menu" role="menu">' +
@@ -746,23 +759,28 @@
       });
     }
 
-    // Cor da barra lateral: vermelho da marca ou branco - estado persistido,
-    // para a escolha seguir de tela em tela enquanto e comparada.
+    // Cor da barra lateral: branca por padrao, vermelha para quem preferir -
+    // estado persistido, para a escolha seguir de tela em tela.
+    //
+    // A barra nasce branca pela propria folha de estilo, sem classe nenhuma no
+    // HTML. Quem escolher vermelho ganha a classe aqui. Feito assim porque o
+    // padrao nao depende de script: nao ha instante em que a barra apareca de
+    // uma cor e mude para a outra.
     var temaBtn = document.getElementById("topbar-tema");
     if (temaBtn && sidebar) {
-      var applyBranca = function (b) {
-        sidebar.classList.toggle("is-branca", b);
-        temaBtn.setAttribute("aria-pressed", b ? "true" : "false");
-        var rotulo = b ? "Deixar o menu vermelho" : "Deixar o menu branco";
+      var applyVermelha = function (v) {
+        sidebar.classList.toggle("is-vermelha", v);
+        temaBtn.setAttribute("aria-pressed", v ? "true" : "false");
+        var rotulo = v ? "Deixar o menu branco" : "Deixar o menu vermelho";
         temaBtn.setAttribute("aria-label", rotulo);
         temaBtn.setAttribute("title", rotulo);
-        try { localStorage.setItem("epoMenuBranco", b ? "1" : "0"); } catch (e) {}
+        try { localStorage.setItem("epoMenuVermelho", v ? "1" : "0"); } catch (e) {}
       };
-      var savedBranca = false;
-      try { savedBranca = localStorage.getItem("epoMenuBranco") === "1"; } catch (e) {}
-      applyBranca(savedBranca);
+      var savedVermelha = false;
+      try { savedVermelha = localStorage.getItem("epoMenuVermelho") === "1"; } catch (e) {}
+      applyVermelha(savedVermelha);
       temaBtn.addEventListener("click", function () {
-        applyBranca(!sidebar.classList.contains("is-branca"));
+        applyVermelha(!sidebar.classList.contains("is-vermelha"));
       });
     }
 

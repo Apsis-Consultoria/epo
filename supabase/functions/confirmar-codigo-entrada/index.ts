@@ -14,6 +14,8 @@
 // Codigo errado, expirado ou tentado cinco vezes: a resposta diz o motivo em
 // portugues, sem nunca dizer se o e-mail existe.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { emailNormalizado } from "../_shared/endereco-email.ts";
+import { captchaValido, ipDoPedido } from "../_shared/captcha.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -39,10 +41,24 @@ Deno.serve(async (req: Request) => {
 
   let corpo: Record<string, string> = {};
   try { corpo = await req.json(); } catch (_e) { corpo = {}; }
-  const email = String(corpo.email || "").trim().toLowerCase();
+  const email = emailNormalizado(corpo.email);
   const codigo = String(corpo.codigo || "").replace(/[^0-9]/g, "");
-  if (!/^\S+@\S+\.\S+$/.test(email) || codigo.length < 4) {
+  if (!email || codigo.length < 4) {
     return json({ ok: false, motivo: "Digite o código de seis dígitos que chegou no seu e-mail." }, 400);
+  }
+
+  // O captcha vale TAMBEM aqui, e nao so no pedido do codigo.
+  //
+  // Faltava, e a consequencia nao era adivinhar o codigo - isso o banco ja
+  // impede, com cinco tentativas por codigo e o codigo guardado apenas como
+  // resumo criptografico. A consequencia era virar o lado: quem soubesse o
+  // endereco de alguem podia, no instante em que a pessoa pedisse o codigo,
+  // gastar as cinco tentativas com numeros errados. Na quinta o banco apaga o
+  // codigo, e a pessoa certa digita o numero certo e ouve que nao ha codigo em
+  // aberto. Repetindo isso a cada minuto, o acesso daquela pessoa fica trancado.
+  if (!await captchaValido(String(corpo.captcha || ""), ipDoPedido(req))) {
+    return json({ ok: false, motivo: "Confirme que você não é um robô e tente de novo.",
+                  captcha: false }, 400);
   }
 
   const admin = createClient(PROJETO_URL, SERVICE, { auth: { persistSession: false } });

@@ -3,16 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=123">
+  <!-- Do que a pagina pode carregar. Sem isto qualquer endereco servia: script de
+       fora, imagem de fora, chamada para fora. A lista abaixo e o que o sistema
+       usa de verdade - a biblioteca do banco, o grafico, o mapa, as fontes, o
+       captcha e o proprio projeto. O resto o navegador recusa.
+       'unsafe-inline' segue necessario: as telas tem script e estilo escritos
+       dentro do HTML. Tirar isso e reescrever as 21 telas, e fica para depois.
+       frame-ancestors nao entra aqui: em <meta> o navegador ignora essa regra,
+       ela so vale em cabecalho, e o servidor de paginas nao deixa mandar um. -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://challenges.cloudflare.com;
+    style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net;
+    img-src 'self' data: blob: https://vpkxoyfbxgnizymaurek.supabase.co https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://server.arcgisonline.com;
+    connect-src 'self' https://vpkxoyfbxgnizymaurek.supabase.co https://challenges.cloudflare.com;
+    frame-src https://challenges.cloudflare.com;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    upgrade-insecure-requests;
+  ">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=124">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Ranking de EPOs - Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=123">
-  <link rel="stylesheet" href="assets/carregando.css?v=123">
-  <link rel="stylesheet" href="assets/app.css?v=123">
+  <link rel="stylesheet" href="assets/icones.css?v=124">
+  <link rel="stylesheet" href="assets/carregando.css?v=124">
+  <link rel="stylesheet" href="assets/app.css?v=124">
   <style>
     /* Ajustes locais da tela de ranking (linha expansível) */
     .rank-row { cursor: pointer; }
@@ -123,12 +144,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=123"></script>
-  <script src="assets/app.js?v=123"></script>
-  <script src="assets/supabase-config.js?v=123"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=123"></script>
-  <script src="assets/dados-reais.js?v=123"></script>
+  <script src="assets/data.js?v=124"></script>
+  <script src="assets/app.js?v=124"></script>
+  <script src="assets/supabase-config.js?v=124"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
+          integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="assets/auth.js?v=124"></script>
+  <script src="assets/dados-reais.js?v=124"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com

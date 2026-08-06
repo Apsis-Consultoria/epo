@@ -31,9 +31,13 @@ export const FONTE = "Roboto,'Segoe UI',Helvetica,Arial,sans-serif";
 // nem de a chave do storage continuar valida.
 export const LOGO = "https://apsis-consultoria.github.io/epo/assets/brand/logo-claro.png";
 
+// Nome de unidade e endereco entram no HTML do e-mail. O apostrofo e o acento
+// grave entraram na lista junto com os outros: sao delimitadores de atributo em
+// leitor antigo, e um nome com apostrofo fecharia o atributo no meio.
 export function escapar(t: unknown) {
   return String(t == null ? "" : t)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;").replace(/`/g, "&#96;");
 }
 
 // Primeiro nome so para decidir se ha nome; a saudacao usa o nome inteiro.
@@ -134,10 +138,7 @@ export function emailAcessoResponsavel(o: {
         ["Sua chave", '<span style="color:' + FRACO + ';">o código que chega aqui quando você pedir</span>']
       ]
     },
-    botao: { texto: "Ir para a tela de entrada", href: o.link },
-    aviso: "&#128274; <b>Dica de segurança:</b> o código é só seu, serve uma vez e vale " +
-           "poucos minutos. A Claro e a Apsis nunca vão pedir o seu código por telefone " +
-           "ou por e-mail."
+    botao: { texto: "Ir para a tela de entrada", href: o.link }
   });
 }
 
@@ -188,14 +189,13 @@ export function emailVisitaMarcada(v: Visita) {
     subtitulo: "Auditoria de unidades EPO · Claro",
     saudacao: saudacaoDe(v.nome),
     paragrafos: [
-      "A auditoria da sua unidade foi <b>marcada</b>. A data está confirmada abaixo.",
-      PEDIDO
+      "A auditoria da sua unidade foi <b>marcada</b>. O período de vistoria está " +
+      "sendo informado abaixo.",
+      "<b>Instruções:</b>",
+      "Acesse o portal Auditoria Claro. Lá, haverá as informações e documentos solicitados."
     ],
     quadro: quadroDaVisita(v),
-    botao: { texto: "Anexar os documentos", href: v.link },
-    aviso: "&#128197; Você vai receber um lembrete <b>uma semana antes</b> e outro " +
-           "<b>um dia antes</b>. Se a data não servir para a sua unidade, responda " +
-           "para quem acompanha a auditoria antes do prazo."
+    botao: { texto: "Anexar os documentos", href: v.link }
   });
 }
 
@@ -215,10 +215,7 @@ export function emailLembreteVisita(v: Visita, dias: number) {
           "estiver no sistema precisa ser levantado durante a visita."
     ],
     quadro: quadroDaVisita(v),
-    botao: { texto: umaSemana ? "Anexar os documentos" : "Conferir o que falta", href: v.link },
-    aviso: umaSemana
-      ? "&#128221; Ainda dá tempo de reunir o que falta com calma. O próximo lembrete chega um dia antes."
-      : "&#9200; <b>Último lembrete.</b> Depois da visita, o que faltou aparece como pendência da unidade."
+    botao: { texto: umaSemana ? "Anexar os documentos" : "Conferir o que falta", href: v.link }
   });
 }
 
@@ -245,9 +242,10 @@ export function montarEmail(o: Email) {
   // A ultima linha diz de onde vem a mensagem: o sistema e da Claro, e quem o
   // opera e parceiro dela. Sem isso, quem recebe ve o nome de uma empresa que
   // nao reconhece num e-mail com a marca de outra.
+  // Nao ha mais o "se nao esperava, ignore": estes e-mails pedem uma acao de
+  // quem responde pela unidade, e convidar a ignorar era convidar a nao fazer.
   const rodape = (o.rodape && o.rodape.length ? o.rodape : [
-    "Este e-mail faz parte da Auditoria de EPOs da Claro.",
-    "Se você não esperava esta mensagem, ignore este e-mail."
+    "Este e-mail faz parte da Auditoria de EPOs da Claro."
   ]).concat([
     "A Apsis Consultoria é parceira da Claro e responsável pela operação desta auditoria."
   ]).join("<br>");

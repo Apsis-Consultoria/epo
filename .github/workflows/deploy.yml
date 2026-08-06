@@ -27,10 +27,24 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      # Publica so o que o navegador precisa. Antes subia o repositorio inteiro
+      # ("path: ."), e com isso o site servia db/schema.sql, as migracoes e o
+      # codigo das funcoes do servidor - o desenho das tabelas, o nome das
+      # politicas de acesso e a logica de cada verificacao, tudo em endereco
+      # publico e sem login. Quem estuda antes de tentar entrar comeca por ali.
+      - name: Separar o que vai para o ar
+        run: |
+          mkdir -p _site
+          cp -v *.html _site/
+          cp -R assets _site/
+          cp .nojekyll _site/ 2>/dev/null || true
+          echo "--- publicado ---"
+          find _site -type f | sort
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment

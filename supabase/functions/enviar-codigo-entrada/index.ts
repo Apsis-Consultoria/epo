@@ -19,14 +19,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { montarEmail, saudacaoDe } from "../_shared/email-claro.ts";
 import { enviarPeloGraph } from "../_shared/enviar-email.ts";
+import { emailNormalizado } from "../_shared/endereco-email.ts";
+import { captchaValido, ipDoPedido } from "../_shared/captcha.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const MINUTOS = 10;
-
-// Segredo do Turnstile. Vazio = captcha desligado nesta funcao, e o pedido segue
-// valendo apenas pelo freio de um por minuto.
-const CAPTCHA_SEGREDO = (Deno.env.get("TURNSTILE_SECRET") || "").trim();
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -39,26 +37,6 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...CORS, "Content-Type": "application/json" }
   });
-}
-
-// O captcha do servico de autenticacao NAO alcanca esta funcao: o pedido de
-// codigo nao passa por la. Sem conferir aqui, o captcha da tela seria enfeite
-// neste caminho - bastaria chamar o endereco direto, sem token.
-async function captchaValido(token: string, ip: string) {
-  if (!CAPTCHA_SEGREDO) return true;
-  if (!token) return false;
-  try {
-    const form = new FormData();
-    form.append("secret", CAPTCHA_SEGREDO);
-    form.append("response", token);
-    if (ip) form.append("remoteip", ip);
-    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify",
-                          { method: "POST", body: form });
-    const j = await r.json();
-    return !!(j && j.success);
-  } catch (_e) {
-    return false;   // sem resposta do verificador, negar e o lado seguro
-  }
 }
 
 // Seis digitos de fonte criptografica. Math.random nao serve: e previsivel o
@@ -101,13 +79,12 @@ Deno.serve(async (req: Request) => {
 
   let corpo: Record<string, string> = {};
   try { corpo = await req.json(); } catch (_e) { corpo = {}; }
-  const email = String(corpo.email || "").trim().toLowerCase();
-  if (!/^\S+@\S+\.\S+$/.test(email)) {
+  const email = emailNormalizado(corpo.email);
+  if (!email) {
     return json({ enviado: false, espere: 0, motivo: "e-mail invalido" }, 400);
   }
 
-  const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim();
-  if (!await captchaValido(String(corpo.captcha || ""), ip)) {
+  if (!await captchaValido(String(corpo.captcha || ""), ipDoPedido(req))) {
     return json({ enviado: false, espere: 0, captcha: false }, 400);
   }
 
@@ -120,20 +97,27 @@ Deno.serve(async (req: Request) => {
   // A resposta e a mesma nos dois casos; o que muda e apenas se ha e-mail para
   // mandar. Ate o tempo de resposta e parecido, porque as consultas correm
   // antes de decidir.
+  //
+  // eq, e nao ilike: o banco grava o endereco em minusculas, entao a comparacao
+  // por igualdade basta - e nela o % do pedido e apenas um caractere. Com ilike,
+  // "%@apsis.com.br" casava com a primeira linha do dominio.
   const { data: liberado } = await admin.from("acessos_autorizados")
-    .select("papel, nome, ativo").ilike("email", email).maybeSingle();
+    .select("papel, nome, ativo").eq("email", email).maybeSingle();
   const { data: respUnidade } = await admin.from("epo_responsaveis")
-    .select("nome").ilike("email", email).limit(1).maybeSingle();
+    .select("nome").eq("email", email).limit(1).maybeSingle();
   const { data: respPedido } = await admin.from("alocacoes")
-    .select("id").ilike("responsavel_email", email).limit(1).maybeSingle();
+    .select("id").eq("responsavel_email", email).limit(1).maybeSingle();
 
   const daCasa = email.endsWith("@apsis.com.br");
   const temAcesso = (liberado && (liberado as Record<string, unknown>).ativo === true)
                     || !!respUnidade || !!respPedido || daCasa;
 
   if (!temAcesso) {
+    // A resposta e igual, ATE no campo minutos. Faltava ele aqui, e so aqui: quem
+    // comparasse duas respostas sabia pelo campo ausente que aquele endereco nao
+    // tem acesso - a lista de quem trabalha na conta, uma tentativa por vez.
     console.warn("codigo de entrada pedido por e-mail sem acesso");
-    return json({ enviado: true, espere: 0, para: emailEncoberto(email) });
+    return json({ enviado: true, espere: 0, para: emailEncoberto(email), minutos: MINUTOS });
   }
 
   const nome = String(
@@ -180,7 +164,7 @@ Deno.serve(async (req: Request) => {
   if (!envio.ok) {
     // O codigo fica gravado e ninguem recebeu: apaga, senao a pessoa fica presa
     // num codigo que nao existe em lugar nenhum.
-    await admin.from("codigos_entrada").delete().ilike("email", email).is("usado_em", null);
+    await admin.from("codigos_entrada").delete().eq("email", email).is("usado_em", null);
     console.warn("envio do codigo de entrada falhou:", envio.motivo);
     return json({ enviado: false, espere: 0 }, 502);
   }

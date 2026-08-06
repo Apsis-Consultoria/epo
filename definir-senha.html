@@ -3,7 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=123">
+  <!-- Do que a pagina pode carregar. Sem isto qualquer endereco servia: script de
+       fora, imagem de fora, chamada para fora. A lista abaixo e o que o sistema
+       usa de verdade - a biblioteca do banco, o grafico, o mapa, as fontes, o
+       captcha e o proprio projeto. O resto o navegador recusa.
+       'unsafe-inline' segue necessario: as telas tem script e estilo escritos
+       dentro do HTML. Tirar isso e reescrever as 21 telas, e fica para depois.
+       frame-ancestors nao entra aqui: em <meta> o navegador ignora essa regra,
+       ela so vale em cabecalho, e o servidor de paginas nao deixa mandar um. -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://challenges.cloudflare.com;
+    style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net;
+    img-src 'self' data: blob: https://vpkxoyfbxgnizymaurek.supabase.co https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://server.arcgisonline.com;
+    connect-src 'self' https://vpkxoyfbxgnizymaurek.supabase.co https://challenges.cloudflare.com;
+    frame-src https://challenges.cloudflare.com;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    upgrade-insecure-requests;
+  ">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=124">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <title>Entrar - Auditoria EPO's</title>

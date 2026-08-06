@@ -21,6 +21,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { emailAcessoResponsavel, emailVisitaMarcada, emailLembreteVisita,
          type Visita } from "../_shared/email-claro.ts";
 import { enviarPeloGraph } from "../_shared/enviar-email.ts";
+import { emailNormalizado } from "../_shared/endereco-email.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -80,16 +81,18 @@ async function recebeDoSistema(email: string) {
   const admin = createClient(PROJETO_URL, SERVICE, { auth: { persistSession: false } });
   if (email.endsWith("@apsis.com.br")) return true;
 
+  // eq, e nao ilike: com ilike o valor entrava como padrao de busca, e
+  // "%@apsis.com.br" casaria com a primeira linha do dominio.
   const { data: liberado } = await admin.from("acessos_autorizados")
-    .select("ativo").ilike("email", email).maybeSingle();
+    .select("ativo").eq("email", email).maybeSingle();
   if (liberado && (liberado as Record<string, unknown>).ativo === true) return true;
 
   const { data: resp } = await admin.from("epo_responsaveis")
-    .select("epo_id").ilike("email", email).limit(1).maybeSingle();
+    .select("epo_id").eq("email", email).limit(1).maybeSingle();
   if (resp) return true;
 
   const { data: naUnidade } = await admin.from("epos")
-    .select("id").ilike("responsavel_email", email).limit(1).maybeSingle();
+    .select("id").eq("responsavel_email", email).limit(1).maybeSingle();
   return !!naUnidade;
 }
 
@@ -101,9 +104,9 @@ Deno.serve(async (req: Request) => {
   try { corpo = await req.json(); } catch (_e) { corpo = {}; }
 
   // ------------------------------------------------------------ modo de teste
-  const teste = String(corpo.teste || "").trim().toLowerCase();
-  if (teste) {
-    if (!/^\S+@\S+\.\S+$/.test(teste)) return json({ ok: false, motivo: "e-mail invalido" }, 400);
+  const teste = emailNormalizado(corpo.teste);
+  if (String(corpo.teste || "").trim()) {
+    if (!teste) return json({ ok: false, motivo: "e-mail invalido" }, 400);
 
     // O modo de teste MANDA e-mail. Sem trava, este endereco viraria um jeito de
     // disparar mensagem com a marca da Claro para qualquer caixa do mundo, e a

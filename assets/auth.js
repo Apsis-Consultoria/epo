@@ -490,7 +490,7 @@
       });
   }
 
-  function entrarComCodigo(email, codigo) {
+  function entrarComCodigo(email, codigo, captchaToken) {
     if (!client || !client.functions || !client.functions.invoke) {
       return Promise.reject(new Error("Entrada indisponível no momento."));
     }
@@ -498,8 +498,14 @@
       d = d || {};
       return { ok: !!d.ok, motivo: d.motivo || "", credencial: d.credencial || "" };
     }
-    return client.functions.invoke("confirmar-codigo-entrada",
-                                   { body: { email: email, codigo: codigo } })
+    // O token do captcha vai TAMBEM aqui, e nao so no pedido do codigo. Sem ele
+    // neste passo, quem soubesse o e-mail de alguem gastava as cinco tentativas
+    // com numeros errados no instante em que a pessoa pedisse o codigo: na quinta
+    // o servidor apaga o codigo, e quem tinha o numero certo ouve que nao ha
+    // codigo em aberto.
+    var corpo = { email: email, codigo: codigo };
+    if (captchaToken) corpo.captcha = captchaToken;
+    return client.functions.invoke("confirmar-codigo-entrada", { body: corpo })
       .then(function (r) {
         if (!r.error) return daResposta(r.data);
         var ctx = r.error.context;

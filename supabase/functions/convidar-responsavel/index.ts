@@ -21,6 +21,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { emailAcessoResponsavel } from "../_shared/email-claro.ts";
 import { enviarPeloGraph } from "../_shared/enviar-email.ts";
+import { emailNormalizado } from "../_shared/endereco-email.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
 const ANON = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -34,13 +35,8 @@ function segredo(nomes: string[]) {
   return "";
 }
 
-const TENANT = segredo(["AZURE_TENANT_ID", "GRAPH_TENANT_ID"]);
-const CLIENT_ID = segredo(["AZURE_CLIENT_ID", "GRAPH_CLIENT_ID"]);
-const CLIENT_SECRET = segredo(["AZURE_CLIENT_SECRET", "GRAPH_CLIENT_SECRET"]);
-const REMETENTE = segredo(["AZURE_REMETENTE", "GRAPH_REMETENTE"]);
 const APP_URL = segredo(["APP_URL"]) || "https://apsis-consultoria.github.io/epo/";
 
-const GRAPH = "https://graph.microsoft.com/v1.0";
 // Quem pode convidar responsavel de unidade. O gerente da Claro entra aqui
 // porque e ele quem sabe o contato da unidade.
 const PAPEIS_OK = ["admin", "gestor", "cliente"];
@@ -74,31 +70,15 @@ function json(body: unknown, status = 200) {
   });
 }
 
-// Aceita apenas destino da mesma origem de quem chamou (evita redirect aberto)
-function origemValida(origem: string | null) {
-  if (!origem) return null;
-  try {
-    const u = new URL(origem);
-    if (u.protocol !== "https:" && u.hostname !== "localhost" && u.hostname !== "127.0.0.1") return null;
-    return u.origin;
-  } catch (_e) {
-    return null;
-  }
-}
-
 // A tela de entrada. Antes isto apontava para a pagina de escolher senha, que
 // deixou de existir: quem nao e da APSIS entra com um codigo que chega no e-mail.
-function destinoDaEntrada(origem: string | null) {
-  const base = origemValida(origem);
-  if (base) {
-    // mantem a pasta do app quando ele nao esta na raiz do dominio
-    try {
-      const caminho = new URL(APP_URL).pathname.replace(/[^/]*$/, "");
-      return base + (base.indexOf("localhost") >= 0 ? "/" : caminho) + "login";
-    } catch (_e) {
-      return base + "/login";
-    }
-  }
+//
+// O endereco sai do APP_URL do projeto, e nao do cabecalho Origin do pedido.
+// Antes vinha do Origin, conferido so no esquema (https): qualquer site em https
+// servia. Como o e-mail leva a marca da Claro e diz "entre aqui", o endereco
+// dentro dele nao pode ser escolhido por quem faz a chamada - senao a mensagem
+// que a APSIS assina passa a apontar para a pagina de outra pessoa.
+function destinoDaEntrada() {
   return APP_URL.replace(/[^/]*$/, "") + "login";
 }
 
@@ -130,7 +110,7 @@ Deno.serve(async (req: Request) => {
   let corpo: Record<string, string> = {};
   try { corpo = await req.json(); } catch (_e) { corpo = {}; }
 
-  let email = String(corpo.email || "").trim().toLowerCase();
+  let email = emailNormalizado(corpo.email);
   let contexto = "";
   let papelPretendido = "responsavel";
   // O e-mail cumprimenta pelo nome. Sem nome ele cumprimenta so com "Ola,".
@@ -159,7 +139,7 @@ Deno.serve(async (req: Request) => {
     if (!l.ativo) {
       return json({ ok: false, motivo: "esta liberacao esta desativada. Ative antes de convidar" }, 400);
     }
-    email = String(l.email || "").trim().toLowerCase();
+    email = emailNormalizado(l.email);
     papelPretendido = String(l.papel || "");
     if (PAPEIS_SO_DE_ADMIN.indexOf(papelPretendido) >= 0 && papel !== "admin") {
       return json({ ok: false,
@@ -177,11 +157,16 @@ Deno.serve(async (req: Request) => {
     if (error) return json({ ok: false, motivo: "falha ao ler o relatorio pedido: " + error.message }, 400);
     if (!linha) return json({ ok: false, motivo: "relatorio pedido nao encontrado" }, 404);
     const l = linha as Record<string, any>;
-    email = String(l.responsavel_email || "").trim().toLowerCase();
+    email = emailNormalizado(l.responsavel_email);
     const epo = l.epos ? l.epos.nome : "";
     const proc = l.processos ? l.processos.nome : "";
     contexto = [epo, proc].filter(Boolean).join(" - ");
   }
+
+  // A conferencia do endereco vem ANTES de qualquer consulta que o use: era a
+  // ultima coisa antes do envio, e no caminho da unidade o valor ja tinha sido
+  // usado para procurar a pessoa.
+  if (!email) return json({ ok: false, motivo: "e-mail invalido" }, 400);
 
   if (epoId && !alocacaoId && !acessoId) {
     const { data: uni } = await admin.from("epos").select("nome").eq("id", epoId).maybeSingle();
@@ -189,13 +174,11 @@ Deno.serve(async (req: Request) => {
       contexto = String((uni as Record<string, string>).nome);
     }
     const { data: quem } = await admin.from("epo_responsaveis")
-      .select("nome").eq("epo_id", epoId).ilike("email", email).maybeSingle();
+      .select("nome").eq("epo_id", epoId).eq("email", email).maybeSingle();
     if (quem && (quem as Record<string, string>).nome) {
       nomeDaPessoa = String((quem as Record<string, string>).nome);
     }
   }
-
-  if (!/^\S+@\S+\.\S+$/.test(email)) return json({ ok: false, motivo: "e-mail invalido" }, 400);
 
   // Conta ja existe? Decide entre convite e redefinicao, sem apagar nada.
   // Consulta direta: paginar a lista inteira lia ate 4000 contas por chamada e
@@ -206,7 +189,7 @@ Deno.serve(async (req: Request) => {
     if (!error && data) existente = { id: String(data) };
   } catch (_e) { existente = null; }
 
-  const destino = destinoDaEntrada(req.headers.get("Origin"));
+  const destino = destinoDaEntrada();
   const novaConta = !existente;
 
   if (novaConta) {
