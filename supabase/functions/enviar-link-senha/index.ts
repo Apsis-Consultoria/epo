@@ -17,7 +17,7 @@
 // - sem envio de reserva pela plataforma: o e-mail dela e justamente o que
 //   nao pode chegar.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-import { montarEmail, saudacaoDe, escapar, VERDE } from "../_shared/email-apsis.ts";
+import { montarEmail, saudacaoDe, escapar, VERMELHO } from "../_shared/email-claro.ts";
 import { enviarPeloGraph } from "../_shared/enviar-email.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
@@ -92,17 +92,17 @@ function paginaDaSenha(origem: string | null) {
 function corpoDoEmail(nome: string, email: string, link: string) {
   return montarEmail({
     titulo: "Nova senha da Auditoria de EPOs",
-    subtitulo: "Auditoria de unidades EPO · Apsis Consultoria",
+    subtitulo: "Auditoria de unidades EPO · Claro",
     saudacao: saudacaoDe(nome),
     paragrafos: [
       "Recebemos um pedido para você definir uma nova senha no sistema de " +
-      "<b>Auditoria de EPOs</b> da Apsis Consultoria."
+      "<b>Auditoria de EPOs</b> da Claro."
     ],
     quadro: {
       rotulo: "Seus dados de acesso",
       linhas: [
-        ["E-mail", '<span style="color:' + VERDE + ';">' + escapar(email) + "</span>"],
-        ["Senha", '<span style="color:#6b7280;">você escolhe no botão abaixo</span>']
+        ["E-mail", '<span style="color:' + VERMELHO + ';">' + escapar(email) + "</span>"],
+        ["Senha", '<span style="color:#767676;">você escolhe no botão abaixo</span>']
       ]
     },
     botao: { texto: "Definir nova senha", href: link },

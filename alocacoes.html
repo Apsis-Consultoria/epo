@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/png" href="https://onksmnxryotelmiytikl.supabase.co/storage/v1/object/public/assets/favicon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=123">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Reenvio de checklist - Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=119">
-  <link rel="stylesheet" href="assets/carregando.css?v=119">
-  <link rel="stylesheet" href="assets/app.css?v=119">
+  <link rel="stylesheet" href="assets/icones.css?v=123">
+  <link rel="stylesheet" href="assets/carregando.css?v=123">
+  <link rel="stylesheet" href="assets/app.css?v=123">
   <style>
     /* Ajustes locais da tela de cadastro de EPO e pedido de relatórios */
 
@@ -79,7 +79,7 @@
       transition: background .12s ease, color .12s ease, border-color .12s ease;
     }
     .btn-acao i { font-size: 16px; }
-    .btn-acao:hover { background: var(--primary-tint); color: var(--apsis-green); border-color: var(--apsis-green); }
+    .btn-acao:hover { background: var(--primary-tint); color: var(--primary); border-color: var(--primary); }
     .btn-acao.danger:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
 
     .aloc-loading { padding: 30px 14px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
@@ -93,7 +93,7 @@
       padding: 9px 11px;
       margin-top: 4px;
     }
-    .modal .nota-responsavel i { font-size: 15px; margin-top: 1px; color: var(--apsis-green); flex: none; }
+    .modal .nota-responsavel i { font-size: 15px; margin-top: 1px; color: var(--primary); flex: none; }
 
     .field-row { display: flex; gap: 12px; }
     .field-row .field { flex: 1 1 0; min-width: 0; }
@@ -108,9 +108,10 @@
     .link-mini {
       border: 0; background: transparent; padding: 0;
       font-family: inherit; font-size: 12.5px; font-weight: 500;
-      color: var(--apsis-green); cursor: pointer; text-decoration: underline;
+      color: var(--primary); cursor: pointer; text-decoration: underline;
     }
-    .link-mini:hover { color: var(--apsis-orange); }
+    /* No hover so escurece: a marca aqui e uma cor so. */
+    .link-mini:hover { color: var(--primary-600); }
     .procs-box {
       display: flex; flex-direction: column; gap: 2px;
       max-height: 196px; overflow: auto;
@@ -133,15 +134,7 @@
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
-    <div class="apsis-loader">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-    </div>
+    <span class="claro-loader" aria-hidden="true"></span>
   </div>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar"></aside>
@@ -151,11 +144,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=119"></script>
-  <script src="assets/app.js?v=119"></script>
-  <script src="assets/supabase-config.js?v=119"></script>
+  <script src="assets/data.js?v=123"></script>
+  <script src="assets/app.js?v=123"></script>
+  <script src="assets/supabase-config.js?v=123"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=119"></script>
+  <script src="assets/auth.js?v=123"></script>
   <script>
     (function () {
       "use strict";
@@ -249,7 +242,9 @@
           '<div class="field-row">' +
             '<div class="field">' +
               '<label for="' + prefixo + '-visita">Visita prevista (opcional)</label>' +
-              '<input class="input" id="' + prefixo + '-visita" type="date">' +
+              // A mesma antecedencia das outras telas: FormEpo guarda a regra.
+              '<input class="input" id="' + prefixo + '-visita" type="date" min="' +
+                FormEpo.minMarcacao() + '" max="2035-12-31">' +
             "</div>" +
           "</div>" +
           '<div class="field" style="margin-bottom:4px;">' +

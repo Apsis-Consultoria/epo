@@ -322,24 +322,26 @@
     var larguras = [512, 468, 496, 430, 372, 505, 448, 296, 470, 410];
     var y = 214;
     for (var i = 0; i < larguras.length; i++) {
-      linhas += '<rect x="56" y="' + y + '" width="' + larguras[i] + '" height="11" rx="5.5" fill="#E7EBE8"/>';
+      linhas += '<rect x="56" y="' + y + '" width="' + larguras[i] + '" height="11" rx="5.5" fill="#EFEFEF"/>';
       y += 30;
     }
 
+    // O documento abre em aba propria, fora do sistema: as cores vao escritas,
+    // porque os tokens da tela nao chegam ate ele.
     var svg =
       '<svg xmlns="http://www.w3.org/2000/svg" width="620" height="877" viewBox="0 0 620 877">' +
         '<rect width="620" height="877" fill="#FFFFFF"/>' +
-        '<rect width="620" height="7" fill="#1A4731"/>' +
-        '<text x="56" y="104" font-family="Inter, Segoe UI, sans-serif" font-size="21" font-weight="700" fill="#1A2B1F">' +
+        '<rect width="620" height="7" fill="#DA291C"/>' +
+        '<text x="56" y="104" font-family="Roboto, Segoe UI, sans-serif" font-size="21" font-weight="700" fill="#1F1D1D">' +
           escapeHtml(chave) +
         "</text>" +
-        '<rect x="56" y="132" width="90" height="4" rx="2" fill="#F47920"/>' +
-        '<rect x="56" y="168" width="248" height="11" rx="5.5" fill="#DDE3DE"/>' +
+        '<rect x="56" y="132" width="90" height="4" rx="2" fill="#DA291C"/>' +
+        '<rect x="56" y="168" width="248" height="11" rx="5.5" fill="#DBDBDB"/>' +
         linhas +
-        '<rect x="56" y="548" width="508" height="150" rx="10" fill="none" stroke="#DDE3DE" stroke-width="1.5"/>' +
-        '<rect x="80" y="580" width="180" height="11" rx="5.5" fill="#E7EBE8"/>' +
-        '<rect x="80" y="612" width="320" height="11" rx="5.5" fill="#E7EBE8"/>' +
-        '<rect x="80" y="644" width="256" height="11" rx="5.5" fill="#E7EBE8"/>' +
+        '<rect x="56" y="548" width="508" height="150" rx="10" fill="none" stroke="#DBDBDB" stroke-width="1.5"/>' +
+        '<rect x="80" y="580" width="180" height="11" rx="5.5" fill="#EFEFEF"/>' +
+        '<rect x="80" y="612" width="320" height="11" rx="5.5" fill="#EFEFEF"/>' +
+        '<rect x="80" y="644" width="256" height="11" rx="5.5" fill="#EFEFEF"/>' +
       "</svg>";
 
     var url = svg;
@@ -580,14 +582,32 @@
       );
     }).join("");
 
+    // O sistema e da Claro: a marca dela abre a barra. A APSIS so assina no
+    // rodape, em letra miuda, como quem fornece o sistema.
+    //
+    // As duas versoes da logo da Claro ficam no HTML e o CSS mostra uma de
+    // cada vez: a branca quando a barra esta vermelha, a colorida quando esta
+    // branca. Trocar por CSS e nao por script evita a logo errada aparecer
+    // por um instante quando a tela abre.
     return (
-      '<a class="sidebar-logo" href="index" aria-label="APSIS - Auditoria de EPOs">' +
-        '<span class="sidebar-logo-pill"><img src="https://ybixbsfmxblaippubtvw.supabase.co/storage/v1/object/public/assets/logo_com_nome.png" alt="APSIS"></span>' +
-        '<span class="sidebar-logo-mini" aria-hidden="true">A</span>' +
-      "</a>" +
-      '<button class="sidebar-collapse" id="sidebar-collapse" type="button" aria-label="Recolher menu"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>' +
+      // O botao de recolher fica dentro do topo, e nao solto na barra: assim ele
+      // se centra na altura do cabecalho sozinho, que muda de tamanho quando a
+      // barra recolhe.
+      '<div class="sidebar-topo">' +
+        '<a class="sidebar-logo" href="index" aria-label="Claro - Auditoria de EPOs">' +
+          '<span class="sidebar-logo-pill">' +
+            '<img class="logo-claro-branca" src="assets/brand/logo-claro-branco-rocket.png" alt="Claro">' +
+            '<img class="logo-claro-cor" src="assets/brand/logo-claro.png" alt="Claro">' +
+          "</span>" +
+          '<span class="sidebar-logo-mini" aria-hidden="true">C</span>' +
+        "</a>" +
+        '<button class="sidebar-collapse" id="sidebar-collapse" type="button" aria-label="Recolher menu"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>' +
+      "</div>" +
       '<nav class="nav" aria-label="Navegação principal">' + items + "</nav>" +
-      '<div class="sidebar-brand" aria-hidden="true"><img src="assets/brand/logo-claro-branco-rocket.png" alt="APSIS"></div>' +
+      '<p class="sidebar-brand">' +
+        '<span class="sidebar-brand-logo"><img src="assets/brand/logo-apsis-transp.png" alt=""></span>' +
+        '<span class="sidebar-brand-txt">Sistema desenvolvido pela Apsis Consultoria LTDA</span>' +
+      "</p>" +
       '<div class="sidebar-user">' +
         '<span class="sidebar-user-avatar"><i class="ti ti-user" aria-hidden="true"></i></span>' +
         '<span class="sidebar-user-label">Minha conta</span>' +
@@ -632,6 +652,9 @@
       '</div>' +
       '<div class="topbar-actions">' +
         (actionsHTML || "") +
+        // Botao de comparar os dois tratamentos da barra lateral: vermelho da
+        // marca ou branco. Fica aqui para a escolha ser feita olhando a tela.
+        '<button class="topbar-tema" id="topbar-tema" type="button" aria-pressed="false" aria-label="Deixar o menu branco" title="Deixar o menu branco"><i class="ti ti-palette" aria-hidden="true"></i></button>' +
         '<button class="topbar-bell" type="button" aria-label="Notificações"><i class="ti ti-bell" aria-hidden="true"></i><span class="dot"></span></button>' +
         '<button class="avatar-btn" id="user-menu-btn" type="button" aria-label="Conta" aria-haspopup="true"><i class="ti ti-user" aria-hidden="true"></i></button>' +
         '<div class="user-menu" id="user-menu" role="menu">' +
@@ -720,6 +743,26 @@
       applyCollapsed(savedCollapsed);
       collapseBtn.addEventListener("click", function () {
         applyCollapsed(!sidebar.classList.contains("is-collapsed"));
+      });
+    }
+
+    // Cor da barra lateral: vermelho da marca ou branco - estado persistido,
+    // para a escolha seguir de tela em tela enquanto e comparada.
+    var temaBtn = document.getElementById("topbar-tema");
+    if (temaBtn && sidebar) {
+      var applyBranca = function (b) {
+        sidebar.classList.toggle("is-branca", b);
+        temaBtn.setAttribute("aria-pressed", b ? "true" : "false");
+        var rotulo = b ? "Deixar o menu vermelho" : "Deixar o menu branco";
+        temaBtn.setAttribute("aria-label", rotulo);
+        temaBtn.setAttribute("title", rotulo);
+        try { localStorage.setItem("epoMenuBranco", b ? "1" : "0"); } catch (e) {}
+      };
+      var savedBranca = false;
+      try { savedBranca = localStorage.getItem("epoMenuBranco") === "1"; } catch (e) {}
+      applyBranca(savedBranca);
+      temaBtn.addEventListener("click", function () {
+        applyBranca(!sidebar.classList.contains("is-branca"));
       });
     }
 

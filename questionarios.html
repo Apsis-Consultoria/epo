@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/png" href="https://onksmnxryotelmiytikl.supabase.co/storage/v1/object/public/assets/favicon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=123">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Checklist - Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=119">
-  <link rel="stylesheet" href="assets/carregando.css?v=119">
-  <link rel="stylesheet" href="assets/app.css?v=119">
+  <link rel="stylesheet" href="assets/icones.css?v=123">
+  <link rel="stylesheet" href="assets/carregando.css?v=123">
+  <link rel="stylesheet" href="assets/app.css?v=123">
   <style>
     /* Ajustes locais - edição dos tópicos e das perguntas */
 
@@ -55,7 +55,7 @@
     .qt-topico-cel { display: flex; align-items: flex-start; gap: 11px; min-width: 0; }
     .qt-ico {
       width: 36px; height: 36px; flex: 0 0 36px; border-radius: 10px;
-      background: var(--primary-tint); color: var(--apsis-green);
+      background: var(--primary-tint); color: var(--primary);
       display: grid; place-items: center; font-size: 19px;
     }
     .qt-topico-cel .nm { display: block; font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.35; }
@@ -93,7 +93,7 @@
     .qt-num {
       display: inline-grid; place-items: center;
       width: 26px; height: 26px; border-radius: 50%;
-      background: var(--primary-tint); color: var(--apsis-green);
+      background: var(--primary-tint); color: var(--primary);
       font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums;
     }
     .qt-pergunta { font-weight: 500; color: var(--text); line-height: 1.45; }
@@ -105,7 +105,7 @@
       width: 24px; height: 20px; border: 1px solid var(--border); background: var(--surface);
       color: var(--text-2); border-radius: 5px; cursor: pointer; display: grid; place-items: center; padding: 0;
     }
-    .qt-mover button:hover:not(:disabled) { background: var(--primary-tint); color: var(--apsis-green); border-color: var(--apsis-green); }
+    .qt-mover button:hover:not(:disabled) { background: var(--primary-tint); color: var(--primary); border-color: var(--primary); }
     .qt-mover button:disabled { opacity: .35; cursor: default; }
     .qt-mover i { font-size: 13px; }
 
@@ -135,7 +135,7 @@
       background: var(--surface-2); border: 1px solid var(--border);
       border-radius: var(--radius-sm); padding: 9px 11px; margin-top: 4px;
     }
-    .nota-campo i { font-size: 15px; margin-top: 1px; color: var(--apsis-green); flex: none; }
+    .nota-campo i { font-size: 15px; margin-top: 1px; color: var(--primary); flex: none; }
 
     .marcas-box { display: flex; flex-direction: column; gap: 10px; }
 
@@ -146,15 +146,7 @@
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
-    <div class="apsis-loader">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-    </div>
+    <span class="claro-loader" aria-hidden="true"></span>
   </div>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar"></aside>
@@ -164,11 +156,11 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=119"></script>
-  <script src="assets/app.js?v=119"></script>
-  <script src="assets/supabase-config.js?v=119"></script>
+  <script src="assets/data.js?v=123"></script>
+  <script src="assets/app.js?v=123"></script>
+  <script src="assets/supabase-config.js?v=123"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=119"></script>
+  <script src="assets/auth.js?v=123"></script>
   <script>
     (function () {
       "use strict";

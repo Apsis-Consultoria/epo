@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/png" href="https://onksmnxryotelmiytikl.supabase.co/storage/v1/object/public/assets/favicon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=123">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Ranking de EPOs - Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=119">
-  <link rel="stylesheet" href="assets/carregando.css?v=119">
-  <link rel="stylesheet" href="assets/app.css?v=119">
+  <link rel="stylesheet" href="assets/icones.css?v=123">
+  <link rel="stylesheet" href="assets/carregando.css?v=123">
+  <link rel="stylesheet" href="assets/app.css?v=123">
   <style>
     /* Ajustes locais da tela de ranking (linha expansível) */
     .rank-row { cursor: pointer; }
@@ -113,15 +113,7 @@
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
-    <div class="apsis-loader">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-    </div>
+    <span class="claro-loader" aria-hidden="true"></span>
   </div>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar"></aside>
@@ -131,12 +123,12 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=119"></script>
-  <script src="assets/app.js?v=119"></script>
-  <script src="assets/supabase-config.js?v=119"></script>
+  <script src="assets/data.js?v=123"></script>
+  <script src="assets/app.js?v=123"></script>
+  <script src="assets/supabase-config.js?v=123"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=119"></script>
-  <script src="assets/dados-reais.js?v=119"></script>
+  <script src="assets/auth.js?v=123"></script>
+  <script src="assets/dados-reais.js?v=123"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -252,20 +244,24 @@
       // Cada processo tem a sua cor fixa. Bate o olho no painel e sabe que
       // faixa está falando de logística reversa e qual fala de presos em
       // assinante, sem precisar ler rótulo nenhum.
+      // Cada par sai das famílias da Claro - vermelho, ciano, amarelo, verde e
+      // neutro -, cada uma em dois tons: o escuro abre a faixa e o claro fecha.
+      // Onde a paleta não tem o tom claro pronto, ele é o mesmo tom clareado,
+      // e não uma cor de fora.
       var CORES_PROCESSO = {
-        "reversa":                 ["#15806B", "#3FC2A3"],
-        "baixas":                  ["#2563EB", "#6FA4FA"],
-        "armazenagem":             ["#7C3AED", "#AC8CFB"],
-        "recebimento-expedicao":   ["#65A30D", "#A9E635"],
-        "presos":                  ["#F47920", "#FBB16A"],
-        "treinamento":             ["#DB2777", "#F472B6"],
-        "governanca":              ["#DC2626", "#F87171"],
-        "documentacao":            ["#475569", "#8B9AAD"]
+        "governanca":              ["#DA291C", "#FC867F"],
+        "treinamento":             ["#83170F", "#C9564C"],
+        "reversa":                 ["#005C66", "#00AFC2"],
+        "baixas":                  ["#00818F", "#00DDF5"],
+        "armazenagem":             ["#006B4F", "#4FBE9B"],
+        "recebimento-expedicao":   ["#B84D01", "#FB9C2D"],
+        "presos":                  ["#C79000", "#FFC722"],
+        "documentacao":            ["#525252", "#A8A8A8"]
       };
       // Processo novo que apareça depois ainda ganha cor própria.
       var CORES_RESERVA = [
-        ["#0E7490", "#38BDF8"], ["#9333EA", "#C084FC"], ["#CA8A04", "#FACC15"],
-        ["#0F766E", "#2DD4BF"], ["#4F46E5", "#818CF8"], ["#BE185D", "#F9A8D4"]
+        ["#B41E13", "#E8776C"], ["#00434A", "#0097A8"], ["#8A6200", "#FFE458"],
+        ["#004A37", "#7FD4B8"], ["#3D3D3D", "#8A8A8A"], ["#6B1109", "#B0453B"]
       ];
 
       function gradienteProcesso(id, i) {

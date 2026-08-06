@@ -3,48 +3,71 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/png" href="https://onksmnxryotelmiytikl.supabase.co/storage/v1/object/public/assets/favicon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=123">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <title>Auditoria EPO's</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/carregando.css?v=119">
-  <link rel="stylesheet" href="assets/portal.css?v=119" />
+  <!-- Roboto para o corpo, que e a fonte da Claro, nos mesmos pesos que o painel
+       pede. A Sora entra so pelo TITULO desta tela: e a fonte do titulo do Portal
+       Apsis, e a entrada dos dois sistemas se le como a mesma familia. Peso 900,
+       que e o que o Portal usa. -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Sora:wght@800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/carregando.css?v=123">
+  <link rel="stylesheet" href="assets/portal.css?v=123" />
   <style>
+    /* A folha do painel, onde ficam os tokens da Claro, nao entra nesta tela:
+       o que ela carrega e o Tailwind, que traz os cinzas dele. Por isso os
+       neutros da Claro vem escritos aqui - texto #1F1D1D, apoio #525252,
+       secundario #767676, borda #DBDBDB - e a fonte Roboto vale desde o body. */
+    body { font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; color: #1F1D1D; }
+    /* O Tailwind poe a borda de todo elemento no cinza dele (#e5e7eb). Quem
+       ganhar borda aqui nasce com a da Claro. */
+    *, ::before, ::after { border-color: #DBDBDB; }
+
     /* Ajustes de proporção do painel de login (sobrepõem o portal.css) */
     .login-col { padding-top: 3vh; }
-    .login-logo { height: 158px; }        /* 10% menor que os 176px originais */
+    /* O logo da Claro e deitado (quase 3:1): pela largura ele cabe no bloco de
+       entrada, o que pela altura antiga nao acontecia. A caixa continua com a
+       altura de antes e o logo se centra dentro dela - assim os botoes ficam
+       na mesma posicao de sempre, que e onde quem usa ja procura por eles. */
+    .login-logo { width: 210px; max-width: 72vw; height: 158px; object-fit: contain; }
     .login-bloco { margin-top: 1.5rem; }
     @media (min-width: 1024px) {
       .login-col { padding-top: 6vh; }
-      .login-logo { height: 212px; }      /* 10% menor que os 235px originais */
+      .login-logo { width: 268px; height: 212px; }
       .login-bloco { margin-top: 10vh; }  /* um pouco acima do original (11vh) */
     }
+
+    /* Botao e campo da Claro: capsula (raio 500px), texto medio, altura folgada. */
+    .login-acao, .login-campo { border-radius: 500px; }
+    .login-acao { font-weight: 500; }
+    /* O botao branco (conta Microsoft) responde ao mouse como na Claro:
+       a borda escurece e o fundo puxa o cinza claro da marca. */
+    #btn-ms:hover:not(:disabled) { background: #F8F8F8; border-color: #C4C4C4; }
+    .login-campo { border: 1.5px solid #DBDBDB; color: #1F1D1D; }
+    .login-campo:focus { outline: none; border-color: #DA291C; }
+    .login-apoio { color: #525252; }
+    .login-fraco { color: #767676; }
   </style>
 </head>
 <body>
   <div class="tela-carregando no-escuro" id="tela-carregando" role="status" aria-label="Carregando">
-    <div class="apsis-loader">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-    </div>
+    <span class="claro-loader" aria-hidden="true"></span>
   </div>
-  <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
+  <!-- A entrada nao carrega a folha de estilo do painel, onde ficam os tokens
+       da Claro. Por isso aqui as cores vem escritas: vermelho da marca
+       #DA291C, escuro #1F1D1D, e a fonte Roboto. -->
+  <div class="relative min-h-screen overflow-hidden" style="background:#1F1D1D; font-family: Roboto, system-ui, 'Segoe UI', Arial, sans-serif;">
     <svg class="absolute inset-0 w-full h-full" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
       <defs>
-        <linearGradient id="apsis-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#10291c" />
-          <stop offset="55%" stop-color="#0b1d14" />
-          <stop offset="100%" stop-color="#07130d" />
+        <linearGradient id="ceu-claro" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#332F2F" />
+          <stop offset="55%" stop-color="#262323" />
+          <stop offset="100%" stop-color="#1F1D1D" />
         </linearGradient>
       </defs>
-      <rect width="1600" height="900" fill="url(#apsis-sky)" />
-      <g fill="#0e241a">
+      <rect width="1600" height="900" fill="url(#ceu-claro)" />
+      <g fill="#2B2828">
         <rect x="120" y="520" width="120" height="380" /><rect x="290" y="560" width="90" height="340" />
         <rect x="430" y="490" width="130" height="410" /><rect x="610" y="550" width="100" height="350" />
         <rect x="760" y="500" width="120" height="400" /><rect x="930" y="560" width="95" height="340" />
@@ -57,34 +80,41 @@
     <img data-bg src="assets/brand/login-2.png" alt="" aria-hidden="true" onerror="this.style.display='none'" style="transform: translateX(-26%);" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out opacity-0" />
     <img data-bg src="assets/brand/login-3.png" alt="" aria-hidden="true" onerror="this.style.display='none'" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out opacity-0" />
 
-    <div class="absolute inset-0" style="background: linear-gradient(to right, rgba(7, 19, 13, 0.92), rgba(7, 19, 13, 0.55) 45%, rgba(7, 19, 13, 0) 72%);"></div>
-    <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(7, 19, 13, 0.85), rgba(7, 19, 13, 0.25), transparent);"></div>
+    <div class="absolute inset-0" style="background: linear-gradient(to right, rgba(31, 29, 29, 0.92), rgba(31, 29, 29, 0.55) 45%, rgba(31, 29, 29, 0) 72%);"></div>
+    <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(31, 29, 29, 0.85), rgba(31, 29, 29, 0.25), transparent);"></div>
 
     <div class="hidden lg:block absolute inset-y-0 right-0 w-[37%]" style="clip-path: ellipse(85% 160% at 93% 50%); background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);"></div>
     <svg class="hidden lg:block absolute inset-y-0 right-0 w-[37%] h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <ellipse cx="93" cy="50" rx="85" ry="160" fill="none" stroke="#F48126" stroke-width="10" vector-effect="non-scaling-stroke" />
+      <ellipse cx="93" cy="50" rx="85" ry="160" fill="none" stroke="#DA291C" stroke-width="10" vector-effect="non-scaling-stroke" />
     </svg>
 
     <div class="relative z-10 min-h-screen flex flex-col lg:grid lg:grid-cols-[64%_36%]">
       <div aria-hidden="true"></div>
 
       <div class="login-col relative bg-white lg:bg-transparent flex flex-col items-center justify-start px-6 pb-8 sm:px-10" style="min-height:100vh;">
-        <img src="assets/brand/logo-apsis-transp.png" alt="APSIS" class="login-logo object-contain flex-shrink-0" />
+        <img src="assets/brand/logo-claro.png" alt="Claro" class="login-logo object-contain flex-shrink-0" />
         <div class="login-bloco w-full max-w-sm flex flex-col items-center gap-4">
-          <h1 class="text-3xl lg:text-4xl font-black tracking-tight" style="font-family: Sora, 'Segoe UI', sans-serif;">
-            <span style="color: rgb(26, 71, 49);">AUDITORIA</span> <span style="color: rgb(244, 129, 38);">EPO'S</span>
+          <!-- Mesmo tratamento do titulo do Portal Apsis: Sora no peso 900 com
+               tracking apertado (o Portal usa exatamente
+               "text-3xl lg:text-4xl font-black tracking-tight" com Sora).
+               A entrada dos dois sistemas se le como a mesma familia; o painel
+               por dentro segue na fonte da Claro. -->
+          <h1 class="text-3xl lg:text-4xl font-black tracking-tight"
+              style="font-family: 'Sora', 'Segoe UI', sans-serif;">
+            <span style="color: #DA291C;">AUDITORIA</span> <span style="color: #DA291C;">EPO'S</span>
           </h1>
-          <p class="text-gray-500 text-sm mb-2">Faça login com sua conta corporativa</p>
-          <button id="btn-ms" class="w-full mt-10 flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed text-slate-700 font-semibold py-3.5 px-6 rounded-xl shadow-sm transition-colors">
+          <p class="login-apoio text-sm mb-2">Faça login com sua conta corporativa</p>
+          <button id="btn-ms" class="login-acao w-full mt-10 flex items-center justify-center gap-3 bg-white disabled:opacity-60 disabled:cursor-not-allowed py-3.5 px-6 shadow-sm transition-colors" style="border:1px solid #DBDBDB; color:#1F1D1D;">
             <svg width="20" height="20" viewBox="0 0 23 23" aria-hidden="true" class="flex-shrink-0"><rect x="1" y="1" width="10" height="10" fill="#F25022" /><rect x="12" y="1" width="10" height="10" fill="#7FBA00" /><rect x="1" y="12" width="10" height="10" fill="#00A4EF" /><rect x="12" y="12" width="10" height="10" fill="#FFB900" /></svg>
             Entre com a sua conta Microsoft
           </button>
+          <p class="login-fraco text-xs text-center" style="margin-top:-4px;">Apenas colaboradores Apsis</p>
           <div id="sep-ou" class="w-full flex items-center gap-3 my-1">
-            <span class="h-px flex-1 bg-slate-200"></span>
-            <span class="text-xs text-gray-400 uppercase tracking-wide">ou</span>
-            <span class="h-px flex-1 bg-slate-200"></span>
+            <span class="h-px flex-1" style="background:#DBDBDB;"></span>
+            <span class="login-fraco text-xs uppercase tracking-wide">ou</span>
+            <span class="h-px flex-1" style="background:#DBDBDB;"></span>
           </div>
-          <button id="btn-cliente" class="w-full flex items-center justify-center gap-3 font-semibold py-3.5 px-6 rounded-xl shadow-sm transition-colors text-white" style="background: rgb(26, 71, 49);" onmouseover="this.style.background='rgb(20, 56, 39)'" onmouseout="this.style.background='rgb(26, 71, 49)'">
+          <button id="btn-cliente" class="login-acao w-full flex items-center justify-center gap-3 py-3.5 px-6 shadow-sm transition-colors text-white" style="background: #DA291C;" onmouseover="this.style.background='#B41E13'" onmouseout="this.style.background='#DA291C'">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><path d="M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/><path d="M3 21v-1a5 5 0 0 1 5-5h2"/><path d="m15 19 2 2 4-4"/></svg>
             Receber código por e-mail
           </button>
@@ -94,33 +124,33 @@
                senha para criar, guardar, esquecer nem redefinir. -->
           <div id="painel-cliente" class="w-full hidden">
             <div id="etapa-email">
-              <p class="text-left text-sm font-semibold text-slate-600 mb-3">
+              <p class="login-apoio text-left text-sm font-medium mb-3">
                 Informe o seu e-mail. Você recebe um código para entrar.
               </p>
-              <label class="block text-left text-xs font-semibold text-gray-500 mb-1" for="cli-email">E-mail</label>
+              <label class="login-apoio block text-left text-xs font-medium mb-1" for="cli-email">E-mail</label>
               <input id="cli-email" type="email" placeholder="o e-mail cadastrado na sua EPO" autocomplete="email"
-                class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none" style="border-width:1.5px;" />
-              <button id="btn-enviar-codigo" class="w-full mt-4 font-semibold py-3 px-6 rounded-xl text-white transition-colors disabled:opacity-60" style="background: rgb(26, 71, 49);">
+                class="login-campo w-full py-3 px-5" />
+              <button id="btn-enviar-codigo" class="login-acao w-full mt-4 py-3 px-6 text-white transition-colors disabled:opacity-60" style="background: #DA291C;">
                 Receber o código
               </button>
               <div id="captcha-caixa" class="hidden mt-3 flex justify-center"></div>
-              <button id="btn-fechar-painel" class="w-full mt-2 text-xs text-gray-400 underline">Voltar</button>
+              <button id="btn-fechar-painel" class="login-fraco w-full mt-2 text-xs underline">Voltar</button>
             </div>
 
             <div id="etapa-codigo" class="hidden text-left">
-              <p id="codigo-titulo" class="text-sm text-gray-600 leading-relaxed mb-3"></p>
-              <label class="block text-left text-xs font-semibold text-gray-500 mb-1" for="cli-codigo">Código</label>
+              <p id="codigo-titulo" class="login-apoio text-sm leading-relaxed mb-3"></p>
+              <label class="login-apoio block text-left text-xs font-medium mb-1" for="cli-codigo">Código</label>
               <input id="cli-codigo" type="text" inputmode="numeric" autocomplete="one-time-code"
                 maxlength="6" placeholder="000000"
-                class="w-full border border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none"
-                style="border-width:1.5px; letter-spacing:.35em; font-size:20px; font-weight:600; text-align:center;" />
-              <button id="btn-entrar-codigo" class="w-full mt-4 font-semibold py-3 px-6 rounded-xl text-white transition-colors disabled:opacity-60" style="background: rgb(26, 71, 49);">
+                class="login-campo w-full py-3 px-5"
+                style="letter-spacing:.35em; font-size:20px; font-weight:500; text-align:center;" />
+              <button id="btn-entrar-codigo" class="login-acao w-full mt-4 py-3 px-6 text-white transition-colors disabled:opacity-60" style="background: #DA291C;">
                 Entrar
               </button>
-              <button id="btn-outro-codigo" class="w-full mt-3 text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2">
+              <button id="btn-outro-codigo" class="login-apoio w-full mt-3 text-xs underline underline-offset-2">
                 Enviar outro código
               </button>
-              <button id="btn-voltar-email" class="w-full mt-2 text-xs text-gray-400 underline">Trocar o e-mail</button>
+              <button id="btn-voltar-email" class="login-fraco w-full mt-2 text-xs underline">Trocar o e-mail</button>
             </div>
           </div>
 
@@ -128,13 +158,19 @@
                senão a mensagem do botão da Microsoft nasce escondida. -->
           <p id="cli-msg" class="w-full text-xs text-center hidden"></p>
 
-          <p class="text-xs text-gray-400 text-center">Equipe APSIS, Claro e responsáveis das EPOs.<br />Cada pessoa vê apenas as telas do seu perfil.</p>
+          <p class="login-fraco text-xs text-center">Equipe Claro</p>
 
         </div>
-        <div style="flex:1 1 auto; display:flex; align-items:center; justify-content:center; width:100%; min-height:90px;">
-          <img src="assets/brand/logo-claro.png" alt="Claro" onerror="this.style.display='none'" style="height:84px; width:auto; object-fit:contain; opacity:.95;" />
+        <!-- A marca da tela e a Claro, la em cima. Aqui embaixo fica quem
+             desenvolveu, no mesmo desenho do rodape do menu lateral: o texto e
+             a logo da Apsis um ao lado do outro, em tamanho de credito. -->
+        <div style="flex:1 1 auto; display:flex; align-items:flex-end; justify-content:center; width:100%; min-height:70px; padding-bottom:8px;">
+          <span style="display:flex; align-items:center; gap:8px; font-size:11px; color:#767676;">
+            Sistema desenvolvido por
+            <img src="assets/brand/logo-apsis-transp.png" alt="Apsis Consultoria" onerror="this.style.display='none'" style="height:26px; width:auto; object-fit:contain;" />
+          </span>
         </div>
-        <p style="margin:0; text-align:center; font-size:11px; color:#9ca3af;">© 2026 APSIS Consultoria. Todos os direitos reservados.</p>
+        <p style="margin:0; text-align:center; font-size:11px; color:#767676;">© 2026 APSIS Consultoria. Todos os direitos reservados.</p>
       </div>
     </div>
   </div>
@@ -152,9 +188,9 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=119"></script>
+  <script src="assets/supabase-config.js?v=123"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=119"></script>
+  <script src="assets/auth.js?v=123"></script>
   <script>
     (function () {
       "use strict";
@@ -219,7 +255,7 @@
         var el = $("cli-msg");
         el.textContent = texto;
         el.classList.remove("hidden");
-        el.style.color = erro ? "#dc2626" : "#16a34a";
+        el.style.color = erro ? "#DA291C" : "#006B4F";
       }
 
       // A tela de carregamento sai quando esta entrada vai FICAR na tela. Quem

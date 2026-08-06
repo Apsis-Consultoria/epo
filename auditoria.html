@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <link rel="icon" type="image/png" href="https://onksmnxryotelmiytikl.supabase.co/storage/v1/object/public/assets/favicon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=123">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=119">
-  <link rel="stylesheet" href="assets/carregando.css?v=119">
-  <link rel="stylesheet" href="assets/app.css?v=119">
+  <link rel="stylesheet" href="assets/icones.css?v=123">
+  <link rel="stylesheet" href="assets/carregando.css?v=123">
+  <link rel="stylesheet" href="assets/app.css?v=123">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -20,7 +20,7 @@
        Pensado para ser aberto no navegador do celular em campo.
        ========================================================================== */
     html, body { height: 100%; }
-    body.wiz-body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
+    body.wiz-body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-base); }
 
     .wiz-shell {
       min-height: 100dvh;
@@ -51,11 +51,11 @@
       text-decoration: none;
     }
     .wiz-progress-track { flex: 1; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
-    .wiz-progress-fill { height: 100%; background: var(--apsis-orange); border-radius: 99px; width: 0%; transition: width .25s ease; }
+    .wiz-progress-fill { height: 100%; background: var(--primary); border-radius: 99px; width: 0%; transition: width .25s ease; }
     .wiz-counter { flex: 0 0 auto; min-width: 42px; text-align: right; font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
 
     .wiz-main { flex: 1; overflow-y: auto; padding: 10px 20px 28px; -webkit-overflow-scrolling: touch; }
-    .wiz-eyebrow { font-size: 12px; font-weight: 600; color: var(--apsis-orange); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
+    .wiz-eyebrow { font-size: 12px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
     .wiz-subeyebrow { font-size: 12px; color: var(--text-muted); margin: -4px 0 14px; }
     .wiz-question { font-size: 21px; font-weight: 700; line-height: 1.32; color: var(--text); margin: 0 0 14px; }
 
@@ -72,10 +72,10 @@
       background: var(--surface); padding: 11px 12px; margin: -8px 0 20px;
     }
     .wiz-comprov-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); }
-    .wiz-comprov-head > i { font-size: 16px; color: var(--apsis-green); flex: 0 0 auto; }
+    .wiz-comprov-head > i { font-size: 16px; color: var(--primary); flex: 0 0 auto; }
     .wiz-comprov-count {
       margin-left: auto; flex: 0 0 auto;
-      background: var(--apsis-orange); color: #fff;
+      background: var(--primary); color: #fff;
       border-radius: 99px; min-width: 20px; padding: 1px 7px;
       font-size: 11px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums;
     }
@@ -92,7 +92,7 @@
       display: flex; align-items: center; gap: 10px; min-height: 44px;
       background: var(--surface-2); border-radius: var(--radius-sm); padding: 6px 8px;
     }
-    .wiz-comprov-item > i { font-size: 19px; color: var(--apsis-green); flex: 0 0 32px; text-align: center; }
+    .wiz-comprov-item > i { font-size: 19px; color: var(--primary); flex: 0 0 32px; text-align: center; }
     .wiz-comprov-thumb {
       width: 44px; height: 44px; flex: 0 0 44px; border-radius: 8px;
       object-fit: cover; background: var(--surface); display: block;
@@ -104,7 +104,7 @@
       max-width: 100%; text-align: left; background: none; border: 0; padding: 0;
       font-family: inherit; cursor: pointer;
     }
-    button.wiz-comprov-nome:active, button.wiz-comprov-nome:hover { color: var(--apsis-green); text-decoration: underline; }
+    button.wiz-comprov-nome:active, button.wiz-comprov-nome:hover { color: var(--primary); text-decoration: underline; }
     .wiz-comprov-meta { display: block; font-size: 11.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .wiz-comprov-open {
       width: 44px; height: 44px; flex: 0 0 44px; border-radius: 10px;
@@ -189,7 +189,7 @@
     }
     .wiz-sending-spin {
       width: 44px; height: 44px; border-radius: 50%;
-      border: 4px solid var(--surface-2); border-top-color: var(--apsis-orange);
+      border: 4px solid var(--surface-2); border-top-color: var(--primary);
       animation: wizspin .8s linear infinite;
     }
     .wiz-sending p { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
@@ -209,7 +209,7 @@
       border: 0; border-bottom: 2px solid var(--border-strong); background: transparent; color: var(--text);
       padding: 4px 0;
     }
-    .wiz-tempo-input-wrap input:focus { outline: none; border-color: var(--apsis-orange); }
+    .wiz-tempo-input-wrap input:focus { outline: none; border-color: var(--primary); }
     .wiz-tempo-input-wrap span { font-size: 13px; color: var(--text-muted); }
 
     .wiz-summary-card { background: var(--surface-2); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; text-align: center; }
@@ -234,7 +234,7 @@
     .wiz-intro { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 18px 4px 8px; }
     .wiz-intro-icon {
       width: 72px; height: 72px; border-radius: 50%;
-      background: var(--primary-tint); color: var(--apsis-orange);
+      background: var(--primary-tint); color: var(--primary);
       display: grid; place-items: center; font-size: 34px; margin-bottom: 20px;
     }
     .wiz-intro-title { font-size: 26px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
@@ -260,15 +260,15 @@
     .proc-card:active { background: var(--surface-2); transform: scale(.99); }
     .proc-card-icon {
       width: 42px; height: 42px; flex: 0 0 42px; border-radius: 12px;
-      background: var(--primary-tint); color: var(--apsis-green);
+      background: var(--primary-tint); color: var(--primary);
       display: grid; place-items: center; font-size: 22px;
     }
     .proc-card-info { flex: 1; min-width: 0; }
     .proc-card-info b { display: block; font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; }
     .proc-card-info span { font-size: 12px; color: var(--text-2); }
     .proc-card-caret { color: var(--text-muted); font-size: 18px; flex: 0 0 auto; }
-    .proc-card.is-destaque { border-color: var(--apsis-orange); }
-    .proc-card.is-destaque .proc-card-icon { background: var(--warning-bg); color: var(--apsis-orange); }
+    .proc-card.is-destaque { border-color: var(--primary); }
+    .proc-card.is-destaque .proc-card-icon { background: var(--primary-tint); color: var(--primary); }
 
     /* Tela cheia de confirmação (após enviar) */
     .wiz-done {
@@ -302,9 +302,11 @@
     .wiz-btn i { font-size: 18px; }
     .wiz-btn-back { flex: 0 0 100px; background: var(--surface-2); color: var(--text-2); }
     .wiz-btn-back:disabled { visibility: hidden; }
-    .wiz-btn-next { flex: 1; background: var(--apsis-green); color: #fff; }
+    .wiz-btn-next { flex: 1; background: var(--primary); color: #fff; }
     .wiz-btn-next:disabled { opacity: .4; cursor: not-allowed; }
-    .wiz-btn-next.is-submit { background: var(--apsis-orange); }
+    /* O envio e o mesmo vermelho da marca, um tom mais escuro: fecha o
+       questionario e precisa se distinguir do "Proxima". */
+    .wiz-btn-next.is-submit { background: var(--primary-600); }
 
     /* Contagem da reversa - resultado ao vivo (% de retorno vs meta) */
     .rev-metric { background: var(--surface-2); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
@@ -330,15 +332,7 @@
 </head>
 <body class="wiz-body">
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
-    <div class="apsis-loader">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-    </div>
+    <span class="claro-loader" aria-hidden="true"></span>
   </div>
   <div class="wiz-shell">
     <header class="wiz-header" id="wiz-header">
@@ -353,11 +347,11 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=119"></script>
-  <script src="assets/app.js?v=119"></script>
-  <script src="assets/supabase-config.js?v=119"></script>
+  <script src="assets/data.js?v=123"></script>
+  <script src="assets/app.js?v=123"></script>
+  <script src="assets/supabase-config.js?v=123"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=119"></script>
+  <script src="assets/auth.js?v=123"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;

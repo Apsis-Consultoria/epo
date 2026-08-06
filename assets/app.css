@@ -4,70 +4,118 @@
    contra 330ms dos outros arquivos - 320ms de texto sem fonte, de graca. */
 
 /* =========================================================================
-   Auditoria de EPOs - design system + componentes (tema Portal APSIS)
-   Estética: dashboard SaaS moderno, limpo e profissional.
+   Auditoria de EPOs - design system + componentes (identidade Claro)
+   Estética: a do site da Claro, em formato de painel com menu lateral.
    Todas as cores via var(--...). Nada de hex solto nos componentes.
+
+   Os valores abaixo nao foram escolhidos aqui: sao os do Mondrian, o design
+   system da propria Claro, lidos do site dela. Vermelho da marca #DA291C,
+   texto #1F1D1D, fundo #F8F8F8, borda #DBDBDB, cartao com canto de 12px e
+   sombra 0 4px 8px, botao em capsula (raio 500px) e fonte Roboto.
    ========================================================================= */
 
 /* ---------------------------------------------------------------- Tokens */
 :root {
-  /* Portal APSIS - paleta oficial (do Layout.jsx do portal) */
-  --apsis-green: #1A4731;
-  --apsis-green-light: #245E40;
-  --apsis-orange: #F47920;
-  --apsis-orange-light: #F9A15A;
-  --apsis-gray: #E8EDE9;
+  /* ---- Primitivas do Mondrian (paleta oficial da Claro) ---- */
+  --color-brand-primary-darkest: #83170F;
+  --color-brand-primary-dark: #B41E13;
+  --color-brand-primary-medium: #DA291C;
+  --color-brand-primary-light: #FC867F;
+  --color-brand-primary-lightest: #FFE3E3;
 
-  --bg: #F4F6F4;
+  --color-brand-secondary-darkest: #005C66;
+  --color-brand-secondary-medium: #00818F;
+  --color-brand-secondary-light: #00AFC2;
+  --color-brand-secondary-lightest: #00DDF5;
+
+  --color-neutral-darkest: #1F1D1D;
+  --color-neutral-dark: #525252;
+  --color-neutral-medium: #DBDBDB;
+  --color-neutral-light: #F8F8F8;
+  --color-neutral-lightest: #FFFFFF;
+
+  --color-support-success-dark: #006B4F;
+  --color-support-success-light: #DDF9ED;
+  --color-support-highlight-darkest: #B84D01;
+  --color-support-highlight-dark: #FB9C2D;
+  --color-support-highlight-medium: #FFC722;
+  --color-support-highlight-light: #FFE458;
+  --color-support-highlight-lightest: #FFFAAD;
+
+  /* ---- Nomes curtos da marca, para uso direto ---- */
+  --claro-red: #DA291C;
+  --claro-red-dark: #B41E13;
+  --claro-red-darkest: #83170F;
+  --claro-red-tint: #FFE3E3;
+  --claro-teal: #00818F;
+
+  /* ---- Superfícies e texto ---- */
+  --bg: #F8F8F8;
   --surface: #FFFFFF;
-  --surface-2: #E8EDE9;
-  --border: #DDE3DE;
-  --border-strong: #C9D2CB;
+  --surface-2: #EFEFEF;
+  --border: #DBDBDB;
+  --border-strong: #C4C4C4;
 
-  --text: #1A2B1F;
-  --text-2: #5C7060;
-  --text-muted: #8A9A8E;
+  --text: #1F1D1D;
+  --text-2: #525252;
+  --text-muted: #767676;
 
-  /* Primário = verde APSIS; acento = laranja APSIS */
-  --primary: #1A4731;
-  --primary-600: #245E40;
-  --primary-700: #123422;
-  --primary-tint: #E8EDE9;
-  --accent: #F47920;
-  --accent-600: #E06A15;
+  /* Primário e acento sao o mesmo vermelho: na Claro a marca e uma cor so. */
+  --primary: #DA291C;
+  --primary-600: #B41E13;
+  --primary-700: #83170F;
+  --primary-tint: #FFE3E3;
+  --accent: #DA291C;
+  --accent-600: #B41E13;
 
-  /* aliases de compatibilidade */
-  --brand-orange: #F47920;
-  --brand-green: #1A4731;
+  /* Dentro da barra lateral, que e vermelha, o destaque nao pode ser
+     vermelho: e o branco que marca o item aberto. */
+  --on-primary: #FFFFFF;
+  --on-primary-2: rgba(255, 255, 255, .72);
+  --on-primary-3: rgba(255, 255, 255, .54);
+  --on-primary-hover: rgba(255, 255, 255, .10);
+  --on-primary-active: rgba(255, 255, 255, .18);
 
-  --success: #22C55E;
-  --success-bg: #E7F7ED;
-  --danger: #EF4444;
-  --danger-bg: #FDECEC;
-  --warning: #F47920;
-  --warning-bg: #FCEEE0;
+  --success: #006B4F;
+  --success-bg: #DDF9ED;
+  --danger: #DA291C;
+  --danger-bg: #FFE3E3;
+  --warning: #B84D01;
+  --warning-bg: #FFFAAD;
+  --info: #00818F;
+  --info-bg: #E3F7FA;
 
-  --ouro: #C08A2B;
-  --ouro-bg: #FBF3E1;
-  --ouro-text: #795214;
-  --prata: #7E8592;
-  --prata-bg: #F0F1F4;
-  --prata-text: #464C58;
-  --bronze: #B06A3B;
-  --bronze-bg: #F6ECE3;
-  --bronze-text: #653A1E;
-  --critico: #EF4444;
-  --critico-bg: #FDECEC;
-  --critico-text: #7F1D1D;
+  --ouro: #B8860B;
+  --ouro-bg: #FDF6E3;
+  --ouro-text: #6B4E06;
+  --prata: #767676;
+  --prata-bg: #EFEFEF;
+  --prata-text: #3D3D3D;
+  --bronze: #B84D01;
+  --bronze-bg: #FBEDE1;
+  --bronze-text: #6B2D00;
+  --critico: #DA291C;
+  --critico-bg: #FFE3E3;
+  --critico-text: #83170F;
 
+  /* Raios do Mondrian: xs 4, sm 12, md 24, lg 32, capsula 500. */
   --radius: 12px;
-  --radius-sm: 8px;
+  --radius-sm: 4px;
+  --radius-md: 24px;
+  --radius-pill: 500px;
 
-  --font-display: 'Inter', system-ui, sans-serif;
+  /* Roboto e a fonte da Claro. AMX e a de titulo, so que e fonte fechada da
+     marca: fica declarada primeiro para valer onde ela estiver instalada, e
+     cai em Roboto no resto. */
+  --font-base: 'Roboto', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-display: 'AMX', 'Roboto', system-ui, Arial, sans-serif;
 
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, .06);
-  --shadow: 0 1px 3px rgba(16, 24, 40, .10), 0 1px 2px rgba(16, 24, 40, .06);
-  --shadow-md: 0 6px 16px rgba(16, 24, 40, .10);
+  /* Sombras do Mondrian: deslocamento em Y, desfoque 8/16/24, preto da marca
+     a 16%. */
+  --shadow-sm: 0 2px 4px rgba(31, 29, 29, .08);
+  --shadow: 0 4px 8px rgba(31, 29, 29, .16);
+  --shadow-md: 0 8px 16px rgba(31, 29, 29, .16);
+  --shadow-lg: 0 16px 24px rgba(31, 29, 29, .16);
 
   --sidebar-w: 240px;
   --topbar-h: 64px;
@@ -82,7 +130,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: var(--font-base);
   font-size: 14px;
   line-height: 1.5;
   font-weight: 400;
@@ -108,10 +156,12 @@ img { max-width: 100%; display: block; }
 /* ------------------------------------------------------------ App shell */
 .app-shell { display: flex; min-height: 100vh; }
 
+/* A barra lateral e o cabecalho vermelho do site da Claro, so que de pe:
+   mesmo vermelho de marca, mesmo branco por cima. */
 .sidebar {
   width: var(--sidebar-w);
   flex: 0 0 var(--sidebar-w);
-  background: var(--apsis-green);
+  background: var(--claro-red);
   height: 100vh;
   position: sticky;
   top: 0;
@@ -124,15 +174,28 @@ img { max-width: 100%; display: block; }
 .sidebar-logo {
   display: block;
   border-bottom: 1px solid rgba(255, 255, 255, .10);
-  padding: 12px 32px 12px 0;
+  padding: 12px 14px;
 }
 .sidebar-logo-pill {
-  width: 100%;
-  padding: 10px 24px 10px 16px;
+  /* 70% da largura da barra, centrado. O logo encostava nas duas laterais e
+     chegava a passar por baixo do botao de recolher; com 70% sobra margem dos
+     dois lados e ele volta a ter cara de logo de menu, e nao de cabecalho. */
+  width: 70%;
+  margin: 0 auto;
+  padding: 6px 2px;
   display: flex;
   align-items: center;
 }
-.sidebar-logo-pill img { height: 36px; width: auto; object-fit: contain; }
+/* O logo ocupa a largura da barra, e nao uma altura fixa.
+   O arquivo do logo branco tem 600x400, mas o desenho ocupa so a faixa do meio
+   (599x219): sobra transparente em cima e embaixo. Medido pela altura, metade
+   do espaco ia para o vazio e a marca aparecia miuda. A caixa toma a proporcao
+   apenas da parte desenhada e o object-fit recorta o resto - o que sai e o
+   logo cheio, encostado nas duas laterais. O colorido nao tem essa sobra e
+   entra pela proporcao dele. */
+.sidebar-logo-pill img { display: block; width: 100%; height: auto; }
+.sidebar-logo-pill .logo-claro-branca { aspect-ratio: 600 / 219; object-fit: cover; }
+.sidebar-logo-pill .logo-claro-cor { aspect-ratio: 1000 / 375; object-fit: contain; }
 
 .nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 16px 8px; overflow-y: auto; }
 
@@ -143,15 +206,15 @@ img { max-width: 100%; display: block; }
   padding: 10px 12px;
   border-radius: 8px 0 0 8px;
   border-right: 3px solid transparent;
-  color: rgba(255, 255, 255, .60);
+  color: var(--on-primary-2);
   font-weight: 500;
   font-size: 14px;
   transition: all .18s ease;
 }
-.nav-item i { font-size: 18px; width: 20px; text-align: center; color: rgba(255, 255, 255, .50); transition: color .18s ease; }
-.nav-item:hover { background: rgba(244, 121, 32, .10); }
-.nav-item.active { background: rgba(244, 121, 32, .15); border-right-color: var(--apsis-orange); color: #fff; }
-.nav-item.active i { color: var(--apsis-orange); }
+.nav-item i { font-size: 18px; width: 20px; text-align: center; color: var(--on-primary-3); transition: color .18s ease; }
+.nav-item:hover { background: var(--on-primary-hover); color: var(--on-primary); }
+.nav-item.active { background: var(--on-primary-active); border-right-color: var(--on-primary); color: var(--on-primary); }
+.nav-item.active i { color: var(--on-primary); }
 
 /* Pai com submenu (Nova auditoria): botão que expande, não navega */
 .nav-parent {
@@ -187,11 +250,11 @@ img { max-width: 100%; display: block; }
   border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
-  color: rgba(255, 255, 255, .50);
+  color: var(--on-primary-3);
   transition: background .15s ease, color .15s ease;
 }
-.nav-sub-item:hover { color: #fff; background: rgba(255, 255, 255, .06); }
-.nav-sub-item.active { color: #fff; background: rgba(244, 121, 32, .15); }
+.nav-sub-item:hover { color: var(--on-primary); background: var(--on-primary-hover); }
+.nav-sub-item.active { color: var(--on-primary); background: var(--on-primary-active); }
 
 
 .sidebar-user {
@@ -204,43 +267,73 @@ img { max-width: 100%; display: block; }
 .sidebar-user-avatar {
   width: 28px; height: 28px; flex: 0 0 28px;
   border-radius: 50%;
-  background: rgba(244, 121, 32, .20);
-  border: 1px solid rgba(244, 121, 32, .30);
-  color: var(--apsis-orange);
+  background: var(--on-primary-active);
+  border: 1px solid var(--on-primary-3);
+  color: var(--on-primary);
   display: grid; place-items: center;
   font-size: 14px;
 }
-.sidebar-user-label { color: rgba(255, 255, 255, .50); font-size: 12px; }
+.sidebar-user-label { color: var(--on-primary-3); font-size: 12px; }
 
+/* Assinatura de quem fez o sistema. E credito, nao marca da tela: fica em
+   letra miuda, e a logo acompanha a altura da letra. O quadradinho branco
+   existe porque a logo da APSIS e colorida e precisa de fundo claro para ser
+   lida - inclusive sobre a barra vermelha. */
 .sidebar-brand {
   margin-top: auto;
-  padding: 20px 16px;
+  padding: 14px 16px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 10px;
+  line-height: 1.35;
 }
-.sidebar-brand img { max-width: 100%; width: 140px; height: auto; object-fit: contain; opacity: .92; }
+.sidebar-brand-logo {
+  flex: 0 0 auto;
+  width: 18px; height: 18px;
+  border-radius: 3px;
+  background: #fff;
+  padding: 2px;
+  display: grid; place-items: center;
+}
+.sidebar-brand-logo img { width: 100%; height: 100%; object-fit: contain; }
+.sidebar-brand-txt { color: var(--on-primary-3); }
 .sidebar.is-collapsed .sidebar-brand { display: none; }
+
+/* Das duas versoes da logo da Claro, o CSS mostra a que combina com o fundo. */
+.sidebar-logo-pill .logo-claro-cor { display: none; }
+.sidebar.is-branca .sidebar-logo-pill .logo-claro-branca { display: none; }
+.sidebar.is-branca .sidebar-logo-pill .logo-claro-cor { display: block; }
 
 .sidebar-logo-mini { display: none; }
 
 /* Botão de recolher (borda direita da sidebar) */
+.sidebar-topo { position: relative; }
+
 .sidebar-collapse {
   position: absolute;
   right: -12px;
-  top: 74px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 24px; height: 24px;
   border-radius: 50%;
-  background: var(--apsis-orange);
-  color: #fff;
-  border: 0;
+  background: var(--surface);
+  color: var(--claro-red);
+  border: 1px solid var(--border);
   display: grid; place-items: center;
   cursor: pointer;
   box-shadow: var(--shadow-md);
   z-index: 45;
   font-size: 14px;
+  line-height: 1;
+  padding: 0;
 }
-.sidebar-collapse:hover { background: var(--accent-600); }
+/* O <i> do icone e inline: o que o grid centrava era a caixa de texto, com a
+   folga que a fonte reserva acima e abaixo do traco, e o chevron ficava fora
+   do meio do circulo. Como bloco de 1em por 1em - que e o quadrado em que o
+   icone e desenhado - o traco cai no centro. */
+.sidebar-collapse i { display: block; width: 1em; height: 1em; line-height: 1; text-align: center; }
+.sidebar-collapse:hover { background: var(--claro-red-dark); color: var(--on-primary); border-color: var(--claro-red-dark); }
 
 /* Estado recolhido (só ícones) */
 .sidebar.is-collapsed { width: 72px; flex-basis: 72px; }
@@ -248,7 +341,7 @@ img { max-width: 100%; display: block; }
 .sidebar.is-collapsed .sidebar-logo-pill { display: none; }
 .sidebar.is-collapsed .sidebar-logo-mini {
   display: grid; place-items: center; width: 40px; height: 40px; margin: 0 auto;
-  border-radius: 10px; background: var(--apsis-orange); color: #fff; font-weight: 700; font-size: 18px;
+  border-radius: 10px; background: var(--on-primary); color: var(--claro-red); font-weight: 700; font-size: 18px;
 }
 .sidebar.is-collapsed .nav { padding: 16px 6px; }
 .sidebar.is-collapsed .nav-item { justify-content: center; padding: 11px 0; gap: 0; }
@@ -257,6 +350,60 @@ img { max-width: 100%; display: block; }
 .sidebar.is-collapsed .sidebar-user-label { display: none; }
 .sidebar.is-collapsed .nav-sub { display: none; }
 .sidebar.is-collapsed .nav-caret { display: none; }
+
+/* ------------------------------------------------- Barra lateral branca */
+/* A outra leitura da identidade da Claro: em vez do vermelho preenchendo a
+   barra inteira, a barra fica branca e o vermelho vira so o destaque - o
+   item aberto, o icone dele, a marca. E a leitura mais limpa das duas, e
+   deixa o vermelho valer mais por aparecer menos. O botao da paleta, na
+   barra de cima, alterna entre as duas. */
+.sidebar.is-branca {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+.sidebar.is-branca .sidebar-logo { border-bottom-color: var(--border); }
+
+.sidebar.is-branca .nav-item { color: var(--text-2); }
+.sidebar.is-branca .nav-item i { color: var(--text-muted); }
+.sidebar.is-branca .nav-item:hover { background: var(--surface-2); color: var(--text); }
+.sidebar.is-branca .nav-item:hover i { color: var(--text-2); }
+.sidebar.is-branca .nav-item.active {
+  background: var(--primary-tint);
+  border-right-color: var(--claro-red);
+  color: var(--claro-red);
+  font-weight: 600;
+}
+.sidebar.is-branca .nav-item.active i { color: var(--claro-red); }
+
+.sidebar.is-branca .nav-sub { border-left-color: var(--border); }
+.sidebar.is-branca .nav-sub-item { color: var(--text-muted); }
+.sidebar.is-branca .nav-sub-item:hover { color: var(--text); background: var(--surface-2); }
+.sidebar.is-branca .nav-sub-item.active { color: var(--claro-red); background: var(--primary-tint); }
+
+.sidebar.is-branca .sidebar-user { border-top-color: var(--border); }
+.sidebar.is-branca .sidebar-user-avatar {
+  background: var(--primary-tint);
+  border-color: var(--primary-tint);
+  color: var(--claro-red);
+}
+.sidebar.is-branca .sidebar-user-label { color: var(--text-muted); }
+
+.sidebar.is-branca .sidebar-brand-txt { color: var(--text-muted); }
+/* Sobre branco a logo da APSIS ja se le sozinha: o quadradinho sai de cena. */
+.sidebar.is-branca .sidebar-brand-logo { background: transparent; padding: 0; }
+
+.sidebar.is-branca .sidebar-logo-mini { background: var(--claro-red); color: #fff; }
+
+/* -------------------------------------------- Botao de cor da lateral */
+.topbar-tema {
+  padding: 8px; border-radius: 8px;
+  background: transparent; border: 0;
+  color: var(--text-2); cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.topbar-tema:hover { background: var(--surface-2); color: var(--text); }
+.topbar-tema[aria-pressed="true"] { color: var(--claro-red); background: var(--primary-tint); }
+.topbar-tema i { font-size: 18px; display: block; }
 
 /* ------------------------------------------------------------- App main */
 .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -274,7 +421,7 @@ img { max-width: 100%; display: block; }
   border-bottom: 1px solid var(--border);
 }
 .topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.topbar-bar { width: 4px; height: 24px; border-radius: 999px; background: var(--apsis-orange); flex: 0 0 4px; }
+.topbar-bar { width: 4px; height: 24px; border-radius: 999px; background: var(--claro-red); flex: 0 0 4px; }
 .topbar-titles { min-width: 0; }
 .topbar-title { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.25; }
 .topbar-subtitle { font-size: 12px; color: var(--text-2); }
@@ -284,9 +431,9 @@ img { max-width: 100%; display: block; }
 .topbar-bell { position: relative; padding: 8px; border-radius: 8px; background: transparent; border: 0; color: var(--text-2); cursor: pointer; transition: background .15s ease; }
 .topbar-bell:hover { background: var(--surface-2); }
 .topbar-bell i { font-size: 18px; display: block; }
-.topbar-bell .dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--apsis-orange); }
+.topbar-bell .dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--claro-red); }
 
-.avatar-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--apsis-green); color: #fff; display: grid; place-items: center; border: 0; cursor: pointer; font-size: 15px; transition: opacity .15s ease; }
+.avatar-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--claro-red); color: #fff; display: grid; place-items: center; border: 0; cursor: pointer; font-size: 15px; transition: opacity .15s ease; }
 .avatar-btn:hover { opacity: .85; }
 
 .user-menu { position: absolute; right: 0; top: 46px; width: 224px; background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-md); padding: 8px 0; z-index: 50; display: none; }
@@ -316,12 +463,14 @@ img { max-width: 100%; display: block; }
 }
 
 /* ----------------------------------------------------------------- Cards */
+/* Cartao da Claro: fundo branco, canto de 12px, borda #DBDBDB e sombra
+   0 4px 8px do preto da marca a 16%. */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow);
   /* Sem esta margem as caixas de toda tela ficavam encostadas uma na outra.
      A classe .mb-0, usada na ultima caixa de cada tela, existia justamente
      para tirar esta margem: a intencao estava no codigo, a margem nao. */
@@ -363,7 +512,7 @@ img { max-width: 100%; display: block; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 18px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -387,14 +536,16 @@ img { max-width: 100%; display: block; }
 .kpi-delta.flat { color: var(--text-muted); }
 
 /* --------------------------------------------------------------- Buttons */
+/* Botao da Claro: capsula (raio 500px), 40px de altura, 24px de folga nos
+   lados, peso 500. O secundario e vazado no vermelho escuro, como no site. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
   height: 40px;
-  padding: 0 16px;
-  border-radius: var(--radius-sm);
+  padding: 0 24px;
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
   background: var(--surface-2);
   color: var(--text);
@@ -407,14 +558,14 @@ img { max-width: 100%; display: block; }
 .btn i { font-size: 18px; }
 .btn:hover { background: var(--border); }
 
-.btn-primary { background: var(--primary); color: #fff; }
-.btn-primary:hover { background: var(--primary-600); }
+.btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-600); border-color: var(--primary-600); }
 
-.btn-ghost { background: transparent; border-color: var(--border-strong); color: var(--text-2); }
-.btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+.btn-ghost { background: transparent; border-color: var(--claro-red-dark); color: var(--claro-red-dark); }
+.btn-ghost:hover { background: var(--primary-tint); color: var(--claro-red-darkest); border-color: var(--claro-red-darkest); }
 
-.btn-danger { background: var(--danger); color: #fff; }
-.btn-danger:hover { filter: brightness(.94); }
+.btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-danger:hover { background: var(--primary-700); border-color: var(--primary-700); }
 
 .btn-sm { height: 34px; padding: 0 12px; font-size: 13px; }
 .btn-sm i { font-size: 16px; }
@@ -539,12 +690,13 @@ img { max-width: 100%; display: block; }
 .field > label { font-size: 13px; font-weight: 500; color: var(--text); }
 .field .hint { font-size: 12px; color: var(--text-muted); }
 
+/* Campo da Claro: canto de 12px, o mesmo do cartao, e borda fina. */
 .input, .select, .textarea {
   width: 100%;
   min-height: 40px;
   padding: 8px 12px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   font-family: inherit;
@@ -560,7 +712,7 @@ img { max-width: 100%; display: block; }
 }
 .select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23525252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 36px;
@@ -710,7 +862,7 @@ img { max-width: 100%; display: block; }
   text-decoration: none;
   transition: border-color .12s ease, box-shadow .12s ease;
 }
-.atalho:hover { border-color: var(--apsis-green); box-shadow: var(--shadow-md); }
+.atalho:hover { border-color: var(--primary); box-shadow: var(--shadow-md); }
 
 /* Contagem no canto de baixo, a direita: quantos itens esperam naquela tela.
    Numero no canto e o que se ve sem ler - o mesmo lugar em todos os atalhos. */
@@ -743,7 +895,7 @@ img { max-width: 100%; display: block; }
   width: 38px; height: 38px; flex: none;
   border-radius: 10px;
   background: var(--primary-tint);
-  color: var(--apsis-green);
+  color: var(--primary);
 }
 .atalho-ico i { font-size: 19px; }
 /* Deixa o bloco de texto encolher. A contagem fica de fora: ela e o ultimo
@@ -854,14 +1006,14 @@ img { max-width: 100%; display: block; }
   max-width: 340px;
 }
 .toast.is-visible { opacity: 1; transform: translateY(0); }
-.toast i { font-size: 18px; color: #7CE0A9; }
+.toast i { font-size: 18px; color: var(--color-support-success-light); }
 
 /* --------------------------------------------------------- Modal / lightbox */
 .modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 90;
-  background: rgba(16, 24, 40, .55);
+  background: rgba(31, 29, 29, .55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -931,7 +1083,7 @@ img { max-width: 100%; display: block; }
   font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
   color: var(--text-muted); margin-bottom: 14px;
 }
-.col-titulo i { font-size: 15px; color: var(--apsis-green); }
+.col-titulo i { font-size: 15px; color: var(--primary); }
 /* Três colunas em 1180px dão 350px cada: abaixo disso a terceira aperta os
    rótulos, então ela desce antes de o resto quebrar. */
 @media (max-width: 1120px) {
@@ -966,9 +1118,9 @@ img { max-width: 100%; display: block; }
 .link-mini {
   border: 0; background: transparent; padding: 0;
   font-family: inherit; font-size: 12.5px; font-weight: 500;
-  color: var(--apsis-green); cursor: pointer; text-decoration: underline;
+  color: var(--primary); cursor: pointer; text-decoration: underline;
 }
-.link-mini:hover { color: var(--apsis-orange); }
+.link-mini:hover { color: var(--warning); }
 .procs-box {
   display: flex; flex-direction: column; gap: 2px;
   max-height: 232px; overflow: auto;
@@ -984,7 +1136,7 @@ img { max-width: 100%; display: block; }
 .proc-opt.ja-pedido { opacity: .8; }
 .proc-opt .tag-pedido {
   font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px;
-  background: var(--primary-tint); color: var(--apsis-green); flex: none;
+  background: var(--primary-tint); color: var(--primary); flex: none;
 }
 .procs-vazio { font-size: 13px; color: var(--text-muted); padding: 10px 8px; }
 
@@ -996,7 +1148,7 @@ img { max-width: 100%; display: block; }
   border-radius: var(--radius-sm);
   padding: 9px 11px; margin-top: 4px;
 }
-.nota-modal i { font-size: 15px; margin-top: 1px; color: var(--apsis-green); flex: none; }
+.nota-modal i { font-size: 15px; margin-top: 1px; color: var(--primary); flex: none; }
 
 /* Confirmação do próprio sistema (App.confirmar) */
 .confirmar-overlay { z-index: 120; }
@@ -1079,7 +1231,7 @@ img { max-width: 100%; display: block; }
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 38;
     background: var(--surface);
     border-top: 1px solid var(--border);
-    box-shadow: 0 -4px 16px rgba(15, 33, 24, .07);
+    box-shadow: 0 -4px 16px rgba(31, 29, 29, .08);
     padding: 6px 6px max(6px, env(safe-area-inset-bottom));
   }
   .bottombar-item {
@@ -1093,7 +1245,7 @@ img { max-width: 100%; display: block; }
   .bottombar-item i { font-size: 23px; line-height: 1; }
   .bottombar-item span { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bottombar-item:active { background: var(--surface-2); }
-  .bottombar-item.active { color: var(--apsis-green); background: var(--primary-tint); }
+  .bottombar-item.active { color: var(--primary); background: var(--primary-tint); }
 
   /* a barra não pode cobrir o fim da página */
   .app-shell.has-bottombar .page { padding-bottom: 86px; }
@@ -1279,7 +1431,7 @@ input[type="submit"],
 }
 .grupo-unidade-ico {
   width: 36px; height: 36px; flex: 0 0 36px; border-radius: 10px;
-  background: var(--primary-tint); color: var(--apsis-green);
+  background: var(--primary-tint); color: var(--primary);
   display: grid; place-items: center; font-size: 19px;
 }
 .grupo-unidade-info { min-width: 0; flex: 1; }
@@ -1300,7 +1452,7 @@ input[type="submit"],
 .selo-chip.is-off { opacity: .42; }
 /* Medalha em foco: o mapa mostra só ela, e o selo fica em evidência */
 .selo-chip.is-foco {
-  border-color: var(--apsis-green);
+  border-color: var(--primary);
   background: var(--primary-tint);
   color: var(--text);
 }
@@ -1310,18 +1462,18 @@ input[type="submit"],
    nenhuma moldura em volta. */
 .pino-mapa {
   display: grid; place-items: center;
-  filter: drop-shadow(0 2px 3px rgba(15, 33, 24, .5));
+  filter: drop-shadow(0 2px 3px rgba(31, 29, 29, .5));
 }
 .selo-medalha { display: block; object-fit: contain; flex: 0 0 auto; }
 /* EPO ainda sem vistoria não tem medalha: entra como pino neutro */
 .selo-vazio {
   display: grid; place-items: center; border-radius: 50%;
-  background: #94A3B8; color: #fff; font-size: 14px;
+  background: var(--text-muted); color: #fff; font-size: 14px;
   border: 2px solid #fff;
 }
 .selo-vazio i { font-size: 1em; }
 
-.leaflet-popup-content { margin: 12px 14px; font-family: Inter, sans-serif; }
+.leaflet-popup-content { margin: 12px 14px; font-family: var(--font-base); }
 .pop-nome { font-size: 15px; font-weight: 600; color: var(--text); margin: 0 0 2px; }
 .pop-local { font-size: 12.5px; color: var(--text-2); margin: 0 0 10px; }
 .pop-linha { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
@@ -1358,20 +1510,20 @@ input[type="submit"],
   color: var(--text-muted);
 }
 .ver-como-item { width: 100%; text-align: left; background: none; border: 0; font-family: inherit; cursor: pointer; }
-.ver-como-item.is-atual { color: var(--apsis-green); font-weight: 600; }
+.ver-como-item.is-atual { color: var(--primary); font-weight: 600; }
 
 .ver-como-chip {
   display: inline-flex; align-items: center; gap: 7px;
   height: 32px; padding: 0 10px;
-  border: 1px solid var(--apsis-orange);
+  border: 1px solid var(--warning);
   border-radius: 999px;
   background: var(--warning-bg);
-  color: var(--apsis-orange);
+  color: var(--warning);
   font-family: inherit; font-size: 12px; font-weight: 600;
   cursor: pointer; white-space: nowrap;
 }
 .ver-como-chip i { font-size: 15px; }
-.ver-como-chip:hover { background: var(--apsis-orange); color: #fff; }
+.ver-como-chip:hover { background: var(--warning); color: #fff; }
 
 @media (max-width: 640px) {
   .ver-como-chip span { display: none; }
@@ -1399,7 +1551,7 @@ input[type="submit"],
   overscroll-behavior-x: contain;
   border-top: 1px solid var(--border);
 }
-.gan-scroll:focus-visible { outline: 2px solid var(--apsis-green); outline-offset: -2px; }
+.gan-scroll:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 
 .gan-canvas {                       /* --gan-sems vem do JS, sem unidade */
   width: calc(var(--gan-rot) + var(--gan-sem) * var(--gan-sems));
@@ -1439,7 +1591,7 @@ input[type="submit"],
   pointer-events: none; z-index: 0;
 }
 .gan-col  { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); }
-.gan-hoje { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--apsis-orange); opacity: .85; }
+.gan-hoje { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--warning); opacity: .85; }
 
 .gan-linha { border-bottom: 1px solid var(--border); }
 .gan-linha:hover .gan-rot,
@@ -1487,7 +1639,7 @@ input[type="submit"],
 }
 /* area de toque confortavel sem engordar o desenho */
 .gan-barra::before { content: ""; position: absolute; inset: -3px 0; }
-.gan-barra:focus-visible { outline: 2px solid var(--apsis-green); outline-offset: 2px; }
+.gan-barra:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .gan-barra i {
   position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
   font-size: 12px;
@@ -1505,7 +1657,7 @@ input[type="submit"],
    e a visita feita fora da data (cheia). */
 .gan-prev.s-aguardando_claro { background: var(--surface-2); border-color: var(--border-strong); border-style: dashed; }
 .gan-prev.s-aguardando_apsis { background: var(--surface); border-color: var(--border-strong); border-style: dashed; }
-.gan-prev.s-confirmada       { background: var(--apsis-green); border-color: var(--apsis-green); }
+.gan-prev.s-confirmada       { background: var(--primary); border-color: var(--primary); }
 .gan-prev.s-realizada        { background: var(--border-strong); border-color: var(--border-strong); }
 .gan-prev.s-cancelada        { opacity: .45; }
 /* atraso nunca depende so de cor: tem hachura, triangulo e a palavra
@@ -1525,13 +1677,13 @@ input[type="submit"],
    bloco cheio: e proposta, nao acordo. Inclinacao contraria a do atraso. */
 .gan-prop {
   top: 5px;
-  border: 1px solid var(--apsis-orange);
+  border: 1px solid var(--warning);
   background: repeating-linear-gradient(-45deg,
-    var(--apsis-orange) 0 2px, var(--warning-bg) 2px 7px);
+    var(--warning) 0 2px, var(--warning-bg) 2px 7px);
 }
 
 .gan-real { top: 24px; height: 15px; background: var(--success); border-color: var(--success); }
-.gan-real.fora-da-data { background: var(--apsis-orange); border-color: var(--accent-600); }
+.gan-real.fora-da-data { background: var(--color-support-highlight-dark); border-color: var(--warning); }
 .gan-real i { color: #fff; }
 
 .gan-semdata { position: absolute; left: 6px; top: 14px; font-size: 11.5px; color: var(--text-muted); }
@@ -1548,12 +1700,12 @@ input[type="submit"],
   border: 1px solid var(--border-strong); background: var(--surface-2);
 }
 .gan-amostra.aguardando { background: var(--surface-2); border: 1px dashed var(--border-strong); }
-.gan-amostra.sugerida   { border-color: var(--apsis-orange);
+.gan-amostra.sugerida   { border-color: var(--warning);
   background: repeating-linear-gradient(-45deg,
-    var(--apsis-orange) 0 2px, var(--warning-bg) 2px 7px); }
-.gan-amostra.confirmada { background: var(--apsis-green); border-color: var(--apsis-green); }
+    var(--warning) 0 2px, var(--warning-bg) 2px 7px); }
+.gan-amostra.confirmada { background: var(--primary); border-color: var(--primary); }
 .gan-amostra.realizada  { background: var(--success); border-color: var(--success); }
-.gan-amostra.fora       { background: var(--apsis-orange); border-color: var(--accent-600); }
+.gan-amostra.fora       { background: var(--color-support-highlight-dark); border-color: var(--warning); }
 .gan-nota { flex: 1 0 100%; color: var(--text-muted); font-size: 11.5px; }
 .gan-amostra.atrasada   { border-color: var(--danger);
   background: repeating-linear-gradient(45deg, var(--danger) 0 2px, var(--danger-bg) 2px 7px); }
@@ -1562,12 +1714,12 @@ input[type="submit"],
 .tk-aviso {
   display: flex; align-items: flex-start; gap: 13px;
   padding: 14px 16px;
-  border: 1px solid var(--apsis-orange);
+  border: 1px solid var(--warning);
   border-left-width: 3px;
   border-radius: var(--radius);
   background: var(--warning-bg);
 }
-.tk-aviso .tk-ico { font-size: 21px; color: var(--apsis-orange); margin-top: 1px; }
+.tk-aviso .tk-ico { font-size: 21px; color: var(--warning); margin-top: 1px; }
 .tk-aviso-corpo { flex: 1; min-width: 0; }
 .tk-aviso-corpo b { display: block; font-size: 14px; }
 .tk-aviso-corpo p { margin: 3px 0 0; font-size: 12.5px; color: var(--text-2); }
@@ -1585,7 +1737,7 @@ input[type="submit"],
   width: 10px; height: 10px; border-radius: 50%;
   background: var(--surface); border: 2px solid var(--border-strong);
 }
-.tk-hist li.is-ultimo::before { border-color: var(--apsis-green); background: var(--apsis-green); }
+.tk-hist li.is-ultimo::before { border-color: var(--primary); background: var(--primary); }
 .tk-hist b { display: block; font-weight: 600; }
 .tk-hist span { color: var(--text-2); }
 .tk-hist q { display: block; margin-top: 2px; color: var(--text-2); font-style: italic; }
@@ -1608,7 +1760,7 @@ input[type="submit"],
   background: var(--bg);
   text-align: center; cursor: pointer;
 }
-.imp-alvo.is-sobre { border-color: var(--apsis-green); background: var(--surface-2); }
+.imp-alvo.is-sobre { border-color: var(--primary); background: var(--surface-2); }
 .imp-alvo i { font-size: 28px; color: var(--text-muted); }
 .imp-alvo b { font-size: 13.5px; }
 .imp-alvo small { font-size: 12px; color: var(--text-2); }
@@ -1755,7 +1907,7 @@ input[type="submit"],
   align-items: stretch;
   min-width: 210px;
   padding: 10px;
-  border: 1px solid var(--apsis-orange);
+  border: 1px solid var(--warning);
   border-radius: var(--radius-sm);
   background: var(--warning-bg);
   text-align: left;
@@ -1946,7 +2098,7 @@ input[type="submit"],
 .vista-bt:hover { color: var(--text); }
 .vista-bt.is-on {
   background: var(--surface);
-  color: var(--apsis-green);
+  color: var(--primary);
   box-shadow: var(--shadow-sm);
 }
 /* Espaco curto: fica o icone, e o nome sai. O title e o aria-pressed ficam. */
@@ -2051,7 +2203,7 @@ input[type="submit"],
 
   .card, .kpi-card, .card-header, .table, .table-wrap {
     box-shadow: none !important;
-    border-color: #ccc !important;
+    border-color: var(--border) !important;
     background: #fff !important;
   }
   .card { break-inside: avoid; page-break-inside: avoid; margin-bottom: 12px; }
@@ -2085,7 +2237,7 @@ input[type="submit"],
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   /* Selo continua, porque e informacao: sai em cinza para nao gastar tinta. */
-  .badge { border: 1px solid #999 !important; background: #fff !important; color: #000 !important; }
+  .badge { border: 1px solid var(--text-muted) !important; background: #fff !important; color: var(--text) !important; }
 
   @page { size: A4 landscape; margin: 12mm; }
 }

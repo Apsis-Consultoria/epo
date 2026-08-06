@@ -3,55 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/png" href="https://onksmnxryotelmiytikl.supabase.co/storage/v1/object/public/assets/favicon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=123">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <title>Acesso não liberado - Auditoria EPO's</title>
-  <link rel="stylesheet" href="assets/carregando.css?v=119">
-  <link rel="stylesheet" href="assets/portal.css?v=119" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/carregando.css?v=123">
+  <link rel="stylesheet" href="assets/portal.css?v=123" />
+  <style>
+    /* Esta tela carrega o Tailwind, e nao a folha do painel: os neutros da
+       Claro vem escritos aqui - apoio #525252, secundario #767676, borda
+       #DBDBDB - junto com o cartao (raio 12px, sombra 0 4px 8px) e o botao em
+       capsula, que sao a forma da marca. */
+    body { font-family: 'Roboto', system-ui, 'Segoe UI', Arial, sans-serif; color: #1F1D1D; }
+    *, ::before, ::after { border-color: #DBDBDB; }
+    .cartao { border-radius: 12px; box-shadow: 0 4px 8px rgba(31, 29, 29, .16); }
+    .acao { border-radius: 500px; font-weight: 500; }
+    .apoio { color: #525252; }
+    .fraco { color: #767676; }
+  </style>
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
-    <div class="apsis-loader">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-    </div>
+    <span class="claro-loader" aria-hidden="true"></span>
   </div>
-  <div class="relative min-h-screen bg-[#07130d] overflow-hidden" style="font-family: Inter, 'Segoe UI', sans-serif;">
+  <div class="relative min-h-screen bg-[#1F1D1D] overflow-hidden" style="font-family: Roboto, 'Segoe UI', sans-serif;">
     <img src="assets/brand/login-3.png" alt="" aria-hidden="true" onerror="this.style.display='none'"
       class="absolute inset-0 w-full h-full object-cover opacity-60" />
-    <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(7,19,13,.94), rgba(7,19,13,.65), rgba(7,19,13,.85));"></div>
+    <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(31,29,29,.94), rgba(31,29,29,.65), rgba(31,29,29,.85));"></div>
 
     <div class="relative z-10 min-h-screen flex items-center justify-center px-5 py-10">
-      <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl px-7 py-8 text-center">
-        <img src="assets/brand/logo-apsis-transp.png" alt="APSIS" onerror="this.style.display='none'"
-          class="h-16 object-contain mx-auto mb-4" />
+      <div class="cartao w-full max-w-md bg-white px-7 py-8 text-center">
+        <img src="assets/brand/logo-claro.png" alt="Claro" onerror="this.style.display='none'"
+          class="object-contain mx-auto mb-5" style="width:148px; height:auto;" />
 
-        <h1 class="text-xl font-bold" style="color: rgb(26,71,49); font-family: Sora, 'Segoe UI', sans-serif;">
+        <h1 class="text-xl font-bold" style="color: rgb(218,41,28); font-family: AMX, Roboto, 'Segoe UI', sans-serif;">
           Acesso ainda não liberado
         </h1>
 
-        <p class="text-sm text-gray-600 leading-relaxed mt-4">
+        <p class="apoio text-sm leading-relaxed mt-4">
           A sua conta foi criada, mas o acesso às informações ainda não foi liberado pela APSIS.
         </p>
-        <p id="quem" class="text-sm text-gray-500 leading-relaxed mt-3"></p>
-        <p class="text-sm text-gray-600 leading-relaxed mt-3">
+        <p id="quem" class="fraco text-sm leading-relaxed mt-3"></p>
+        <p class="apoio text-sm leading-relaxed mt-3">
           Fale com o seu contato na APSIS informando o e-mail acima. Assim que a liberação for
           feita, basta entrar de novo.
         </p>
 
-        <button id="btn-conferir" class="w-full mt-6 font-semibold py-3.5 px-6 rounded-xl text-white transition-colors disabled:opacity-60"
-          style="background: rgb(26,71,49);">
+        <button id="btn-conferir" class="acao w-full mt-6 py-3.5 px-6 text-white transition-colors disabled:opacity-60"
+          style="background: rgb(218,41,28);">
           Já liberaram, conferir de novo
         </button>
 
         <p class="mt-4">
-          <button id="btn-sair" class="text-xs text-gray-400 underline"
+          <button id="btn-sair" class="fraco text-xs underline"
             style="background:none; border:0; padding:0; cursor:pointer;">
             Sair
           </button>
@@ -62,9 +67,9 @@
     </div>
   </div>
 
-  <script src="assets/supabase-config.js?v=119"></script>
+  <script src="assets/supabase-config.js?v=123"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=119"></script>
+  <script src="assets/auth.js?v=123"></script>
   <script>
     (function () {
       "use strict";
@@ -75,7 +80,7 @@
         el.textContent = texto || "";
         if (!texto) { el.classList.add("hidden"); return; }
         el.classList.remove("hidden");
-        el.style.color = erro ? "#dc2626" : "#16a34a";
+        el.style.color = erro ? "#DA291C" : "#006B4F";
       }
 
       if (!(window.Auth && Auth.pronto)) {

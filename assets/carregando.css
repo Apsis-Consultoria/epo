@@ -1,27 +1,49 @@
 /* =========================================================================
-   Tela de carregamento - a mesma do Portal da Qualidade da APSIS.
+   Tela de carregamento - a mesma da Claro.
 
-   Copiada do ApsisLoader.jsx daquele projeto. O desenho e a PROPRIA logo da
-   APSIS sendo montada parte por parte: sete copias da mesma imagem, cada uma
-   recortada numa fatia horizontal, aparecendo em sequencia do apice a base.
-   Segura montada e some, em ciclo. Nada e recriado.
+   O desenho e a animacao sao os do componente Spinner do Mondrian, o design
+   system da Claro. Fielmente:
 
-   O fundo e o tamanho vem do uso em tela cheia que o Layout.jsx daquele
-   projeto faz: fundo rgba(240,242,240,.97) e a logo em 170px.
+     .mdn-Spinner            fundo claro, ocupa a tela toda, conteudo centrado
+     .mdn-Spinner--inverse   fundo vermelho da marca, simbolo branco
+     .mdn-Icon--lg           simbolo em 2rem (32px)
+     animacao                loadingRotation .8s cubic-bezier(.21,.72,.63,.93)
+                             infinite, giro completo de 0 a 360 graus
+     eixo do giro            transform-origin: 10.5px 21.2px
 
-   Aqui e CSS puro em vez de React: o componente gera as sete faixas e as sete
-   animacoes por laco, e aqui elas estao escritas, uma por :nth-child. Os
-   numeros sao os mesmos que o laco produz com BANDS=7, CYCLE=2.6s,
-   BUILD_END=62% e HOLD_END=82%.
+   O simbolo e o proprio sinal da Claro: o anel do "o" e os tres tracos que
+   saem dele. Quem gira nao e o anel: e o conjunto, em volta do centro do
+   anel. O anel fica parado no meio e os tres tracos orbitam.
+
+   Aquele eixo de 10.5px por 21.2px e o que confirma tudo. O traçado abaixo e
+   o do sinal da Claro na fonte de icones dela, em unidades de 1000 por 1000,
+   e o centro do anel cai em 333.33, 666.67. Em 32px isso da 10.67px por
+   21.33px: e o mesmo eixo, ou seja, e este desenho girando em torno do anel.
+
+   Por que o desenho esta escrito aqui dentro, e nao buscado no servidor da
+   Claro: aquele servidor nao libera uso a partir de outro endereco, entao o
+   sinal simplesmente nao apareceria; e uma tela de carregamento que depende
+   de um download de fora chega tarde demais para servir de tela de
+   carregamento. Aqui ela ja vem com esta folha, que e a primeira coisa que a
+   tela carrega.
+
+   Por que como mascara e nao como imagem: assim o desenho existe uma vez so,
+   e a cor vem do fundo - o mesmo traçado serve para o vermelho sobre claro e
+   para o branco sobre vermelho, sem segunda copia.
+
+   Sobre o viewBox: o traçado vem da fonte, onde o eixo Y cresce para cima,
+   por isso o translate/scale que o desvira. E a moldura nao e a do desenho, e
+   uma centrada no anel, com folga para os tracos passarem: assim o anel cai
+   no meio do elemento e o giro sai redondo, sem precisar deslocar nada.
+
+   Fica no HTML de cada tela, e nao em JavaScript, porque precisa estar
+   pintada ANTES de qualquer script rodar. Sai quando a tela esta pronta.
 
    Por que ela existe: as telas nasciam com o menu inteiro desenhado e so
    DEPOIS o servidor dizia o que aquele cargo alcanca. Entre uma coisa e outra
    a pessoa via, por um instante, itens de menu que nao sao dela - e, quando
    nao tinha permissao para a tela, via a tela aparecer e ser trocada por
    outra. Piscava, e o que piscava era informacao de acesso.
-
-   Fica no HTML de cada tela, e nao em JavaScript, porque precisa estar
-   pintada ANTES de qualquer script rodar. Sai quando a tela esta pronta.
    ========================================================================= */
 .tela-carregando {
   position: fixed;
@@ -30,51 +52,42 @@
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  background: rgba(240, 242, 240, .97);
+  background: var(--color-neutral-light, #F8F8F8);
   transition: opacity .25s ease;
 }
 
-/* Sobre a entrada, que tem foto escura por tras. */
-.tela-carregando.no-escuro { background: rgba(7, 19, 13, .97); }
+/* Sobre a entrada, que tem foto por tras: o mesmo do Spinner--inverse da
+   Claro, com o vermelho da marca no fundo e o sinal em branco. */
+.tela-carregando.no-escuro { background: var(--color-brand-primary-medium, #DA291C); }
 
-.apsis-loader {
-  position: relative;
-  width: 170px;
-  height: 170px;
-}
-/* No celular a logo de 170px encosta nas bordas. */
-@media (max-width: 480px) {
-  .apsis-loader { width: 130px; height: 130px; }
-}
-
-.apsis-loader img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  opacity: 0;
-  animation-duration: 2.6s;
-  animation-timing-function: ease-out;
-  animation-iteration-count: infinite;
+.claro-loader {
+  /* 2rem e o tamanho do .mdn-Icon--lg, que e o que o Spinner da Claro usa.
+     O elemento e 1.4 vezes maior porque a moldura leva a folga que os tracos
+     precisam para orbitar; o anel em si sai do mesmo tamanho do da Claro. */
+  width: calc(var(--loader-size, 2rem) * 1.4);
+  height: calc(var(--loader-size, 2rem) * 1.4);
+  display: block;
+  background-color: var(--color-brand-primary-medium, #DA291C);
+  -webkit-mask: var(--claro-sinal) center / contain no-repeat;
+  mask: var(--claro-sinal) center / contain no-repeat;
+  transform-origin: 50% 50%;
+  animation: loadingRotation .8s cubic-bezier(.21, .72, .63, .93) infinite;
 }
 
-/* Cada faixa e a mesma imagem recortada em 1/7 da altura, do apice a base.
-   O recorte e o mesmo inset(i/7 do topo, (6-i)/7 da base) do componente. */
-.apsis-loader img:nth-child(1) { clip-path: inset(0% 0 85.714286% 0);        animation-name: apxl-1; }
-.apsis-loader img:nth-child(2) { clip-path: inset(14.285714% 0 71.428571% 0); animation-name: apxl-2; }
-.apsis-loader img:nth-child(3) { clip-path: inset(28.571429% 0 57.142857% 0); animation-name: apxl-3; }
-.apsis-loader img:nth-child(4) { clip-path: inset(42.857143% 0 42.857143% 0); animation-name: apxl-4; }
-.apsis-loader img:nth-child(5) { clip-path: inset(57.142857% 0 28.571429% 0); animation-name: apxl-5; }
-.apsis-loader img:nth-child(6) { clip-path: inset(71.428571% 0 14.285714% 0); animation-name: apxl-6; }
-.apsis-loader img:nth-child(7) { clip-path: inset(85.714286% 0 0% 0);        animation-name: apxl-7; }
+.tela-carregando.no-escuro .claro-loader { background-color: var(--color-neutral-lightest, #FFFFFF); }
 
-/* Cada faixa entra 5% depois de chegar a vez dela, todas seguram ate 82% e
-   somem juntas no fim do ciclo. */
-@keyframes apxl-1 { 0%        { opacity: 0 }  5% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
-@keyframes apxl-2 { 0%,  9%   { opacity: 0 } 14% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
-@keyframes apxl-3 { 0%, 18%   { opacity: 0 } 23% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
-@keyframes apxl-4 { 0%, 27%   { opacity: 0 } 32% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
-@keyframes apxl-5 { 0%, 35%   { opacity: 0 } 40% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
-@keyframes apxl-6 { 0%, 44%   { opacity: 0 } 49% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
-@keyframes apxl-7 { 0%, 53%   { opacity: 0 } 58% { opacity: 1 } 82% { opacity: 1 } 100% { opacity: 0 } }
+:root {
+  --claro-sinal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-366.67 -33.33 1400 1400'%3E%3Cg transform='translate(0,1000) scale(1,-1)'%3E%3Cpath d='M799.25 740.32L593.04 534.07L534.08 593.03L740.33 799.28L799.25 740.32zM625 291.67H875V375H625V291.67zM291.67 625H375V875H291.67V625zM333.33 208.33C264.42 208.33 208.33 264.42 208.33 333.33C208.33 402.29 264.42 458.33 333.33 458.33C402.29 458.33 458.33 402.29 458.33 333.33C458.33 264.42 402.29 208.33 333.33 208.33zM333.33 541.67C218.5 541.67 125 448.21 125 333.33C125 218.5 218.5 125 333.33 125C448.21 125 541.67 218.5 541.67 333.33C541.67 448.21 448.21 541.67 333.33 541.67z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+@keyframes loadingRotation {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Para quem pediu ao sistema operacional menos movimento na tela: o sinal
+   continua girando, porque parado ele deixaria de dizer que algo esta
+   acontecendo, mas devagar o bastante para nao incomodar. */
+@media (prefers-reduced-motion: reduce) {
+  .claro-loader { animation-duration: 2.4s; animation-timing-function: linear; }
+}

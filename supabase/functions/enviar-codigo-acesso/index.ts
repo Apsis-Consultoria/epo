@@ -8,7 +8,7 @@
 //
 // O codigo NUNCA volta na resposta, nem em log, nem em mensagem de erro.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-import { montarEmail, saudacaoDe } from "../_shared/email-apsis.ts";
+import { montarEmail, saudacaoDe } from "../_shared/email-claro.ts";
 import { enviarPeloGraph } from "../_shared/enviar-email.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
@@ -65,15 +65,15 @@ function emailEncoberto(email: string) {
 function corpoDoEmail(codigo: string, nome: string) {
   return montarEmail({
     titulo: "Código de acesso",
-    subtitulo: "Auditoria de unidades EPO · Apsis Consultoria",
+    subtitulo: "Auditoria de unidades EPO · Claro",
     saudacao: saudacaoDe(nome),
     paragrafos: [
       "Use o código abaixo para concluir a entrada no sistema de " +
-      "<b>Auditoria de EPOs</b> da Apsis Consultoria."
+      "<b>Auditoria de EPOs</b> da Claro."
     ],
     destaque: { texto: codigo, legenda: "Seu código" },
     aviso: "&#128274; <b>Dica de segurança:</b> o código vale por " + MINUTOS +
-           " minutos e serve para uma entrada só. Ninguém da Apsis vai pedir este " +
+           " minutos e serve para uma entrada só. Ninguém da Claro ou da Apsis vai pedir este " +
            "código por telefone, e-mail ou mensagem. Se não foi você que tentou " +
            "entrar, ignore esta mensagem e troque a sua senha."
   });

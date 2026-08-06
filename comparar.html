@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/png" href="https://onksmnxryotelmiytikl.supabase.co/storage/v1/object/public/assets/favicon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=123">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Comparativo de vistorias - Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=119">
-  <link rel="stylesheet" href="assets/carregando.css?v=119">
-  <link rel="stylesheet" href="assets/app.css?v=119">
+  <link rel="stylesheet" href="assets/icones.css?v=123">
+  <link rel="stylesheet" href="assets/carregando.css?v=123">
+  <link rel="stylesheet" href="assets/app.css?v=123">
   <style>
     .unit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
     .unit-card { text-align: left; width: 100%; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; transition: border-color .15s ease, box-shadow .15s ease; font-family: inherit; }
@@ -50,15 +50,7 @@
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
-    <div class="apsis-loader">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-    </div>
+    <span class="claro-loader" aria-hidden="true"></span>
   </div>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar"></aside>
@@ -69,12 +61,12 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="assets/data.js?v=119"></script>
-  <script src="assets/app.js?v=119"></script>
-  <script src="assets/supabase-config.js?v=119"></script>
+  <script src="assets/data.js?v=123"></script>
+  <script src="assets/app.js?v=123"></script>
+  <script src="assets/supabase-config.js?v=123"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=119"></script>
-  <script src="assets/dados-reais.js?v=119"></script>
+  <script src="assets/auth.js?v=123"></script>
+  <script src="assets/dados-reais.js?v=123"></script>
   <script>
     // As listas desta tela vem do cadastro. Sem cadastro, ela abre vazia:
     // antes mostrava um catalogo de exemplo escrito no codigo, com
@@ -103,7 +95,7 @@
           return x.toFixed(1) + "," + y.toFixed(1);
         }).join(" ");
         return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true">' +
-          '<polyline fill="none" stroke="#1A4731" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="' + pts + '"/></svg>';
+          '<polyline fill="none" style="stroke:var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="' + pts + '"/></svg>';
       }
 
       // ------------------------------------------------------- Lista de unidades
@@ -279,8 +271,9 @@
 
         document.getElementById("voltar").addEventListener("click", function () { state.epoId = null; renderLista(); });
 
-        // Gráficos
-        var green = "#1A4731", orange = "#F47920";
+        // Gráficos. As duas cores da Claro, escritas por extenso porque o
+        // gráfico é pintado em tela e ali os tokens do CSS não chegam.
+        var vermelho = "#DA291C", teal = "#00818F";
         var baseOpts = {
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
@@ -288,12 +281,12 @@
         };
         charts.push(new Chart(document.getElementById("chart-score"), {
           type: "line",
-          data: { labels: labels, datasets: [{ data: vis.map(function (v) { return v.score; }), borderColor: green, backgroundColor: "rgba(26,71,49,.10)", fill: true, pointBackgroundColor: green }] },
+          data: { labels: labels, datasets: [{ data: vis.map(function (v) { return v.score; }), borderColor: vermelho, backgroundColor: "rgba(218,41,28,.10)", fill: true, pointBackgroundColor: vermelho }] },
           options: Object.assign({}, baseOpts, { scales: { y: { min: 0, max: 100, ticks: { stepSize: 25 } } } })
         }));
         charts.push(new Chart(document.getElementById("chart-ciclo"), {
           type: "line",
-          data: { labels: labels, datasets: [{ data: vis.map(function (v) { return v.tempoCiclo; }), borderColor: orange, backgroundColor: "rgba(244,121,32,.12)", fill: true, pointBackgroundColor: orange }] },
+          data: { labels: labels, datasets: [{ data: vis.map(function (v) { return v.tempoCiclo; }), borderColor: teal, backgroundColor: "rgba(0,129,143,.12)", fill: true, pointBackgroundColor: teal }] },
           options: Object.assign({}, baseOpts, { scales: { y: { beginAtZero: true } } })
         }));
       }

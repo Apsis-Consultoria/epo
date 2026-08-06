@@ -3,30 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/png" href="https://onksmnxryotelmiytikl.supabase.co/storage/v1/object/public/assets/favicon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=123">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Cronograma - Auditoria de EPOs</title>
 
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=119">
+  <link rel="stylesheet" href="assets/icones.css?v=123">
 
-  <link rel="stylesheet" href="assets/carregando.css?v=119">
-  <link rel="stylesheet" href="assets/app.css?v=119">
+  <link rel="stylesheet" href="assets/carregando.css?v=123">
+  <link rel="stylesheet" href="assets/app.css?v=123">
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
-    <div class="apsis-loader">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-      <img src="assets/brand/logo-apsis-transp.png" alt="" aria-hidden="true">
-    </div>
+    <span class="claro-loader" aria-hidden="true"></span>
   </div>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar"></aside>
@@ -36,14 +28,14 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=119"></script>
-  <script src="assets/app.js?v=119"></script>
-  <script src="assets/supabase-config.js?v=119"></script>
+  <script src="assets/data.js?v=123"></script>
+  <script src="assets/app.js?v=123"></script>
+  <script src="assets/supabase-config.js?v=123"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="assets/auth.js?v=119"></script>
-  <script src="assets/geo-br.js?v=119"></script>
-  <script src="assets/cronograma-planilha.js?v=119"></script>
-  <script src="assets/form-epo.js?v=119"></script>
+  <script src="assets/auth.js?v=123"></script>
+  <script src="assets/geo-br.js?v=123"></script>
+  <script src="assets/cronograma-planilha.js?v=123"></script>
+  <script src="assets/form-epo.js?v=123"></script>
   <script>
     (function () {
       "use strict";
@@ -105,6 +97,18 @@
         var d = new Date(n * MS);
         return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate());
       }
+      // Primeira data que da para marcar: hoje mais tres dias.
+      //
+      // A visita nao pode ser marcada de um dia para o outro: e preciso avisar o
+      // responsavel da EPO, ele juntar o que foi pedido e a equipe se deslocar.
+      // Marcando numa quinta, o primeiro dia livre e o domingo - quinta, sexta e
+      // sabado ficam fora. O campo de data ja recusa o que esta antes disso,
+      // e o servidor recusa tambem: campo de tela se contorna.
+      var DIAS_DE_ANTECEDENCIA = 3;
+      function minMarcacao() {
+        return paraIso(hojeN() + DIAS_DE_ANTECEDENCIA);
+      }
+
       // 1970-01-01 caiu numa quinta: por isso o mais quatro.
       function segunda(n) { var dow = (n + 4) % 7; return n - ((dow + 6) % 7); }
 
@@ -490,11 +494,12 @@
 
       function formaNaCaixa(it) {
         var hoje = paraIso(hojeN());
+        var minMarcar = minMarcacao();
         return '<div class="cx-forma">' +
           "<label>Que data serve melhor para " + esc(it.nome) + "?</label>" +
           '<input class="input" type="date" id="cx-ini" value="' + esc(it.prevIniIso) +
-            '" min="' + hoje + '" max="2035-12-31">' +
-          '<input class="input" type="date" id="cx-fim" value="" min="' + hoje +
+            '" min="' + minMarcar + '" max="2035-12-31">' +
+          '<input class="input" type="date" id="cx-fim" value="" min="' + minMarcar +
             '" max="2035-12-31" title="Ate (opcional)">' +
           '<input class="input" id="cx-msg" type="text" placeholder="Motivo (opcional)">' +
           '<div class="cx-forma-btn">' +
@@ -558,8 +563,8 @@
             '<div class="cx-lista">' + corpoEsq + "</div>" +
           "</div>" +
           '<div class="card">' +
-            // Cabecalho em laranja: e a caixa que pede acao da APSIS, e o
-            // laranja e a cor de atencao do sistema.
+            // Cabecalho destacado: e a caixa que pede acao da APSIS, e a cor
+            // da marca chama a atencao para o que esta parado aqui.
             '<div class="card-header cx-recusadas"><div class="section-title">' +
               '<span class="title">Não aprovados pela Claro</span>' +
             "</div>" +
@@ -912,7 +917,7 @@
           return '<span><i class="gan-amostra ' + l.c + '" aria-hidden="true"></i>' +
                  esc(l.t) + "</span>";
         }).join("") +
-        '<span><i class="ti ti-line-dashed" aria-hidden="true" style="color:var(--apsis-orange);"></i>' +
+        '<span><i class="ti ti-line-dashed" aria-hidden="true" style="color:var(--warning);"></i>' +
         "A linha laranja marca hoje</span>" +
         '<span class="gan-nota">Cada bloco cobre a semana da visita. A data exata ' +
         "esta na tabela abaixo e aparece ao passar o mouse.</span>";
@@ -989,10 +994,10 @@
         }
         return '<div class="cel-data">' +
           '<input class="input input-data" type="date" data-campo="ini" data-id="' + esc(it.id) + '"' +
-            ' value="' + esc(it.prevIniIso) + '" min="2020-01-01" max="2035-12-31"' +
+            ' value="' + esc(it.prevIniIso) + '" min="' + minMarcacao() + '" max="2035-12-31"' +
             ' aria-label="Data prevista de ' + esc(it.nome) + '">' +
           '<input class="input input-data" type="date" data-campo="fim" data-id="' + esc(it.id) + '"' +
-            ' value="' + esc(it.prevFimIso) + '" min="2020-01-01" max="2035-12-31"' +
+            ' value="' + esc(it.prevFimIso) + '" min="' + minMarcacao() + '" max="2035-12-31"' +
             ' aria-label="Data final prevista de ' + esc(it.nome) + '" title="Ate (opcional)">' +
           "<small>ate (opcional)</small>" +
           "</div>" +
@@ -1102,13 +1107,14 @@
       // so para digitar um dia atrapalha quem tem 25 linhas para responder.
       function formularioNaLinha(it) {
         var hoje = paraIso(hojeN());
+        var minMarcar = minMarcacao();
         if (editando.modo === "sugerir") {
           return '<div class="cel-form">' +
             "<label>Que data serve melhor?</label>" +
             '<input class="input input-data" type="date" id="ed-ini" value="' +
-              esc(it.prevIniIso) + '" min="' + hoje + '" max="2035-12-31">' +
+              esc(it.prevIniIso) + '" min="' + minMarcar + '" max="2035-12-31">' +
             '<input class="input input-data" type="date" id="ed-fim" value=""' +
-              ' min="' + hoje + '" max="2035-12-31" title="Ate (opcional)">' +
+              ' min="' + minMarcar + '" max="2035-12-31" title="Ate (opcional)">' +
             '<input class="input" id="ed-msg" type="text" placeholder="Motivo (opcional)">' +
             '<div class="cel-form-btn">' +
               '<button class="btn btn-sm btn-ghost" type="button" data-acao="cancelar-edicao"' +

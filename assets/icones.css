@@ -142,6 +142,7 @@
 .ti-package-export:before { content: "\f07a"; }
 .ti-package-import:before { content: "\f07b"; }
 .ti-packages:before { content: "\f2c9"; }
+.ti-palette:before { content: "\eb01"; }
 .ti-paperclip:before { content: "\eb02"; }
 .ti-pencil:before { content: "\eb04"; }
 .ti-pencil-plus:before { content: "\f1ec"; }

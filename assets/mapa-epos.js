@@ -28,11 +28,14 @@
   var PAPEIS_QUE_VEEM = ["admin", "gestor", "cliente"];
 
   var SELOS = {
-    ouro:    { label: "Ouro",         img: "assets/medalhas/ouro.png" + VERSAO,   cor: "#C08A2B" },
-    prata:   { label: "Prata",        img: "assets/medalhas/prata.png" + VERSAO,  cor: "#7E8592" },
-    bronze:  { label: "Bronze",       img: "assets/medalhas/bronze.png" + VERSAO, cor: "#B06A3B" },
-    critico: { label: "Atenção",      img: "assets/medalhas/alerta.png" + VERSAO, cor: "#EF4444" },
-    nenhum:  { label: "Sem vistoria", img: null,                         cor: "#94A3B8" }
+    // As cores sao as mesmas dos selos no resto do painel (--ouro, --prata,
+    // --bronze, --critico do app.css), para a regiao no mapa e a etiqueta na
+    // tabela nao falarem da mesma EPO em cores diferentes.
+    ouro:    { label: "Ouro",         img: "assets/medalhas/ouro.png" + VERSAO,   cor: "#B8860B" },
+    prata:   { label: "Prata",        img: "assets/medalhas/prata.png" + VERSAO,  cor: "#767676" },
+    bronze:  { label: "Bronze",       img: "assets/medalhas/bronze.png" + VERSAO, cor: "#B84D01" },
+    critico: { label: "Atenção",      img: "assets/medalhas/alerta.png" + VERSAO, cor: "#DA291C" },
+    nenhum:  { label: "Sem vistoria", img: null,                         cor: "#C4C4C4" }
   };
   var ORDEM = ["ouro", "prata", "bronze", "critico", "nenhum"];
 
@@ -276,7 +279,7 @@
     function estiloDaRegiao(id) {
       var n = notaDaRegiao(id);
       if (!n || n.media === null) {
-        return { color: "#CBD5E1", weight: 1.2, opacity: .9, fillColor: "#94A3B8", fillOpacity: .05 };
+        return { color: "#DBDBDB", weight: 1.2, opacity: .9, fillColor: "#C4C4C4", fillOpacity: .05 };
       }
       var cor = selo(n.selo).cor;
       return { color: cor, weight: 1.6, opacity: .7, fillColor: cor, fillOpacity: .14 };
@@ -286,7 +289,7 @@
     // de longe qual é a região e como ela está.
     function estiloForte(id) {
       var n = notaDaRegiao(id);
-      var cor = (!n || n.media === null) ? "#94A3B8" : selo(n.selo).cor;
+      var cor = (!n || n.media === null) ? "#C4C4C4" : selo(n.selo).cor;
       return { color: cor, weight: 3, opacity: 1, fillColor: cor, fillOpacity: .42 };
     }
 

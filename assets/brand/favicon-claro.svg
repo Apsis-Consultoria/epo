@@ -1,0 +1,19 @@
+<!-- Favicon: o sinal da Claro, no vermelho da marca.
+
+     O traçado e o mesmo que a tela de carregamento usa (assets/carregando.css),
+     tirado da fonte de icones da propria Claro: o anel do "o" e os tres tracos
+     que saem dele. Um desenho so, duas utilizacoes.
+
+     Por que servido daqui e nao buscado no site da Claro: aquele servidor nao
+     libera uso a partir de outro endereco, e depender dele deixaria a aba sem
+     icone no dia em que o arquivo mudar de lugar. Em SVG o icone fica nitido em
+     qualquer tamanho de aba, sem precisar de uma versao por tamanho.
+
+     A moldura e o eixo Y invertido vem da fonte, onde o Y cresce para cima.
+     O sinal ocupa de 125 a 875 nos dois eixos; a moldura de 90 a 910 deixa a
+     folga que a aba precisa para nao cortar o desenho. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="90 90 820 820">
+  <g transform="translate(0,1000) scale(1,-1)" fill="#DA291C">
+    <path d="M799.25 740.32L593.04 534.07L534.08 593.03L740.33 799.28L799.25 740.32zM625 291.67H875V375H625V291.67zM291.67 625H375V875H291.67V625zM333.33 208.33C264.42 208.33 208.33 264.42 208.33 333.33C208.33 402.29 264.42 458.33 333.33 458.33C402.29 458.33 458.33 402.29 458.33 333.33C458.33 264.42 402.29 208.33 333.33 208.33zM333.33 541.67C218.5 541.67 125 448.21 125 333.33C125 218.5 218.5 125 333.33 125C448.21 125 541.67 218.5 541.67 333.33C541.67 448.21 448.21 541.67 333.33 541.67z"/>
+  </g>
+</svg>

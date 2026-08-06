@@ -19,7 +19,7 @@
 //   AZURE_REMETENTE com a caixa que assina a mensagem). Sem ele, devolve ok:false
 //   com o motivo e nada e prometido na tela.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-import { montarEmail, saudacaoDe, escapar, VERDE } from "../_shared/email-apsis.ts";
+import { emailAcessoResponsavel } from "../_shared/email-claro.ts";
 import { enviarPeloGraph } from "../_shared/enviar-email.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
@@ -100,51 +100,6 @@ function destinoDaEntrada(origem: string | null) {
     }
   }
   return APP_URL.replace(/[^/]*$/, "") + "login";
-}
-
-// O desenho vem de _shared/email-apsis.ts, o mesmo do e-mail do codigo de
-// seguranca: escrito em cada funcao, os dois voltariam a divergir.
-//
-// Uma diferenca de proposito em relacao ao e-mail do Secure Share: ali o quadro
-// traz a senha escrita. Aqui nao ha senha para mostrar - quem escolhe e a
-// propria pessoa, no botao. Senha em e-mail fica numa caixa de mensagens para
-// sempre.
-function corpoDoEmail(link: string, contexto: string, novaConta: boolean,
-                      nome: string, email: string) {
-  // Nao existe mais senha neste sistema: quem nao e da APSIS entra com um codigo
-  // que chega no e-mail no momento em que pede. Este aviso, entao, nao manda
-  // ninguem definir senha nenhuma - diz que o acesso esta liberado e onde entrar.
-  //
-  // O parametro "link" continua na assinatura porque quem chama ainda o passa; e
-  // o endereco da tela de entrada, e nao uma credencial.
-  const abertura = novaConta
-    ? "Voce recebeu acesso ao sistema de <b>Auditoria de EPOs</b> da Apsis Consultoria" +
-      (contexto ? " como <b>" + escapar(contexto) + "</b>" : "") + "."
-    : "O seu acesso ao sistema de <b>Auditoria de EPOs</b> da Apsis Consultoria " +
-      "continua liberado" + (contexto ? " como <b>" + escapar(contexto) + "</b>" : "") + ".";
-
-  return montarEmail({
-    titulo: novaConta ? "Acesso a Auditoria de EPOs" : "Seu acesso a Auditoria de EPOs",
-    subtitulo: "Auditoria de unidades EPO - Apsis Consultoria",
-    saudacao: saudacaoDe(nome),
-    paragrafos: [
-      abertura,
-      "Para entrar, informe o seu e-mail na tela de entrada. Um <b>codigo de seis " +
-      "digitos</b> chega neste endereco na hora, e voce digita na tela. Nao ha senha " +
-      "para criar nem para lembrar."
-    ],
-    quadro: {
-      rotulo: "Como entrar",
-      linhas: [
-        ["Seu e-mail", '<span style="color:' + VERDE + ';">' + escapar(email) + "</span>"],
-        ["Sua chave", '<span style="color:#6b7280;">o codigo que chega aqui quando voce pedir</span>']
-      ]
-    },
-    botao: { texto: "Ir para a tela de entrada", href: link },
-    aviso: "&#128274; <b>Dica de seguranca:</b> o codigo e so seu, serve uma vez e vale " +
-           "poucos minutos. A APSIS nunca vai pedir o seu codigo por telefone ou por " +
-           "e-mail."
-  });
 }
 
 // ------------------------------------------------------------------ handler
@@ -277,7 +232,10 @@ Deno.serve(async (req: Request) => {
   const assunto = novaConta
     ? "Seu acesso à Auditoria de EPOs" + (contexto ? " - " + contexto : "")
     : "Seu acesso à Auditoria de EPOs";
-  const html = corpoDoEmail(link, contexto, novaConta, nomeDaPessoa, email);
+  const html = emailAcessoResponsavel({
+    nome: nomeDaPessoa, email: email, link: link,
+    contexto: contexto, novaConta: novaConta
+  });
 
   // 1) Microsoft Graph, com a credencial que ja existe
   let envio = await enviarPeloGraph(email, assunto, html);

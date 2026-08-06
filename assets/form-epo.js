@@ -32,6 +32,22 @@
 (function () {
   "use strict";
 
+  // Primeira data que da para marcar a visita: hoje mais tres dias.
+  //
+  // A visita nao pode ser marcada de um dia para o outro: e preciso avisar o
+  // responsavel da EPO, ele juntar o que foi pedido e a equipe se deslocar.
+  // Marcando numa quinta, o primeiro dia livre e o domingo. A mesma regra vale
+  // na tela de Cronograma e no servidor.
+  var DIAS_DE_ANTECEDENCIA = 3;
+  function minMarcacao() {
+    var d = new Date();
+    d.setDate(d.getDate() + DIAS_DE_ANTECEDENCIA);
+    var m = String(d.getMonth() + 1);
+    var dia = String(d.getDate());
+    return d.getFullYear() + "-" + (m.length < 2 ? "0" + m : m) + "-" +
+           (dia.length < 2 ? "0" + dia : dia);
+  }
+
   var UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
              "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
@@ -159,11 +175,11 @@
         '<div class="field-row">' +
           '<div class="field">' +
             '<label for="f-visita">Visita prevista</label>' +
-            '<input class="input" id="f-visita" type="date" min="2020-01-01" max="2035-12-31">' +
+            '<input class="input" id="f-visita" type="date" min="' + minMarcacao() + '" max="2035-12-31">' +
           "</div>" +
           '<div class="field">' +
             '<label for="f-ate">Até</label>' +
-            '<input class="input" id="f-ate" type="date" min="2020-01-01" max="2035-12-31">' +
+            '<input class="input" id="f-ate" type="date" min="' + minMarcacao() + '" max="2035-12-31">' +
             '<span class="hint">Só se durar mais de um dia.</span>' +
           "</div>" +
         "</div>" +
@@ -953,6 +969,7 @@
   }
 
   window.FormEpo = {
+    minMarcacao: minMarcacao,
     UFS: UFS,
     colunas: colunas,
     preparar: preparar,

@@ -26,7 +26,7 @@
     barra.setAttribute("role", "status");
     barra.style.cssText =
       "position:fixed;left:0;right:0;top:0;z-index:200;padding:9px 16px;" +
-      "background:#8A2B06;color:#fff;font:500 13px Inter,sans-serif;text-align:center;";
+      "background:#B84D01;color:#fff;font:500 13px Roboto,system-ui,Arial,sans-serif;text-align:center;";
     barra.textContent =
       "Sem conexão com os dados agora. Os números desta tela são de demonstração; " +
       "atualize a página quando a conexão voltar.";
