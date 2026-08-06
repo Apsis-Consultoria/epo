@@ -24,15 +24,17 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=124">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=125">
+  <!-- Reserva: o Safari nao usa favicon em SVG. -->
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=125">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=125">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <title>Auditoria EPO's</title>
-  <!-- Roboto para o corpo, que e a fonte da Claro, nos mesmos pesos que o painel
-       pede. A Sora entra so pelo TITULO desta tela: e a fonte do titulo do Portal
-       Apsis, e a entrada dos dois sistemas se le como a mesma familia. Peso 900,
-       que e o que o Portal usa. -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Sora:wght@800;900&display=swap" rel="stylesheet" />
+  <!-- Roboto, a fonte da Claro, nos mesmos pesos que o painel pede. Uma familia
+       so na tela inteira: o titulo se separa do resto pelo peso, nao por outra
+       fonte. -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/carregando.css?v=124">
   <link rel="stylesheet" href="assets/portal.css?v=124" />
   <style>
@@ -115,13 +117,10 @@
       <div class="login-col relative bg-white lg:bg-transparent flex flex-col items-center justify-start px-6 pb-8 sm:px-10" style="min-height:100vh;">
         <img src="assets/brand/logo-claro.png" alt="Claro" class="login-logo object-contain flex-shrink-0" />
         <div class="login-bloco w-full max-w-sm flex flex-col items-center gap-4">
-          <!-- Mesmo tratamento do titulo do Portal Apsis: Sora no peso 900 com
-               tracking apertado (o Portal usa exatamente
-               "text-3xl lg:text-4xl font-black tracking-tight" com Sora).
-               A entrada dos dois sistemas se le como a mesma familia; o painel
-               por dentro segue na fonte da Claro. -->
+          <!-- Roboto no peso 900 com tracking apertado: a mesma fonte do resto
+               do sistema, so que no peso mais forte que a Claro publica. -->
           <h1 class="text-3xl lg:text-4xl font-black tracking-tight"
-              style="font-family: 'Sora', 'Segoe UI', sans-serif;">
+              style="font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;">
             <span style="color: #DA291C;">AUDITORIA</span> <span style="color: #DA291C;">EPO'S</span>
           </h1>
           <p class="login-apoio text-sm mb-2">Faça login com sua conta corporativa</p>

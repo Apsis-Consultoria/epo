@@ -104,11 +104,10 @@
   --radius-md: 24px;
   --radius-pill: 500px;
 
-  /* Roboto e a fonte da Claro. AMX e a de titulo, so que e fonte fechada da
-     marca: fica declarada primeiro para valer onde ela estiver instalada, e
-     cai em Roboto no resto. */
+  /* Roboto, a fonte da Claro, em tudo. Titulo e corpo usam a mesma familia e
+     se separam pelo peso, nao por fonte diferente. */
   --font-base: 'Roboto', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
-  --font-display: 'AMX', 'Roboto', system-ui, Arial, sans-serif;
+  --font-display: var(--font-base);
 
   /* Sombras do Mondrian: deslocamento em Y, desfoque 8/16/24, preto da marca
      a 16%. */
