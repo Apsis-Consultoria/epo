@@ -403,11 +403,54 @@
           'aria-label="Nome do responsável" autocomplete="off" value="' + esc(nome || "") + '">' +
         '<input class="input resp-email" type="email" placeholder="nome@empresa.com.br" ' +
           'aria-label="E-mail do responsável" autocomplete="off" value="' + esc(email || "") + '">' +
+        // Enviar o acesso a quem JA esta gravado. So aparece em responsavel que
+        // ja existe na unidade: nao havia caminho nenhum para reenviar o acesso
+        // de um responsavel, e quem foi cadastrado sem convite ficava sem saida.
+        //
+        // Nao aparece em linha nova - ali o convite e oferecido depois de salvar,
+        // e mandar antes de gravar avisaria de um acesso que ainda nao existe.
+        (email
+          ? '<button class="btn btn-ghost btn-icon btn-sm resp-enviar" type="button" ' +
+              'data-resp-enviar="' + esc(email) + '" aria-label="Enviar o acesso" ' +
+              'title="Enviar o acesso para ' + esc(email) + '">' +
+              '<i class="ti ti-mail" aria-hidden="true"></i></button>'
+          : "") +
         '<button class="btn btn-ghost btn-icon btn-sm resp-tirar" type="button" ' +
           'data-resp-tirar="' + i + '" aria-label="Tirar este responsável" title="Tirar">' +
           '<i class="ti ti-x" aria-hidden="true"></i></button>' +
       "</div>"
     );
+  }
+
+  // A unidade aberta agora. Guardada aqui porque o convite precisa dizer de
+  // qual unidade se trata, e o botao de enviar vive dentro da linha.
+  var epoAberta = null;
+
+  function pedirEnvioDeAcesso(botao) {
+    var email = botao.getAttribute("data-resp-enviar") || "";
+    if (!email || !window.App || !App.confirmar) return;
+    var db = window.Auth ? Auth.cliente : null;
+    if (!db) return;
+
+    App.confirmar({
+      titulo: "Enviar o acesso?",
+      texto: email + " recebe um e-mail avisando do acesso.\n\nPara entrar, essa " +
+             "pessoa pede um código na tela de entrada, e o código chega nesse mesmo " +
+             "e-mail. Não há senha.",
+      confirmar: "Enviar", cancelar: "Voltar"
+    }).then(function (ok) {
+      if (!ok) return;
+      botao.disabled = true;
+      var corpo = epoAberta ? { email: email, epo_id: epoAberta } : { email: email };
+      return enviarConvites(db, [{ corpo: corpo, email: email }]).then(function (conta) {
+        botao.disabled = false;
+        if (window.App && App.toast) {
+          App.toast(conta.ok
+            ? "Acesso enviado."
+            : "Não foi possível enviar agora. Tente novamente em alguns instantes.");
+        }
+      });
+    }, function () { botao.disabled = false; });
   }
 
   function renderResps(lista) {
@@ -458,6 +501,9 @@
     });
 
     box.addEventListener("click", function (ev) {
+      var env = ev.target.closest("[data-resp-enviar]");
+      if (env) { pedirEnvioDeAcesso(env); return; }
+
       var btn = ev.target.closest("[data-resp-tirar]");
       if (!btn) return;
       var i = Number(btn.getAttribute("data-resp-tirar"));
@@ -483,6 +529,7 @@
     setVal("f-endereco", epo && epo.endereco);
     setVal("f-cidade", epo && epo.cidade);
     setVal("f-uf", (epo && epo.uf) || "SP");
+    epoAberta = (epo && epo.id) || null;
     setVal("f-cep", epo && epo.cep);
     // Unidade antiga nao tem as partes separadas: o endereco inteiro esta no
     // campo unico. Cai nele para a tela nao abrir vazia; digitar o CEP arruma.
@@ -539,6 +586,7 @@
   }
 
   function limpar() {
+    epoAberta = null;
     ["f-cod","f-base","f-nome","f-endereco","f-numero","f-complemento",
      "f-bairro","f-cidade","f-cep",
      "f-visita","f-ate","f-semana",

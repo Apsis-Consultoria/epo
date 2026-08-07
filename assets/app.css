@@ -1387,16 +1387,20 @@ input[type="submit"],
    por quem confere. As posicoes vao escritas uma a uma - deixando o navegador
    escolher, o botao caia numa terceira linha com zero de largura. */
 .resp-linha {
-  display: grid; grid-template-columns: 1fr auto;
+  /* Tres colunas: nome, enviar, tirar. A do meio some quando nao ha e-mail
+     gravado (auto vira zero sem o botao), e a linha volta ao que era. */
+  display: grid; grid-template-columns: 1fr auto auto;
   gap: 8px; align-items: center;
   padding-bottom: 10px; margin-bottom: 10px;
   border-bottom: 1px dashed var(--border);
 }
 .resp-linha:last-of-type { border-bottom: 0; padding-bottom: 0; }
 .resp-linha .input { margin: 0; }
-.resp-linha .resp-nome  { grid-column: 1; grid-row: 1; }
-.resp-linha .resp-tirar { grid-column: 2; grid-row: 1; color: var(--text-muted); }
-.resp-linha .resp-email { grid-column: 1 / -1; grid-row: 2; }
+.resp-linha .resp-nome   { grid-column: 1; grid-row: 1; }
+.resp-linha .resp-enviar { grid-column: 2; grid-row: 1; color: var(--text-muted); }
+.resp-linha .resp-tirar  { grid-column: 3; grid-row: 1; color: var(--text-muted); }
+.resp-linha .resp-email  { grid-column: 1 / -1; grid-row: 2; }
+.resp-linha .resp-enviar:hover { color: var(--primary); border-color: var(--primary); }
 .resp-linha .resp-tirar:hover { color: var(--danger); border-color: var(--danger); }
 
 /* Selo de origem, para usar solto ao lado de um arquivo */
