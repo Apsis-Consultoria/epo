@@ -24,10 +24,10 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=134">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=135">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=134">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=134">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=135">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=135">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -35,10 +35,10 @@
   <title>Cronograma - Auditoria de EPOs</title>
 
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=134">
+  <link rel="stylesheet" href="assets/icones.css?v=135">
 
-  <link rel="stylesheet" href="assets/carregando.css?v=134">
-  <link rel="stylesheet" href="assets/app.css?v=134">
+  <link rel="stylesheet" href="assets/carregando.css?v=135">
+  <link rel="stylesheet" href="assets/app.css?v=135">
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
@@ -52,16 +52,17 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=134"></script>
-  <script src="assets/app.js?v=134"></script>
-  <script src="assets/supabase-config.js?v=134"></script>
+  <script src="assets/data.js?v=135"></script>
+  <script src="assets/app.js?v=135"></script>
+  <script src="assets/supabase-config.js?v=135"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=134"></script>
-  <script src="assets/geo-br.js?v=134"></script>
-  <script src="assets/cronograma-planilha.js?v=134"></script>
-  <script src="assets/form-epo.js?v=134"></script>
+  <script src="assets/auth.js?v=135"></script>
+  <script src="assets/geo-br.js?v=135"></script>
+  <script src="assets/envio-cronograma.js?v=135"></script>
+  <script src="assets/cronograma-planilha.js?v=135"></script>
+  <script src="assets/form-epo.js?v=135"></script>
   <script>
     (function () {
       "use strict";
@@ -169,6 +170,7 @@
       var podeMontar = false;         // admin e gestor: datas, planilha, envio
       var podeAprovar = false;        // gerente da Claro
       var podeRegistrar = false;      // quem marca o que aconteceu
+      var souApsis = false;           // APSIS inteira: e quem pode apagar
       var escala = "semana";
       var filtro = { busca: "", uf: "", situacao: "" };
       var grupoFechado = {};
@@ -374,6 +376,10 @@
         podeMontar = papel === "admin" || papel === "gestor";
         podeAprovar = podeMontar || papel === "cliente";
         podeRegistrar = podeMontar || papel === "auditor";
+        // Apagar e da APSIS inteira, e nao so de quem monta o cronograma: o
+        // servidor confere exatamente isto (e_equipe_apsis), e tela mais estreita
+        // que o servidor esconde do time de campo uma acao que ele tem.
+        souApsis = podeMontar || papel === "auditor";
       }
 
       function descobrirPapel() {
@@ -1299,7 +1305,16 @@
           p_semana: null, p_observacao: null, p_enviar: !!enviar
         }, botaoEl).then(function (ok) {
           if (!ok) return;
-          if (enviar) { App.toast("Data enviada para a Claro."); avisarGerencia(); return; }
+          if (enviar) {
+            App.toast("Data enviada para a Claro.");
+            // Trocar uma data que ja estava com a Claro tambem gera aviso: para
+            // ela e uma data nova para aprovar.
+            if (window.EnvioCronograma && !DEMO) {
+              Auth.cliente.functions.invoke("avisar-aprovacao", { body: {} })
+                .then(function () {}, function () {});
+            }
+            return;
+          }
           App.toast("Data guardada.");
           // Guardou: pergunta na hora se manda. E o gatilho do primeiro envio.
           oferecerEnvio();
@@ -1314,95 +1329,23 @@
       // que ha o que aprovar - o cronograma parece montado dos dois lados e nao
       // esta combinado de nenhum.
       //
-      // Por isso o envio e OFERECIDO assim que se cadastra, pelos dois caminhos:
-      // a data digitada na linha e a planilha. Oferecido, e nao feito sozinho:
-      // quem monta o cronograma costuma preencher varias linhas antes de estar
-      // pronto para mandar, e mandar sem perguntar tiraria essa escolha.
+      // Por isso o envio e OFERECIDO assim que se cadastra, pelos tres caminhos
+      // que gravam data: a linha da tabela, o formulario "Novo cronograma" e a
+      // planilha. Oferecido, e nao feito sozinho: quem monta um ciclo preenche
+      // varias unidades antes de estar pronto para mandar.
+      //
+      // Quem pergunta e envia e o EnvioCronograma, que a tela de EPOs tambem
+      // usa - la a data tambem e gravada sem enviar, e escrever isto duas vezes
+      // deixaria um dos dois lados sem o e-mail no primeiro ajuste.
       // ------------------------------------------------------------------
-      function pendentesDeEnvio() {
-        return itens.filter(function (it) {
-          return it.situacao === "sem_data" && it.prevIni != null;
-        });
-      }
-
-      // Evita a pergunta duas vezes seguidas quando duas coisas terminam juntas
-      // (a planilha grava e a lista recarrega logo depois).
-      var perguntandoEnvio = false;
-
       function oferecerEnvio() {
-        if (!podeMontar || perguntandoEnvio) return;
-        var prontas = pendentesDeEnvio();
-        if (!prontas.length) return;
-
-        var n = prontas.length;
-        var uma = n === 1;
-        perguntandoEnvio = true;
-        App.confirmar({
-          titulo: uma ? "Enviar a data para a Claro?" : "Enviar as datas para a Claro?",
-          texto: (uma ? "Uma data esta cadastrada e ainda nao foi enviada."
-                      : n + " datas estao cadastradas e ainda nao foram enviadas.") +
-                 "\n\nAo enviar, os gerentes da Claro recebem um e-mail e respondem " +
-                 "por aqui, aprovando ou sugerindo outra data. Enquanto nao houver " +
-                 "envio, a visita nao e marcada e o responsavel da unidade nao e avisado." +
-                 "\n\nDa para enviar depois, pelo botao no topo da tela.",
-          confirmar: uma ? "Enviar a data" : "Enviar as " + n + " datas",
-          cancelar: "Agora nao"
-        }).then(function (ok) {
-          perguntandoEnvio = false;
-          if (ok) enviarPendentes(prontas);
-        }, function () {
-          // Sem isto, uma falha na caixa de confirmacao deixaria a trava ligada
-          // e a pergunta nao apareceria mais ate recarregar a tela.
-          perguntandoEnvio = false;
+        if (DEMO || !window.EnvioCronograma) return;
+        EnvioCronograma.oferecer({
+          db: Auth.cliente,
+          ciclo: CICLO,
+          pode: podeMontar,
+          aoTerminar: function () { return carregar().then(render); }
         });
-      }
-
-      // Um caminho de envio so, usado pelo popup e pelo botao do topo: dois
-      // caminhos divergiriam no primeiro ajuste, e um deles esqueceria o e-mail.
-      function enviarPendentes(prontas) {
-        if (!prontas || !prontas.length) return;
-        if (DEMO) { App.toast("Sem conexao com os dados agora: nada foi enviado."); return; }
-
-        var ids = prontas.map(function (it) { return it.id; });
-        return Auth.cliente.rpc("cronograma_enviar_aprovacao", { p_itens: ids, p_mensagem: null })
-          .then(function (r) {
-            if (!r || r.error) throw new Error((r && r.error && r.error.message) || "");
-            var n = (r.data && r.data.enviados) || 0;
-            App.toast(n + (n === 1 ? " data enviada." : " datas enviadas."));
-            avisarGerencia();
-            return carregar().then(render);
-          })
-          .catch(function (e) {
-            App.toast(e && e.message ? e.message
-                                     : "Nao foi possivel enviar agora. Tente novamente.");
-          });
-      }
-
-      // O e-mail para a gerencia da Claro: ha data esperando aprovacao.
-      //
-      // Sai daqui para chegar na hora - a tarefa diaria tambem manda, mas
-      // esperar a madrugada e um dia inteiro de cronograma parado.
-      //
-      // Nao leva id nenhum: quem decide o que avisar e o banco, que ja sabe o
-      // que esta esperando e o que ja foi avisado. Por isso chamar duas vezes
-      // nao manda o e-mail duas vezes.
-      //
-      // Falha em silencio de proposito. A data FOI enviada; se o e-mail nao
-      // saiu, dizer "nao deu certo" faria a pessoa mandar de novo achando que
-      // nao valeu. A tarefa diaria pega o que ficou.
-      var avisandoGerencia = false;
-      function avisarGerencia() {
-        if (DEMO || avisandoGerencia) return;
-        var cli = window.Auth ? Auth.cliente : null;
-        if (!cli || !cli.functions || !cli.functions.invoke) return;
-
-        // Uma chamada so quando varias datas saem em seguida: cada uma dispara
-        // este aviso, e o e-mail junta tudo que estiver esperando.
-        avisandoGerencia = true;
-        setTimeout(function () {
-          avisandoGerencia = false;
-          cli.functions.invoke("avisar-aprovacao", { body: {} }).then(function () {}, function () {});
-        }, 1500);
       }
 
       function tratarAcao(acao, id, botaoEl) {
@@ -1568,10 +1511,14 @@
         }
 
         // Apagar fica ao lado de "Tirar do ciclo", e nao no lugar dele: um tira
-        // do ciclo e da para voltar, o outro nao volta. Visita ja registrada nao
-        // mostra o botao - o servidor tambem recusa, mas botao que aparece e
-        // recusa e botao que ensina errado.
-        if (podeMontar && it.situacao !== "realizada") {
+        // do ciclo e da para voltar, o outro nao volta.
+        //
+        // Aparece enquanto a visita nao aconteceu - esperando aprovacao, com
+        // data aprovada e ainda por vir, sem data, fora do ciclo. Some depois de
+        // registrada: dali em diante a linha e o registro de que a visita houve,
+        // e apagar seria apagar isso. O servidor recusa o mesmo, mas botao que
+        // aparece e recusa e botao que ensina errado.
+        if (souApsis && it.situacao !== "realizada") {
           rodape = '<button class="btn btn-ghost tk-apagar" type="button" data-tk="apagar">' +
                    '<i class="ti ti-trash" aria-hidden="true"></i>Apagar</button>' + rodape;
         }
@@ -1915,7 +1862,11 @@
             App.toast(d.nome + (modoCron ? " no cronograma." : " cadastrada.") +
                       (frase ? " " + frase + "." : ""));
             fecharNova();
-            return carregar().then(render);
+            // Este formulario tambem grava data (o campo "Data da visita"), e
+            // grava sem enviar. Sem a pergunta aqui, cadastrar pelo botao
+            // "Novo cronograma" deixava a data parada e nada avisava - era o
+            // caminho manual mais usado, e o unico que ficava de fora.
+            return carregar().then(render).then(oferecerEnvio);
           })
           .catch(function (e) {
             encerrar((e && e.message) ? e.message

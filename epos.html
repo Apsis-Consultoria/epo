@@ -24,10 +24,10 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=134">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=135">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=134">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=134">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=135">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=135">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -35,10 +35,10 @@
   <title>EPOs - Auditoria de EPOs</title>
 
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=134">
+  <link rel="stylesheet" href="assets/icones.css?v=135">
 
-  <link rel="stylesheet" href="assets/carregando.css?v=134">
-  <link rel="stylesheet" href="assets/app.css?v=134">
+  <link rel="stylesheet" href="assets/carregando.css?v=135">
+  <link rel="stylesheet" href="assets/app.css?v=135">
 
   <style>
     /* Ajustes locais só desta tela. */
@@ -88,16 +88,17 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=134"></script>
-  <script src="assets/app.js?v=134"></script>
-  <script src="assets/geo-br.js?v=134"></script>
-  <script src="assets/cronograma-planilha.js?v=134"></script>
-  <script src="assets/form-epo.js?v=134"></script>
-  <script src="assets/supabase-config.js?v=134"></script>
+  <script src="assets/data.js?v=135"></script>
+  <script src="assets/app.js?v=135"></script>
+  <script src="assets/geo-br.js?v=135"></script>
+  <script src="assets/cronograma-planilha.js?v=135"></script>
+  <script src="assets/envio-cronograma.js?v=135"></script>
+  <script src="assets/form-epo.js?v=135"></script>
+  <script src="assets/supabase-config.js?v=135"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=134"></script>
+  <script src="assets/auth.js?v=135"></script>
   <script>
     (function () {
       "use strict";
@@ -130,6 +131,7 @@
       // Excluir EPO é da coordenação. Quem não tem esse alcance não vê o botão,
       // em vez de clicar e nada acontecer.
       var podeApagar = DEMO;
+      var montaCronograma = false;   // quem pode mandar a data para a Claro
       // Quem chega nesta tela pode cadastrar e editar: quem nao tem a tela
       // liberada na matriz nao passa do guard. A regra e uma so, e do lado do
       // servidor tambem: liberou a tela, a tela funciona inteira. Antes aqui
@@ -817,7 +819,19 @@
           App.toast(rotuloEpo(dados.nome) + (r.criado ? " cadastrada" : " atualizada") +
             (frase ? " - " + frase : "") + ".");
           return carregar();
-        }).then(terminar, function (e) {
+        }).then(function () {
+          terminar();
+          // O formulario tem o campo "Visita prevista", e grava a data SEM
+          // enviar - de proposito, quem cadastra varias unidades manda todas de
+          // uma vez. Sem esta pergunta, a data ficava parada aqui e a Claro nao
+          // sabia que havia o que aprovar. Mesma caixa e mesmo envio da tela de
+          // Cronograma.
+          if (!DEMO && window.EnvioCronograma) {
+            EnvioCronograma.oferecer({
+              db: Auth.cliente, ciclo: CICLO, pode: montaCronograma
+            });
+          }
+        }, function (e) {
           console.error("salvarEpo", e);
           terminar();
           App.toast((e && e.message) || "Não foi possível salvar a EPO. Confira os dados e tente novamente.");
@@ -895,6 +909,9 @@
             // caixa na matriz.
             var papel = (p && p.papel) || "";
             var apaga = papel === "admin" || papel === "gestor";
+            // Mesmo grupo que monta o cronograma: e quem pode mandar a data
+            // para a Claro depois de cadastra-la aqui.
+            montaCronograma = apaga;
             if (apaga !== podeApagar) { podeApagar = apaga; renderLista(); }
           });
         }
