@@ -340,7 +340,11 @@ async function listarAnexos(admin: Cliente, alocacaoId: string) {
   const filtrado = alocacaoId ? base.eq("alocacao_id", alocacaoId) : base;
 
   const { data, error } = await filtrado.order("criado_em", { ascending: true }).limit(LOTE);
-  if (error) throw new Error("falha ao listar os anexos: " + error.message);
+  if (error) {
+    // O texto do Postgres nomeia tabela e politica: fica no log.
+    console.error("falha ao listar anexos:", error.message);
+    throw new Error("falha ao listar os anexos");
+  }
 
   const lista: Pendente[] = [];
   for (const l of (data || []) as Record<string, any>[]) {
@@ -367,7 +371,10 @@ async function listarEvidencias(admin: Cliente, auditoriaId: string) {
   if (auditoriaId) {
     const { data: rs, error: erroRs } = await admin
       .from("respostas").select("id").eq("auditoria_id", auditoriaId);
-    if (erroRs) throw new Error("falha ao listar as respostas: " + erroRs.message);
+    if (erroRs) {
+      console.error("falha ao listar respostas:", erroRs.message);
+      throw new Error("falha ao listar as respostas");
+    }
     respostas = ((rs || []) as Record<string, string>[]).map(function (r) { return r.id; });
     if (!respostas.length) return [];
   }
@@ -379,7 +386,11 @@ async function listarEvidencias(admin: Cliente, auditoriaId: string) {
   const filtrado = respostas ? base.in("resposta_id", respostas) : base;
 
   const { data, error } = await filtrado.order("criado_em", { ascending: true }).limit(LOTE);
-  if (error) throw new Error("falha ao listar as evidencias: " + error.message);
+  if (error) {
+    // O texto do Postgres nomeia tabela e politica: fica no log.
+    console.error("falha ao listar evidencias:", error.message);
+    throw new Error("falha ao listar as evidencias");
+  }
 
   const lista: Pendente[] = [];
   for (const l of (data || []) as Record<string, any>[]) {
@@ -412,7 +423,11 @@ async function listarPlanilhas(admin: Cliente, contagemId: string) {
   const filtrado = contagemId ? base.eq("id", contagemId) : base;
 
   const { data, error } = await filtrado.order("criado_em", { ascending: true }).limit(LOTE);
-  if (error) throw new Error("falha ao listar as planilhas: " + error.message);
+  if (error) {
+    // O texto do Postgres nomeia tabela e politica: fica no log.
+    console.error("falha ao listar planilhas:", error.message);
+    throw new Error("falha ao listar as planilhas");
+  }
 
   const lista: Pendente[] = [];
   for (const l of (data || []) as Record<string, any>[]) {
@@ -438,9 +453,14 @@ Deno.serve(async (req: Request) => {
   try {
     return await tratar(req);
   } catch (e) {
-    const msg = String((e as Error).message || e);
-    console.error("falha nao tratada:", msg);
-    return json({ ok: false, motivo: "falha inesperada: " + msg }, 500);
+    // A mensagem crua da excecao NAO volta para quem chamou.
+    //
+    // Ela carrega o que quebrou por dentro: nome de tabela, nome de politica,
+    // caminho de arquivo, trecho da resposta da Microsoft. Para quem opera isso
+    // e util, e por isso vai inteira para o log; para quem esta do outro lado da
+    // chamada e um mapa do servidor. Quem precisa investigar le o log da funcao.
+    console.error("falha nao tratada:", String((e as Error).message || e));
+    return json({ ok: false, motivo: "falha inesperada ao encaminhar. Confira o log da funcao." }, 500);
   }
 });
 
