@@ -22,7 +22,7 @@
   // acrescentar mais um endereco a lista de script permitido; guardar o arquivo
   // junto e melhor: uma origem a menos de onde pode vir codigo executavel, e a
   // importacao deixa de depender de um servico de terceiro estar no ar.
-  var CDN = "assets/xlsx.full.min.js?v=129";
+  var CDN = "assets/xlsx.full.min.js?v=130";
   var LIMITE_LINHAS = 2000;
   var ANO_MIN = 2020;
   var ANO_MAX = 2035;

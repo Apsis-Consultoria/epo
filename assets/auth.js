@@ -613,9 +613,14 @@
       } catch (e) {}
     };
 
-    // E vai para a entrada pelo caminho que NAO volta: com sair=1 a tela de
-    // entrada fica onde esta em vez de procurar sessao e seguir para dentro.
-    var fim = function () { limparTokens(); location.replace("login?sair=1"); };
+    // Vai para a entrada limpa, sem parametro e sem mensagem: quem clicou em Sair
+    // sabe que saiu, e nao precisa que a tela conte isso de volta.
+    //
+    // NAO usa "login?sair=1": aquele caminho existe como socorro manual e corta a
+    // execucao da tela antes de ligar os botoes - depois dele nada e clicavel.
+    // Aqui a sessao ja foi apagada duas vezes (signOut e a varredura acima), entao
+    // a entrada simples nao encontra nada e fica onde esta.
+    var fim = function () { limparTokens(); location.replace("login"); };
     if (!client) { fim(); return; }
     client.auth.signOut()
       .then(function (r) {

@@ -24,10 +24,10 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=129">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=130">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=129">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=129">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=130">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=130">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <title>Auditoria EPO's</title>
@@ -35,8 +35,8 @@
        so na tela inteira: o titulo se separa do resto pelo peso, nao por outra
        fonte. -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/carregando.css?v=129">
-  <link rel="stylesheet" href="assets/portal.css?v=129" />
+  <link rel="stylesheet" href="assets/carregando.css?v=130">
+  <link rel="stylesheet" href="assets/portal.css?v=130" />
   <style>
     /* A folha do painel, onde ficam os tokens da Claro, nao entra nesta tela:
        o que ela carrega e o Tailwind, que traz os cinzas dele. Por isso os
@@ -214,11 +214,11 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=129"></script>
+  <script src="assets/supabase-config.js?v=130"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=129"></script>
+  <script src="assets/auth.js?v=130"></script>
   <script>
     (function () {
       "use strict";
@@ -302,6 +302,10 @@
       // Nada pode prender a pessoa atras do logo, nem falha de rede.
       setTimeout(mostrarEntrada, 7000);
 
+      // Conferir a sessao ao abrir a tela? O socorro manual (?sair=1) desliga
+      // isto, porque ali a intencao e justamente NAO seguir para dentro.
+      var conferirSessao = true;
+
       // Já logado? Vai direto para o app.
       if (window.Auth && Auth.pronto) {
         // Ja entrou antes: vai direto para a tela dele, e nao para a visao
@@ -321,10 +325,13 @@
             mostrarEntrada();
           };
           Auth.cliente.auth.signOut({ scope: "local" }).then(limparTudo, limparTudo);
-          return;
+          // NAO retorna daqui: o return cortava a execucao antes de ligar os
+          // botoes de entrada, e a tela ficava inteira sem nada clicavel. So
+          // pula a conferencia de sessao, que e o que este caminho quer evitar.
+          conferirSessao = false;
         }
 
-        Auth.sessao().then(function (s) {
+        if (conferirSessao) Auth.sessao().then(function (s) {
           if (!s) { mostrarEntrada(); return; }
           // Sessao que ainda pede o codigo do segundo fator NAO entra sozinha.
           //
