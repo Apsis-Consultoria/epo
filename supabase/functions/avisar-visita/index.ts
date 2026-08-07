@@ -135,6 +135,25 @@ Deno.serve(async (req: Request) => {
 
   // -------------------------------------------------------------- tarefa diaria
   const admin = createClient(PROJETO_URL, SERVICE, { auth: { persistSession: false } });
+
+  // Este caminho e do agendador, e de mais ninguem.
+  //
+  // Antes nao conferia nada: bastava um POST com corpo vazio. verify_jwt nao e
+  // barreira aqui, porque a chave publicavel do projeto e um cracha valido e
+  // esta no JavaScript do site. O estrago possivel era pequeno - a tabela de
+  // avisos impede repeticao -, mas endereco aberto sem motivo e endereco aberto.
+  //
+  // O segredo mora no banco, numa tabela que so a credencial de servico alcanca,
+  // e a comparacao acontece la dentro: aqui nunca se sabe qual e o valor certo,
+  // so se a resposta bate.
+  const { data: autorizada } = await admin.rpc("tarefa_avisos_autorizada", {
+    p_valor: req.headers.get("x-tarefa-avisos") || ""
+  });
+  if (autorizada !== true) {
+    console.warn("tarefa de avisos chamada sem o segredo do agendador");
+    return json({ ok: false, motivo: "nao autorizado" }, 403);
+  }
+
   const { data, error } = await admin.rpc("visitas_para_avisar");
   if (error) {
     console.warn("visitas_para_avisar:", error.message);

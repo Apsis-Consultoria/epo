@@ -5,6 +5,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# As acoes de terceiro entram presas ao COMMIT, e nao a etiqueta.
+#
+# Etiqueta como v4 se move: quem controla o repositorio da acao pode aponta-la
+# para outro codigo a qualquer momento, e este job publica o site e ainda emite
+# um token de identidade (id-token: write). Preso ao commit, o que roda amanha e
+# o mesmo que roda hoje. Para atualizar, troque o SHA de proposito e olhando o
+# que mudou - o numero da versao fica no comentario ao lado.
 permissions:
   contents: read
   pages: write
@@ -22,10 +29,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b   # v5
 
       # Publica so o que o navegador precisa. Antes subia o repositorio inteiro
       # ("path: ."), e com isso o site servia db/schema.sql, as migracoes e o
@@ -42,10 +49,10 @@ jobs:
           find _site -type f | sort
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa   # v3
         with:
           path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e   # v4

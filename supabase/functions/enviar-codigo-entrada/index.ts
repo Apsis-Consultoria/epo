@@ -112,12 +112,24 @@ Deno.serve(async (req: Request) => {
   const temAcesso = (liberado && (liberado as Record<string, unknown>).ativo === true)
                     || !!respUnidade || !!respPedido || daCasa;
 
+  // A MESMA resposta para todo mundo, sempre.
+  //
+  // Uniformizar o corpo do caso "sem acesso" nao bastou: os outros caminhos
+  // continuavam denunciando. So um endereco COM acesso podia receber
+  // {enviado:false, espere:N} do freio de um por minuto, ou 502 quando o envio
+  // falhava. Bastava comparar duas respostas para saber quem trabalha na conta,
+  // um endereco por vez.
+  //
+  // Agora existe uma resposta so, montada aqui, e todo caminho daqui para baixo
+  // devolve ela - inclusive quando nada foi enviado. O que muda por dentro fica
+  // no log, que so quem opera o sistema le.
+  const MESMA_RESPOSTA = {
+    enviado: true, espere: 0, para: emailEncoberto(email), minutos: MINUTOS
+  };
+
   if (!temAcesso) {
-    // A resposta e igual, ATE no campo minutos. Faltava ele aqui, e so aqui: quem
-    // comparasse duas respostas sabia pelo campo ausente que aquele endereco nao
-    // tem acesso - a lista de quem trabalha na conta, uma tentativa por vez.
     console.warn("codigo de entrada pedido por e-mail sem acesso");
-    return json({ enviado: true, espere: 0, para: emailEncoberto(email), minutos: MINUTOS });
+    return json(MESMA_RESPOSTA);
   }
 
   const nome = String(
@@ -125,38 +137,29 @@ Deno.serve(async (req: Request) => {
     (respUnidade && (respUnidade as Record<string, string>).nome) || ""
   );
 
-  // A conta de entrada precisa existir para o codigo virar sessao no passo
-  // seguinte. Criada sem senha: nao existe senha neste caminho.
-  let userId = "";
-  try {
-    const { data } = await admin.rpc("conta_por_email", { p_email: email });
-    if (data) userId = String(data);
-  } catch (_e) { userId = ""; }
-
-  if (!userId) {
-    const criada = await admin.auth.admin.createUser({
-      email: email,
-      email_confirm: true,
-      user_metadata: { entrada: "codigo" }
-    });
-    if (criada.error) {
-      console.warn("conta de entrada nao criada:", criada.error.message);
-      return json({ enviado: false, espere: 0 }, 502);
-    }
-  }
-
+  // A conta NAO nasce aqui.
+  //
+  // Antes nascia: pedir um codigo criava a conta em auth.users antes de qualquer
+  // prova de que a pessoa alcanca aquela caixa de e-mail. Como todo endereco do
+  // dominio da casa contava como acesso liberado, dava para encher a lista de
+  // contas do projeto com enderecos inventados, um por minuto, sem entrar em
+  // nada. A conta passa a nascer na CONFIRMACAO, depois que o codigo bate - que
+  // e o momento em que a pessoa prova que recebe naquele endereco.
   const codigo = gerarCodigo();
   const { data: reg, error: erroReg } = await admin.rpc("codigo_entrada_registrar", {
     p_email: email, p_codigo: codigo, p_minutos: MINUTOS
   });
   if (erroReg) {
     console.warn("codigo nao registrado:", erroReg.message);
-    return json({ enviado: false, espere: 0 }, 502);
+    return json(MESMA_RESPOSTA);
   }
   const r = (reg || {}) as Record<string, unknown>;
   if (r.ok !== true) {
-    // Freio de um por minuto: a tela diz quantos segundos faltam.
-    return json({ enviado: false, espere: Number(r.espere || 60), para: emailEncoberto(email) });
+    // Freio de um por minuto, ou teto de vinte por dia. Nao sai e-mail, e a
+    // resposta e a mesma: dizer "espere 42 segundos" e dizer que este endereco
+    // tem acesso.
+    console.warn("codigo de entrada freado:", String(r.motivo || "um por minuto"));
+    return json(MESMA_RESPOSTA);
   }
 
   const envio = await enviarPeloGraph(email, "Seu código de entrada - Auditoria de EPOs",
@@ -166,8 +169,8 @@ Deno.serve(async (req: Request) => {
     // num codigo que nao existe em lugar nenhum.
     await admin.from("codigos_entrada").delete().eq("email", email).is("usado_em", null);
     console.warn("envio do codigo de entrada falhou:", envio.motivo);
-    return json({ enviado: false, espere: 0 }, 502);
+    return json(MESMA_RESPOSTA);
   }
 
-  return json({ enviado: true, espere: 0, para: emailEncoberto(email), minutos: MINUTOS });
+  return json(MESMA_RESPOSTA);
 });

@@ -75,9 +75,31 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, motivo: String(c.motivo || RECUSA) });
   }
 
-  // Codigo certo. A credencial de uso unico vem do proprio servico de contas: e
-  // ela que a tela troca por sessao, e ninguem alem de quem acabou de acertar o
-  // codigo a recebe.
+  // Codigo certo: e AQUI que a conta nasce, se ainda nao existia.
+  //
+  // Antes ela nascia no pedido do codigo, antes de qualquer prova. Acertar o
+  // codigo e a prova de que a pessoa alcanca aquela caixa de e-mail, e so quem
+  // provou isso merece uma linha na lista de contas do projeto.
+  let userId = "";
+  try {
+    const { data } = await admin.rpc("conta_por_email", { p_email: email });
+    if (data) userId = String(data);
+  } catch (_e) { userId = ""; }
+
+  if (!userId) {
+    const criada = await admin.auth.admin.createUser({
+      email: email,
+      email_confirm: true,
+      user_metadata: { entrada: "codigo" }
+    });
+    if (criada.error && !/already|registered|exists/i.test(String(criada.error.message || ""))) {
+      console.warn("conta de entrada nao criada:", criada.error.message);
+      return json({ ok: false, motivo: "Nao foi possivel abrir a sessao agora. Tente de novo." }, 502);
+    }
+  }
+
+  // A credencial de uso unico vem do proprio servico de contas: e ela que a tela
+  // troca por sessao, e ninguem alem de quem acabou de acertar o codigo a recebe.
   const gerado = await admin.auth.admin.generateLink({ type: "magiclink", email: email });
   const props = gerado.data && (gerado.data.properties as Record<string, string> | undefined);
   const token = props ? props.hashed_token : "";

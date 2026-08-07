@@ -15,7 +15,14 @@
 (function () {
   "use strict";
 
-  var CDN = "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js";
+  // O leitor de planilha mora aqui dentro, e nao num CDN.
+  //
+  // Vinha de cdn.sheetjs.com, endereco que a CSP das telas nao libera - entao a
+  // importacao de planilha estava recusada pelo navegador em producao. Podia-se
+  // acrescentar mais um endereco a lista de script permitido; guardar o arquivo
+  // junto e melhor: uma origem a menos de onde pode vir codigo executavel, e a
+  // importacao deixa de depender de um servico de terceiro estar no ar.
+  var CDN = "assets/xlsx.full.min.js?v=127";
   var LIMITE_LINHAS = 2000;
   var ANO_MIN = 2020;
   var ANO_MAX = 2035;

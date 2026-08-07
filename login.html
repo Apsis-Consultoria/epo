@@ -17,17 +17,17 @@
     style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net;
     img-src 'self' data: blob: https://vpkxoyfbxgnizymaurek.supabase.co https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://server.arcgisonline.com;
-    connect-src 'self' https://vpkxoyfbxgnizymaurek.supabase.co https://challenges.cloudflare.com;
+    connect-src 'self' https://vpkxoyfbxgnizymaurek.supabase.co https://challenges.cloudflare.com https://viacep.com.br https://nominatim.openstreetmap.org;
     frame-src https://challenges.cloudflare.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=125">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=127">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=125">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=125">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=127">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=127">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <title>Auditoria EPO's</title>
@@ -35,8 +35,8 @@
        so na tela inteira: o titulo se separa do resto pelo peso, nao por outra
        fonte. -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/carregando.css?v=124">
-  <link rel="stylesheet" href="assets/portal.css?v=124" />
+  <link rel="stylesheet" href="assets/carregando.css?v=127">
+  <link rel="stylesheet" href="assets/portal.css?v=127" />
   <style>
     /* A folha do painel, onde ficam os tokens da Claro, nao entra nesta tela:
        o que ela carrega e o Tailwind, que traz os cinzas dele. Por isso os
@@ -214,11 +214,11 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=124"></script>
+  <script src="assets/supabase-config.js?v=127"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=124"></script>
+  <script src="assets/auth.js?v=127"></script>
   <script>
     (function () {
       "use strict";
