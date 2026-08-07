@@ -337,16 +337,32 @@
   // Presets de permissão por papel (usados como sugestão na tela de acessos).
   // -----------------------------------------------------------------------
   // "A princípio": responsável só envia evidências; auditor APSIS só vê os questionários.
-  // Tres visoes, nao cinco. Quem coordena (admin e gestor da APSIS, gerente da
-  // Claro) ve o sistema inteiro e da no mesmo lugar; o consultor em campo ve o
-  // que preenche; o responsavel da EPO ve o que envia.
   // O recorte dos DADOS continua sendo por papel no banco: o gerente da Claro
   // enxerga apenas as EPOs do cliente dele, e isso nao depende desta tabela.
-  // Coordenação APSIS e gerência da Claro veem o sistema inteiro.
+  // Aqui se decide apenas QUAIS TELAS cada cargo alcanca.
+
+  // Coordenacao da APSIS: o sistema inteiro.
   var visaoCoordenacao = {
     epos: true,  geral: true,  ranking: true,  detalhe: true,  comparativo: true,  gerencial: true,
     pendentes: true,  realizadas: true, auditoria: true,   checagem: true,  alocacoes: true,
     giro: true,  evidencias: true,   acessos: true,  questionarios: true,
+    cronograma: true
+  };
+
+  // Gerencia da Claro. Deixou de compartilhar o objeto da coordenacao, que
+  // liberava tudo - inclusive coisas que nao sao dela:
+  //
+  // - realizadas e giro sao as "Telas inativas", que ainda nao entraram em uso.
+  //   O menu ja as escondia de quem nao e administracao, mas esconder nao e
+  //   barrar: o endereco digitado a mao abria, porque o preset dizia true;
+  //   - acessos e a tela de Gerenciamento de acessos. Liberar acesso ao sistema
+  //   e decisao da APSIS, e a matriz do servidor ja registrava isso como negado.
+  //   O preset dizia o contrario, e era ele que valia quando a matriz nao
+  //   chegava.
+  var visaoGerenciaClaro = {
+    epos: true,  geral: true,  ranking: true,  detalhe: true,  comparativo: true,  gerencial: true,
+    pendentes: true,  realizadas: false, auditoria: true,  checagem: true,  alocacoes: true,
+    giro: false, evidencias: true,   acessos: false, questionarios: true,
     cronograma: true
   };
 
@@ -355,7 +371,7 @@
   var papeisPreset = {
     admin:       visaoCoordenacao,
     gestor:      visaoCoordenacao,
-    cliente:     visaoCoordenacao,
+    cliente:     visaoGerenciaClaro,
     auditor:     { epos: false, geral: false, ranking: false, detalhe: false, comparativo: false, gerencial: false, pendentes: true,  realizadas: true,  auditoria: true,  checagem: false, alocacoes: false, giro: true,  evidencias: false, acessos: false, questionarios: false, cronograma: true },
     responsavel: { epos: false, geral: false, ranking: false, detalhe: false, comparativo: false, gerencial: false, pendentes: false, realizadas: false, auditoria: false, checagem: true,  alocacoes: false, giro: true,  evidencias: false, acessos: false, questionarios: false, cronograma: false },
     // Entrou no sistema, mas a APSIS ainda nao liberou o acesso. Nao alcanca
