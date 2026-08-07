@@ -1830,6 +1830,12 @@ input[type="submit"],
   background: var(--accent-600); color: #fff;
 }
 
+/* Apagar do cronograma: vermelho de aviso, ao lado de "Tirar do ciclo".
+   Os dois tiram a unidade da lista, e so um deles tem volta - a cor e o que
+   separa um do outro antes do clique. */
+.tk-apagar { color: var(--danger); }
+.tk-apagar:hover { background: var(--danger-bg); color: var(--danger); }
+
 .cx-lista { display: flex; flex-direction: column; }
 .cx-item {
   display: flex; align-items: flex-start; gap: 12px;

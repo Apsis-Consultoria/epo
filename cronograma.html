@@ -1512,6 +1512,15 @@
           rodape = '<button class="btn btn-ghost" type="button" data-tk="reabrir"' +
                    ' style="margin-right:auto;">Trazer de volta</button>' + rodape;
         }
+
+        // Apagar fica ao lado de "Tirar do ciclo", e nao no lugar dele: um tira
+        // do ciclo e da para voltar, o outro nao volta. Visita ja registrada nao
+        // mostra o botao - o servidor tambem recusa, mas botao que aparece e
+        // recusa e botao que ensina errado.
+        if (podeMontar && it.situacao !== "realizada") {
+          rodape = '<button class="btn btn-ghost tk-apagar" type="button" data-tk="apagar">' +
+                   '<i class="ti ti-trash" aria-hidden="true"></i>Apagar</button>' + rodape;
+        }
         $("tk-rodape").innerHTML = rodape;
         $("tk-cancelar").addEventListener("click", fecharTicket);
         Array.prototype.forEach.call($("tk-rodape").querySelectorAll("[data-tk]"), function (b) {
@@ -1559,10 +1568,51 @@
           });
           return;
         }
+        if (acao === "apagar") {
+          App.confirmar({
+            titulo: "Apagar do cronograma",
+            texto: "A unidade " + it.nome + " sai do cronograma de " + CICLO +
+                   " e nao volta.\n\n" +
+                   "Nao e o mesmo que tirar do ciclo: aqui a linha e o historico " +
+                   "dela deixam de existir, e nao ha como trazer de volta. As datas " +
+                   "combinadas, as aprovacoes e o que foi conversado somem junto.\n\n" +
+                   "Se a unidade so nao entra neste ciclo, use Tirar do ciclo.",
+            confirmar: "Apagar de vez", cancelar: "Voltar", perigo: true
+          }).then(function (ok) {
+            if (!ok) return;
+            apagarItem(it, botaoEl);
+          });
+          return;
+        }
         if (acao === "reabrir") {
           rodar("cronograma_reabrir", { p_item: it.id, p_mensagem: null }, botaoEl)
             .then(function (deu) { if (deu) fecharTicket(); });
         }
+      }
+
+      // Nao passa por rodar(): rodar espera a linha alterada de volta para
+      // trocar na lista, e aqui nao ha linha nenhuma para voltar - ela foi
+      // apagada. O que acontece e o contrario: sai da lista.
+      function apagarItem(it, botaoEl) {
+        if (DEMO) {
+          App.toast("Sem conexao com os dados agora: nada foi apagado.");
+          return;
+        }
+        if (botaoEl) botaoEl.disabled = true;
+        Auth.cliente.rpc("cronograma_apagar", { p_item: it.id }).then(function (r) {
+          if (!r || r.error) {
+            throw new Error((r && r.error && r.error.message) || "");
+          }
+          itens = itens.filter(function (x) { return x.id !== it.id; });
+          editando = null;
+          fecharTicket();
+          render();
+          App.toast("Apagado do cronograma.");
+        }).catch(function (e) {
+          if (botaoEl) botaoEl.disabled = false;
+          App.toast(e && e.message ? e.message
+                                   : "Nao foi possivel apagar agora. Tente novamente.");
+        });
       }
 
       function fecharTicket() {
