@@ -128,7 +128,7 @@
         "</div>" +
         '<div class="field">' +
           '<label for="f-endereco">Rua</label>' +
-          '<input class="input" id="f-endereco" type="text" placeholder="vem do CEP" autocomplete="off">' +
+          '<input class="input" id="f-endereco" type="text" placeholder="Preencha o CEP" autocomplete="off">' +
         "</div>" +
         // Numero e complemento sao as duas unicas coisas que o CEP nao sabe, e
         // por isso os dois unicos campos daqui que se preenche a mao. Separados
@@ -146,12 +146,12 @@
         "</div>" +
         '<div class="field">' +
           '<label for="f-bairro">Bairro</label>' +
-          '<input class="input" id="f-bairro" type="text" placeholder="vem do CEP" autocomplete="off">' +
+          '<input class="input" id="f-bairro" type="text" placeholder="Preencha o CEP" autocomplete="off">' +
         "</div>" +
         '<div class="field-row">' +
           '<div class="field">' +
             '<label for="f-cidade">Cidade</label>' +
-            '<input class="input" id="f-cidade" type="text" placeholder="Ex.: Campinas" autocomplete="off">' +
+            '<input class="input" id="f-cidade" type="text" placeholder="Preencha o CEP" autocomplete="off">' +
           "</div>" +
           '<div class="field uf">' +
             '<label for="f-uf">UF</label>' +
