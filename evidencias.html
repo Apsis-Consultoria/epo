@@ -24,19 +24,19 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=127">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=128">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=127">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=127">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=128">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=128">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Evidências enviadas - Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=127">
-  <link rel="stylesheet" href="assets/carregando.css?v=127">
-  <link rel="stylesheet" href="assets/app.css?v=127">
+  <link rel="stylesheet" href="assets/icones.css?v=128">
+  <link rel="stylesheet" href="assets/carregando.css?v=128">
+  <link rel="stylesheet" href="assets/app.css?v=128">
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
@@ -50,13 +50,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=127"></script>
-  <script src="assets/app.js?v=127"></script>
-  <script src="assets/supabase-config.js?v=127"></script>
+  <script src="assets/data.js?v=128"></script>
+  <script src="assets/app.js?v=128"></script>
+  <script src="assets/supabase-config.js?v=128"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=127"></script>
+  <script src="assets/auth.js?v=128"></script>
   <script>
     (function () {
       "use strict";
@@ -538,6 +538,13 @@
         return linhas.map(function (l) {
           return l.map(function (c) {
             var t = c == null ? "" : String(c);
+            // Celula que comeca com = + - @ ou tab vira FORMULA quando a
+            // planilha abre o arquivo, e boa parte do que sai aqui e nome de
+            // arquivo escolhido pela propria unidade auditada. Um nome como
+            // =HYPERLINK("http://...";"abrir") passaria a executar na maquina
+            // de quem abre a planilha. O apostrofo na frente faz a planilha
+            // tratar como texto, e ele nao aparece na celula.
+            if (t && "=+@".indexOf(t.charAt(0)) >= 0) t = "'" + t;
             return '"' + t.replace(/"/g, '""') + '"';
           }).join(";");
         }).join("\r\n");
@@ -595,12 +602,19 @@
              ao item do questionario e guarda de qual lado veio (aba "Documentos
              anexados").
          ==================================================================== */
+      // O endereco assinado sai com DOWNLOAD.
+      //
+      // O tipo do arquivo no cofre e o que quem enviou declarou. Um .svg enviado
+      // como image/svg+xml era servido como documento, e SVG executa script:
+      // clicar em "Abrir" rodava o script na origem do site, com a sessao de quem
+      // clicou. Com download, o servidor responde "anexo" e o navegador salva.
       function assinar(paths) {
         var mapa = {};
         if (!dbLeitura || !paths.length) return Promise.resolve(mapa);
         var st = dbLeitura.storage.from(BUCKET);
         return Promise.all(paths.map(function (caminho) {
-          return st.createSignedUrl(caminho, 3600).then(function (r) {
+          var nome = String(caminho).split("/").pop() || "arquivo";
+          return st.createSignedUrl(caminho, 3600, { download: nome }).then(function (r) {
             mapa[caminho] = (r && r.data && r.data.signedUrl) || null;
           }, function () { mapa[caminho] = null; });
         })).then(function () { return mapa; });

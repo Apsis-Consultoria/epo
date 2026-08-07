@@ -170,7 +170,22 @@
     return nomeDaPagina(location.pathname);
   }
 
+  // O modo demonstracao existe para mostrar o sistema sem conta, e por isso o
+  // guard inteiro passa ao largo dele: sem sessao, sem segundo fator, sem papel.
+  // Isso e aceitavel numa maquina de desenvolvimento e nao no ar: no site
+  // publicado, uma linha no console do navegador dava a estrutura inteira do
+  // sistema a quem nao entrou, e deixava uma sessao com segundo fator pendente
+  // circular pela interface em vez de ficar presa na confirmacao.
+  //
+  // Nenhum botao do sistema liga essa chave, entao restringir a maquina local nao
+  // tira funcao de ninguem.
+  function ambienteLocal() {
+    var h = location.hostname;
+    return h === "localhost" || h === "127.0.0.1" || h === "" || h === "[::1]";
+  }
+
   function modoDemo() {
+    if (!ambienteLocal()) return false;
     try { return sessionStorage.getItem("epoDemo") === "1"; } catch (e) { return false; }
   }
 
@@ -193,6 +208,16 @@
   // EPO com a conta Microsoft e conferir o resultado na tela do responsavel e
   // na do consultor, tudo no mesmo banco.
   var PAPEIS_QUE_SIMULAM = ["admin", "gestor"];
+  // E o que se pode VESTIR ao simular. So os dois que o menu oferece.
+  //
+  // Antes a validacao aceitava qualquer chave existente em papeisPreset, e
+  // 'admin' e uma delas: gravar epoVerComo igual a admin passava, e
+  // permissoesDe('admin') devolve todas as telas em true ANTES de olhar a matriz
+  // do servidor. Um gestor restringido na tela de Gerenciamento de acessos
+  // desfazia a propria restricao com uma linha no console, sem rastro. Simular
+  // serve para ver o sistema pelos olhos de quem tem MENOS acesso, nunca de quem
+  // tem mais.
+  var PERSPECTIVAS = ["auditor", "responsavel"];
 
   // Coordenacao (admin, gestor da APSIS e gerente da Claro) ve o sistema
   // inteiro: sao as MESMAS telas. As duas visoes diferentes de verdade sao a do
@@ -207,6 +232,9 @@
   }
 
   function definirVerComo(papel) {
+    // Recusa na origem tambem, e nao so na conferencia: assim o valor invalido
+    // nem chega a ser guardado.
+    if (papel && PERSPECTIVAS.indexOf(papel) < 0) return;
     try {
       if (papel) sessionStorage.setItem("epoVerComo", papel);
       else sessionStorage.removeItem("epoVerComo");
@@ -277,6 +305,8 @@
   // editada na tela de Gerenciamento de acessos. O padrao escrito no codigo
   // continua valendo como reserva: se a leitura falhar, o menu nao desaba.
   var promessaPermissoes = null;
+  // Falso enquanto a matriz do servidor nao chegou nesta carga de tela.
+  var matrizChegou = false;
   function permissoesGravadas() {
     if (promessaPermissoes) return promessaPermissoes;
     if (!client) return Promise.resolve(null);
@@ -289,8 +319,16 @@
           // nao entrou: guardar esse vazio fazia o destino pos-entrada ser
           // decidido pelo padrao escrito no codigo, e nao pela matriz.
           promessaPermissoes = null;
+          // E marca que a matriz do servidor NAO chegou. Antes isso se confundia
+          // com "matriz chegou vazia", e as duas caiam no padrao do codigo: quem
+          // estava na tela bloqueava esta chamada no painel do navegador e
+          // recuperava as telas que a matriz nega - inclusive a de Gerenciamento
+          // de acessos, negada de proposito ao papel cliente. Agora quem le sabe
+          // a diferenca e pode fechar em vez de abrir.
+          matrizChegou = false;
           return null;
         }
+        matrizChegou = true;
         var mapa = {};
         r.data.forEach(function (x) {
           if (!mapa[x.papel]) mapa[x.papel] = {};
@@ -340,7 +378,8 @@
       .then(function (p) {
         if (!p) return null;
         var simulado = verComo();
-        if (simulado && PAPEIS_QUE_SIMULAM.indexOf(p.papel) < 0) simulado = "";
+        if (simulado && (PAPEIS_QUE_SIMULAM.indexOf(p.papel) < 0
+                         || PERSPECTIVAS.indexOf(simulado) < 0)) simulado = "";
         var perms = permissoesDe(simulado || p.papel, gravadas);
         // Sem a matriz, o que se tem e o padrao do codigo: serve para nao travar
         // a tela, mas nao vale guardar como se fosse a decisao gravada.
@@ -350,10 +389,19 @@
       .catch(function () { return null; });
   }
 
-  // Sem resposta (leitura falhou, sem sessao) responde que alcanca: a tela
-  // segue como sempre foi, e quem barra de verdade e o servidor.
+  // Telas que decidem quem alcanca o que. Sem a matriz do servidor em maos,
+  // estas NAO sao liberadas: e melhor a pessoa certa clicar duas vezes do que a
+  // errada abrir o editor de cargos.
+  var TELAS_DE_ADMINISTRACAO = ["acessos", "questionarios"];
+
+  // Sem resposta (leitura falhou, sem sessao) responde que alcanca: a tela segue
+  // como sempre foi, e quem barra de verdade e o servidor. A excecao sao as telas
+  // de administracao acima, que fecham quando a matriz nao chegou.
   function podeTela(chave) {
-    return telas().then(function (p) { return !p || p[chave] !== false; });
+    return telas().then(function (p) {
+      if (!p) return !(!matrizChegou && TELAS_DE_ADMINISTRACAO.indexOf(chave) >= 0);
+      return p[chave] !== false;
+    });
   }
 
   // Para onde levar quem entrou (ou quem clica em "voltar"): a primeira tela
@@ -764,8 +812,10 @@
         var mapa = (window.APP && window.APP.papeisPreset) || {};
         var podeSimular = PAPEIS_QUE_SIMULAM.indexOf(p.papel) >= 0;
         var simulado = verComo();
-        if (simulado && (!podeSimular || !mapa[simulado])) {
-          // papel sem direito a simular, ou perspectiva desconhecida
+        if (simulado && (!podeSimular || !mapa[simulado]
+                         || PERSPECTIVAS.indexOf(simulado) < 0)) {
+          // papel sem direito a simular, perspectiva desconhecida, ou tentativa
+          // de vestir um papel de mais acesso do que o proprio
           try { sessionStorage.removeItem("epoVerComo"); } catch (e) {}
           simulado = "";
         }
@@ -773,6 +823,20 @@
         var perms = permissoesDe(simulado || p.papel, gravadas);
         permsAtuais = perms;
         if (perms && pageKey && perms[pageKey] === false) {
+          location.replace(primeiraPermitida(perms));
+          return "sem-permissao";
+        }
+        // Matriz do servidor nao chegou e a tela e das que decidem acesso: fecha.
+        //
+        // Sem a matriz, permissoesDe cai no padrao escrito no codigo, e o padrao
+        // do papel cliente traz a tela de Gerenciamento de acessos como
+        // permitida - o oposto do que o servidor guarda. Quem estava na tela
+        // bloqueava a chamada da matriz no painel do navegador e recuperava o
+        // editor de cargos. A lista de acessos em si continua vazia, porque o
+        // servidor nao a entrega, mas decisao administrativa nao pode depender de
+        // uma consulta ter chegado.
+        if (!matrizChegou && p.papel !== "admin" && pageKey
+            && TELAS_DE_ADMINISTRACAO.indexOf(pageKey) >= 0) {
           location.replace(primeiraPermitida(perms));
           return "sem-permissao";
         }

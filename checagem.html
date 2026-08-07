@@ -24,19 +24,19 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=127">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=128">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=127">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=127">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=128">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=128">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Evidências - Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=127">
-  <link rel="stylesheet" href="assets/carregando.css?v=127">
-  <link rel="stylesheet" href="assets/app.css?v=127">
+  <link rel="stylesheet" href="assets/icones.css?v=128">
+  <link rel="stylesheet" href="assets/carregando.css?v=128">
+  <link rel="stylesheet" href="assets/app.css?v=128">
   <style>
     /* Ajustes locais da tela de evidências recebidas (grade + lista) */
 
@@ -168,13 +168,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=127"></script>
-  <script src="assets/app.js?v=127"></script>
-  <script src="assets/supabase-config.js?v=127"></script>
+  <script src="assets/data.js?v=128"></script>
+  <script src="assets/app.js?v=128"></script>
+  <script src="assets/supabase-config.js?v=128"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=127"></script>
+  <script src="assets/auth.js?v=128"></script>
   <script>
     (function () {
       "use strict";
@@ -276,15 +276,31 @@
           "</div></div>";
       }
 
-      // URLs assinadas (1h) para um conjunto de paths do bucket privado
+      // URLs assinadas (1h) para um conjunto de paths do bucket privado.
+      //
+      // Sao DUAS por arquivo, e a diferenca e de seguranca. O tipo do arquivo no
+      // cofre e o que quem enviou declarou: um .svg enviado como image/svg+xml e
+      // servido como documento, e SVG executa script. Abrir isso numa aba roda o
+      // script na origem do site, com a sessao de quem clicou.
+      //
+      //   mapa[p]        - endereco cru, so para <img>, que nunca executa script
+      //   mapaBaixar[p]  - endereco com download, que faz o servidor responder
+      //                    "anexo" em vez de "pagina". E o que vai em todo link.
+      var mapaBaixar = {};
       function assinarPaths(paths) {
         var mapa = {};
+        mapaBaixar = {};
         if (DEMO || !paths.length || !Auth.cliente) return Promise.resolve(mapa);
         var st = Auth.cliente.storage.from(BUCKET);
         return Promise.all(paths.map(function (p) {
-          return st.createSignedUrl(p, 3600).then(function (r) {
-            mapa[p] = (r && r.data && r.data.signedUrl) || null;
-          }, function () { mapa[p] = null; });
+          var nome = String(p).split("/").pop() || "arquivo";
+          return Promise.all([
+            st.createSignedUrl(p, 3600),
+            st.createSignedUrl(p, 3600, { download: nome })
+          ]).then(function (rs) {
+            mapa[p] = (rs[0] && rs[0].data && rs[0].data.signedUrl) || null;
+            mapaBaixar[p] = (rs[1] && rs[1].data && rs[1].data.signedUrl) || mapa[p];
+          }, function () { mapa[p] = null; mapaBaixar[p] = null; });
         })).then(function () { return mapa; });
       }
 
@@ -631,7 +647,7 @@
       }
 
       // ------------------------------------------------------------ render detalhe
-      function arquivoHtml(nome, url, imagem, hora) {
+      function arquivoHtml(nome, url, imagem, hora, urlBaixar) {
         var hr = hora ? '<span class="hr" title="Enviado às ' + esc(hora) + '">' + esc(hora) + "</span>" : "";
         // Na demonstracao um documento de exemplo faz sentido. Com dado real,
         // nao: abrir um arquivo inventado no lugar da evidencia que nao carregou
@@ -643,14 +659,20 @@
             '<span class="nm">' + esc(nome) + "</span>" + hr +
             '<i class="ti ti-alert-triangle" aria-hidden="true" style="margin-left:auto;"></i></span>';
         }
-        return '<a class="chk-file" href="' + esc(url) + '" target="_blank" rel="noopener">' +
+        return '<a class="chk-file" href="' + esc(urlBaixar || url) + '" target="_blank" rel="noopener">' +
           '<i class="ti ' + (imagem ? "ti-photo" : "ti-file") + '" aria-hidden="true"></i>' +
           '<span class="nm">' + esc(nome) + "</span>" + hr +
           '<i class="ti ti-external-link" aria-hidden="true" style="margin-left:auto;"></i></a>';
       }
 
-      function thumbHtml(nome, url, hora) {
-        return '<a class="chk-thumb" href="' + esc(url) + '" target="_blank" rel="noopener" title="' + esc(nome) + (hora ? " - enviado às " + esc(hora) : "") + '">' +
+      // A miniatura mostra com a url crua e LINKA com a de download.
+      //
+      // <img> nunca executa script, nem em SVG - por isso a exibicao pode usar o
+      // endereco cru. O link e o perigo: navegar para um SVG o abre como
+      // documento e roda o script dele na origem do site. Com download, o
+      // servidor responde "anexo" e o navegador salva em vez de abrir.
+      function thumbHtml(nome, url, hora, urlBaixar) {
+        return '<a class="chk-thumb" href="' + esc(urlBaixar || url) + '" target="_blank" rel="noopener" title="' + esc(nome) + (hora ? " - enviado às " + esc(hora) : "") + '">' +
           '<img src="' + esc(url) + '" alt="' + esc(nome) + '" loading="lazy"></a>';
       }
 
@@ -729,8 +751,8 @@
               var url = det.urls[ev.storage_path] || null;
               var nome = nomeDoPath(ev.storage_path);
               var img = ev.tipo === "foto" || ehImagem(ev.storage_path);
-              if (img && url) thumbs.push(thumbHtml(nome, url));
-              else arquivos.push(arquivoHtml(nome, url, img));
+              if (img && url) thumbs.push(thumbHtml(nome, url, null, mapaBaixar[ev.storage_path]));
+              else arquivos.push(arquivoHtml(nome, url, img, null, mapaBaixar[ev.storage_path]));
             });
             if (thumbs.length) partes.push('<div class="chk-thumbs">' + thumbs.join("") + "</div>");
             if (arquivos.length) partes.push('<div class="chk-files">' + arquivos.join("") + "</div>");
@@ -766,8 +788,8 @@
             var url = det.urls[ax.storage_path] || null;
             var nome = ax.nome_arquivo || nomeDoPath(ax.storage_path);
             var img = (ax.content_type && ax.content_type.indexOf("image/") === 0) || ehImagem(ax.storage_path);
-            if (img && url) thumbs.push(thumbHtml(nome, url, hora));
-            else arquivos.push(arquivoHtml(nome, url, img, hora));
+            if (img && url) thumbs.push(thumbHtml(nome, url, hora, mapaBaixar[ax.storage_path]));
+            else arquivos.push(arquivoHtml(nome, url, img, hora, mapaBaixar[ax.storage_path]));
           });
           if (thumbs.length) partes.push('<div class="chk-thumbs">' + thumbs.join("") + "</div>");
           if (arquivos.length) partes.push('<div class="chk-files">' + arquivos.join("") + "</div>");

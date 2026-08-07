@@ -24,10 +24,10 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=127">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=128">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=127">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=127">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=128">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=128">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <title>Auditoria EPO's</title>
@@ -35,8 +35,8 @@
        so na tela inteira: o titulo se separa do resto pelo peso, nao por outra
        fonte. -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/carregando.css?v=127">
-  <link rel="stylesheet" href="assets/portal.css?v=127" />
+  <link rel="stylesheet" href="assets/carregando.css?v=128">
+  <link rel="stylesheet" href="assets/portal.css?v=128" />
   <style>
     /* A folha do painel, onde ficam os tokens da Claro, nao entra nesta tela:
        o que ela carrega e o Tailwind, que traz os cinzas dele. Por isso os
@@ -214,11 +214,11 @@
     })();
   </script>
 
-  <script src="assets/supabase-config.js?v=127"></script>
+  <script src="assets/supabase-config.js?v=128"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=127"></script>
+  <script src="assets/auth.js?v=128"></script>
   <script>
     (function () {
       "use strict";
@@ -428,10 +428,15 @@
       // Esta tela nao carrega o app.js, entao a limpeza do texto e daqui mesmo.
       // O endereco encoberto vem do servidor, mas o que vai para dentro de HTML
       // se limpa de qualquer forma.
+      // Escape da tela de entrada: aqui nao existe App.escapeHtml, porque a
+      // entrada nao carrega app.js. Cobre os mesmos cinco caracteres que ele,
+      // inclusive apostrofo e crase - o valor exibido e o proprio endereco
+      // digitado, e uma copia de escape que esquece dois caracteres e o tipo de
+      // divergencia que ninguem percebe ate ela ser usada.
       function limpar(t) {
         return String(t == null ? "" : t)
           .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;");
+          .replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/`/g, "&#96;");
       }
 
       // ------------------------------------------------------------ 1) pedir

@@ -24,19 +24,19 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=127">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=128">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=127">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=127">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=128">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=128">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=127">
-  <link rel="stylesheet" href="assets/carregando.css?v=127">
-  <link rel="stylesheet" href="assets/app.css?v=127">
+  <link rel="stylesheet" href="assets/icones.css?v=128">
+  <link rel="stylesheet" href="assets/carregando.css?v=128">
+  <link rel="stylesheet" href="assets/app.css?v=128">
   <style>
     /* ==========================================================================
        Assistente de auditoria - mobile-first, uma pergunta por tela.
@@ -371,13 +371,13 @@
     </footer>
   </div>
 
-  <script src="assets/data.js?v=127"></script>
-  <script src="assets/app.js?v=127"></script>
-  <script src="assets/supabase-config.js?v=127"></script>
+  <script src="assets/data.js?v=128"></script>
+  <script src="assets/app.js?v=128"></script>
+  <script src="assets/supabase-config.js?v=128"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=127"></script>
+  <script src="assets/auth.js?v=128"></script>
   <script>
     (function () {
       var esc = App.escapeHtml;
@@ -1339,7 +1339,12 @@
           if (!rows.length) { comprovPintar(COMPROV_VAZIO, 0, true); return null; }
           return Promise.all(rows.map(function (a) {
             if (!a.storage_path) { a.url = null; return a; }
-            return Auth.cliente.storage.from("evidencias").createSignedUrl(a.storage_path, 3600)
+            // Com download: o tipo do arquivo no cofre e o que quem enviou
+            // declarou, e um SVG servido como documento executa script na origem
+            // do site. Assim o navegador salva em vez de abrir.
+            return Auth.cliente.storage.from("evidencias")
+              .createSignedUrl(a.storage_path, 3600,
+                               { download: String(a.storage_path).split("/").pop() || "arquivo" })
               .then(function (u) { a.url = (u.data && u.data.signedUrl) || null; return a; },
                     function () { a.url = null; return a; });
           })).then(function (lista) {

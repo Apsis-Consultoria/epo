@@ -133,7 +133,13 @@ Deno.serve(async (req: Request) => {
       .from("acessos_autorizados")
       .select("id, email, nome, papel, ativo")
       .eq("id", acessoId).maybeSingle();
-    if (error) return json({ ok: false, motivo: "falha ao ler a liberacao: " + error.message }, 400);
+    if (error) {
+      // A mensagem crua do Postgres nao volta para quem chamou: ela nomeia
+      // tabela, coluna e politica, e um id fora do formato faz o banco devolver
+      // o texto interno inteiro. Fica no log, que so quem opera le.
+      console.error("falha ao ler a liberacao:", error.message);
+      return json({ ok: false, motivo: "nao foi possivel ler a liberacao" }, 400);
+    }
     if (!linha) return json({ ok: false, motivo: "liberacao nao encontrada" }, 404);
     const l = linha as Record<string, any>;
     if (!l.ativo) {
@@ -154,7 +160,10 @@ Deno.serve(async (req: Request) => {
       .from("alocacoes")
       .select("id, responsavel_email, epos(nome), processos(nome)")
       .eq("id", alocacaoId).maybeSingle();
-    if (error) return json({ ok: false, motivo: "falha ao ler o relatorio pedido: " + error.message }, 400);
+    if (error) {
+      console.error("falha ao ler o relatorio pedido:", error.message);
+      return json({ ok: false, motivo: "nao foi possivel ler o relatorio pedido" }, 400);
+    }
     if (!linha) return json({ ok: false, motivo: "relatorio pedido nao encontrado" }, 404);
     const l = linha as Record<string, any>;
     email = emailNormalizado(l.responsavel_email);
@@ -200,7 +209,10 @@ Deno.serve(async (req: Request) => {
       user_metadata: { papel_pretendido: papelPretendido, contexto: contexto }
     });
     if (criada.error && !/already|registered|exists/i.test(String(criada.error.message || ""))) {
-      return json({ ok: false, motivo: "nao foi possivel criar o acesso: " + criada.error.message }, 502);
+      // Mesma regra das leituras acima: o detalhe do servico de contas fica no
+      // log, e quem chamou recebe a frase.
+      console.error("conta de acesso nao criada:", criada.error.message);
+      return json({ ok: false, motivo: "nao foi possivel criar o acesso" }, 502);
     }
     if (criada.data && criada.data.user) existente = { id: criada.data.user.id };
   }
