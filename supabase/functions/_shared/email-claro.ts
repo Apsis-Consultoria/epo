@@ -144,14 +144,6 @@ export function emailAcessoDeAcompanhamento(o: {
     "para criar nem para lembrar."
   ];
 
-  // A gerencia da Claro e quem mais precisa dessa frase: ela nao e auditada, e
-  // nenhum lembrete de visita vai chegar para ela.
-  if (o.papel === "cliente") {
-    paragrafos.splice(2, 0,
-      "Você <b>não recebe visita</b> e não precisa anexar documento nenhum: " +
-      "quem faz isso é o responsável de cada unidade EPO.");
-  }
-
   return montarEmail({
     titulo: o.novaConta ? "Acesso à Auditoria de EPOs" : "Seu acesso à Auditoria de EPOs",
     subtitulo: "Auditoria de unidades EPO · Claro",
