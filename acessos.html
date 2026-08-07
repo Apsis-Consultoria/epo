@@ -24,19 +24,19 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=136">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=137">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=136">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=136">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=137">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=137">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Gerenciamento de acessos - Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=136">
-  <link rel="stylesheet" href="assets/carregando.css?v=136">
-  <link rel="stylesheet" href="assets/app.css?v=136">
+  <link rel="stylesheet" href="assets/icones.css?v=137">
+  <link rel="stylesheet" href="assets/carregando.css?v=137">
+  <link rel="stylesheet" href="assets/app.css?v=137">
   <style>
     /* ---------------- Matriz de telas por cargo ---------------- */
     /* A caixa rola por dentro, e nao junto com a pagina. Sem isto o cabecalho
@@ -133,6 +133,37 @@
       font-size: 12.5px; color: var(--text-2);
     }
 
+    /* ---------------- Abas por tipo de acesso ---------------- */
+    /* Rola de lado no celular: seis abas nao cabem em 375px, e quebrar em duas
+       linhas empurra a lista para fora da primeira tela. */
+    .abas {
+      display: flex; gap: 2px; overflow-x: auto;
+      padding: 0 10px; border-bottom: 1px solid var(--border);
+      scrollbar-width: none;
+    }
+    .abas::-webkit-scrollbar { display: none; }
+    .aba {
+      display: inline-flex; align-items: center; gap: 7px;
+      flex: none; white-space: nowrap;
+      padding: 12px 14px; border: 0; background: transparent;
+      font-family: inherit; font-size: 13.5px; font-weight: 500;
+      color: var(--text-2); cursor: pointer;
+      /* A borda existe sempre, transparente: sem isso o texto pula 2px ao
+         trocar de aba, e a barra inteira treme. */
+      border-bottom: 2px solid transparent;
+      transition: color .12s ease, border-color .12s ease;
+    }
+    .aba:hover { color: var(--text); }
+    .aba.is-ativa { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+    .aba:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--primary-tint); }
+    .aba-conta {
+      display: inline-block; min-width: 20px; padding: 1px 6px;
+      border-radius: 999px; background: var(--surface-2);
+      font-size: 11.5px; font-weight: 700; color: var(--text-2);
+      font-variant-numeric: tabular-nums; text-align: center;
+    }
+    .aba.is-ativa .aba-conta { background: var(--primary); color: #fff; }
+
     /* ---------------- Lista de acessos ---------------- */
     .acc-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
       padding: 12px 18px; border-bottom: 1px solid var(--border); }
@@ -227,13 +258,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=136"></script>
-  <script src="assets/app.js?v=136"></script>
-  <script src="assets/supabase-config.js?v=136"></script>
+  <script src="assets/data.js?v=137"></script>
+  <script src="assets/app.js?v=137"></script>
+  <script src="assets/supabase-config.js?v=137"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=136"></script>
+  <script src="assets/auth.js?v=137"></script>
   <script>
     (function () {
       "use strict";
@@ -299,6 +330,7 @@
       ];
       var meuPapel = DEMO ? "admin" : "";
       var busca = "";
+      var abaAtual = "cliente";   // a aba aberta agora
       var carregando = true;
       var falha = "";
       var editandoId = null;
@@ -312,7 +344,23 @@
       }).join("");
 
       document.getElementById("page").innerHTML =
+        // Uma aba por tipo de acesso, e uma lista so embaixo delas. Antes eram
+        // cinco caixas empilhadas: para chegar no responsavel da EPO era preciso
+        // rolar por cima de todas as outras, e a pagina crescia com o cadastro.
         '<div class="card">' +
+          '<div class="abas" id="abas" role="tablist"></div>' +
+          '<div class="acc-toolbar">' +
+            '<div class="acc-search">' +
+              '<i class="ti ti-search" aria-hidden="true"></i>' +
+              '<input class="input" id="busca" type="search" autocomplete="off"' +
+                ' placeholder="Filtrar por nome ou e-mail" aria-label="Filtrar por nome ou e-mail">' +
+            "</div>" +
+            '<span class="acc-count" id="conta-liberados"></span>' +
+          "</div>" +
+          '<div id="grupos"></div>' +
+        "</div>" +
+
+        '<div class="card mb-0">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
               '<span class="title">Telas por cargo</span>' +
@@ -331,30 +379,6 @@
                 '<i class="ti ti-device-floppy" aria-hidden="true"></i>Salvar alterações</button>' +
             "</span>" +
           "</div>" +
-        "</div>" +
-
-        '<div class="card">' +
-          '<div class="acc-toolbar">' +
-            '<div class="acc-search">' +
-              '<i class="ti ti-search" aria-hidden="true"></i>' +
-              '<input class="input" id="busca" type="search" autocomplete="off"' +
-                ' placeholder="Filtrar por nome ou e-mail" aria-label="Filtrar por nome ou e-mail">' +
-            "</div>" +
-            '<span class="acc-count" id="conta-liberados"></span>' +
-          "</div>" +
-        "</div>" +
-
-        '<div id="grupos"></div>' +
-
-        '<div class="card mb-0 is-hidden" id="card-contas">' +
-          '<div class="card-header">' +
-            '<div class="section-title">' +
-              '<span class="title">Contas sem acesso liberado</span>' +
-              '<span class="subtitle">Entraram no sistema e ainda não têm papel definido aqui.</span>' +
-            "</div>" +
-            '<span class="acc-count" id="conta-contas"></span>' +
-          "</div>" +
-          '<div id="lista-contas"></div>' +
         "</div>" +
 
         '<div class="modal-overlay" id="mod" role="dialog" aria-modal="true" aria-labelledby="mod-titulo">' +
@@ -544,7 +568,6 @@
       function render() {
         renderMatriz();
         renderLista();
-        renderContas();
         $("btn-liberar").classList.toggle("is-hidden", !podeLiberar());
       }
 
@@ -759,109 +782,68 @@
         "</tr>";
       }
 
-      // A caixa de cada tipo. Some quando o filtro nao acha ninguem nela: com
-      // cinco caixas na tela, cinco "ninguem com esse filtro" enterrariam o
-      // unico resultado que interessa.
-      function cardDoGrupo(g, lista, podeMexer, filtrando) {
-        if (filtrando && !lista.length) return "";
-
-        var comEpo = g.papel === "responsavel";
-        var corpo = lista.length
-          ? '<div class="table-wrap"><table class="table tabela-cartao">' +
-              "<thead><tr><th>Pessoa</th>" +
-                (comEpo ? "<th>Unidade</th>" : "") +
-                "<th>Situação</th>" +
-                '<th class="num">Ações</th>' +
-              "</tr></thead><tbody>" +
-              lista.map(function (a) { return linhaDeAcesso(a, comEpo, podeMexer); }).join("") +
-            "</tbody></table></div>"
-          : '<div class="empty"><i class="ti ti-user-off" aria-hidden="true"></i><p>' +
-              esc(g.vazio) + "</p></div>";
-
-        return '<div class="card">' +
-            '<div class="card-header">' +
-              '<div class="section-title">' +
-                '<span class="title">' + esc(g.titulo) + "</span>" +
-              "</div>" +
-              '<span class="acc-count">' +
-                (lista.length ? lista.length + (lista.length === 1 ? " pessoa" : " pessoas") : "") +
-              "</span>" +
-            "</div>" + corpo +
-          "</div>";
+      // Conta que existe e NAO esta na lista de acessos. Antes era uma segunda
+      // lista repetindo todo mundo da primeira, com menos informacao: parecia
+      // que eram duas coisas diferentes sendo a mesma.
+      function contasSoltas() {
+        var liberado = {};
+        liberados.forEach(function (a) { liberado[(a.email || "").trim().toLowerCase()] = true; });
+        return contas.filter(function (c) {
+          var e = (c.email || "").trim().toLowerCase();
+          if (liberado[e]) return false;
+          if (!busca) return true;
+          return ((c.nome || "") + " " + e).toLowerCase().indexOf(busca.toLowerCase()) >= 0;
+        });
       }
 
-      function renderLista() {
-        var alvo = $("grupos");
-        if (carregando) {
-          alvo.innerHTML = '<div class="card"><div class="empty"><p>Carregando...</p></div></div>';
-          $("conta-liberados").textContent = "";
-          return;
-        }
-        if (falha) {
-          alvo.innerHTML = '<div class="card"><div class="empty">' +
-            '<i class="ti ti-alert-circle" aria-hidden="true"></i><p>' + esc(falha) +
-            "</p></div></div>";
-          $("conta-liberados").textContent = "";
-          return;
-        }
-
+      // As abas, na ordem de GRUPOS. A ultima so existe quando ha conta solta:
+      // aba vazia permanente e um lugar que a pessoa clica uma vez, nao encontra
+      // nada, e nunca mais olha.
+      function abasAtuais() {
         var lista = visiveis();
-        var filtrando = !!busca;
-        $("conta-liberados").textContent = !liberados.length ? ""
-          : (filtrando ? lista.length + " de " + liberados.length + " liberados"
-                       : liberados.length + (liberados.length === 1 ? " pessoa liberada" : " pessoas liberadas"));
+        var conhecidos = {};
+        GRUPOS.forEach(function (g) { conhecidos[g.papel] = true; });
 
-        var podeMexer = podeLiberar();
+        var out = GRUPOS.map(function (g) {
+          return {
+            chave: g.papel, titulo: g.titulo, vazio: g.vazio,
+            itens: lista.filter(function (a) { return a.papel === g.papel; })
+          };
+        });
 
         // Papel fora dos cinco conhecidos nao pode sumir da tela sem aviso:
         // acesso que ninguem ve e acesso que ninguem tira.
-        var conhecidos = {};
-        GRUPOS.forEach(function (g) { conhecidos[g.papel] = true; });
         var sobra = lista.filter(function (a) { return !conhecidos[a.papel]; });
-
-        var html = GRUPOS.map(function (g) {
-          return cardDoGrupo(g, lista.filter(function (a) { return a.papel === g.papel; }),
-            podeMexer, filtrando);
-        }).join("");
-
         if (sobra.length) {
-          html += cardDoGrupo({ papel: "", titulo: "Outros", vazio: "" },
-            sobra, podeMexer, filtrando);
+          out.push({ chave: "_outros", titulo: "Outros",
+                     vazio: "Nenhum acesso de papel desconhecido.", itens: sobra });
         }
 
-        if (filtrando && !lista.length) {
-          html = '<div class="card"><div class="empty">' +
-            '<i class="ti ti-filter-off" aria-hidden="true"></i>' +
-            "<p>Ninguém com esse filtro.</p></div></div>";
+        var soltas = contasSoltas();
+        if (soltas.length) {
+          out.push({ chave: "_contas", titulo: "Sem acesso liberado",
+                     vazio: "", itens: soltas, contas: true });
         }
-
-        alvo.innerHTML = html;
+        return out;
       }
 
-      function renderContas() {
-        var card = $("card-contas");
+      function renderAbas(abas) {
+        $("abas").innerHTML = abas.map(function (a) {
+          var ativa = a.chave === abaAtual;
+          return '<button class="aba' + (ativa ? " is-ativa" : "") + '" type="button"' +
+            ' role="tab" aria-selected="' + (ativa ? "true" : "false") + '"' +
+            ' data-aba="' + esc(a.chave) + '">' +
+            esc(a.titulo) +
+            '<span class="aba-conta">' + a.itens.length + "</span>" +
+          "</button>";
+        }).join("");
+      }
 
-        // So entra aqui a conta que existe e NAO tem acesso liberado. Antes esta
-        // lista repetia todo mundo da lista de cima, com menos informacao - dava
-        // a impressao de serem duas coisas diferentes sendo a mesma.
-        var liberado = {};
-        liberados.forEach(function (a) { liberado[(a.email || "").trim().toLowerCase()] = true; });
-        var soltas = contas.filter(function (c) {
-          return !liberado[(c.email || "").trim().toLowerCase()];
-        });
-
-        if (carregando || !soltas.length) { card.classList.add("is-hidden"); return; }
-        card.classList.remove("is-hidden");
-
-        $("conta-contas").textContent = soltas.length +
-          (soltas.length === 1 ? " conta" : " contas");
-
-        // Conta que existe sem estar na lista de acessos so dava para apagar por
-        // fora da tela: foi o que aconteceu com uma sobra de teste. Aqui ela
-        // tem o mesmo botao de apagar da outra lista.
+      // A lista das contas soltas tem outras colunas: nao ha convite para
+      // reenviar nem situacao para mostrar - a conta existe e so.
+      function tabelaDeContas(soltas) {
         var podeApagar = souAdmin();
-        $("lista-contas").innerHTML =
-          '<div class="table-wrap"><table class="table tabela-cartao">' +
+        return '<div class="table-wrap"><table class="table tabela-cartao">' +
             "<thead><tr><th>Pessoa</th><th>O que é hoje</th>" +
               (podeApagar ? '<th class="num">Ações</th>' : "") +
             "</tr></thead><tbody>" +
@@ -870,9 +852,9 @@
                 '<td class="cartao-titulo"><div class="pessoa-cel"><b>' +
                   esc(c.nome || "sem nome") + "</b>" +
                   "<span>" + esc(c.email || "") + "</span></div></td>" +
-                '<td data-rotulo="O que é hoje"><span class="badge ' + (BADGE_PAPEL[c.papel] || "badge-baixa") + '">' +
+                '<td data-rotulo="O que é hoje"><span class="badge ' +
+                  (BADGE_PAPEL[c.papel] || "badge-baixa") + '">' +
                   esc(PAPEL_LABEL[c.papel] || c.papel) + "</span></td>" +
-
                 (podeApagar
                   ? '<td class="num cartao-acoes"><span class="acc-acoes">' +
                       botao("apagar-conta", c.user_id, "", "btn-ghost btn-icon btn-apagar",
@@ -883,6 +865,75 @@
             }).join("") +
           "</tbody></table></div>";
       }
+
+      function tabelaDeAcessos(aba, podeMexer) {
+        var comEpo = aba.chave === "responsavel";
+        return '<div class="table-wrap"><table class="table tabela-cartao">' +
+            "<thead><tr><th>Pessoa</th>" +
+              (comEpo ? "<th>Unidade</th>" : "") +
+              "<th>Situação</th>" +
+              '<th class="num">Ações</th>' +
+            "</tr></thead><tbody>" +
+            aba.itens.map(function (a) { return linhaDeAcesso(a, comEpo, podeMexer); }).join("") +
+          "</tbody></table></div>";
+      }
+
+      function renderLista() {
+        var alvo = $("grupos");
+        if (carregando) {
+          $("abas").innerHTML = "";
+          alvo.innerHTML = '<div class="empty"><p>Carregando...</p></div>';
+          $("conta-liberados").textContent = "";
+          return;
+        }
+        if (falha) {
+          $("abas").innerHTML = "";
+          alvo.innerHTML = '<div class="empty">' +
+            '<i class="ti ti-alert-circle" aria-hidden="true"></i><p>' + esc(falha) + "</p></div>";
+          $("conta-liberados").textContent = "";
+          return;
+        }
+
+        var abas = abasAtuais();
+
+        // A aba escolhida pode ter deixado de existir (a ultima conta solta foi
+        // apagada, o filtro mudou). Cai na primeira que tem gente, e nao na
+        // primeira da lista: abrir numa aba vazia parece tela quebrada.
+        var existe = false;
+        abas.forEach(function (a) { if (a.chave === abaAtual) existe = true; });
+        if (!existe) {
+          var comGente = null;
+          abas.forEach(function (a) { if (!comGente && a.itens.length) comGente = a.chave; });
+          abaAtual = comGente || (abas[0] && abas[0].chave) || "cliente";
+        }
+
+        renderAbas(abas);
+
+        var total = liberados.length;
+        var mostrando = visiveis().length;
+        $("conta-liberados").textContent = !total ? ""
+          : (busca ? mostrando + " de " + total + " liberados"
+                   : total + (total === 1 ? " pessoa liberada" : " pessoas liberadas"));
+
+        var aba = null;
+        abas.forEach(function (a) { if (a.chave === abaAtual) aba = a; });
+        if (!aba) { alvo.innerHTML = ""; return; }
+
+        if (!aba.itens.length) {
+          alvo.innerHTML = '<div class="empty">' +
+            '<i class="ti ' + (busca ? "ti-filter-off" : "ti-user-off") + '" aria-hidden="true"></i>' +
+            "<p>" + esc(busca ? "Ninguém com esse filtro nesta aba." : aba.vazio) + "</p></div>";
+          return;
+        }
+
+        alvo.innerHTML = aba.contas
+          ? tabelaDeContas(aba.itens)
+          : tabelaDeAcessos(aba, podeLiberar());
+      }
+
+      // Ficou sem uso proprio: as contas soltas viraram a ultima aba, e quem
+      // desenha as abas e o renderLista.
+      function renderContas() {}
 
       // ------------------------------------------------------------------
       // Modal
@@ -1113,7 +1164,9 @@
           });
       }
 
-      $("lista-contas").addEventListener("click", function (ev) {
+      // Apagar conta solta. Fica junto com o ouvinte das outras acoes porque a
+      // lista das contas e agora a ultima aba, dentro do mesmo #grupos.
+      $("grupos").addEventListener("click", function (ev) {
         if (!ev.target.closest) return;
         var b = ev.target.closest('[data-acao="apagar-conta"]');
         if (!b) return;
@@ -1133,8 +1186,17 @@
         }).then(function (ok) { if (ok) apagarConta(c, b); });
       });
 
-      // Um ouvinte para as caixas todas. A lista era uma tabela so; agora sao
-      // varias, refeitas a cada render - ouvinte por tabela sumiria junto.
+      // Trocar de aba. O ouvinte fica na barra, e nao em cada aba: elas sao
+      // refeitas a cada render e ouvinte por botao sumiria junto.
+      $("abas").addEventListener("click", function (ev) {
+        if (!ev.target.closest) return;
+        var b = ev.target.closest("[data-aba]");
+        if (!b) return;
+        abaAtual = b.getAttribute("data-aba");
+        renderLista();
+      });
+
+      // Um ouvinte para as tabelas todas, pelo mesmo motivo.
       $("grupos").addEventListener("click", function (ev) {
         if (!ev.target.closest) return;
         var b = ev.target.closest("[data-acao]");
