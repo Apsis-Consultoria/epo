@@ -1104,6 +1104,9 @@ img { max-width: 100%; display: block; }
 .field-row .field.uf { flex: 0 0 96px; }
 .field-row .field.cep { flex: 0 0 132px; }
 .field-row .field.base { flex: 0 0 108px; }
+/* Numero e um punhado de digitos: campo do tamanho do texto, e o resto
+   da linha para o complemento, que e onde cabe "galpao B, fundos". */
+.field-row .field.campo-numero { flex: 0 0 104px; }
 @media (max-width: 640px) {
   .field-row { flex-wrap: wrap; }
   .field-row .field.uf, .field-row .field.cep, .field-row .field.base { flex: 1 1 auto; }

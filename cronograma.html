@@ -24,10 +24,10 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=137">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=138">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=137">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=137">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=138">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=138">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -35,10 +35,10 @@
   <title>Cronograma - Auditoria de EPOs</title>
 
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=137">
+  <link rel="stylesheet" href="assets/icones.css?v=138">
 
-  <link rel="stylesheet" href="assets/carregando.css?v=137">
-  <link rel="stylesheet" href="assets/app.css?v=137">
+  <link rel="stylesheet" href="assets/carregando.css?v=138">
+  <link rel="stylesheet" href="assets/app.css?v=138">
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
@@ -52,17 +52,17 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=137"></script>
-  <script src="assets/app.js?v=137"></script>
-  <script src="assets/supabase-config.js?v=137"></script>
+  <script src="assets/data.js?v=138"></script>
+  <script src="assets/app.js?v=138"></script>
+  <script src="assets/supabase-config.js?v=138"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=137"></script>
-  <script src="assets/geo-br.js?v=137"></script>
-  <script src="assets/envio-cronograma.js?v=137"></script>
-  <script src="assets/cronograma-planilha.js?v=137"></script>
-  <script src="assets/form-epo.js?v=137"></script>
+  <script src="assets/auth.js?v=138"></script>
+  <script src="assets/geo-br.js?v=138"></script>
+  <script src="assets/envio-cronograma.js?v=138"></script>
+  <script src="assets/cronograma-planilha.js?v=138"></script>
+  <script src="assets/form-epo.js?v=138"></script>
   <script>
     (function () {
       "use strict";
@@ -411,7 +411,8 @@
                   "semana_referencia, data_proposta_inicio, data_proposta_fim, " +
                   "data_realizada_inicio, data_realizada_fim, auditoria_id, motivo, " +
                   "observacao, confirmada_em, " +
-                  "epos!inner(id, nome, cidade, uf, endereco, cep, cod_fornecedor, base, ativo, " +
+                  "epos!inner(id, nome, cidade, uf, endereco, logradouro, numero, complemento, " +
+                  "bairro, cep, cod_fornecedor, base, ativo, " +
                   "responsavel_nome, responsavel_email)")
           .eq("ciclo", CICLO)
           .then(function (r) {
@@ -1767,7 +1768,8 @@
         if (listaEpos) return Promise.resolve(listaEpos);
         if (DEMO) { listaEpos = []; return Promise.resolve(listaEpos); }
         return Auth.cliente.from("epos")
-          .select("id, nome, cidade, uf, endereco, cep, ativo, cod_fornecedor, base, " +
+          .select("id, nome, cidade, uf, endereco, logradouro, numero, complemento, " +
+                  "bairro, cep, ativo, cod_fornecedor, base, " +
                   "responsavel_nome, responsavel_email")
           .order("nome")
           .then(function (r) {
@@ -1809,6 +1811,10 @@
           id: epo.id, cod: epo.cod_fornecedor, base: epo.base, nome: epo.nome,
           ativo: epo.ativo, endereco: epo.endereco, cidade: epo.cidade,
           uf: epo.uf, cep: epo.cep,
+          // As partes do endereco vao junto: sem elas o formulario abriria com
+          // numero e complemento em branco e gravaria por cima, apagando os dois.
+          logradouro: epo.logradouro, numero: epo.numero,
+          complemento: epo.complemento, bairro: epo.bairro,
           responsavel_nome: epo.responsavel_nome, responsavel_email: epo.responsavel_email
         } : null, { item: doCron });
       }

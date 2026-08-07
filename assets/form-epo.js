@@ -124,11 +124,29 @@
         '<div class="field">' +
           '<label for="f-cep">CEP</label>' +
           '<input class="input" id="f-cep" type="text" inputmode="numeric" placeholder="00000-000" autocomplete="off" maxlength="9">' +
-          '<span class="hint" id="f-cep-aviso">Preenche endereço, cidade e UF.</span>' +
+          '<span class="hint" id="f-cep-aviso">Preenche rua, bairro, cidade e UF.</span>' +
         "</div>" +
         '<div class="field">' +
-          '<label for="f-endereco">Endereço</label>' +
-          '<input class="input" id="f-endereco" type="text" placeholder="rua, número, complemento" autocomplete="off">' +
+          '<label for="f-endereco">Rua</label>' +
+          '<input class="input" id="f-endereco" type="text" placeholder="vem do CEP" autocomplete="off">' +
+        "</div>" +
+        // Numero e complemento sao as duas unicas coisas que o CEP nao sabe, e
+        // por isso os dois unicos campos daqui que se preenche a mao. Separados
+        // do resto para o CEP poder reescrever a rua sem levar os dois junto -
+        // era isso que travava a busca em unidade ja cadastrada.
+        '<div class="field-row">' +
+          '<div class="field campo-numero">' +
+            '<label for="f-numero">Número</label>' +
+            '<input class="input" id="f-numero" type="text" inputmode="numeric" placeholder="197" autocomplete="off">' +
+          "</div>" +
+          '<div class="field">' +
+            '<label for="f-complemento">Complemento</label>' +
+            '<input class="input" id="f-complemento" type="text" placeholder="sala 02, galpão B" autocomplete="off">' +
+          "</div>" +
+        "</div>" +
+        '<div class="field">' +
+          '<label for="f-bairro">Bairro</label>' +
+          '<input class="input" id="f-bairro" type="text" placeholder="vem do CEP" autocomplete="off">' +
         "</div>" +
         '<div class="field-row">' +
           '<div class="field">' +
@@ -263,28 +281,35 @@
         if (aviso) aviso.textContent = "CEP não encontrado. Preencha o endereço à mão.";
         return;
       }
+      // Reescreve o que o CEP sabe, mesmo que ja esteja preenchido.
+      //
+      // Antes so escrevia em campo vazio, para nao apagar o numero e o
+      // complemento que estavam juntos no mesmo campo. Com os dois separados
+      // nao ha o que apagar: numero e complemento nao sao tocados aqui, e
+      // trocar o CEP passa a trocar a rua - que e o que trocar o CEP quer dizer.
       var preenchidos = [];
-      if (a.endereco && !txt("f-endereco")) {
-        setVal("f-endereco", a.endereco);
-        preenchidos.push("endereço");
+      function trocar(id, valor, nome) {
+        if (!valor || txt(id) === valor) return;
+        setVal(id, valor);
+        preenchidos.push(nome);
       }
-      if (a.cidade && !txt("f-cidade")) {
-        setVal("f-cidade", a.cidade);
-        preenchidos.push("cidade");
-      }
+      trocar("f-endereco", a.rua, "rua");
+      trocar("f-bairro", a.bairro, "bairro");
+      trocar("f-cidade", a.cidade, "cidade");
+
       if (a.uf) {
         var uf = $("f-uf");
         // O seletor de UF nasce em SP: trocar por causa do CEP e o certo,
         // porque SP aqui e valor de partida, e nao escolha de ninguem.
-        if (uf && (!uf.value || uf.value === "SP" || uf.value !== a.uf)) {
+        if (uf && uf.value !== a.uf) {
           setVal("f-uf", a.uf);
           preenchidos.push("UF");
         }
       }
       if (aviso) {
         aviso.textContent = preenchidos.length
-          ? "Preenchido: " + preenchidos.join(", ") + ". Confira o número e o complemento."
-          : "Endereço já preenchido: nada foi trocado.";
+          ? "Preenchido: " + preenchidos.join(", ") + ". Falta o número."
+          : "Endereço já estava certo.";
       }
     });
   }
@@ -459,6 +484,12 @@
     setVal("f-cidade", epo && epo.cidade);
     setVal("f-uf", (epo && epo.uf) || "SP");
     setVal("f-cep", epo && epo.cep);
+    // Unidade antiga nao tem as partes separadas: o endereco inteiro esta no
+    // campo unico. Cai nele para a tela nao abrir vazia; digitar o CEP arruma.
+    setVal("f-endereco", (epo && (epo.logradouro || epo.endereco)) || "");
+    setVal("f-numero", (epo && epo.numero) || "");
+    setVal("f-complemento", (epo && epo.complemento) || "");
+    setVal("f-bairro", (epo && epo.bairro) || "");
 
     // Os responsaveis sao dado da UNIDADE. Antes o e-mail era reconstruido a
     // partir dos pedidos de questionario, e voltava vazio quando ainda nao
@@ -508,16 +539,36 @@
   }
 
   function limpar() {
-    ["f-cod","f-base","f-nome","f-endereco","f-cidade","f-cep",
+    ["f-cod","f-base","f-nome","f-endereco","f-numero","f-complemento",
+     "f-bairro","f-cidade","f-cep",
      "f-visita","f-ate","f-semana",
      "f-obs"].forEach(function (id) { setVal(id, ""); });
     renderResps([]);
     cepBuscado = "";
     var aviso = $("f-cep-aviso");
-    if (aviso) aviso.textContent = "Preenche endereço, cidade e UF.";
+    if (aviso) aviso.textContent = "Preenche rua, bairro, cidade e UF.";
     setVal("f-uf", "SP");
     setVal("f-ativo", "1");
     renderProcs(null);
+  }
+
+  // O endereco completo, na ordem em que se escreve um endereco no Brasil:
+  //   Rua Maceio, 197, sala 02 - Glebas California
+  //
+  // Existe porque o resto do sistema le UM campo: o mapa geocodifica por ele, o
+  // e-mail da visita manda a equipe para la, a planilha exporta ele e a tela de
+  // detalhe mostra ele. Quebrar isso em quatro campos em todos esses lugares
+  // seria trocar um problema de tela por quatro de sistema.
+  //
+  // Parte vazia nao vira virgula solta: "Rua X, , - " e endereco que nao leva
+  // ninguem a lugar nenhum, e era o que apareceria em unidade sem numero.
+  function enderecoCompleto(p) {
+    var v = function (x) { return String(x == null ? "" : x).trim(); };
+    var rua = [v(p.logradouro), v(p.numero), v(p.complemento)]
+      .filter(Boolean).join(", ");
+    var bairro = v(p.bairro);
+    if (rua && bairro) return rua + " - " + bairro;
+    return rua || bairro;
   }
 
   // ------------------------------------------------------------------ ler
@@ -530,7 +581,16 @@
       base: txt("f-base").toUpperCase(),
       nome: txt("f-nome"),
       ativo: val("f-ativo") !== "0",
-      endereco: txt("f-endereco"),
+      logradouro: txt("f-endereco"),
+      numero: txt("f-numero"),
+      complemento: txt("f-complemento"),
+      bairro: txt("f-bairro"),
+      // O endereco completo continua existindo: e ele que o mapa, o e-mail da
+      // visita e a planilha leem. Montado aqui, e nao digitado.
+      endereco: enderecoCompleto({
+        logradouro: txt("f-endereco"), numero: txt("f-numero"),
+        complemento: txt("f-complemento"), bairro: txt("f-bairro")
+      }),
       cidade: txt("f-cidade"),
       uf: val("f-uf") || "SP",
       cep: txt("f-cep"),
@@ -631,6 +691,10 @@
         // A regional acompanha o UF: e o mesmo estado, gravado uma vez.
         regional: d.uf || null,
         endereco: d.endereco || null,
+        logradouro: d.logradouro || null,
+        numero: d.numero || null,
+        complemento: d.complemento || null,
+        bairro: d.bairro || null,
         cep: d.cep || null,
         cod_fornecedor: d.cod || null,
         base: d.base || "",
