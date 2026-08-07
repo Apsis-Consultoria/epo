@@ -94,17 +94,83 @@ function htmlDestaque(d: NonNullable<Email["destaque"]>) {
 }
 
 // ---------------------------------------------------------------------------
-// O aviso de acesso, para quem passa a responder por uma unidade.
+// Aviso de acesso para quem ACOMPANHA a auditoria: gerencia da Claro,
+// coordenacao da APSIS e equipe de campo.
 //
-// Estava escrito dentro da funcao que convida. Passou para ca porque e o
-// primeiro de uma serie de quatro avisos que a mesma pessoa recebe - acesso,
-// visita marcada, uma semana antes, um dia antes - e os quatro precisam se ler
-// como a mesma conversa. Em quatro lugares diferentes, divergem.
+// Existe separado do aviso do responsavel da EPO porque os dois papeis nao tem
+// nada em comum. O responsavel RECEBE a visita e anexa os documentos da unidade
+// dele; quem acompanha nao recebe visita nenhuma e nao tem unidade - ele le o
+// que as unidades responderam.
 //
-// Nao ha senha neste sistema: quem nao e da APSIS entra com um codigo que chega
-// no e-mail no momento em que pede. Este aviso, entao, nao manda ninguem definir
-// senha nenhuma - diz que o acesso esta liberado, para que ele serve, e onde
-// entrar. O "link" e o endereco da tela de entrada, e nao uma credencial.
+// Ate agora os dois recebiam o mesmo texto, e a gerencia da Claro era avisada de
+// que "a sua unidade vai passar por uma auditoria" e de que precisava anexar
+// documento. Alem de errado, invertia os papeis: dizia a quem fiscaliza que ele
+// e o fiscalizado.
+// ---------------------------------------------------------------------------
+export function emailAcessoDeAcompanhamento(o: {
+  nome: string; email: string; link: string; papel: string; contexto?: string;
+  novaConta: boolean;
+}) {
+  const papelNome = o.contexto ? " como <b>" + escapar(o.contexto) + "</b>" : "";
+  const abertura = o.novaConta
+    ? "Você recebeu acesso ao sistema de <b>Auditoria de EPOs</b> da Claro" + papelNome + "."
+    : "O seu acesso ao sistema de <b>Auditoria de EPOs</b> da Claro continua liberado" +
+      papelNome + ".";
+
+  // O que a pessoa faz no sistema muda com o papel. Um texto so, generico,
+  // deixaria de novo cada um adivinhando o que e esperado dele.
+  const oQueFaz: Record<string, string> = {
+    cliente:
+      "Por ele você <b>acompanha as auditorias das unidades EPO</b>: o que cada " +
+      "unidade respondeu em cada checklist, as evidências que ela anexou, a nota " +
+      "e a posição no ranking.",
+    auditor:
+      "Por ele você <b>preenche as auditorias em campo</b>: responde os checklists " +
+      "da visita, anexa as fotos e registra as não conformidades encontradas.",
+    gestor:
+      "Por ele você <b>coordena a auditoria</b>: monta o cronograma das visitas, " +
+      "acompanha o preenchimento das equipes e confere o resultado de cada unidade.",
+    admin:
+      "Por ele você <b>administra o sistema</b>: cronograma, checklists, liberação " +
+      "de acesso e o resultado de todas as unidades."
+  };
+
+  const paragrafos = [
+    abertura,
+    oQueFaz[o.papel] ||
+      "Por ele você acompanha as auditorias das unidades EPO e o resultado de cada uma.",
+    "Para entrar, informe o seu e-mail na tela de entrada. Um <b>código de seis " +
+    "dígitos</b> chega neste endereço na hora, e você digita na tela. Não há senha " +
+    "para criar nem para lembrar."
+  ];
+
+  // A gerencia da Claro e quem mais precisa dessa frase: ela nao e auditada, e
+  // nenhum lembrete de visita vai chegar para ela.
+  if (o.papel === "cliente") {
+    paragrafos.splice(2, 0,
+      "Você <b>não recebe visita</b> e não precisa anexar documento nenhum: " +
+      "quem faz isso é o responsável de cada unidade EPO.");
+  }
+
+  return montarEmail({
+    titulo: o.novaConta ? "Acesso à Auditoria de EPOs" : "Seu acesso à Auditoria de EPOs",
+    subtitulo: "Auditoria de unidades EPO · Claro",
+    saudacao: saudacaoDe(o.nome),
+    paragrafos: paragrafos,
+    quadro: {
+      rotulo: "Como entrar",
+      linhas: [
+        ["Seu e-mail", '<span style="color:' + VERMELHO + ';">' + escapar(o.email) + "</span>"],
+        ["Sua chave", '<span style="color:' + FRACO + ';">o código que chega aqui quando você pedir</span>']
+      ]
+    },
+    botao: { texto: "Ir para a tela de entrada", href: o.link }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Aviso de acesso para o RESPONSAVEL DA EPO: a pessoa da unidade auditada.
+// E a unica que recebe visita e anexa documento.
 // ---------------------------------------------------------------------------
 export function emailAcessoResponsavel(o: {
   nome: string; email: string; link: string; contexto?: string; novaConta: boolean;

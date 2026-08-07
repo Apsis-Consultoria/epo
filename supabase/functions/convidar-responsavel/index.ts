@@ -19,7 +19,7 @@
 //   AZURE_REMETENTE com a caixa que assina a mensagem). Sem ele, devolve ok:false
 //   com o motivo e nada e prometido na tela.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-import { emailAcessoResponsavel } from "../_shared/email-claro.ts";
+import { emailAcessoResponsavel, emailAcessoDeAcompanhamento } from "../_shared/email-claro.ts";
 import { enviarPeloGraph } from "../_shared/enviar-email.ts";
 import { emailNormalizado } from "../_shared/endereco-email.ts";
 
@@ -227,10 +227,28 @@ Deno.serve(async (req: Request) => {
   const assunto = novaConta
     ? "Seu acesso à Auditoria de EPOs" + (contexto ? " - " + contexto : "")
     : "Seu acesso à Auditoria de EPOs";
-  const html = emailAcessoResponsavel({
-    nome: nomeDaPessoa, email: email, link: link,
-    contexto: contexto, novaConta: novaConta
-  });
+  // Dois e-mails diferentes, porque sao dois papeis diferentes.
+  //
+  // Quem entra pela LISTA DE ACESSOS acompanha a auditoria: gerencia da Claro,
+  // coordenacao e equipe de campo. Nao tem unidade, nao recebe visita e nao
+  // anexa documento nenhum.
+  //
+  // Quem entra por um PEDIDO ou pela lista de responsaveis de uma unidade e o
+  // responsavel da EPO: e ele quem recebe a visita e anexa os documentos.
+  //
+  // Ate aqui os dois recebiam o mesmo texto - o do responsavel. A gerencia da
+  // Claro era avisada de que "a sua unidade vai passar por uma auditoria" e de
+  // que precisava anexar documento, o que inverte os papeis: diz a quem
+  // fiscaliza que ele e o fiscalizado.
+  const html = acessoId
+    ? emailAcessoDeAcompanhamento({
+        nome: nomeDaPessoa, email: email, link: link,
+        papel: papelPretendido, contexto: contexto, novaConta: novaConta
+      })
+    : emailAcessoResponsavel({
+        nome: nomeDaPessoa, email: email, link: link,
+        contexto: contexto, novaConta: novaConta
+      });
 
   // 1) Microsoft Graph, com a credencial que ja existe
   let envio = await enviarPeloGraph(email, assunto, html);
