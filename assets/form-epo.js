@@ -832,10 +832,22 @@
             .in("id", sobrando.map(function (x) { return x.id; }))
             .then(function (rr) { if (rr.error) throw rr.error; });
         }
+        // Quem JA estava na unidade antes deste salvamento. E a partir daqui que
+        // se sabe quem e novo - e so o novo precisa de convite. Sem esta conta,
+        // corrigir um nome na lista mandava e-mail de acesso para todo mundo da
+        // unidade outra vez.
+        var jaEstavam = {};
+        atuais.forEach(function (x) { jaEstavam[String(x.email || "").toLowerCase()] = true; });
+
         return passo.then(function () {
-          if (!lista.length) return [];
+          if (!lista.length) return { todos: [], novos: [] };
           // upsert pela chave (unidade, e-mail): editar o nome de quem ja esta
           // na lista nao pode criar linha nova.
+          //
+          // A chave e citada pelas COLUNAS, e a trava do banco tem de ser pelas
+          // colunas tambem. Enquanto ela era por lower(btrim(email)), o Postgres
+          // nao a reconhecia aqui e recusava tudo com 400 - a lista simplesmente
+          // nao era gravada, e o cadastro seguia como se tivesse dado certo.
           return db.from("epo_responsaveis")
             .upsert(lista.map(function (x) {
               return { epo_id: epoId, nome: x.nome || null, email: x.email };
@@ -843,7 +855,12 @@
             .select("email")
             .then(function (rr) {
               if (rr.error) throw rr.error;
-              return rr.data || [];
+              var todos = rr.data || [];
+              return {
+                todos: todos,
+                novos: todos.map(function (x) { return String(x.email || "").toLowerCase(); })
+                            .filter(function (e) { return e && !jaEstavam[e]; })
+              };
             });
         });
       })
@@ -852,7 +869,7 @@
         avisos.push("A unidade foi salva, mas a lista de responsáveis não foi gravada agora" +
                     (msg ? ": " + msg : "") + ".");
         if (window.console && console.warn) console.warn("responsaveis", e);
-        return [];
+        return { todos: [], novos: [] };
       });
   }
 
@@ -921,9 +938,15 @@
   // lista entra para trabalhar, e sem o e-mail nao tem como definir a senha.
   // Quem ja tinha acesso recebe um link para redefinir - a funcao trata os dois
   // casos e nao rebaixa quem ja tem senha.
-  function convidar(db, res, d, epoId, novosEmails) {
-    if (!db || !db.functions || !db.functions.invoke) return Promise.resolve({ ok: 0, falhas: 0 });
-
+  // Quem PRECISA de convite depois deste salvamento. So monta a lista: nao
+  // manda nada.
+  //
+  // Separado do envio de proposito. Cadastrar a lista de responsaveis de uma
+  // unidade e um ato interno; mandar e-mail para o contato do fornecedor e um
+  // ato externo, que nao se desfaz. Quem monta o cadastro costuma preencher
+  // varias unidades antes de estar pronto para avisar alguem, e sair e-mail no
+  // meio disso e mandar mensagem que ainda nao era para sair.
+  function alvosDeConvite(res, d, epoId, novosEmails) {
     var alvos = [];
     // O primeiro convite sai pelo pedido de questionario quando ha pedido novo:
     // assim o e-mail diz de qual unidade e de qual questionario se trata.
@@ -932,10 +955,16 @@
     }
     (novosEmails || []).forEach(function (email) {
       if (!email) return;
-      if (alvos.length && alvos[0].email === email) return;   // ja convidado acima
+      if (alvos.length && alvos[0].email === email) return;   // ja esta acima
       alvos.push({ corpo: { email: email, epo_id: epoId }, email: email });
     });
-    if (!alvos.length) return Promise.resolve({ ok: 0, falhas: 0 });
+    return alvos;
+  }
+
+  function enviarConvites(db, alvos) {
+    if (!db || !db.functions || !db.functions.invoke || !alvos || !alvos.length) {
+      return Promise.resolve({ ok: 0, falhas: 0 });
+    }
 
     var conta = { ok: 0, falhas: 0 };
     var cadeia = Promise.resolve();
@@ -970,6 +999,7 @@
     var resultado = { criados: 0, dups: [], erros: [], ids: [] };
 
     var respsGravados = [];
+    var respsNovos = [];
 
     return gravarUnidade(db, d, o.epoId || null, o.anterior || null)
       .then(function (epoId) {
@@ -977,7 +1007,8 @@
         return gravarResponsaveis(db, epoId, d, avisos);
       })
       .then(function (gravados) {
-        respsGravados = gravados || [];
+        respsGravados = (gravados && gravados.todos) || [];
+        respsNovos = (gravados && gravados.novos) || [];
         return sincronizarCronograma(db, d, idFinal, o.ciclo, avisos,
                                      !!o.incluirNoCronograma);
       })
@@ -993,27 +1024,64 @@
       })
       .then(function (res) {
         resultado = res;
-        var emails = respsGravados.map(function (x) { return String(x.email || "").toLowerCase(); });
-        return convidar(db, res, d, idFinal, emails);
-      })
-      .then(function (conta) {
-        if (conta.falhas) {
-          avisos.push(conta.falhas === 1
-            ? "Não foi possível enviar um dos e-mails de acesso agora. Reenvie pela tabela em alguns instantes."
-            : "Não foi possível enviar " + conta.falhas + " e-mails de acesso agora. Reenvie pela tabela em alguns instantes.");
-        }
+        // Monta quem precisa de convite e DEVOLVE a lista, em vez de mandar.
+        // Quem decide se o e-mail sai e a tela, perguntando: e-mail para o
+        // contato do fornecedor nao se desfaz.
         return {
           epoId: idFinal,
           criado: criado,
           criados: resultado.criados,
           dups: resultado.dups,
           erros: resultado.erros,
-          convidado: conta.ok > 0,
-          convidados: conta.ok,
+          convidado: false,
+          convidados: 0,
           responsaveis: respsGravados.length,
+          novos: respsNovos.length,
+          aConvidar: alvosDeConvite(resultado, d, idFinal, respsNovos),
           avisos: avisos
         };
       });
+  }
+
+  // A pergunta do convite, uma so para as duas telas que cadastram unidade.
+  //
+  // Salvar cadastra; convidar manda e-mail para o contato do fornecedor. Sao
+  // dois atos diferentes, e o segundo nao se desfaz - por isso ele e perguntado
+  // e nao feito junto. Quem preenche varias unidades seguidas responde "Agora
+  // nao" e convida quando a lista estiver pronta.
+  function oferecerConvites(db, r) {
+    var alvos = (r && r.aConvidar) || [];
+    if (!alvos.length) return Promise.resolve(false);
+    if (!window.App || !App.confirmar) return Promise.resolve(false);
+
+    var n = alvos.length;
+    var uma = n === 1;
+    return App.confirmar({
+      titulo: uma ? "Enviar o acesso para o responsável?" : "Enviar o acesso aos responsáveis?",
+      texto: (uma ? "Uma pessoa nova entrou na lista desta unidade."
+                  : n + " pessoas novas entraram na lista desta unidade.") +
+             "\n\nAo enviar, cada uma recebe um e-mail avisando do acesso. Para entrar, " +
+             "ela pede um código na tela de entrada e o código chega nesse mesmo e-mail." +
+             "\n\nO cadastro já está salvo. Dá para enviar depois, pelo botão de reenviar " +
+             "na tabela.",
+      confirmar: uma ? "Enviar o acesso" : "Enviar os " + n + " acessos",
+      cancelar: "Agora não"
+    }).then(function (ok) {
+      if (!ok) return false;
+      return enviarConvites(db, alvos).then(function (conta) {
+        if (window.App && App.toast) {
+          if (conta.falhas && !conta.ok) {
+            App.toast("Não foi possível enviar agora. Use o botão de reenviar na tabela.");
+          } else if (conta.falhas) {
+            App.toast(conta.ok + " enviado(s), " + conta.falhas + " não saiu(ram). " +
+                      "Reenvie pela tabela em alguns instantes.");
+          } else {
+            App.toast(conta.ok + (conta.ok === 1 ? " acesso enviado." : " acessos enviados."));
+          }
+        }
+        return true;
+      });
+    }, function () { return false; });
   }
 
   // Uma frase para o toast, igual nas duas telas.
@@ -1044,6 +1112,8 @@
     ler: ler,
     validar: validar,
     salvarTudo: salvarTudo,
+    enviarConvites: enviarConvites,
+    oferecerConvites: oferecerConvites,
     resumo: resumo,
     marcados: marcados
   };
