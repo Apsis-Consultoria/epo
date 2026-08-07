@@ -16,8 +16,10 @@
 --
 -- Limpar um so deixava os outros dois preenchendo a tela de volta.
 --
--- Roda inteiro ou nao roda: uma transacao. Ao final imprime a contagem do que
--- sobrou, para conferir sem precisar de outra consulta.
+-- Ao final imprime a contagem do que sobrou, para conferir sem outra consulta.
+--
+-- Rodar duas vezes nao faz diferenca: os delete ja nao acham nada e os update
+-- so mexem no que ainda esta preenchido.
 --
 -- ATENCAO: nao tem desfazer.
 
@@ -96,29 +98,64 @@ commit;
 --
 -- Sai quem entrou uma vez durante o teste e nao tem mais acesso liberado. Fica
 -- toda conta que ainda esta na lista de acessos: a APSIS e a gerencia da Claro.
+--
+-- Sem tabela temporaria de apoio: o editor de SQL do painel manda os comandos
+-- em conexoes que podem nao ser a mesma, e a tabela temporaria criada num
+-- comando nao existe no seguinte. Cada comando abaixo se basta.
 begin;
 
-create temp table _contas_do_teste as
-  select p.user_id
-    from perfis p
-   where p.papel in ('responsavel', 'sem_acesso')
-     and not exists (
-       select 1
-         from auth.users u
-         join acessos_autorizados a
-           on lower(btrim(a.email)) = lower(btrim(u.email))
-        where u.id = p.user_id
-     );
+-- Primeiro o perfil. Enquanto ele existe, a conta nao sai: e ele que aponta
+-- para ela.
+delete from perfis p
+ where p.papel in ('responsavel', 'sem_acesso')
+   and not exists (
+     select 1
+       from auth.users u
+       join acessos_autorizados a
+         on lower(btrim(a.email)) = lower(btrim(u.email))
+      where u.id = p.user_id
+   );
 
--- Solta o que aponta para a conta antes de ela sair. Sem isto, uma unica
--- referencia esquecida derruba o bloco inteiro.
-update alocacoes set responsavel_user = null
- where responsavel_user in (select user_id from _contas_do_teste);
+-- Solta TUDO que ainda aponta para conta sem perfil.
+--
+-- Escrito assim, e nao como uma lista de tabelas, porque a lista envelhece: a
+-- tabela criada no mes que vem aponta para a conta e ninguem lembra de vir aqui
+-- acrescentar. Uma unica referencia esquecida derruba o delete seguinte.
+--
+-- Percorre as chaves estrangeiras que apontam para auth.users e limpa as que
+-- aceitam vazio. As que nao aceitam ficam de fora de proposito: coluna
+-- obrigatoria significa que aquela linha nao existe sem a conta, e aparecer um
+-- erro ali e melhor do que apagar a linha por conta propria.
+do $limpa$
+declare r record;
+begin
+  for r in
+    select c.conrelid::regclass::text as tabela, a.attname as coluna
+      from pg_constraint c
+      join unnest(c.conkey) as k(num) on true
+      join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.num
+     where c.contype = 'f'
+       and c.confrelid = 'auth.users'::regclass
+       and c.conrelid::regclass::text not like 'auth.%'
+       and not a.attnotnull
+  loop
+    execute format(
+      'update %s set %I = null where %I is not null and not exists ' ||
+      '(select 1 from perfis p where p.user_id = %s.%I)',
+      r.tabela, r.coluna, r.coluna, r.tabela, r.coluna);
+  end loop;
+end $limpa$;
 
-delete from perfis     where user_id in (select user_id from _contas_do_teste);
-delete from auth.users where id      in (select user_id from _contas_do_teste);
-
-drop table _contas_do_teste;
+-- Agora a conta. Duas condicoes, e nao uma: conta sem perfil E fora da lista de
+-- acessos. Toda conta de verdade nasce com perfil (handle_new_user), entao o
+-- que sobra aqui e o rastro do teste - e a segunda condicao garante que nenhuma
+-- conta ainda liberada saia por acidente.
+delete from auth.users u
+ where not exists (select 1 from perfis p where p.user_id = u.id)
+   and not exists (
+     select 1 from acessos_autorizados a
+      where lower(btrim(a.email)) = lower(btrim(u.email))
+   );
 
 commit;
 
