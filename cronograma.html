@@ -24,10 +24,10 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=135">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=136">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=135">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=135">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=136">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=136">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -35,10 +35,10 @@
   <title>Cronograma - Auditoria de EPOs</title>
 
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=135">
+  <link rel="stylesheet" href="assets/icones.css?v=136">
 
-  <link rel="stylesheet" href="assets/carregando.css?v=135">
-  <link rel="stylesheet" href="assets/app.css?v=135">
+  <link rel="stylesheet" href="assets/carregando.css?v=136">
+  <link rel="stylesheet" href="assets/app.css?v=136">
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
@@ -52,17 +52,17 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=135"></script>
-  <script src="assets/app.js?v=135"></script>
-  <script src="assets/supabase-config.js?v=135"></script>
+  <script src="assets/data.js?v=136"></script>
+  <script src="assets/app.js?v=136"></script>
+  <script src="assets/supabase-config.js?v=136"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=135"></script>
-  <script src="assets/geo-br.js?v=135"></script>
-  <script src="assets/envio-cronograma.js?v=135"></script>
-  <script src="assets/cronograma-planilha.js?v=135"></script>
-  <script src="assets/form-epo.js?v=135"></script>
+  <script src="assets/auth.js?v=136"></script>
+  <script src="assets/geo-br.js?v=136"></script>
+  <script src="assets/envio-cronograma.js?v=136"></script>
+  <script src="assets/cronograma-planilha.js?v=136"></script>
+  <script src="assets/form-epo.js?v=136"></script>
   <script>
     (function () {
       "use strict";
@@ -1135,6 +1135,15 @@
         }
 
         b.push(botao("detalhe", it.id, "", "btn-ghost btn-icon", "ti-history", "Ver o historico desta unidade"));
+
+        // Apagar fica por ultimo, sozinho e so com icone: e a unica acao da
+        // linha que nao tem volta, e nao pode ficar do lado de "Aprovar" com o
+        // mesmo peso. Aparece enquanto a visita nao aconteceu - depois de
+        // registrada, a linha e o registro de que ela houve.
+        if (souApsis && it.situacao !== "realizada") {
+          b.push(botao("apagar", it.id, "", "btn-ghost btn-icon tk-apagar", "ti-trash",
+                       "Apagar do cronograma"));
+        }
         return '<span class="cel-acoes">' + b.join("") + "</span>";
       }
 
@@ -1453,6 +1462,11 @@
         }
 
         if (acao === "detalhe") { abrirTicket(id); return; }
+
+        // Apagar direto na linha. Estava so dentro do historico, e ali ninguem
+        // procura por ele: apagar uma linha errada e coisa que se faz olhando
+        // para a linha errada.
+        if (acao === "apagar") { pedirParaApagar(it, botaoEl, false); return; }
       }
 
       function ligarRadioRegistro() {
@@ -1569,32 +1583,36 @@
           });
           return;
         }
-        if (acao === "apagar") {
-          App.confirmar({
-            titulo: "Apagar do cronograma",
-            texto: "A unidade " + it.nome + " sai do cronograma de " + CICLO +
-                   " e nao volta.\n\n" +
-                   "Nao e o mesmo que tirar do ciclo: aqui a linha e o historico " +
-                   "dela deixam de existir, e nao ha como trazer de volta. As datas " +
-                   "combinadas, as aprovacoes e o que foi conversado somem junto.\n\n" +
-                   "Se a unidade so nao entra neste ciclo, use Tirar do ciclo.",
-            confirmar: "Apagar de vez", cancelar: "Voltar", perigo: true
-          }).then(function (ok) {
-            if (!ok) return;
-            apagarItem(it, botaoEl);
-          });
-          return;
-        }
+        if (acao === "apagar") { pedirParaApagar(it, botaoEl, true); return; }
         if (acao === "reabrir") {
           rodar("cronograma_reabrir", { p_item: it.id, p_mensagem: null }, botaoEl)
             .then(function (deu) { if (deu) fecharTicket(); });
         }
       }
 
+      // A mesma pergunta para os dois lugares que apagam: o botao da linha e o
+      // do historico. Texto escrito duas vezes vira dois textos diferentes, e o
+      // que avisa que nao tem volta e o pior lugar para isso acontecer.
+      function pedirParaApagar(it, botaoEl, fecharDepois) {
+        if (!it) return;
+        App.confirmar({
+          titulo: "Apagar do cronograma",
+          texto: it.nome + " sai do cronograma de " + CICLO + " e nao volta.\n\n" +
+                 "Nao e o mesmo que tirar do ciclo: aqui a linha e o historico dela " +
+                 "deixam de existir. As datas combinadas, as aprovacoes e o que foi " +
+                 "conversado somem junto.\n\n" +
+                 "Se a unidade so nao entra neste ciclo, use Tirar do ciclo, que " +
+                 "guarda o historico e da para desfazer.",
+          confirmar: "Apagar de vez", cancelar: "Voltar", perigo: true
+        }).then(function (ok) {
+          if (ok) apagarItem(it, botaoEl, fecharDepois);
+        });
+      }
+
       // Nao passa por rodar(): rodar espera a linha alterada de volta para
       // trocar na lista, e aqui nao ha linha nenhuma para voltar - ela foi
       // apagada. O que acontece e o contrario: sai da lista.
-      function apagarItem(it, botaoEl) {
+      function apagarItem(it, botaoEl, fecharDepois) {
         if (DEMO) {
           App.toast("Sem conexao com os dados agora: nada foi apagado.");
           return;
@@ -1606,7 +1624,7 @@
           }
           itens = itens.filter(function (x) { return x.id !== it.id; });
           editando = null;
-          fecharTicket();
+          if (fecharDepois) fecharTicket();
           render();
           App.toast("Apagado do cronograma.");
         }).catch(function (e) {
