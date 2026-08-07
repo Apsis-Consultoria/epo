@@ -488,6 +488,12 @@
         provider: "azure",
         options: {
           scopes: "email openid profile",
+          // prompt=select_account faz a Microsoft SEMPRE perguntar de qual conta
+          // se trata. Sem isso, quem tem sessao aberta no navegador entra
+          // instantaneamente e sem interacao nenhuma - o que parece o sistema
+          // logando por conta propria, e impede trocar de conta sem limpar o
+          // navegador.
+          queryParams: { prompt: "select_account" },
           redirectTo: destinoPosLogin()
         }
       });
@@ -592,11 +598,25 @@
       // sem entender por que.
       sessionStorage.removeItem("epoVerComo");
     } catch (e) {}
-    var fim = function () { location.replace("login"); };
+    // A sessao sai do navegador AQUI, na mao, e nao so pelo signOut.
+    //
+    // O signOut limpa a chave que o cliente atual usa. Sobrando qualquer outra
+    // (troca de formato de chave do projeto deixa mais de uma), a tela de entrada
+    // encontra sessao valida e manda a pessoa de volta para dentro - e como a
+    // conta Microsoft continua aberta do lado da Microsoft, a volta acontece sem
+    // pedir nada. Quem clicou em Sair ve o sistema se reabrir sozinho.
+    var limparTokens = function () {
+      try {
+        Object.keys(localStorage).forEach(function (k) {
+          if (/^sb-.*-auth-token/.test(k)) localStorage.removeItem(k);
+        });
+      } catch (e) {}
+    };
+
+    // E vai para a entrada pelo caminho que NAO volta: com sair=1 a tela de
+    // entrada fica onde esta em vez de procurar sessao e seguir para dentro.
+    var fim = function () { limparTokens(); location.replace("login?sair=1"); };
     if (!client) { fim(); return; }
-    // Token velho ou ja invalido faz o servidor recusar a saida. Nesse caso a
-    // sessao TEM de sair daqui de dentro de qualquer forma: se ela ficar guardada
-    // no navegador, a tela de entrada a encontra de novo e o laco volta.
     client.auth.signOut()
       .then(function (r) {
         if (r && r.error) return client.auth.signOut({ scope: "local" });
