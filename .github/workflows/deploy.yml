@@ -45,6 +45,10 @@ jobs:
           cp -v *.html _site/
           cp -R assets _site/
           cp .nojekyll _site/ 2>/dev/null || true
+          # O CNAME precisa ir junto. Sem ele no que sobe, o GitHub Pages
+          # entende que o site nao tem dominio proprio e devolve o endereco
+          # antigo - e o dominio cai na primeira publicacao depois disso.
+          cp CNAME _site/
           echo "--- publicado ---"
           find _site -type f | sort
 

@@ -31,7 +31,7 @@ Sem nenhuma das duas, a funcao devolve `ok:false` com o motivo e a tela avisa
 que o e-mail nao saiu. Nada e prometido para quem cadastrou.
 
 Segredo opcional `APP_URL`: endereco do sistema usado no link quando a chamada
-nao vem do navegador (padrao `https://apsis-consultoria.github.io/epo/`).
+nao vem do navegador (padrao `https://auditoria.parceirosclaro.apsis.com.br/`).
 
 ## sincronizar-sharepoint
 

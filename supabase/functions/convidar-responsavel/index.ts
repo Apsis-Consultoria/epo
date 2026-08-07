@@ -35,7 +35,7 @@ function segredo(nomes: string[]) {
   return "";
 }
 
-const APP_URL = segredo(["APP_URL"]) || "https://apsis-consultoria.github.io/epo/";
+const APP_URL = segredo(["APP_URL"]) || "https://auditoria.parceirosclaro.apsis.com.br/";
 
 // Quem pode convidar responsavel de unidade. O gerente da Claro entra aqui
 // porque e ele quem sabe o contato da unidade.

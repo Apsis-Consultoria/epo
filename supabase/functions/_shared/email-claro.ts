@@ -27,9 +27,12 @@ export const BORDA = "#DBDBDB";
 export const FUNDO = "#F8F8F8";
 export const FONTE = "Roboto,'Segoe UI',Helvetica,Arial,sans-serif";
 
-// O logo sai do proprio site, que e publico: nao depende de bucket separado
-// nem de a chave do storage continuar valida.
-export const LOGO = "https://apsis-consultoria.github.io/epo/assets/brand/logo-claro.png";
+// A logo sai do proprio site, que e publico. O endereco acompanha o APP_URL:
+// com o dominio proprio no ar, o e-mail antigo continuaria buscando a imagem no
+// endereco velho, e o dia em que ele parar de responder a marca some do e-mail.
+const BASE_SITE = ((Deno.env.get("APP_URL") || "https://auditoria.parceirosclaro.apsis.com.br/")
+  .trim()).replace(/\/+$/, "");
+export const LOGO = BASE_SITE + "/assets/brand/logo-claro.png";
 
 // Nome de unidade e endereco entram no HTML do e-mail. O apostrofo e o acento
 // grave entraram na lista junto com os outros: sao delimitadores de atributo em

@@ -20,7 +20,7 @@ window.SUPABASE_KEY = "sb_publishable_Y7Rr5TuqZwPam7EA-cd59Q_jSVgad-D";
    verificado pela própria Microsoft.
 
    COMO LIGAR, e a ordem importa:
-     1. Na Cloudflare: Turnstile, "Add site", domínio apsis-consultoria.github.io
+     1. Na Cloudflare: Turnstile, "Add site", domínio auditoria.parceirosclaro.apsis.com.br
         (acrescente localhost para testar). Guarde a chave do site e o segredo.
      2. Cole a chave do site na linha abaixo e publique. A tela passa a mostrar o
         desafio e a mandar o token; o servidor ainda ignora, então nada quebra.

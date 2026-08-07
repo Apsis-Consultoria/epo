@@ -25,7 +25,12 @@ import { emailNormalizado } from "../_shared/endereco-email.ts";
 
 const PROJETO_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const SITE = "https://apsis-consultoria.github.io/epo";
+// O endereco do sistema sai do segredo APP_URL, e nao fica fixo aqui.
+//
+// Trocar de dominio nao pode exigir publicar funcao: o endereco entra em e-mail
+// que a pessoa recebe e guarda. Sem o segredo, cai no dominio proprio.
+const SITE = ((Deno.env.get("APP_URL") || "https://auditoria.parceirosclaro.apsis.com.br/")
+  .trim()).replace(/\/+$/, "");
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
