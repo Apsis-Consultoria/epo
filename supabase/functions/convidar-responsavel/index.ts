@@ -40,12 +40,29 @@ const APP_URL = segredo(["APP_URL"]) || "https://auditoria.parceirosclaro.apsis.
 // Quem pode convidar responsavel de unidade. O gerente da Claro entra aqui
 // porque e ele quem sabe o contato da unidade.
 const PAPEIS_OK = ["admin", "gestor", "cliente"];
-// Quem pode convidar alguem da lista de acessos autorizados. O gerente da
-// Claro fica fora: liberar acesso ao sistema e decisao da APSIS.
-const PAPEIS_OK_ACESSO = ["admin", "gestor"];
-// Liberar administracao ou coordenacao e decisao de administrador. O banco ja
-// recusa; aqui a recusa vem antes, com o motivo em portugues.
-const PAPEIS_SO_DE_ADMIN = ["admin", "gestor"];
+// Quem pode convidar alguem da lista de acessos autorizados. A gerencia da
+// Claro entra: ela libera a propria equipe sem depender da APSIS.
+const PAPEIS_OK_ACESSO = ["admin", "gestor", "cliente"];
+
+// Mas nao libera QUALQUER papel. Esta e a mesma regra que o banco aplica
+// (papel_liberavel_por): repetida aqui so para a recusa chegar em portugues,
+// antes de o banco recusar em linguagem de banco.
+//
+// A gerencia da Claro nao cria equipe de campo. Quem preenche a auditoria e a
+// APSIS; a Claro e a parte interessada no resultado. Se a contratante pudesse
+// criar quem audita, a separacao entre quem avalia e quem e avaliado deixaria
+// de existir e o resultado perderia valor como evidencia.
+const PODE_LIBERAR: Record<string, string[]> = {
+  admin: ["admin", "gestor", "auditor", "cliente", "responsavel"],
+  gestor: ["auditor", "cliente", "responsavel"],
+  cliente: ["cliente", "responsavel"]
+};
+
+const RECUSA: Record<string, string> = {
+  admin: "somente um administrador envia acesso de administracao",
+  gestor: "somente um administrador envia acesso de coordenacao",
+  auditor: "equipe de campo e liberada pela APSIS"
+};
 
 // Os mesmos nomes que a tela de acessos mostra: o e-mail nao pode chamar o
 // papel de um jeito e o sistema de outro.
@@ -147,9 +164,10 @@ Deno.serve(async (req: Request) => {
     }
     email = emailNormalizado(l.email);
     papelPretendido = String(l.papel || "");
-    if (PAPEIS_SO_DE_ADMIN.indexOf(papelPretendido) >= 0 && papel !== "admin") {
+    const liberaveis = PODE_LIBERAR[papel] || [];
+    if (liberaveis.indexOf(papelPretendido) < 0) {
       return json({ ok: false,
-        motivo: "somente um administrador envia acesso de administracao ou coordenacao" }, 403);
+        motivo: RECUSA[papelPretendido] || "este acesso nao pode ser liberado por voce" }, 403);
     }
     contexto = PAPEL_EM_PALAVRAS[papelPretendido] || papelPretendido;
     nomeDaPessoa = String(l.nome || "");

@@ -24,19 +24,19 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=131">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=132">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=131">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=131">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=132">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=132">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <title>Gerenciamento de acessos - Auditoria de EPOs</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=131">
-  <link rel="stylesheet" href="assets/carregando.css?v=131">
-  <link rel="stylesheet" href="assets/app.css?v=131">
+  <link rel="stylesheet" href="assets/icones.css?v=132">
+  <link rel="stylesheet" href="assets/carregando.css?v=132">
+  <link rel="stylesheet" href="assets/app.css?v=132">
   <style>
     /* ---------------- Matriz de telas por cargo ---------------- */
     /* A caixa rola por dentro, e nao junto com a pagina. Sem isto o cabecalho
@@ -227,13 +227,13 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=131"></script>
-  <script src="assets/app.js?v=131"></script>
-  <script src="assets/supabase-config.js?v=131"></script>
+  <script src="assets/data.js?v=132"></script>
+  <script src="assets/app.js?v=132"></script>
+  <script src="assets/supabase-config.js?v=132"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=131"></script>
+  <script src="assets/auth.js?v=132"></script>
   <script>
     (function () {
       "use strict";
@@ -279,6 +279,24 @@
       var mexidas = {};         // papel|tela -> bool, só o que mudou
       var liberados = [];
       var contas = [];
+      var epoPorEmail = {};   // e-mail do responsavel -> unidades pelas quais responde
+
+      // Uma caixa por tipo de acesso, nesta ordem. Antes era uma lista so, com
+      // todo mundo misturado e o cargo virando uma etiqueta no meio da linha:
+      // para saber quem era da Claro e quem era da APSIS, tinha de ler linha
+      // por linha.
+      var GRUPOS = [
+        { papel: "cliente",     titulo: "Gerência Claro",
+          vazio: "Ninguém da gerência da Claro liberado ainda." },
+        { papel: "auditor",     titulo: "Equipe de Campo Apsis",
+          vazio: "Ninguém da equipe de campo liberado ainda." },
+        { papel: "gestor",      titulo: "Coordenação Apsis",
+          vazio: "Ninguém da coordenação liberado ainda." },
+        { papel: "admin",       titulo: "Admin Apsis",
+          vazio: "Nenhum administrador liberado ainda." },
+        { papel: "responsavel", titulo: "Responsável pela EPO",
+          vazio: "Nenhum responsável de unidade liberado ainda." }
+      ];
       var meuPapel = DEMO ? "admin" : "";
       var busca = "";
       var carregando = true;
@@ -316,26 +334,23 @@
         "</div>" +
 
         '<div class="card">' +
-          '<div class="card-header">' +
-            '<div class="section-title">' +
-              '<span class="title">Acessos liberados</span>' +
-            "</div>" +
-            '<span class="acc-count" id="conta-liberados"></span>' +
-          "</div>" +
           '<div class="acc-toolbar">' +
             '<div class="acc-search">' +
               '<i class="ti ti-search" aria-hidden="true"></i>' +
               '<input class="input" id="busca" type="search" autocomplete="off"' +
                 ' placeholder="Filtrar por nome ou e-mail" aria-label="Filtrar por nome ou e-mail">' +
             "</div>" +
+            '<span class="acc-count" id="conta-liberados"></span>' +
           "</div>" +
-          '<div id="lista"></div>' +
         "</div>" +
+
+        '<div id="grupos"></div>' +
 
         '<div class="card mb-0 is-hidden" id="card-contas">' +
           '<div class="card-header">' +
             '<div class="section-title">' +
-              '<span class="title">Contas de acesso</span>' +
+              '<span class="title">Contas sem acesso liberado</span>' +
+              '<span class="subtitle">Entraram no sistema e ainda não têm papel definido aqui.</span>' +
             "</div>" +
             '<span class="acc-count" id="conta-contas"></span>' +
           "</div>" +
@@ -399,22 +414,38 @@
         return out;
       }
 
-      // Os cinco papeis do sistema, na ordem de sempre. A lista mostrava so
-      // dois: quem precisava liberar administracao ou responsavel da EPO nao
-      // tinha por onde.
-      // Coordenacao e administracao continuam sendo escolha de administrador,
-      // senao um coordenador criaria outro, e qualquer um criaria um
-      // administrador. Para quem nao e administrador eles aparecem travados,
-      // e nao escondidos: assim se ve que existem e de quem depende.
+      // Quem libera acesso nao libera qualquer papel.
+      //
+      // Administracao e coordenacao: so administrador, senao um coordenador
+      // criaria outro e o controle de quem administra deixaria de existir.
+      //
+      // Equipe de campo: fora do alcance da gerencia da Claro. Ela e a
+      // contratante, e quem preenche a auditoria e a APSIS - se a contratante
+      // pudesse criar quem audita, a separacao entre quem avalia e quem e
+      // avaliado sumia. Ela libera a propria equipe e o responsavel das unidades.
+      //
+      // O servidor recusa o mesmo: isto aqui e a tela dizendo a verdade antes de
+      // alguem tentar.
       function papeisQuePodeLiberar() {
         var todos = ["admin", "gestor", "auditor", "cliente", "responsavel"];
         return todos.map(function (v) {
           var soAdmin = (v === "admin" || v === "gestor");
-          return { v: v, t: PAPEL_LABEL[v], travado: soAdmin && meuPapel !== "admin" };
+          var travado = (soAdmin && meuPapel !== "admin")
+                     || (v === "auditor" && meuPapel === "cliente");
+          var nota = (v === "auditor" && meuPapel === "cliente")
+                     ? " (só a APSIS)" : (travado ? " (só administrador)" : "");
+          return { v: v, t: PAPEL_LABEL[v], travado: travado, nota: nota };
         });
       }
 
       function souAdmin() { return meuPapel === "admin"; }
+
+      // Quem alcanca esta tela pode liberar acesso - o que muda de um para o
+      // outro e QUAL papel ele consegue liberar, e disso cuida
+      // papeisQuePodeLiberar. O servidor recusa o resto.
+      function podeLiberar() {
+        return meuPapel === "admin" || meuPapel === "gestor" || meuPapel === "cliente";
+      }
 
       // ------------------------------------------------------------------
       // Leitura
@@ -478,7 +509,28 @@
               throw new Error((r && r.error && r.error.message) || "falha ao ler os acessos");
             }
             liberados = r.data || [];
-            return db.from("perfis").select("user_id, nome, papel").order("papel");
+
+            // De qual unidade cada responsavel e. Sem isso, a lista de
+            // responsaveis era uma coluna de e-mails sem dono: nao dava para
+            // saber quem responde por qual EPO, que e a unica coisa que
+            // importa saber sobre um responsavel.
+            return db.from("epo_responsaveis").select("email, epos(nome, cidade, uf)");
+          })
+          .then(function (r) {
+            epoPorEmail = {};
+            ((r && !r.error && r.data) || []).forEach(function (x) {
+              var e = x.epos;
+              if (!e) return;
+              var chave = (x.email || "").trim().toLowerCase();
+              if (!chave) return;
+              var onde = e.nome + (e.cidade ? " - " + e.cidade + (e.uf ? "/" + e.uf : "") : "");
+              // Um responsavel pode responder por mais de uma unidade.
+              if (!epoPorEmail[chave]) epoPorEmail[chave] = [];
+              if (epoPorEmail[chave].indexOf(onde) < 0) epoPorEmail[chave].push(onde);
+            });
+            // A visao traz o e-mail da conta, que perfis nao guarda. E o
+            // e-mail que permite saber se a conta ja tem acesso liberado.
+            return db.from("contas_do_sistema").select("user_id, nome, papel, email");
           })
           .then(function (r) {
             contas = (r && !r.error && r.data) ? r.data : [];
@@ -493,8 +545,7 @@
         renderMatriz();
         renderLista();
         renderContas();
-        $("btn-liberar").classList.toggle("is-hidden",
-          !(meuPapel === "admin" || meuPapel === "gestor"));
+        $("btn-liberar").classList.toggle("is-hidden", !podeLiberar());
       }
 
       function valorAtual(papel, tela) {
@@ -672,86 +723,138 @@
           "</button>";
       }
 
+      // A unidade de quem responde por ela. Duas unidades cabem na linha; a
+      // partir da terceira o resto vira contagem, senao a linha estoura.
+      function ondeResponde(email) {
+        var lista = epoPorEmail[(email || "").trim().toLowerCase()] || [];
+        if (!lista.length) return '<span class="muted">unidade ainda não vinculada</span>';
+        if (lista.length <= 2) return esc(lista.join(", "));
+        return esc(lista.slice(0, 2).join(", ")) +
+          ' <span class="muted">e mais ' + (lista.length - 2) + "</span>";
+      }
+
+      function linhaDeAcesso(a, comEpo, podeMexer) {
+        var b = [];
+        if (podeMexer) {
+          // Sempre reenvio: o primeiro envio sai junto com a liberacao,
+          // e nao ha caminho para mandar o primeiro acesso a mao.
+          b.push(botao("convidar", a.id, "Reenviar convite", "btn-ghost", "ti-mail"));
+          b.push(botao("editar", a.id, "", "btn-ghost btn-icon", "ti-pencil",
+            "Alterar este acesso"));
+          b.push(botao(a.ativo ? "desativar" : "ativar", a.id,
+            a.ativo ? "Desativar" : "Ativar", "btn-ghost",
+            a.ativo ? "ti-user-off" : "ti-user-check"));
+          // Apagar e definitivo e nao tem volta: fica com quem administra.
+          if (souAdmin()) {
+            b.push(botao("apagar", a.id, "", "btn-ghost btn-icon btn-apagar",
+              "ti-trash", "Apagar este acesso"));
+          }
+        }
+        return "<tr>" +
+          '<td class="cartao-titulo"><div class="pessoa-cel"><b>' + esc(a.nome || "sem nome") + "</b>" +
+            "<span>" + esc(a.email) + "</span></div></td>" +
+          (comEpo ? '<td data-rotulo="Unidade">' + ondeResponde(a.email) + "</td>" : "") +
+          '<td data-rotulo="Situação">' + situacao(a) + "</td>" +
+          '<td class="num cartao-acoes"><span class="acc-acoes">' + b.join("") + "</span></td>" +
+        "</tr>";
+      }
+
+      // A caixa de cada tipo. Some quando o filtro nao acha ninguem nela: com
+      // cinco caixas na tela, cinco "ninguem com esse filtro" enterrariam o
+      // unico resultado que interessa.
+      function cardDoGrupo(g, lista, podeMexer, filtrando) {
+        if (filtrando && !lista.length) return "";
+
+        var comEpo = g.papel === "responsavel";
+        var corpo = lista.length
+          ? '<div class="table-wrap"><table class="table tabela-cartao">' +
+              "<thead><tr><th>Pessoa</th>" +
+                (comEpo ? "<th>Unidade</th>" : "") +
+                "<th>Situação</th>" +
+                '<th class="num">Ações</th>' +
+              "</tr></thead><tbody>" +
+              lista.map(function (a) { return linhaDeAcesso(a, comEpo, podeMexer); }).join("") +
+            "</tbody></table></div>"
+          : '<div class="empty"><i class="ti ti-user-off" aria-hidden="true"></i><p>' +
+              esc(g.vazio) + "</p></div>";
+
+        return '<div class="card">' +
+            '<div class="card-header">' +
+              '<div class="section-title">' +
+                '<span class="title">' + esc(g.titulo) + "</span>" +
+              "</div>" +
+              '<span class="acc-count">' +
+                (lista.length ? lista.length + (lista.length === 1 ? " pessoa" : " pessoas") : "") +
+              "</span>" +
+            "</div>" + corpo +
+          "</div>";
+      }
+
       function renderLista() {
-        var alvo = $("lista");
+        var alvo = $("grupos");
         if (carregando) {
-          alvo.innerHTML = '<div class="empty"><p>Carregando...</p></div>';
+          alvo.innerHTML = '<div class="card"><div class="empty"><p>Carregando...</p></div></div>';
+          $("conta-liberados").textContent = "";
           return;
         }
         if (falha) {
-          alvo.innerHTML = '<div class="empty">' +
-            '<i class="ti ti-alert-circle" aria-hidden="true"></i><p>' + esc(falha) + "</p></div>";
-          return;
-        }
-        if (!liberados.length) {
-          alvo.innerHTML = '<div class="empty">' +
-            '<i class="ti ti-user-off" aria-hidden="true"></i>' +
-            "<p>Nenhum acesso liberado ainda. Use <b>Liberar acesso</b> para começar.</p></div>";
+          alvo.innerHTML = '<div class="card"><div class="empty">' +
+            '<i class="ti ti-alert-circle" aria-hidden="true"></i><p>' + esc(falha) +
+            "</p></div></div>";
           $("conta-liberados").textContent = "";
           return;
         }
 
         var lista = visiveis();
-        $("conta-liberados").textContent = lista.length === liberados.length
-          ? liberados.length + (liberados.length === 1 ? " pessoa" : " pessoas")
-          : lista.length + " de " + liberados.length;
+        var filtrando = !!busca;
+        $("conta-liberados").textContent = !liberados.length ? ""
+          : (filtrando ? lista.length + " de " + liberados.length + " liberados"
+                       : liberados.length + (liberados.length === 1 ? " pessoa liberada" : " pessoas liberadas"));
 
-        if (!lista.length) {
-          alvo.innerHTML = '<div class="empty">' +
-            '<i class="ti ti-filter-off" aria-hidden="true"></i>' +
-            "<p>Ninguém com esse filtro.</p></div>";
-          return;
+        var podeMexer = podeLiberar();
+
+        // Papel fora dos cinco conhecidos nao pode sumir da tela sem aviso:
+        // acesso que ninguem ve e acesso que ninguem tira.
+        var conhecidos = {};
+        GRUPOS.forEach(function (g) { conhecidos[g.papel] = true; });
+        var sobra = lista.filter(function (a) { return !conhecidos[a.papel]; });
+
+        var html = GRUPOS.map(function (g) {
+          return cardDoGrupo(g, lista.filter(function (a) { return a.papel === g.papel; }),
+            podeMexer, filtrando);
+        }).join("");
+
+        if (sobra.length) {
+          html += cardDoGrupo({ papel: "", titulo: "Outros", vazio: "" },
+            sobra, podeMexer, filtrando);
         }
 
-        var podeMexer = meuPapel === "admin" || meuPapel === "gestor";
+        if (filtrando && !lista.length) {
+          html = '<div class="card"><div class="empty">' +
+            '<i class="ti ti-filter-off" aria-hidden="true"></i>' +
+            "<p>Ninguém com esse filtro.</p></div></div>";
+        }
 
-        alvo.innerHTML =
-          '<div class="table-wrap"><table class="table tabela-cartao">' +
-            "<thead><tr>" +
-              // Nao existe coluna de cliente: o unico cliente do sistema e a
-              // Claro, e o cargo ja diz se a pessoa e da APSIS ou da Claro.
-              // A coluna mostrava "-" ou "Claro" e nada mais.
-              "<th>Pessoa</th><th>O que é</th><th>Situação</th>" +
-              '<th class="num">Ações</th>' +
-            "</tr></thead><tbody>" +
-            lista.map(function (a) {
-              var b = [];
-              if (podeMexer) {
-                // Sempre reenvio: o primeiro envio sai junto com a liberacao,
-                // e nao ha caminho para mandar o primeiro acesso a mao.
-                b.push(botao("convidar", a.id, "Reenviar convite", "btn-ghost", "ti-mail"));
-                b.push(botao("editar", a.id, "", "btn-ghost btn-icon", "ti-pencil",
-                  "Alterar este acesso"));
-                b.push(botao(a.ativo ? "desativar" : "ativar", a.id,
-                  a.ativo ? "Desativar" : "Ativar", "btn-ghost",
-                  a.ativo ? "ti-user-off" : "ti-user-check"));
-                // Apagar e definitivo e nao tem volta: fica com quem administra.
-                if (souAdmin()) {
-                  b.push(botao("apagar", a.id, "", "btn-ghost btn-icon btn-apagar",
-                    "ti-trash", "Apagar este acesso"));
-                }
-              }
-              return "<tr>" +
-                '<td class="cartao-titulo"><div class="pessoa-cel"><b>' + esc(a.nome || "sem nome") + "</b>" +
-                  "<span>" + esc(a.email) + "</span></div></td>" +
-                '<td data-rotulo="O que é"><span class="badge ' + (BADGE_PAPEL[a.papel] || "badge-baixa") + '">' +
-                  esc(PAPEL_LABEL[a.papel] || a.papel) + "</span></td>" +
-                '<td data-rotulo="Situação">' + situacao(a) + "</td>" +
-                '<td class="num cartao-acoes"><span class="acc-acoes">' + b.join("") + "</span></td>" +
-              "</tr>";
-            }).join("") +
-          "</tbody></table></div>";
+        alvo.innerHTML = html;
       }
 
       function renderContas() {
         var card = $("card-contas");
-        if (carregando || !contas.length) { card.classList.add("is-hidden"); return; }
+
+        // So entra aqui a conta que existe e NAO tem acesso liberado. Antes esta
+        // lista repetia todo mundo da lista de cima, com menos informacao - dava
+        // a impressao de serem duas coisas diferentes sendo a mesma.
+        var liberado = {};
+        liberados.forEach(function (a) { liberado[(a.email || "").trim().toLowerCase()] = true; });
+        var soltas = contas.filter(function (c) {
+          return !liberado[(c.email || "").trim().toLowerCase()];
+        });
+
+        if (carregando || !soltas.length) { card.classList.add("is-hidden"); return; }
         card.classList.remove("is-hidden");
 
-        var esperando = contas.filter(function (c) { return c.papel === "sem_acesso"; }).length;
-        $("conta-contas").textContent = contas.length +
-          (contas.length === 1 ? " conta" : " contas") +
-          (esperando ? ", " + esperando + " esperando liberação" : "");
+        $("conta-contas").textContent = soltas.length +
+          (soltas.length === 1 ? " conta" : " contas");
 
         // Conta que existe sem estar na lista de acessos so dava para apagar por
         // fora da tela: foi o que aconteceu com uma sobra de teste. Aqui ela
@@ -762,9 +865,11 @@
             "<thead><tr><th>Pessoa</th><th>O que é hoje</th>" +
               (podeApagar ? '<th class="num">Ações</th>' : "") +
             "</tr></thead><tbody>" +
-            contas.map(function (c) {
+            soltas.map(function (c) {
               return "<tr>" +
-                '<td class="cartao-titulo"><div class="pessoa-cel"><b>' + esc(c.nome || "sem nome") + "</b></div></td>" +
+                '<td class="cartao-titulo"><div class="pessoa-cel"><b>' +
+                  esc(c.nome || "sem nome") + "</b>" +
+                  "<span>" + esc(c.email || "") + "</span></div></td>" +
                 '<td data-rotulo="O que é hoje"><span class="badge ' + (BADGE_PAPEL[c.papel] || "badge-baixa") + '">' +
                   esc(PAPEL_LABEL[c.papel] || c.papel) + "</span></td>" +
 
@@ -789,12 +894,19 @@
 
         $("f-papel").innerHTML = papeisQuePodeLiberar().map(function (p) {
           return '<option value="' + p.v + '"' + (p.travado ? " disabled" : "") + ">" +
-            esc(p.t) + (p.travado ? " (só administrador)" : "") + "</option>";
+            esc(p.t) + (p.nota || "") + "</option>";
         }).join("");
 
         $("f-email").value = a ? (a.email || "") : "";
         $("f-nome").value = a ? (a.nome || "") : "";
         $("f-papel").value = a ? a.papel : "cliente";
+        // Papel travado nao pode ficar escolhido: o navegador aceita o valor e
+        // so o servidor recusaria, ja com o e-mail digitado.
+        if ($("f-papel").selectedOptions.length &&
+            $("f-papel").selectedOptions[0].disabled) {
+          var livre = papeisQuePodeLiberar().filter(function (p) { return !p.travado; })[0];
+          if (livre) $("f-papel").value = livre.v;
+        }
         $("f-email").disabled = !!a;
 
         $("mod").classList.add("is-open");
@@ -1021,7 +1133,9 @@
         }).then(function (ok) { if (ok) apagarConta(c, b); });
       });
 
-      $("lista").addEventListener("click", function (ev) {
+      // Um ouvinte para as caixas todas. A lista era uma tabela so; agora sao
+      // varias, refeitas a cada render - ouvinte por tabela sumiria junto.
+      $("grupos").addEventListener("click", function (ev) {
         if (!ev.target.closest) return;
         var b = ev.target.closest("[data-acao]");
         if (!b) return;

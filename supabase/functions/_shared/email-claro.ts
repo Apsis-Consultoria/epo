@@ -280,6 +280,69 @@ export function emailLembreteVisita(v: Visita, dias: number) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Datas esperando aprovacao da Claro.
+//
+// Quando a APSIS manda uma data para aprovacao, o item fica parado ate alguem da
+// gerencia da Claro entrar e responder. Sem aviso, esse "ate alguem entrar" nao
+// tem prazo: o cronograma ficava esperando uma pessoa que nao sabia que estava
+// sendo esperada.
+//
+// Um e-mail por gerente com TODAS as unidades esperando, e nao um por unidade:
+// cadastrar o cronograma de um ciclo sao dezenas de unidades de uma vez, e
+// dezenas de e-mails iguais viram caixa de spam - o aviso que chega demais e o
+// aviso que ninguem le.
+// ---------------------------------------------------------------------------
+export type DataParaAprovar = {
+  unidade: string;
+  local?: string;
+  data: string;
+  dataFim?: string;
+};
+
+export function emailDatasParaAprovar(o: {
+  nome: string;
+  itens: DataParaAprovar[];
+  link: string;
+}) {
+  const n = o.itens.length;
+  const uma = n === 1;
+
+  // Ate dez na lista. Passando disso o e-mail vira uma planilha, e a planilha
+  // de verdade esta na tela - que e para onde o botao leva.
+  const mostrar = o.itens.slice(0, 10);
+  const sobra = n - mostrar.length;
+
+  const linhas: Array<[string, string]> = mostrar.map(function (i): [string, string] {
+    const quando = i.dataFim && i.dataFim !== i.data
+      ? escapar(i.data) + " a " + escapar(i.dataFim)
+      : escapar(i.data);
+    return [quando, escapar(i.unidade) + (i.local ? " · " + escapar(i.local) : "")];
+  });
+
+  const paragrafos = [
+    uma
+      ? "A APSIS enviou <b>uma data</b> para a sua aprovação."
+      : "A APSIS enviou <b>" + n + " datas</b> para a sua aprovação.",
+    "No portal você <b>aprova a data</b> ou <b>sugere outra</b>. Enquanto não " +
+    "houver resposta, a visita não é marcada e o responsável da unidade não é avisado."
+  ];
+  if (sobra > 0) {
+    paragrafos.push("Abaixo estão as dez primeiras. As outras <b>" + sobra +
+      "</b> estão no portal.");
+  }
+
+  return montarEmail({
+    titulo: uma ? "Uma data esperando a sua aprovação" : "Datas esperando a sua aprovação",
+    subtitulo: "Auditoria de unidades EPO · Claro",
+    saudacao: saudacaoDe(o.nome),
+    paragrafos: paragrafos,
+    quadro: { rotulo: uma ? "Data enviada" : "Datas enviadas", linhas: linhas },
+    botao: { texto: uma ? "Aprovar ou sugerir outra data" : "Aprovar ou sugerir outras datas",
+             href: o.link }
+  });
+}
+
 export function montarEmail(o: Email) {
   const paragrafos = (o.paragrafos || []).map(function (p) {
     return '<p style="margin:0 0 14px;font-size:13.5px;line-height:1.6;color:' + APOIO + ';">' + p + "</p>";

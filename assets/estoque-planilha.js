@@ -22,7 +22,7 @@
   // acrescentar mais um endereco a lista de script permitido; guardar o arquivo
   // junto e melhor: uma origem a menos de onde pode vir codigo executavel, e a
   // importacao deixa de depender de um servico de terceiro estar no ar.
-  var CDN = "assets/xlsx.full.min.js?v=131";
+  var CDN = "assets/xlsx.full.min.js?v=132";
 
   // Nome das colunas aceitas. Quem preenche renomeia cabeçalho, escreve com
   // acento, sem acento, maiúscula: tudo isso tem que continuar funcionando.

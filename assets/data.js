@@ -354,15 +354,15 @@
   //
   // - realizadas e giro sao as "Telas inativas", que ainda nao entraram em uso.
   //   O menu ja as escondia de quem nao e administracao, mas esconder nao e
-  //   barrar: o endereco digitado a mao abria, porque o preset dizia true;
-  //   - acessos e a tela de Gerenciamento de acessos. Liberar acesso ao sistema
-  //   e decisao da APSIS, e a matriz do servidor ja registrava isso como negado.
-  //   O preset dizia o contrario, e era ele que valia quando a matriz nao
-  //   chegava.
+  //   barrar: o endereco digitado a mao abria, porque o preset dizia true.
+  //
+  // A tela de acessos FICA: a gerencia da Claro libera acesso para a propria
+  // equipe. O que ela pode conceder e limitado no servidor - nunca administracao,
+  // coordenacao nem equipe de campo, que sao os papeis que produzem o laudo.
   var visaoGerenciaClaro = {
     epos: true,  geral: true,  ranking: true,  detalhe: true,  comparativo: true,  gerencial: true,
     pendentes: true,  realizadas: false, auditoria: true,  checagem: true,  alocacoes: true,
-    giro: false, evidencias: true,   acessos: false, questionarios: true,
+    giro: false, evidencias: true,   acessos: true,  questionarios: true,
     cronograma: true
   };
 

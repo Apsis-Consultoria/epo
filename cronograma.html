@@ -24,10 +24,10 @@
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=131">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/favicon-claro.svg?v=132">
   <!-- Reserva: o Safari nao usa favicon em SVG. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=131">
-  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=131">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png?v=132">
+  <link rel="apple-touch-icon" href="assets/brand/favicon-180.png?v=132">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -35,10 +35,10 @@
   <title>Cronograma - Auditoria de EPOs</title>
 
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/fonts/tabler-icons.woff2?v3.11.0">
-  <link rel="stylesheet" href="assets/icones.css?v=131">
+  <link rel="stylesheet" href="assets/icones.css?v=132">
 
-  <link rel="stylesheet" href="assets/carregando.css?v=131">
-  <link rel="stylesheet" href="assets/app.css?v=131">
+  <link rel="stylesheet" href="assets/carregando.css?v=132">
+  <link rel="stylesheet" href="assets/app.css?v=132">
 </head>
 <body>
   <div class="tela-carregando" id="tela-carregando" role="status" aria-label="Carregando">
@@ -52,16 +52,16 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=131"></script>
-  <script src="assets/app.js?v=131"></script>
-  <script src="assets/supabase-config.js?v=131"></script>
+  <script src="assets/data.js?v=132"></script>
+  <script src="assets/app.js?v=132"></script>
+  <script src="assets/supabase-config.js?v=132"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/auth.js?v=131"></script>
-  <script src="assets/geo-br.js?v=131"></script>
-  <script src="assets/cronograma-planilha.js?v=131"></script>
-  <script src="assets/form-epo.js?v=131"></script>
+  <script src="assets/auth.js?v=132"></script>
+  <script src="assets/geo-br.js?v=132"></script>
+  <script src="assets/cronograma-planilha.js?v=132"></script>
+  <script src="assets/form-epo.js?v=132"></script>
   <script>
     (function () {
       "use strict";
@@ -1295,8 +1295,38 @@
           p_item: id, p_inicio: ini.value, p_fim: (fim && fim.value) || null,
           p_semana: null, p_observacao: null, p_enviar: !!enviar
         }, botaoEl).then(function (ok) {
-          if (ok) App.toast(enviar ? "Data enviada para a Claro." : "Data guardada.");
+          if (!ok) return;
+          if (!enviar) { App.toast("Data guardada."); return; }
+          App.toast("Data enviada para a Claro.");
+          avisarGerencia();
         });
+      }
+
+      // O e-mail para a gerencia da Claro: ha data esperando aprovacao.
+      //
+      // Sai daqui para chegar na hora - a tarefa diaria tambem manda, mas
+      // esperar a madrugada e um dia inteiro de cronograma parado.
+      //
+      // Nao leva id nenhum: quem decide o que avisar e o banco, que ja sabe o
+      // que esta esperando e o que ja foi avisado. Por isso chamar duas vezes
+      // nao manda o e-mail duas vezes.
+      //
+      // Falha em silencio de proposito. A data FOI enviada; se o e-mail nao
+      // saiu, dizer "nao deu certo" faria a pessoa mandar de novo achando que
+      // nao valeu. A tarefa diaria pega o que ficou.
+      var avisandoGerencia = false;
+      function avisarGerencia() {
+        if (DEMO || avisandoGerencia) return;
+        var cli = window.Auth ? Auth.cliente : null;
+        if (!cli || !cli.functions || !cli.functions.invoke) return;
+
+        // Uma chamada so quando varias datas saem em seguida: cada uma dispara
+        // este aviso, e o e-mail junta tudo que estiver esperando.
+        avisandoGerencia = true;
+        setTimeout(function () {
+          avisandoGerencia = false;
+          cli.functions.invoke("avisar-aprovacao", { body: {} }).then(function () {}, function () {});
+        }, 1500);
       }
 
       function tratarAcao(acao, id, botaoEl) {
